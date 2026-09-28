@@ -19,12 +19,24 @@ import {
   FileCheck,
   Cpu,
   Copy,
-  Check
+  Check,
+  Database,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { SAMPLE_MEETINGS } from '../constants/sampleMeetings';
-import { runMeetingSimulation } from '../utils/meetingSimulatorEngine';
+import { 
+  runMeetingSimulation, 
+  getEpisodicMemoryStore, 
+  clearEpisodicMemoryStore 
+} from '../utils/meetingSimulatorEngine';
 import { transcribeAudioUniversal, getProviderCredential } from '../services/llmService';
 import { getActiveApiKey } from '../services/geminiService';
+import { 
+  dispatchDistributedWorkflow, 
+  streamWorkflowTelemetry, 
+  checkGatewayHealth 
+} from '../services/backendConnector';
 
 export default function MeetingSimulator({
   activeUseCase,
@@ -43,6 +55,7 @@ export default function MeetingSimulator({
   const [simulationResult, setSimulationResult] = useState(null);
   const [activeOutputTab, setActiveOutputTab] = useState('summary');
   const [copiedHash, setCopiedHash] = useState(false);
+  const [executionMode, setExecutionMode] = useState('local'); // 'local' | 'cluster'
 
   const attachedPillars = nodes
     .filter(n => n.type === 'pillar')
@@ -109,6 +122,55 @@ export default function MeetingSimulator({
     setExecutionSteps([]);
     setSimulationResult(null);
 
+    if (executionMode === 'cluster') {
+      const health = await checkGatewayHealth();
+      if (health.online) {
+        try {
+          const dispatch = await dispatchDistributedWorkflow({
+            transcript: transcriptText,
+            agentConfig: activeUseCase.agent,
+            attachedPillars
+          });
+
+          // Stream real-time checkpoints via Server-Sent Events (SSE)
+          streamWorkflowTelemetry(dispatch.workflowId, {
+            onCheckpoint: (cp) => {
+              setExecutionSteps((prev) => [
+                ...prev,
+                {
+                  step: cp.stage,
+                  detail: JSON.stringify(cp.payload || {}),
+                  latencyMs: 120,
+                  timestamp: new Date().toLocaleTimeString()
+                }
+              ]);
+            },
+            onDone: async () => {
+              const localResult = await runMeetingSimulation({
+                transcript: transcriptText,
+                frameworkId: activeUseCase.framework.id,
+                agentConfig: activeUseCase.agent,
+                attachedPillars
+              });
+              setSimulationResult({
+                ...localResult,
+                clusterExecutionId: dispatch.workflowId
+              });
+              setIsRunning(false);
+            },
+            onError: () => {
+              setIsRunning(false);
+            }
+          });
+          return;
+        } catch (err) {
+          console.warn('Cluster dispatch failed, falling back to local simulation:', err);
+        }
+      } else {
+        alert('Cluster Gateway is not running on port 4000.\nRun "node server/index.js" in your terminal to start the cluster.\nFalling back to local in-browser execution.');
+      }
+    }
+
     const result = await runMeetingSimulation({
       transcript: transcriptText,
       frameworkId: activeUseCase.framework.id,
@@ -144,6 +206,42 @@ export default function MeetingSimulator({
           <p className="text-xs text-slate-500">
             Ingest meeting artifacts to trigger the visual agent graph execution.
           </p>
+        </div>
+
+        {/* Execution Mode Selector: Local vs Distributed Cluster */}
+        <div className="px-4 py-2 bg-[#001E50] text-white flex items-center justify-between text-xs border-b border-[#00338D]">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-300 font-bold flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5 text-[#0091DA]" />
+            Engine:
+          </span>
+          <div className="flex items-center gap-1 bg-black/30 p-0.5 border border-white/10">
+            <button
+              onClick={() => setExecutionMode('local')}
+              className={`px-2 py-0.5 text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                executionMode === 'local'
+                  ? 'bg-[#00338D] text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              In-Browser
+            </button>
+            <button
+              onClick={async () => {
+                const health = await checkGatewayHealth();
+                if (!health.online) {
+                  alert('KEAOS Cluster Gateway is offline at http://localhost:4000.\nTo launch the cluster, run in your terminal:\n\nnode server/index.js');
+                }
+                setExecutionMode('cluster');
+              }}
+              className={`px-2 py-0.5 text-[10px] font-mono font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                executionMode === 'cluster'
+                  ? 'bg-[#009A44] text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>Cluster (Port 4000)</span>
+            </button>
+          </div>
         </div>
 
         {/* Input Switcher (Tabs) */}
@@ -298,6 +396,19 @@ export default function MeetingSimulator({
           </div>
         </div>
 
+        {/* Active Episodic Memory Ingest Status */}
+        {attachedPillars.some(p => p.type === 'memory') && (
+          <div className="px-4 py-2.5 bg-[#EFEBF5] border-t border-[#483698]/30 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-[#483698]">
+              <Database className="w-3.5 h-3.5 shrink-0" />
+              <span className="font-bold text-[11px]">Episodic Memory Linked</span>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#483698]/20 text-[#483698] font-bold">
+              {getEpisodicMemoryStore().length} Commitments Primed
+            </span>
+          </div>
+        )}
+
         {/* Action Button */}
         <div className="p-4 border-t border-[#CBD5E1] bg-[#F8F9FB]">
           <button
@@ -420,6 +531,20 @@ export default function MeetingSimulator({
                   <Layers className="w-3.5 h-3.5 text-[#00A3A6]" />
                   <span>Action Items Matrix ({simulationResult.actionItems.length})</span>
                 </button>
+
+                <button
+                  onClick={() => setActiveOutputTab('memory')}
+                  className={`btn-tactile px-4 py-2 text-xs font-bold border-b-2 flex items-center gap-2 rounded-none transition-all ${
+                    activeOutputTab === 'memory'
+                      ? 'border-[#483698] text-[#483698] bg-[#FFFFFF] shadow-sm'
+                      : 'border-transparent text-slate-500 hover:text-[#0B0F19]'
+                  }`}
+                >
+                  <Database className="w-3.5 h-3.5 text-[#483698]" />
+                  <span>
+                    Episodic Memory ({simulationResult.memory?.hasMemory ? `${simulationResult.memory?.retrievedItems?.length || 0} Ingested` : 'Off'})
+                  </span>
+                </button>
               </div>
 
               {/* Tab Contents */}
@@ -493,6 +618,90 @@ export default function MeetingSimulator({
                         </tbody>
                       </table>
                     </div>
+                  </div>
+                )}
+
+                {activeOutputTab === 'memory' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-[#E0E0E0] pb-2">
+                      <div>
+                        <h4 className="text-xs font-bold text-[#483698] tracking-tight uppercase font-mono flex items-center gap-2">
+                          <Database className="w-4 h-4" />
+                          Cross-Session Episodic Memory Pipeline
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Dual-path read/write memory loop preserving institutional state across meeting executions.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Reset episodic memory store back to default seed commitments?')) {
+                              clearEpisodicMemoryStore();
+                              alert('Episodic memory store reset.');
+                            }
+                          }}
+                          className="btn-tactile text-[10px] font-mono font-bold px-2.5 py-1 bg-[#F8F9FB] border border-[#CBD5E1] text-slate-600 hover:bg-[#E0E0E0] flex items-center gap-1.5"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Reset Memory Store</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {simulationResult.memory?.hasMemory ? (
+                      <div className="space-y-4">
+                        {/* Read Path: What was ingested */}
+                        <div className="p-3 bg-[#EFEBF5] border border-[#483698]/30 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-[#483698] font-mono uppercase flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-[#483698]" />
+                              Input Ingest: Retrieved Prior Commitments ({simulationResult.memory.retrievedItems?.length || 0})
+                            </span>
+                            <span className="text-[10px] font-mono text-[#483698] font-bold px-2 py-0.5 rounded-full bg-[#483698]/10">
+                              Injected into Model Context
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {simulationResult.memory.retrievedItems?.map((mem, idx) => (
+                              <div key={idx} className="p-2.5 bg-[#FFFFFF] border border-[#483698]/20 text-xs text-slate-700 flex items-start gap-2.5 shadow-xs">
+                                <span className="font-mono text-[10px] px-1.5 py-0.5 bg-[#483698]/10 text-[#483698] font-bold shrink-0">
+                                  {mem.date || 'Historical'}
+                                </span>
+                                <span className="font-mono text-[10px] font-bold uppercase text-[#483698] shrink-0">
+                                  [{mem.type || 'NOTE'}]:
+                                </span>
+                                <span className="text-[11px] leading-relaxed text-[#0B0F19]">{mem.text || mem.task}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Write Path: What was saved */}
+                        <div className="p-3 bg-[#E6F5EC] border border-[#009A44]/30 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-[#009A44] font-mono uppercase flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-[#009A44]" />
+                              Output Commit: Saved New Deliverables to Memory
+                            </span>
+                            <span className="text-[10px] font-mono text-[#009A44] font-bold px-2 py-0.5 rounded-full bg-[#009A44]/10">
+                              +{simulationResult.memory.newCommittedCount} Committed to Local Persistent Store
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600">
+                            The newly synthesized decisions and action items from this meeting have been committed into the persistent store. When you run future meetings, the agent will recall these commitments to evaluate follow-through.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 bg-[#F8F9FB] border border-[#CBD5E1] text-center space-y-2">
+                        <Database className="w-8 h-8 text-slate-400 mx-auto" />
+                        <h5 className="text-xs font-bold text-[#0B0F19]">Stateless Execution Mode</h5>
+                        <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                          No Memory pillar was connected to the agent on the visual canvas. Drag an <span className="font-bold text-[#483698]">Episodic Memory</span> or <span className="font-bold text-[#483698]">Vector Store</span> block and wire it into the <span className="font-mono font-bold text-[#483698]">memory-in</span> socket to enable historical cross-meeting reasoning.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

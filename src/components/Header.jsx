@@ -14,7 +14,8 @@ export default function Header({
   viewMode,
   activeUseCase,
   hasApiKey,
-  configuredCount
+  configuredCount,
+  onOpenClusterModal
 }) {
   const VIEW_TITLES = {
     canvas: { label: 'Visual Canvas & Topology Engine', icon: Layers },
@@ -47,6 +48,18 @@ export default function Header({
 
       {/* Clean Telemetry & Status Badges */}
       <div className="flex items-center gap-4">
+        {/* Execution Cluster Engine Badge */}
+        <button
+          onClick={onOpenClusterModal}
+          className="btn-tactile flex items-center gap-1.5 px-2.5 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10px] font-mono font-bold rounded-none transition-all cursor-pointer"
+          title="Click to view distributed execution plane diagnostics and live sandbox runner"
+        >
+          <Cpu className="w-3.5 h-3.5 text-[#0091DA]" />
+          <span>Cluster Fleet</span>
+        </button>
+
+        <div className="h-4 w-px bg-white/20" />
+
         {/* Active Model Engine Badge */}
         <div className="flex items-center gap-2 text-xs font-mono">
           <span className="text-[10px] text-slate-400 uppercase font-bold">Inference:</span>

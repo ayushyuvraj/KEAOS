@@ -207,6 +207,7 @@ export async function synthesizeMeetingUniversal({
   modelId = 'gemini-2.0-flash',
   transcript,
   systemPrompt,
+  memoryContext = null,
   temperature = 0.2
 }) {
   const credential = getProviderCredential(provider);
@@ -214,8 +215,17 @@ export async function synthesizeMeetingUniversal({
     throw new Error(`No credential configured for ${PROVIDERS[provider]?.name || provider}. Please set it in API Configuration.`);
   }
 
+  const memoryBlock = memoryContext && memoryContext.trim().length > 0
+    ? `
+[HISTORICAL EPISODIC MEMORY & PAST COMMITMENTS]:
+The following historical commitments, previous action items, and project constraints were retrieved from the memory store. Take these into account when analyzing the current transcript, noting if previous commitments were kept, delayed, or altered:
+${memoryContext.trim()}
+`
+    : '';
+
   const structuredPrompt = `
 Analyze the following meeting transcript with high analytical precision.
+${memoryBlock}
 You MUST output your response in valid JSON matching this exact structure:
 {
   "summary": ["bullet 1", "bullet 2", "bullet 3"],
@@ -233,7 +243,7 @@ You MUST output your response in valid JSON matching this exact structure:
   "sentiment": "Brief tone, team morale and conflict summary"
 }
 
-Transcript:
+Current Meeting Transcript:
 ${transcript}
 `;
 

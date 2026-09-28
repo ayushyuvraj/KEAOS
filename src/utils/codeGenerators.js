@@ -6,6 +6,7 @@ export function generateFrameworkCode(frameworkId, agentConfig, attachments) {
   const hasPii = attachments.policies?.some(p => p.id === 'pol-pii-masker');
   const hasMcpCalendar = attachments.mcp?.some(m => m.id === 'mcp-google-calendar');
   const hasMcpSlack = attachments.mcp?.some(m => m.id === 'mcp-slack');
+  const hasMemory = attachments.memory && (Array.isArray(attachments.memory) ? attachments.memory.length > 0 : Boolean(attachments.memory.id || attachments.memory.type));
 
   switch (frameworkId) {
     case 'google-adk':
@@ -35,7 +36,6 @@ generation_config = types.GenerateContentConfig(
 ${hasAudioTool ? `# 4. Audio Transcription Tool (Whisper / Speech-to-Text)
 def transcribe_mp3_audio(audio_path: str) -> str:
     """Ingests MP3 meeting recording and transcribes into speaker-diarized text."""
-    # Ingest audio via Google Gemini native multimodal audio or Whisper API
     uploaded_file = client.files.upload(file=audio_path)
     response = client.models.generate_content(
         model="${modelName}",
@@ -43,26 +43,38 @@ def transcribe_mp3_audio(audio_path: str) -> str:
     )
     return response.text
 ` : ''}
-${hasPii ? `# 5. Gateway Policy: PII Masking
+${hasMemory ? `# 5. Episodic Memory Store (Cross-Session Context RAG)
+def recall_episodic_memory() -> str:
+    """Recalls past sprint commitments, unresolved tasks, and corporate constraints."""
+    historical_commitments = [
+        "[2026-09-14] Leadership approved Q3 GPU cluster expansion capped at $45k/mo.",
+        "[2026-09-16] Priya Patel committed to publish latency benchmarks by Tuesday."
+    ]
+    return "\\n".join(f"- {c}" for c in historical_commitments)
+` : ''}
+${hasPii ? `# 6. Gateway Policy: PII Masking
 def apply_pii_sanitization(transcript: str) -> str:
     import re
     # Mask salaries, phone numbers, and compensation details
     redacted = re.sub(r'\\$[0-9,]+(\\.[0-9]{2})?', '[CONFIDENTIAL_FINANCIAL_INFO]', transcript)
     return redacted
 ` : ''}
-# 6. Core Meeting Intelligence Execution
+# 7. Core Meeting Intelligence Execution
 def run_meeting_intelligence(transcript_content: str):
     print("Executing Google ADK Meeting Intelligence Agent...")
     ${hasPii ? 'sanitized_transcript = apply_pii_sanitization(transcript_content)' : 'sanitized_transcript = transcript_content'}
+    ${hasMemory ? 'memory_context = recall_episodic_memory()' : ''}
     
     prompt = f"""
-    Analyze the following meeting transcript and produce:
+    Analyze the following meeting transcript.
+    ${hasMemory ? 'HISTORICAL EPISODIC MEMORY & PAST COMMITMENTS:\\n{memory_context}\\n' : ''}
+    Produce:
     1. Executive Summary (concise bullet points)
     2. Key Decisions Register
     3. Action Items list (Assignee, Task, Deadline)
     4. Sentiment Analysis
     
-    Transcript:
+    Current Transcript:
     {sanitized_transcript}
     """
     
@@ -89,11 +101,13 @@ from typing import Annotated, TypedDict, List
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
+${hasMemory ? 'from langgraph.checkpoint.memory import MemorySaver' : ''}
 
 # 1. Define Typed Agent State
 class MeetingState(TypedDict):
     raw_transcript: str
     sanitized_transcript: str
+    ${hasMemory ? 'prior_commitments: List[str]' : ''}
     executive_summary: str
     action_items: List[dict]
     decisions: List[str]
@@ -102,7 +116,6 @@ class MeetingState(TypedDict):
 # 2. Node: Ingestion & PII Redaction
 def pii_guard_node(state: MeetingState):
     raw = state["raw_transcript"]
-    # Redact sensitive compensation numbers
     import re
     cleaned = re.sub(r'\\$[0-9,]+', '[REDACTED_FINANCIAL]', raw)
     return {"sanitized_transcript": cleaned}
@@ -110,8 +123,9 @@ def pii_guard_node(state: MeetingState):
 # 3. Node: Reasoning & Synthesis
 def meeting_agent_node(state: MeetingState):
     llm = ChatOpenAI(model="gpt-4o", temperature=${agentConfig.temperature || 0.2})
+    ${hasMemory ? 'history_str = "\\n".join(state.get("prior_commitments", []))\n    mem_prompt = f"\\nPrior Commitments:\\n{history_str}\\n" if history_str else ""' : 'mem_prompt = ""'}
     messages = [
-        SystemMessage(content="""${systemPrompt}"""),
+        SystemMessage(content="""${systemPrompt}""" + mem_prompt),
         HumanMessage(content=f"Analyze transcript:\\n{state['sanitized_transcript']}")
     ]
     response = llm.invoke(messages)
@@ -129,11 +143,14 @@ workflow.set_entry_point("pii_guard")
 workflow.add_edge("pii_guard", "meeting_agent")
 workflow.add_edge("meeting_agent", END)
 
-app = workflow.compile()
+${hasMemory ? '# 5. Compile with State Checkpointer for Episodic Memory\ncheckpointer = MemorySaver()\napp = workflow.compile(checkpointer=checkpointer)' : 'app = workflow.compile()'}
 
 if __name__ == "__main__":
-    initial_state = {"raw_transcript": "Sarah: $45K approved for GPU cluster."}
-    output = app.invoke(initial_state)
+    initial_state = {
+        "raw_transcript": "Sarah: $45K approved for GPU cluster.",
+        ${hasMemory ? '"prior_commitments": ["[2026-09-14] Approved GPU expansion roadmap."]' : ''}
+    }
+    ${hasMemory ? 'config = {"configurable": {"thread_id": "session-sync-101"}}\n    output = app.invoke(initial_state, config=config)' : 'output = app.invoke(initial_state)'}
     print("LangGraph Output:", output["executive_summary"])
 `;
 
@@ -160,15 +177,21 @@ class MeetingSynthesis(BaseModel):
 
 # 2. Prompt & Model Chain
 llm = ChatGoogleGenerativeAI(model="${modelName}", temperature=${agentConfig.temperature || 0.2})
-prompt = ChatPromptTemplate.from_messages([
+${hasMemory ? `prompt = ChatPromptTemplate.from_messages([
+    ("system", """${systemPrompt}\\n\\nPRIOR EPISODIC MEMORY:\\n{memory_context}"""),
+    ("human", "Meeting Transcript:\\n{transcript}")
+])` : `prompt = ChatPromptTemplate.from_messages([
     ("system", """${systemPrompt}"""),
     ("human", "Meeting Transcript:\\n{transcript}")
-])
+])`}
 
 structured_agent = prompt | llm.with_structured_output(MeetingSynthesis)
 
 if __name__ == "__main__":
-    result = structured_agent.invoke({"transcript": "David: Need $45k. Priya: Will deliver benchmark report Tuesday."})
+    inputs = {
+        "transcript": "David: Need $45k. Priya: Will deliver benchmark report Tuesday."${hasMemory ? ',\n        "memory_context": "[2026-09-14] GPU cluster expansion budget capped at $45,000/mo."' : ''}
+    }
+    result = structured_agent.invoke(inputs)
     print("Summary:", result.executive_summary)
     print("Action Items:", result.action_items)
 `;
@@ -196,7 +219,7 @@ user_proxy = autogen.UserProxyAgent(
 # 2. Core Meeting Intelligence Agent
 meeting_analyst = autogen.AssistantAgent(
     name="MeetingAnalyst",
-    system_message="""${systemPrompt}""",
+    system_message="""${systemPrompt}"""${hasMemory ? ' + "\\nPrior Commitments: [2026-09-14] Leadership capped GPU cluster budget at $45k/mo."' : ''},
     llm_config={"config_list": config_list, "temperature": ${agentConfig.temperature || 0.2}}
 )
 
@@ -261,7 +284,7 @@ action_task = Task(
 meeting_crew = Crew(
     agents=[meeting_scribe, action_item_officer],
     tasks=[transcription_task, action_task],
-    process=Process.sequential
+    process=Process.sequential${hasMemory ? ',\n    memory=True  # Enables long-term episodic & short-term vector memory' : ''}
 )
 
 if __name__ == "__main__":

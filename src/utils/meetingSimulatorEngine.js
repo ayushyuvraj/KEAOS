@@ -4,6 +4,55 @@ import {
   PROVIDERS 
 } from '../services/llmService';
 
+export const EPISODIC_MEMORY_STORAGE_KEY = 'keaos_episodic_memory_store';
+
+export function getEpisodicMemoryStore() {
+  try {
+    const raw = localStorage.getItem(EPISODIC_MEMORY_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to parse episodic memory store', e);
+  }
+  // Default seed memory representing prior historical sprint & executive commitments
+  return [
+    {
+      id: 'MEM-SEED-01',
+      date: '2026-09-14',
+      type: 'decision',
+      text: 'Leadership approved Q3 GPU cluster expansion with a $45,000/mo cap.'
+    },
+    {
+      id: 'MEM-SEED-02',
+      date: '2026-09-16',
+      type: 'commitment',
+      text: 'Priya Patel committed to run latency benchmarking and publish results by Tuesday 5 PM.'
+    },
+    {
+      id: 'MEM-SEED-03',
+      date: '2026-09-18',
+      type: 'policy',
+      text: 'Enterprise NDA prohibits unreleased patent code discussion without legal clearance.'
+    }
+  ];
+}
+
+export function saveEpisodicMemoryStore(items) {
+  try {
+    localStorage.setItem(EPISODIC_MEMORY_STORAGE_KEY, JSON.stringify(items));
+  } catch (e) {
+    console.error('Failed to save episodic memory store', e);
+  }
+}
+
+export function clearEpisodicMemoryStore() {
+  try {
+    localStorage.removeItem(EPISODIC_MEMORY_STORAGE_KEY);
+  } catch (e) {}
+}
+
 export async function runMeetingSimulation({
   transcript,
   frameworkId,
@@ -40,12 +89,19 @@ export async function runMeetingSimulation({
     logStep('Gateway Pass-through', `Ingress rate limiter checked. No PII policy attached.`, 40);
   }
 
-  // Step 3: Memory Lookup
+  // Step 3: Real Episodic Memory Lookup
   const hasMemory = attachedPillars.some(p => p.type === 'memory');
+  let memoryContext = null;
+  let retrievedMemoryItems = [];
+
   if (hasMemory) {
-    logStep('Episodic Memory Query', `Loaded historical project commitments: 'Verify SLA status & vendor dependencies'.`, 110);
+    retrievedMemoryItems = getEpisodicMemoryStore();
+    memoryContext = retrievedMemoryItems
+      .map(m => `• [${m.date || 'Historical'}] (${m.type?.toUpperCase() || 'NOTE'}): ${m.text || m.task || JSON.stringify(m)}`)
+      .join('\n');
+    logStep('Episodic Memory Query (Live)', `Loaded ${retrievedMemoryItems.length} historical commitments across past sessions into model context.`, 110);
   } else {
-    logStep('Memory Bypass', `Stateless execution mode.`, 25);
+    logStep('Memory Bypass', `Stateless execution mode. No memory pillar connected.`, 25);
   }
 
   // Step 4: Model Execution (LIVE Real Multi-LLM API or Deterministic Fallback)
@@ -70,7 +126,7 @@ export async function runMeetingSimulation({
   const credential = getProviderCredential(provider);
 
   if (credential) {
-    // REAL LIVE MULTI-LLM API INFERENCE CALL
+    // REAL LIVE MULTI-LLM API INFERENCE CALL WITH MEMORY CONTEXT
     logStep(`Core Model (${PROVIDERS[provider]?.name || provider})`, `Executing live API request to ${modelDisplayName}...`, 0);
     try {
       const realResult = await synthesizeMeetingUniversal({
@@ -78,6 +134,7 @@ export async function runMeetingSimulation({
         modelId,
         transcript: processedTranscript,
         systemPrompt: agentConfig.prompt,
+        memoryContext,
         temperature: agentConfig.temperature || 0.2
       });
 
@@ -144,6 +201,33 @@ export async function runMeetingSimulation({
     }
   }
 
+  // Step 8: Episodic Memory State Commit (Write Back)
+  let newMemoryCount = 0;
+  if (hasMemory && (actionItems.length > 0 || decisions.length > 0)) {
+    const existingStore = getEpisodicMemoryStore();
+    const today = new Date().toISOString().split('T')[0];
+    
+    const newItems = [
+      ...decisions.map((dec, i) => ({
+        id: `DEC-${Date.now()}-${i}`,
+        date: today,
+        type: 'decision',
+        text: dec
+      })),
+      ...actionItems.map((act, i) => ({
+        id: `ACT-${Date.now()}-${i}`,
+        date: today,
+        type: 'commitment',
+        text: `${act.assignee}: ${act.task} (Deadline: ${act.deadline || 'TBD'})`
+      }))
+    ];
+
+    const updatedStore = [...newItems, ...existingStore].slice(0, 25);
+    saveEpisodicMemoryStore(updatedStore);
+    newMemoryCount = newItems.length;
+    logStep('Episodic Memory Commit', `Committed ${newMemoryCount} new decisions & commitments into persistent memory store.`, 45);
+  }
+
   // Financial ROI
   const costUsd = Number(((totalTokens / 1_000_000) * 0.35).toFixed(4));
   const humanMinutesSaved = 35;
@@ -162,6 +246,11 @@ export async function runMeetingSimulation({
     actionItems,
     sentiment: sentimentScore,
     auditHash,
+    memory: {
+      hasMemory,
+      retrievedItems: retrievedMemoryItems,
+      newCommittedCount: newMemoryCount
+    },
     observability: {
       totalLatencyMs: totalRuntimeMs,
       totalTokens,
@@ -178,3 +267,4 @@ export async function runMeetingSimulation({
     }
   };
 }
+

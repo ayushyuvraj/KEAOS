@@ -12,8 +12,9 @@ if not exist node_modules (
     call npm install
 )
 
-echo [KEAOS] Opening browser at http://localhost:5173...
-start http://localhost:5173/
+echo [KEAOS] Starting High-Concurrency Execution Gateway (Port 4000)...
+start /B node server/index.js
 
 echo [KEAOS] Launching Vite development server...
-call npm run dev
+call npm run dev -- --open --host 127.0.0.1
+

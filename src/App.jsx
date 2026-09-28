@@ -9,6 +9,7 @@ import MeetingSimulator from './components/MeetingSimulator';
 import EvaluationView from './components/EvaluationView';
 import CodeExportView from './components/CodeExportView';
 import ApiSettingsModal from './components/ApiSettingsModal';
+import ClusterDiagnosticsModal from './components/ClusterDiagnosticsModal';
 import AuditExplorerView from './components/screens/AuditExplorerView';
 import ObservabilityView from './components/screens/ObservabilityView';
 import PillarCatalogView from './components/screens/PillarCatalogView';
@@ -300,6 +301,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState('canvas'); // 'canvas' | 'simulator' | 'evaluation' | 'code'
   const [isMakeModalOpen, setIsMakeModalOpen] = useState(false);
   const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
+  const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
   const [apiSettingsTab, setApiSettingsTab] = useState('google');
   const [configuredCount, setConfiguredCount] = useState(getAllConfiguredProviders().length);
   const [hasApiKey, setHasApiKey] = useState(getAllConfiguredProviders().length > 0 || Boolean(getActiveApiKey()));
@@ -474,6 +476,7 @@ export default function App() {
           activeUseCase={activeUseCase}
           hasApiKey={hasApiKey}
           configuredCount={configuredCount}
+          onOpenClusterModal={() => setIsClusterModalOpen(true)}
         />
 
         <main className="flex-1 flex overflow-hidden relative">
@@ -584,6 +587,12 @@ export default function App() {
           setConfiguredCount(count);
           setHasApiKey(count > 0 || Boolean(getActiveApiKey()));
         }}
+      />
+
+      {/* Cluster Diagnostics & Sandbox Fleet Modal */}
+      <ClusterDiagnosticsModal
+        isOpen={isClusterModalOpen}
+        onClose={() => setIsClusterModalOpen(false)}
       />
     </div>
   );
