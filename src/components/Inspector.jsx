@@ -14,7 +14,8 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Upload,
-  FileText
+  FileText,
+  Save
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { PROVIDERS, getProviderCredential, isFixedTemperatureModel } from '../services/llmService';
@@ -53,6 +54,7 @@ export default function Inspector({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [customTokens, setCustomTokens] = useState([]);
   const [newCustomToken, setNewCustomToken] = useState('');
+  const [savedNotification, setSavedNotification] = useState(false);
 
   useEffect(() => {
     if (selectedNode) {
@@ -233,104 +235,28 @@ export default function Inspector({
               </p>
             </div>
 
-            {/* Universal & Dynamic Injection Tokens */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
-                  Dynamic Injection Tokens
-                  <InfoTooltip text="Placeholders (like {{user_input}} or {{transcript}}) that automatically insert real-time data into your agent's instructions when running." align="right" />
-                </span>
-                <span className="text-[9px] font-mono text-slate-400">Click to insert</span>
-              </div>
-
-              {/* Universal Tokens */}
-              <div className="mb-2">
-                <span className="text-[9px] font-mono text-slate-400 block mb-1 uppercase tracking-tight">
-                  Universal (Any Task)
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {['{{user_input}}', '{{attached_tools}}', '{{memory_context}}', '{{policy_rules}}'].map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => onUpdateAgentConfig({ prompt: (agentConfig.prompt || '') + ` ${tag}` })}
-                      className="btn-tactile text-[9px] font-mono px-2 py-0.5 bg-[#00338D]/10 hover:bg-[#00338D] text-[#00338D] hover:text-white border border-[#00338D]/30 transition-colors font-bold"
-                      title="Insert universal token"
-                    >
-                      + {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Domain Specific & Custom Tokens */}
-              <div className="mb-2">
-                <span className="text-[9px] font-mono text-slate-400 block mb-1 uppercase tracking-tight">
-                  Domain & Custom Variables
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {['{{transcript}}', '{{attendees}}', '{{meeting_date}}', '{{past_commitments}}', ...customTokens].map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => onUpdateAgentConfig({ prompt: (agentConfig.prompt || '') + ` ${tag}` })}
-                      className="btn-tactile text-[9px] font-mono px-2 py-0.5 bg-[#F1F5F9] hover:bg-[#0091DA] text-slate-700 hover:text-white border border-slate-300 hover:border-[#0091DA] transition-colors font-medium"
-                      title="Insert token into prompt"
-                    >
-                      + {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Add Custom Token Input */}
-              <div className="flex items-center gap-1 mt-1.5">
-                <input
-                  type="text"
-                  value={newCustomToken}
-                  onChange={(e) => setNewCustomToken(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newCustomToken.trim()) {
-                      e.preventDefault();
-                      const cleaned = newCustomToken.trim().replace(/^\{+|\}+$/g, '');
-                      const formatted = `{{${cleaned}}}`;
-                      if (!customTokens.includes(formatted)) {
-                        setCustomTokens([...customTokens, formatted]);
-                      }
-                      setNewCustomToken('');
-                    }
-                  }}
-                  placeholder="e.g. invoice_data"
-                  className="flex-1 px-2 py-1 bg-white border border-[#CBD5E1] text-[10px] font-mono text-[#0B0F19] rounded-none focus:outline-none focus:border-[#00338D]"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newCustomToken.trim()) {
-                      const cleaned = newCustomToken.trim().replace(/^\{+|\}+$/g, '');
-                      const formatted = `{{${cleaned}}}`;
-                      if (!customTokens.includes(formatted)) {
-                        setCustomTokens([...customTokens, formatted]);
-                      }
-                      setNewCustomToken('');
-                    }
-                  }}
-                  className="px-2.5 py-1 bg-[#00338D] hover:bg-[#005EB8] text-white text-[10px] font-mono font-bold transition-colors"
-                >
-                  + Add
-                </button>
-              </div>
-            </div>
-
-            {/* Architectural Clarification: Model Hyperparameters live on Model Pillar */}
-            <div className="pt-3 border-t border-[#E0E0E0]">
-              <div className="p-3 bg-[#F8FAFC] border border-[#CBD5E1]">
-                <div className="flex items-center gap-2 mb-1">
-                  <Cpu className="w-3.5 h-3.5 text-[#00338D]" />
-                  <span className="text-xs font-bold text-[#0B0F19]">Model Sampling Parameters</span>
-                </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Sampling hyperparameters (<code className="font-mono text-[#00338D] text-[10px]">Temperature</code> & <code className="font-mono text-[#00338D] text-[10px]">Top-P</code>) belong to the <strong>Foundation Model</strong>. To adjust them, click on the connected <strong>Model</strong> node on the canvas.
-                </p>
-              </div>
+            {/* Save Agent Specification Button */}
+            <div className="pt-4 border-t border-[#E0E0E0]">
+              <button
+                type="button"
+                onClick={() => {
+                  setSavedNotification(true);
+                  setTimeout(() => setSavedNotification(false), 2500);
+                }}
+                className="btn-tactile w-full flex items-center justify-center gap-2 py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-bold font-mono rounded-none transition-colors border-b-2 border-[#001E50] shadow-sm"
+              >
+                {savedNotification ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                    <span>Agent Specification Saved ✓</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Agent Specification</span>
+                  </>
+                )}
+              </button>
             </div>
           </>
         ) : isModel ? (
