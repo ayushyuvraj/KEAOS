@@ -428,20 +428,22 @@ export default function Inspector({
                     Temperature
                     <InfoTooltip text="Controls randomness: Lower numbers (0.0) make responses factual and focused; higher numbers (1.0) make responses more creative." align="left" />
                   </span>
-                  <span className="text-xs font-mono text-[#00338D] font-bold">{agentConfig.temperature}</span>
+                  <span className="text-xs font-mono text-[#00338D] font-bold">
+                    {Number(agentConfig.temperature ?? 0.2).toFixed(2)}
+                  </span>
                 </div>
                 <input
                   type="range"
-                  min="0.0"
-                  max="1.0"
-                  step="0.05"
-                  value={agentConfig.temperature}
-                  onChange={(e) => onUpdateAgentConfig({ temperature: parseFloat(e.target.value) })}
+                  min="0.00"
+                  max="1.00"
+                  step="0.01"
+                  value={agentConfig.temperature ?? 0.2}
+                  onChange={(e) => onUpdateAgentConfig({ temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) })}
                   className="w-full accent-[#00338D]"
                 />
                 <div className="flex justify-between text-[10px] text-slate-500 mt-0.5 font-mono">
-                  <span>Deterministic (0.0)</span>
-                  <span>Creative (1.0)</span>
+                  <span>Deterministic (0.00)</span>
+                  <span>Creative (1.00)</span>
                 </div>
               </div>
 
@@ -451,15 +453,17 @@ export default function Inspector({
                     Top-P
                     <InfoTooltip text="Filters word selection diversity: Lower values focus on the most likely words; higher values allow broader word variety." align="left" />
                   </span>
-                  <span className="text-xs font-mono text-[#00338D] font-bold">{agentConfig.topP || 0.95}</span>
+                  <span className="text-xs font-mono text-[#00338D] font-bold">
+                    {Number(agentConfig.topP ?? 0.95).toFixed(2)}
+                  </span>
                 </div>
                 <input
                   type="range"
-                  min="0.1"
-                  max="1.0"
-                  step="0.05"
-                  value={agentConfig.topP || 0.95}
-                  onChange={(e) => onUpdateAgentConfig({ topP: parseFloat(e.target.value) })}
+                  min="0.01"
+                  max="1.00"
+                  step="0.01"
+                  value={agentConfig.topP ?? 0.95}
+                  onChange={(e) => onUpdateAgentConfig({ topP: parseFloat(parseFloat(e.target.value).toFixed(2)) })}
                   className="w-full accent-[#00338D]"
                 />
               </div>
@@ -616,18 +620,18 @@ export default function Inspector({
                     <InfoTooltip text="Controls randomness: 0.0 is exact and deterministic, 1.0 is creative and diverse." align="left" />
                   </span>
                   <span className="text-xs font-mono text-[#00338D] font-bold">
-                    {nodeData.config?.temperature ?? 0.2}
+                    {Number(nodeData.config?.temperature ?? 0.2).toFixed(2)}
                   </span>
                 </div>
                 <input
                   type="range"
-                  min="0.0"
-                  max="1.0"
-                  step="0.05"
+                  min="0.00"
+                  max="1.00"
+                  step="0.01"
                   value={nodeData.config?.temperature ?? 0.2}
                   onChange={(e) => {
                     onUpdateNodeData(selectedNode.id, {
-                      config: { ...nodeData.config, temperature: parseFloat(e.target.value) }
+                      config: { ...nodeData.config, temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) }
                     });
                   }}
                   className="w-full accent-[#00338D]"
@@ -641,18 +645,18 @@ export default function Inspector({
                     <InfoTooltip text="Nucleus sampling threshold: Controls how many likely tokens are considered during generation." align="left" />
                   </span>
                   <span className="text-xs font-mono text-[#00338D] font-bold">
-                    {nodeData.config?.topP ?? 0.95}
+                    {Number(nodeData.config?.topP ?? 0.95).toFixed(2)}
                   </span>
                 </div>
                 <input
                   type="range"
-                  min="0.1"
-                  max="1.0"
-                  step="0.05"
+                  min="0.01"
+                  max="1.00"
+                  step="0.01"
                   value={nodeData.config?.topP ?? 0.95}
                   onChange={(e) => {
                     onUpdateNodeData(selectedNode.id, {
-                      config: { ...nodeData.config, topP: parseFloat(e.target.value) }
+                      config: { ...nodeData.config, topP: parseFloat(parseFloat(e.target.value).toFixed(2)) }
                     });
                   }}
                   className="w-full accent-[#00338D]"
