@@ -322,8 +322,27 @@ export default function App() {
   const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
   const [evaluationResult, setEvaluationResult] = useState(null);
 
-  // Add node from Palette
+  // Add node from Palette / Catalog
   const handleAddNode = useCallback((pillarKey, item) => {
+    if (pillarKey === 'agentCore') {
+      const newNodeId = `agent-${Date.now().toString().slice(-4)}`;
+      const newNode = {
+        id: newNodeId,
+        type: 'agentCore',
+        position: { x: 380, y: 220 },
+        data: {
+          name: item.name || 'Autonomous Agent Core',
+          framework: activeUseCase?.framework || { id: 'google-adk', name: 'Google ADK' },
+          prompt: activeUseCase?.agent?.prompt || 'You are an autonomous enterprise agent...',
+          temperature: 0.2,
+          topP: 0.95
+        }
+      };
+      setNodes((nds) => [...nds, newNode]);
+      setSelectedNode(newNode);
+      return;
+    }
+
     const newNodeId = `node-${pillarKey}-${Date.now().toString().slice(-4)}`;
     const pillarDef = PILLARS[pillarKey];
 
@@ -347,7 +366,7 @@ export default function App() {
 
     setNodes((nds) => [...nds, newNode]);
     setSelectedNode(newNode);
-  }, [setNodes]);
+  }, [setNodes, activeUseCase, handleDeleteNode]);
 
   // Handle deleting a node
   const handleDeleteNode = useCallback((nodeId) => {

@@ -43,6 +43,7 @@ import {
 
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
 import DeletableEdge from './edges/DeletableEdge';
+import NodeCatalogPanel from './NodeCatalogPanel';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
@@ -707,89 +708,22 @@ function CanvasInner({
         </div>
       </div>
 
-      {/* Clean Floating Add Node Palette Popover */}
-      {isAddMenuOpen && (
-        <div className={`absolute top-16 right-6 w-96 border rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${
-          isDarkMode ? 'bg-[#22242B] border-[#383B46] text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'
-        }`}>
-          <div className="p-3 border-b border-inherit flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Plus className="w-4 h-4 text-[#0091DA]" />
-              <span className="text-xs font-bold tracking-tight">Add Node Component</span>
-            </div>
-            <button onClick={() => setIsAddMenuOpen(false)} className="text-slate-400 hover:text-white p-1">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Quick Search */}
-          <div className="p-2.5 border-b border-inherit bg-black/10">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-              <input
-                type="text"
-                placeholder="Search models, memory, tools, skills..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border focus:outline-none ${
-                  isDarkMode ? 'bg-[#17191E] border-[#383B46] text-white focus:border-[#0091DA]' : 'bg-gray-50 border-gray-200 text-black'
-                }`}
-                autoFocus
-              />
-            </div>
-          </div>
-
-          {/* Pillar Category Tabs */}
-          <div className="flex items-center gap-1 p-2 border-b border-inherit overflow-x-auto text-[11px] font-medium">
-            {PILLAR_ORDER.map(key => {
-              const def = PILLARS[key];
-              const isActive = selectedCategory === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setSelectedCategory(key)}
-                  className={`px-2.5 py-1 rounded-md transition-colors shrink-0 ${
-                    isActive 
-                      ? 'bg-[#0091DA] text-white font-bold' 
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {def?.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Items List */}
-          <div className="max-h-64 overflow-y-auto p-2 space-y-1.5">
-            {PILLARS[selectedCategory]?.items
-              .filter(item => !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.description?.toLowerCase().includes(searchQuery.toLowerCase()))
-              .map(item => {
-                const ItemIcon = PILLAR_ICONS[selectedCategory] || Layers;
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => handleAddFromPalette(selectedCategory, item)}
-                    className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
-                      isDarkMode ? 'border-[#333642] bg-[#1E2026] hover:border-[#0091DA] hover:bg-[#252830]' : 'border-gray-200 bg-white hover:border-[#00338D]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                      <div className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center shrink-0">
-                        <ItemIcon className="w-4 h-4 text-[#0091DA]" />
-                      </div>
-                      <div className="truncate">
-                        <span className="text-xs font-bold block truncate">{item.name}</span>
-                        <span className="text-[10px] text-slate-400 truncate block">{item.description}</span>
-                      </div>
-                    </div>
-                    <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      )}
+      {/* n8n-Style Two-Tier Right Drawer Node Catalog Panel */}
+      <NodeCatalogPanel
+        isOpen={isAddMenuOpen}
+        onClose={() => setIsAddMenuOpen(false)}
+        onAddNode={(category, item) => {
+          if (onAddNode) {
+            onAddNode(category, item);
+          }
+          const toastMsg = `➕ Added "${item.name}" to Canvas`;
+          setToastNotification(toastMsg);
+          setTimeout(() => {
+            setToastNotification((curr) => (curr === toastMsg ? null : curr));
+          }, 2000);
+        }}
+        isDarkMode={isDarkMode}
+      />
 
       {/* Bottom-Left Minimal Square Controls (Matching Reference Image) */}
       <div className="absolute bottom-14 left-6 z-20 flex items-center gap-2">
