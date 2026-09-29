@@ -255,6 +255,98 @@ function CanvasInner({
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
   }, [takeSnapshot, setNodes, setEdges]);
 
+  // Handle node duplicate with snapshot
+  const handleDuplicateNode = useCallback((nodeId) => {
+    const nodeToClone = nodes.find(n => n.id === nodeId);
+    if (!nodeToClone) return;
+
+    takeSnapshot();
+    const newId = `${nodeToClone.data?.pillarType || nodeToClone.type || 'node'}-${Date.now().toString().slice(-4)}`;
+    const clonedNode = {
+      ...JSON.parse(JSON.stringify(nodeToClone)),
+      id: newId,
+      position: {
+        x: nodeToClone.position.x + 50,
+        y: nodeToClone.position.y + 50
+      },
+      selected: true
+    };
+
+    setNodes((nds) => [...nds.map(n => ({ ...n, selected: false })), clonedNode]);
+    const toastMsg = `📋 Duplicated "${nodeToClone.data?.name || 'Node'}"`;
+    setToastNotification(toastMsg);
+    setTimeout(() => {
+      setToastNotification((curr) => (curr === toastMsg ? null : curr));
+    }, 2000);
+  }, [nodes, takeSnapshot, setNodes]);
+
+  // Handle toggle deactivate node with snapshot
+  const handleToggleDeactivateNode = useCallback((nodeId) => {
+    takeSnapshot();
+    let statusText = '';
+    setNodes((nds) => nds.map((n) => {
+      if (n.id === nodeId) {
+        const nextState = !n.data.isDeactivated;
+        statusText = nextState 
+          ? `⏸️ Deactivated "${n.data?.name || 'Node'}"` 
+          : `▶️ Activated "${n.data?.name || 'Node'}"`;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            isDeactivated: nextState
+          }
+        };
+      }
+      return n;
+    }));
+
+    if (statusText) {
+      setToastNotification(statusText);
+      setTimeout(() => {
+        setToastNotification((curr) => (curr === statusText ? null : curr));
+      }, 2000);
+    }
+  }, [takeSnapshot, setNodes]);
+
+  // Handle copy node config to clipboard
+  const handleCopyNode = useCallback((nodeId) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    try {
+      const serialized = JSON.stringify(node, null, 2);
+      navigator.clipboard.writeText(serialized);
+      const toastMsg = `📋 Copied "${node.data?.name || 'Node'}" configuration`;
+      setToastNotification(toastMsg);
+      setTimeout(() => {
+        setToastNotification((curr) => (curr === toastMsg ? null : curr));
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy node', err);
+    }
+  }, [nodes]);
+
+  // Handle open inspector for node
+  const handleOpenInspector = useCallback((nodeId) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    if (onSelectNode) onSelectNode(node);
+    if (setIsInspectorOpen) setIsInspectorOpen(true);
+  }, [nodes, onSelectNode, setIsInspectorOpen]);
+
+  // Handle execute single step
+  const handleExecuteNode = useCallback((nodeId) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    setExecutionState({ isExecuting: true, step: `Executing ${node.data?.name || 'step'}...` });
+    const toastMsg = `⚡ Executing step: "${node.data?.name || 'Node'}"`;
+    setToastNotification(toastMsg);
+    setTimeout(() => {
+      setExecutionState({ isExecuting: false, step: '' });
+      setToastNotification((curr) => (curr === toastMsg ? null : curr));
+    }, 1500);
+  }, [nodes]);
+
   // Handle node removals (e.g. keyboard delete)
   const handleNodesChange = useCallback((changes) => {
     if (changes.some(c => c.type === 'remove')) {
@@ -384,10 +476,26 @@ function CanvasInner({
         isExecuting: n.type === 'agentCore' ? executionState.isExecuting : false,
         executionStep: n.type === 'agentCore' ? executionState.step : undefined,
         attachedCounts: n.type === 'agentCore' ? activeCounts : n.data.attachedCounts,
-        onDelete: n.type === 'pillar' ? handleDeleteNode : n.data.onDelete
+        onDelete: handleDeleteNode,
+        onDuplicate: handleDuplicateNode,
+        onToggleDeactivate: handleToggleDeactivateNode,
+        onCopy: handleCopyNode,
+        onOpenInspector: handleOpenInspector,
+        onExecute: handleExecuteNode
       }
     }));
-  }, [nodes, edges, isDarkMode, executionState, handleDeleteNode]);
+  }, [
+    nodes, 
+    edges, 
+    isDarkMode, 
+    executionState, 
+    handleDeleteNode, 
+    handleDuplicateNode, 
+    handleToggleDeactivateNode, 
+    handleCopyNode, 
+    handleOpenInspector, 
+    handleExecuteNode
+  ]);
 
   return (
     <div className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${

@@ -9,9 +9,23 @@ import {
   Sparkles, 
   Plus 
 } from 'lucide-react';
+import NodeActionToolbar from '../common/NodeActionToolbar';
 
-export default function AgentCoreNode({ data, selected }) {
-  const { name, framework, attachedCounts, isDarkMode, isExecuting } = data;
+export default function AgentCoreNode({ id, data, selected }) {
+  const { 
+    name, 
+    framework, 
+    attachedCounts, 
+    isDarkMode, 
+    isExecuting,
+    isDeactivated,
+    onExecute,
+    onToggleDeactivate,
+    onDelete,
+    onOpenInspector,
+    onDuplicate,
+    onCopy
+  } = data;
 
   const hasModel = (attachedCounts?.model || 0) > 0;
   const hasTools = (attachedCounts?.tools || 0) > 0;
@@ -21,11 +35,26 @@ export default function AgentCoreNode({ data, selected }) {
   const hasSkills = (attachedCounts?.skills || 0) > 0;
 
   return (
-    <div className="relative select-none flex flex-col items-center">
+    <div className="relative group select-none flex flex-col items-center">
+      {/* Floating Micro-Toolbar on Hover (Centered Above Antenna) */}
+      <NodeActionToolbar
+        nodeId={id}
+        nodeName={name}
+        isDeactivated={isDeactivated}
+        onExecute={onExecute}
+        onToggleDeactivate={onToggleDeactivate}
+        onDelete={onDelete}
+        onOpenInspector={onOpenInspector}
+        onDuplicate={onDuplicate}
+        onCopy={onCopy}
+        isDarkMode={isDarkMode}
+        className="-top-10 left-1/2 -translate-x-1/2"
+      />
+
       {/* ============================================================ */}
       {/* 1. ANTENNA / BRAIN (Chat Model Socket - Position.Top)         */}
       {/* ============================================================ */}
-      <div className="flex flex-col items-center z-10 -mb-1">
+      <div className={`flex flex-col items-center z-10 -mb-1 transition-opacity ${isDeactivated ? 'opacity-40' : ''}`}>
         {/* Antenna Orb / Transmitter Dish */}
         <div
           className={`relative group w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md ${
@@ -61,7 +90,7 @@ export default function AgentCoreNode({ data, selected }) {
           <Brain className={`w-4 h-4 transition-transform ${hasModel ? 'scale-110' : ''}`} />
 
           {/* Model Beacon Pulse when connected */}
-          {hasModel && (
+          {hasModel && !isDeactivated && (
             <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#0091DA] animate-ping" />
           )}
 
@@ -90,11 +119,13 @@ export default function AgentCoreNode({ data, selected }) {
       {/* ============================================================ */}
       <div
         className={`relative w-[270px] rounded-[26px] border-2 transition-all duration-200 shadow-2xl ${
-          isDarkMode
-            ? 'bg-[#1D2028] border-[#383C4A] text-white shadow-[0_16px_40px_rgba(0,0,0,0.6)]'
-            : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] shadow-[0_12px_32px_rgba(0,30,80,0.08)]'
+          isDeactivated
+            ? 'opacity-45 grayscale border-dashed border-slate-500 bg-slate-800/40'
+            : isDarkMode
+              ? 'bg-[#1D2028] border-[#383C4A] text-white shadow-[0_16px_40px_rgba(0,0,0,0.6)]'
+              : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] shadow-[0_12px_32px_rgba(0,30,80,0.08)]'
         } ${
-          isExecuting
+          !isDeactivated && isExecuting
             ? 'border-[#0091DA] ring-4 ring-[#0091DA]/30 shadow-[0_0_36px_rgba(0,145,218,0.5)]'
             : selected
               ? 'border-[#0091DA] ring-2 ring-[#0091DA]'
@@ -215,17 +246,21 @@ export default function AgentCoreNode({ data, selected }) {
             {/* Left Eye */}
             <div
               className={`w-3 h-6 rounded-full transition-all duration-300 ${
-                isExecuting
-                  ? 'bg-[#38BDF8] shadow-[0_0_20px_#38BDF8] scale-110 animate-pulse'
-                  : 'bg-[#0091DA] shadow-[0_0_12px_#0091DA]'
+                isDeactivated
+                  ? 'bg-slate-700 shadow-none'
+                  : isExecuting
+                    ? 'bg-[#38BDF8] shadow-[0_0_20px_#38BDF8] scale-110 animate-pulse'
+                    : 'bg-[#0091DA] shadow-[0_0_12px_#0091DA]'
               }`}
             />
             {/* Right Eye */}
             <div
               className={`w-3 h-6 rounded-full transition-all duration-300 ${
-                isExecuting
-                  ? 'bg-[#38BDF8] shadow-[0_0_20px_#38BDF8] scale-110 animate-pulse'
-                  : 'bg-[#0091DA] shadow-[0_0_12px_#0091DA]'
+                isDeactivated
+                  ? 'bg-slate-700 shadow-none'
+                  : isExecuting
+                    ? 'bg-[#38BDF8] shadow-[0_0_20px_#38BDF8] scale-110 animate-pulse'
+                    : 'bg-[#0091DA] shadow-[0_0_12px_#0091DA]'
               }`}
             />
           </div>
@@ -233,9 +268,15 @@ export default function AgentCoreNode({ data, selected }) {
           {/* Digital Scanline lines */}
           <div className="absolute inset-0 pointer-events-none opacity-20 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.08)_2px,rgba(255,255,255,0.08)_4px)]" />
 
-          {/* Idle status indicator */}
+          {/* Status indicator */}
           <div className="absolute top-2 right-2 flex items-center gap-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${isExecuting ? 'bg-[#0091DA] animate-ping' : 'bg-[#10B981]'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              isDeactivated 
+                ? 'bg-amber-500' 
+                : isExecuting 
+                  ? 'bg-[#0091DA] animate-ping' 
+                  : 'bg-[#10B981]'
+            }`} />
           </div>
         </div>
 
@@ -251,14 +292,18 @@ export default function AgentCoreNode({ data, selected }) {
           </div>
 
           <h3 className={`text-xs font-bold tracking-tight truncate max-w-[230px] transition-colors ${
-            isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+            isDeactivated
+              ? 'line-through text-slate-500'
+              : isDarkMode ? 'text-white' : 'text-[#0B0F19]'
           }`}>
             {name || 'AI Agent'}
           </h3>
           <span className={`text-[9px] font-mono font-medium uppercase tracking-wider mt-0.5 transition-colors ${
-            isDarkMode ? 'text-slate-400' : 'text-slate-600'
+            isDeactivated
+              ? 'text-amber-500 font-bold'
+              : isDarkMode ? 'text-slate-400' : 'text-slate-600'
           }`}>
-            {framework?.name || 'Workflow Orchestrator'}
+            {isDeactivated ? 'Deactivated' : (framework?.name || 'Workflow Orchestrator')}
           </span>
         </div>
 
@@ -289,7 +334,7 @@ export default function AgentCoreNode({ data, selected }) {
       {/* ============================================================ */}
       {/* 3. LEGS & FOOTING PEDESTALS (Guardrails, Memory, Skills)      */}
       {/* ============================================================ */}
-      <div className="relative w-[240px] flex items-center justify-between -mt-1 z-10 px-2">
+      <div className={`relative w-[240px] flex items-center justify-between -mt-1 z-10 px-2 transition-opacity ${isDeactivated ? 'opacity-40' : ''}`}>
         {/* ------------------------------------------------------------ */}
         {/* LEFT FOOT (Policy & Guardrails - Position.Bottom)            */}
         {/* ------------------------------------------------------------ */}
