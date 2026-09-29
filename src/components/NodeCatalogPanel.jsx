@@ -755,9 +755,7 @@ export default function NodeCatalogPanel({
                         }`}
                       >
                         <div className="flex items-start gap-3 min-w-0 flex-1">
-                          <div className="w-9 h-9 flex items-center justify-center shrink-0 border bg-white shadow-sm p-1.5">
-                            <ProviderLogo className="w-6 h-6" />
-                          </div>
+                          <ProviderLogo className="w-8 h-8 shrink-0" />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <h4 className={`text-xs font-bold tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
@@ -800,9 +798,7 @@ export default function NodeCatalogPanel({
                       }`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 flex items-center justify-center border bg-white p-1 shadow-sm">
-                              <SelectedLogo className="w-5 h-5" />
-                            </div>
+                            <SelectedLogo className="w-8 h-8 shrink-0" />
                             <div>
                               <h4 className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
                                 {currentProviderDef.name}

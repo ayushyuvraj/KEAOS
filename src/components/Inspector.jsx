@@ -417,12 +417,10 @@ export default function Inspector({
             <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 bg-white border border-[#CBD5E1] p-1 flex items-center justify-center shadow-xs">
-                    {(() => {
-                      const CurrentLogo = PROVIDER_LOGOS[currentProvider] || Cpu;
-                      return <CurrentLogo className="w-5 h-5" />;
-                    })()}
-                  </div>
+                  {(() => {
+                    const CurrentLogo = PROVIDER_LOGOS[currentProvider] || Cpu;
+                    return <CurrentLogo className="w-8 h-8 shrink-0" />;
+                  })()}
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-[#0B0F19]">{providerDef.name}</span>
@@ -483,9 +481,7 @@ export default function Inspector({
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
-                              <div className="w-6 h-6 p-0.5 bg-white border border-[#E2E8F0] flex items-center justify-center shrink-0">
-                                <PLogo className="w-4 h-4" />
-                              </div>
+                              <PLogo className="w-7 h-7 shrink-0" />
                               <div>
                                 <div className="text-xs font-bold text-[#0B0F19]">{pDef.name}</div>
                                 <span className="text-[10px] font-mono text-slate-500">
