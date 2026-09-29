@@ -570,23 +570,31 @@ function CanvasInner({
       }
     });
 
-    return (nodes || []).map(n => ({
-      ...n,
-      data: {
-        ...n.data,
-        isDarkMode,
-        isExecuting: n.type === 'agentCore' ? executionState.isExecuting : false,
-        executionStep: n.type === 'agentCore' ? executionState.step : undefined,
-        attachedCounts: n.type === 'agentCore' ? activeCounts : n.data.attachedCounts,
-        onDelete: handleDeleteNode,
-        onDuplicate: handleDuplicateNode,
-        onToggleDeactivate: handleToggleDeactivateNode,
-        onCopy: handleCopyNode,
-        onOpenInspector: handleOpenInspector,
-        onExecute: handleExecuteNode,
-        onRename: handleRenameNode
-      }
-    }));
+    return (nodes || []).map(n => {
+      const isThisNodeActive = executionState.isExecuting && (
+        n.id === executionState.nodeId || 
+        (n.type === 'agentCore' && !executionState.nodeId) ||
+        (n.data?.pillarType && n.data.pillarType === executionState.pillarType)
+      );
+
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          isDarkMode,
+          isExecuting: isThisNodeActive || (n.type === 'agentCore' && executionState.isExecuting),
+          executionStep: executionState.step,
+          attachedCounts: n.type === 'agentCore' ? activeCounts : n.data.attachedCounts,
+          onDelete: handleDeleteNode,
+          onDuplicate: handleDuplicateNode,
+          onToggleDeactivate: handleToggleDeactivateNode,
+          onCopy: handleCopyNode,
+          onOpenInspector: handleOpenInspector,
+          onExecute: handleExecuteNode,
+          onRename: handleRenameNode
+        }
+      };
+    });
   }, [
     nodes, 
     edges, 

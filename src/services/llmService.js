@@ -397,6 +397,189 @@ ${transcript}
 }
 
 /**
+ * Universal Multi-LLM Interactive Chat Execution
+ * Supports Google, Anthropic, OpenAI, Ollama, and OpenRouter for freeform agent conversations
+ */
+export async function executeUniversalChat({
+  provider = 'google',
+  modelId = 'gemini-2.0-flash',
+  systemPrompt = '',
+  messages = [],
+  temperature = 0.3
+}) {
+  const credential = getProviderCredential(provider);
+  const startTime = performance.now();
+  let responseText = '';
+  let totalTokens = 0;
+
+  // If no credential provided, provide structured simulated response
+  if (!credential) {
+    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || 'Agent task';
+    responseText = `[SIMULATED EXECUTION - NO ${PROVIDERS[provider]?.name || provider.toUpperCase()} KEY CONFIGURED]
+
+Synthesizing response for: "${lastUserMessage.slice(0, 120)}..."
+
+• Model Reasoning: Validated against active foundation model (${modelId}).
+• Connected Pillars: Enforced attached skills, episodic memory context, and compliance policies.
+• Output: To enable live cloud API inference, add your ${PROVIDERS[provider]?.name || provider} API key in the top-bar key manager.`;
+    return {
+      text: responseText,
+      durationMs: 450,
+      totalTokens: 180,
+      isLive: false,
+      provider,
+      modelId
+    };
+  }
+
+  // 1. GOOGLE
+  if (provider === 'google') {
+    const ai = new GoogleGenAI({ apiKey: credential });
+    const formattedPrompt = `${systemPrompt ? `[SYSTEM DIRECTIVE]: ${systemPrompt}\n\n` : ''}${messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n')}\n\nAssistant:`;
+
+    const response = await ai.models.generateContent({
+      model: modelId.includes('pro') ? 'gemini-1.5-pro' : 'gemini-2.0-flash',
+      contents: formattedPrompt,
+      config: {
+        temperature: Number(temperature) || 0.3,
+        systemInstruction: systemPrompt || undefined
+      }
+    });
+    responseText = response.text || '';
+    totalTokens = response.usageMetadata?.totalTokenCount || Math.round(formattedPrompt.length / 4 + responseText.length / 4);
+  }
+
+  // 2. ANTHROPIC
+  else if (provider === 'anthropic') {
+    const anthropicMessages = messages.filter(m => m.role !== 'system').map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content
+    }));
+    if (anthropicMessages.length === 0) {
+      anthropicMessages.push({ role: 'user', content: 'Execute task.' });
+    }
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': credential,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: modelId,
+        max_tokens: 4096,
+        system: systemPrompt || undefined,
+        messages: anthropicMessages,
+        temperature: Number(temperature) || 0.3
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Anthropic Error: ${err.error?.message || res.statusText}`);
+    }
+    const json = await res.json();
+    responseText = json.content?.map(c => c.text).join('') || '';
+    totalTokens = (json.usage?.input_tokens || 0) + (json.usage?.output_tokens || 0);
+  }
+
+  // 3. OPENAI
+  else if (provider === 'openai') {
+    const openAiMessages = [
+      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+      ...messages.map(m => ({ role: m.role, content: m.content }))
+    ];
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${credential}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: openAiMessages,
+        temperature: Number(temperature) || 0.3
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`OpenAI Error: ${err.error?.message || res.statusText}`);
+    }
+    const json = await res.json();
+    responseText = json.choices[0]?.message?.content || '';
+    totalTokens = json.usage?.total_tokens || 0;
+  }
+
+  // 4. OLLAMA
+  else if (provider === 'ollama') {
+    const baseUrl = credential.replace(/\/$/, '');
+    const ollamaMessages = [
+      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+      ...messages.map(m => ({ role: m.role, content: m.content }))
+    ];
+
+    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: modelId,
+        messages: ollamaMessages,
+        temperature: Number(temperature) || 0.3
+      })
+    });
+    if (!res.ok) {
+      throw new Error(`Ollama Error: ${res.statusText}. Ensure Ollama is running at ${baseUrl}`);
+    }
+    const json = await res.json();
+    responseText = json.choices[0]?.message?.content || '';
+    totalTokens = json.usage?.total_tokens || 0;
+  }
+
+  // 5. OPENROUTER
+  else if (provider === 'openrouter') {
+    const routerMessages = [
+      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+      ...messages.map(m => ({ role: m.role, content: m.content }))
+    ];
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${credential}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'KEAOS Studio'
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: routerMessages,
+        temperature: Number(temperature) || 0.3
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`OpenRouter Error: ${err.error?.message || res.statusText}`);
+    }
+    const json = await res.json();
+    responseText = json.choices[0]?.message?.content || '';
+    totalTokens = json.usage?.total_tokens || 0;
+  }
+
+  const durationMs = Math.round(performance.now() - startTime);
+
+  return {
+    text: responseText,
+    durationMs,
+    totalTokens,
+    isLive: true,
+    provider,
+    modelId
+  };
+}
+
+/**
  * Universal Multi-LLM Audio Transcription
  * Uses Google Gemini 2.0 Flash Multimodal Audio or OpenAI Whisper
  */

@@ -43,5 +43,23 @@ export const FRAMEWORKS = [
     defaultModel: 'gemini-2.0-flash',
     exportExtension: '.py',
     category: 'Role-Based'
+  },
+  {
+    id: 'openai-swarm',
+    name: 'OpenAI Swarm',
+    subtitle: 'Ergonomic multi-agent routine & handoff orchestration',
+    description: 'Lightweight, client-side multi-agent coordination with native function calling and dynamic agent handoffs.',
+    defaultModel: 'gpt-4o',
+    exportExtension: '.py',
+    category: 'Routines'
+  },
+  {
+    id: 'microsoft-adk',
+    name: 'Microsoft ADK',
+    subtitle: 'Microsoft Semantic Kernel & Enterprise Agent Framework',
+    description: 'Institutional-grade enterprise agent framework with plugin pipelines, native memory filters, and Copilot integration.',
+    defaultModel: 'gpt-4o',
+    exportExtension: '.py',
+    category: 'Enterprise'
   }
 ];

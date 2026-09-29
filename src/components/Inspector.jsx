@@ -17,9 +17,12 @@ import {
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { PROVIDERS, getProviderCredential } from '../services/llmService';
+import { FRAMEWORKS } from '../constants/frameworks';
 
 export default function Inspector({
   selectedNode,
+  activeUseCase,
+  onSelectFramework,
   agentConfig,
   onUpdateAgentConfig,
   onUpdateNodeData,
@@ -30,6 +33,8 @@ export default function Inspector({
 }) {
   const [customModelMode, setCustomModelMode] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [customTokens, setCustomTokens] = useState([]);
+  const [newCustomToken, setNewCustomToken] = useState('');
 
   useEffect(() => {
     if (selectedNode) {
@@ -248,6 +253,35 @@ export default function Inspector({
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FFFFFF]">
         {isAgent ? (
           <>
+            {/* Target Multi-Agent Framework Selector */}
+            <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#00338D]">
+                  Target Multi-Agent Framework
+                </span>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[#00338D]/10 text-[#00338D] font-bold">
+                  {activeUseCase?.framework?.category || 'SDK'}
+                </span>
+              </div>
+              <select
+                value={activeUseCase?.framework?.id || 'google-adk'}
+                onChange={(e) => {
+                  const fw = FRAMEWORKS.find(f => f.id === e.target.value);
+                  if (fw && onSelectFramework) onSelectFramework(fw);
+                }}
+                className="w-full p-2 text-xs font-mono font-bold bg-white border border-[#CBD5E1] text-[#0B0F19] rounded-none focus:outline-none focus:border-[#00338D] cursor-pointer"
+              >
+                {FRAMEWORKS.map(fw => (
+                  <option key={fw.id} value={fw.id}>
+                    {fw.name} — {fw.subtitle}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                {activeUseCase?.framework?.description || 'Export idiomatic Python code matching your visual graph.'}
+              </p>
+            </div>
+
             {/* System Prompt Customizer */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -257,10 +291,10 @@ export default function Inspector({
                 <span className="text-[10px] font-mono text-[#00338D] font-bold">Persona</span>
               </div>
               <textarea
-                rows={6}
+                rows={5}
                 value={agentConfig.prompt}
                 onChange={(e) => onUpdateAgentConfig({ prompt: e.target.value })}
-                placeholder="Provide prompt as to what we want the agent to do..."
+                placeholder="Provide authoritative prompt as to what we want the agent to do..."
                 className="w-full p-3 bg-[#FFFFFF] border border-[#CBD5E1] text-xs text-[#0B0F19] leading-relaxed focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none resize-none font-mono transition-colors"
               />
               <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
@@ -268,22 +302,89 @@ export default function Inspector({
               </p>
             </div>
 
-            {/* Quick Template Tokens */}
+            {/* Universal & Dynamic Injection Tokens */}
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block mb-1.5 font-mono">
-                Dynamic Injection Tokens
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {['{{transcript}}', '{{attendees}}', '{{meeting_date}}', '{{past_commitments}}'].map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => onUpdateAgentConfig({ prompt: agentConfig.prompt + ` ${tag}` })}
-                    className="btn-tactile text-[10px] font-mono px-2 py-1 bg-[#E6EDF7] hover:bg-[#00338D] text-[#00338D] hover:text-white border border-[#00338D]/30 transition-colors font-semibold"
-                    title="Click to insert token into prompt"
-                  >
-                    + {tag}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono">
+                  Dynamic Injection Tokens
+                </span>
+                <span className="text-[9px] font-mono text-slate-400">Click to insert</span>
+              </div>
+
+              {/* Universal Tokens */}
+              <div className="mb-2">
+                <span className="text-[9px] font-mono text-slate-400 block mb-1 uppercase tracking-tight">
+                  Universal (Any Task)
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {['{{user_input}}', '{{attached_tools}}', '{{memory_context}}', '{{policy_rules}}'].map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => onUpdateAgentConfig({ prompt: (agentConfig.prompt || '') + ` ${tag}` })}
+                      className="btn-tactile text-[9px] font-mono px-2 py-0.5 bg-[#00338D]/10 hover:bg-[#00338D] text-[#00338D] hover:text-white border border-[#00338D]/30 transition-colors font-bold"
+                      title="Insert universal token"
+                    >
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Domain Specific & Custom Tokens */}
+              <div className="mb-2">
+                <span className="text-[9px] font-mono text-slate-400 block mb-1 uppercase tracking-tight">
+                  Domain & Custom Variables
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {['{{transcript}}', '{{attendees}}', '{{meeting_date}}', '{{past_commitments}}', ...customTokens].map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => onUpdateAgentConfig({ prompt: (agentConfig.prompt || '') + ` ${tag}` })}
+                      className="btn-tactile text-[9px] font-mono px-2 py-0.5 bg-[#F1F5F9] hover:bg-[#0091DA] text-slate-700 hover:text-white border border-slate-300 hover:border-[#0091DA] transition-colors font-medium"
+                      title="Insert token into prompt"
+                    >
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add Custom Token Input */}
+              <div className="flex items-center gap-1 mt-1.5">
+                <input
+                  type="text"
+                  value={newCustomToken}
+                  onChange={(e) => setNewCustomToken(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newCustomToken.trim()) {
+                      e.preventDefault();
+                      const cleaned = newCustomToken.trim().replace(/^\{+|\}+$/g, '');
+                      const formatted = `{{${cleaned}}}`;
+                      if (!customTokens.includes(formatted)) {
+                        setCustomTokens([...customTokens, formatted]);
+                      }
+                      setNewCustomToken('');
+                    }
+                  }}
+                  placeholder="e.g. invoice_data"
+                  className="flex-1 px-2 py-1 bg-white border border-[#CBD5E1] text-[10px] font-mono text-[#0B0F19] rounded-none focus:outline-none focus:border-[#00338D]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newCustomToken.trim()) {
+                      const cleaned = newCustomToken.trim().replace(/^\{+|\}+$/g, '');
+                      const formatted = `{{${cleaned}}}`;
+                      if (!customTokens.includes(formatted)) {
+                        setCustomTokens([...customTokens, formatted]);
+                      }
+                      setNewCustomToken('');
+                    }
+                  }}
+                  className="px-2.5 py-1 bg-[#00338D] hover:bg-[#005EB8] text-white text-[10px] font-mono font-bold transition-colors"
+                >
+                  + Add
+                </button>
               </div>
             </div>
 

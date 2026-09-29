@@ -12,15 +12,20 @@ import {
   Bookmark
 } from 'lucide-react';
 
+import { FRAMEWORKS } from '../constants/frameworks';
+
 export default function Header({
   viewMode,
   setViewMode,
   activeUseCase,
+  onSelectFramework,
   hasApiKey,
   configuredCount,
   onOpenClusterModal,
   isSidebarClosed = false,
   onToggleSidebarClosed,
+  isSidebarCollapsed = false,
+  onToggleSidebarCollapsed,
   isDarkMode = true,
   onToggleTheme
 }) {
@@ -37,7 +42,7 @@ export default function Header({
         ? 'bg-[#18191E] border-[#2B2D36] text-white' 
         : 'bg-white border-[#E5E7EB] text-[#111827]'
     }`}>
-      {/* Left: Minimal Breadcrumb & Sidebar Toggle */}
+      {/* Left: Minimal Breadcrumb & Framework Target Selector */}
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebarClosed}
@@ -59,6 +64,37 @@ export default function Header({
           <span className={`font-semibold tracking-tight ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             {activeUseCase?.name || 'My Agent Workflow'}
           </span>
+        </div>
+
+        {/* Apple-style Target SDK Selector Pill */}
+        <div className="flex items-center gap-1.5 ml-2 pl-3 border-l border-slate-700/40">
+          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            SDK:
+          </span>
+          <div className="relative group">
+            <select
+              value={activeUseCase?.framework?.id || 'google-adk'}
+              onChange={(e) => {
+                const fw = FRAMEWORKS.find(f => f.id === e.target.value);
+                if (fw && onSelectFramework) onSelectFramework(fw);
+              }}
+              className={`px-2 py-0.5 text-xs font-mono font-bold rounded border appearance-none cursor-pointer pr-5 focus:outline-none transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#1E2028] border-[#383C4A] text-[#0091DA] hover:border-[#0091DA]' 
+                  : 'bg-white border-[#CBD5E1] text-[#00338D] hover:border-[#00338D]'
+              }`}
+              title="Select Target Autonomous Agent SDK (Google ADK, LangGraph, AutoGen, CrewAI, OpenAI Swarm...)"
+            >
+              {FRAMEWORKS.map(fw => (
+                <option key={fw.id} value={fw.id}>
+                  {fw.name}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[8px]">
+              ▼
+            </div>
+          </div>
         </div>
       </div>
 

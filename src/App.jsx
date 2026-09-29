@@ -381,6 +381,28 @@ export default function App() {
     );
   };
 
+  // Handle Target Platform / Framework switch
+  const handleSelectFramework = useCallback((newFramework) => {
+    setActiveUseCase((prev) => ({
+      ...prev,
+      framework: newFramework
+    }));
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.type === 'agentCore') {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              framework: newFramework
+            }
+          };
+        }
+        return n;
+      })
+    );
+  }, [setNodes]);
+
   // Update Node Data
   const handleUpdateNodeData = (nodeId, updates) => {
     setNodes((nds) =>
@@ -491,6 +513,7 @@ export default function App() {
           viewMode={viewMode}
           setViewMode={setViewMode}
           activeUseCase={activeUseCase}
+          onSelectFramework={handleSelectFramework}
           hasApiKey={hasApiKey}
           configuredCount={configuredCount}
           onOpenClusterModal={() => setIsClusterModalOpen(true)}
@@ -542,6 +565,8 @@ export default function App() {
               {isInspectorOpen && (
                 <Inspector
                   selectedNode={selectedNode}
+                  activeUseCase={activeUseCase}
+                  onSelectFramework={handleSelectFramework}
                   agentConfig={activeUseCase.agent}
                   onUpdateAgentConfig={handleUpdateAgentConfig}
                   onUpdateNodeData={handleUpdateNodeData}

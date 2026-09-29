@@ -293,7 +293,93 @@ if __name__ == "__main__":
     print("CrewAI Result:", result)
 `;
 
+    case 'openai-swarm':
+      return `# =====================================================================
+# KEAOS Generated Agent: Universal Agent Routine
+# Framework: OpenAI Swarm & Assistants API
+# =====================================================================
+from swarm import Swarm, Agent
+
+client = Swarm()
+
+# 1. Connected Tools & Functions
+${hasPii ? `def check_guardrails_compliance(text: str) -> bool:
+    """Verifies that user payload respects organizational guardrails and PII policies."""
+    return "[CONFIDENTIAL]" not in text and "[REDACTED]" not in text
+` : ''}
+${hasMemory ? `def query_episodic_memory(query: str) -> str:
+    """Retrieves relevant historical decisions and commitments from episodic store."""
+    return "Retrieved context: Q3 GPU cluster expansion approved with $45k cap."
+` : ''}
+
+# 2. Main Agent Definition
+agent = Agent(
+    name="Enterprise Core Agent",
+    instructions="""${systemPrompt}""",
+    functions=[${[hasPii ? 'check_guardrails_compliance' : '', hasMemory ? 'query_episodic_memory' : ''].filter(Boolean).join(', ')}]
+)
+
+if __name__ == "__main__":
+    response = client.run(
+        agent=agent,
+        messages=[{"role": "user", "content": "Execute agent task with all connected capabilities."}]
+    )
+    print("Swarm Response:", response.messages[-1]["content"])
+`;
+
+    case 'microsoft-adk':
+      return `# =====================================================================
+# KEAOS Generated Agent: Enterprise Autonomous Agent
+# Framework: Microsoft ADK & Semantic Kernel
+# =====================================================================
+import asyncio
+import semantic_kernel as sk
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, OpenAIChatCompletion
+from semantic_kernel.functions import kernel_function
+
+# 1. Initialize Semantic Kernel
+kernel = sk.Kernel()
+
+# 2. Configure Execution Engine & Service
+chat_service = OpenAIChatCompletion(
+    service_id="agent_core",
+    ai_model_id="${modelName}",
+    api_key="${agentConfig.apiKey || 'YOUR_API_KEY'}"
+)
+kernel.add_service(chat_service)
+
+# 3. Native Enterprise Plugins
+class EnterprisePillarsPlugin:
+    """Encapsulates active tools, memory, and compliance policies."""
+    
+${hasMemory ? `    @kernel_function(name="query_memory", description="Queries past commitments and decisions.")
+    def query_memory(self, query: str) -> str:
+        return "Retrieved episodic commitment: Q3 cluster approved."
+` : ''}
+${hasPii ? `    @kernel_function(name="redact_pii", description="Sanitizes confidential credentials and PII.")
+    def redact_pii(self, input_text: str) -> str:
+        import re
+        return re.sub(r'\\$[0-9,]+', '[CONFIDENTIAL]', input_text)
+` : ''}
+
+kernel.add_plugin(EnterprisePillarsPlugin(), plugin_name="enterprise_pillars")
+
+# 4. System Instruction Execution
+async def main():
+    prompt = """${systemPrompt}\\n\\nUser Task: {{$input}}"""
+    execution_function = kernel.add_function(
+        plugin_name="core_agent",
+        function_name="execute",
+        prompt=prompt
+    )
+    result = await kernel.invoke(execution_function, input="Analyze enterprise task.")
+    print("Microsoft ADK Result:", result)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+`;
+
     default:
-      return `# Select a valid framework from the dropdown (Google ADK, LangGraph, LangChain, AutoGen, CrewAI)`;
+      return `# Select a valid framework from the dropdown (Google ADK, LangGraph, LangChain, AutoGen, CrewAI, OpenAI Swarm, Microsoft ADK)`;
   }
 }

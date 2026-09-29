@@ -40,6 +40,7 @@ export default function PillarNode({ id, data, selected }) {
     toolId, 
     isDarkMode, 
     isDeactivated,
+    isExecuting,
     onExecute,
     onToggleDeactivate,
     onOpenInspector,
@@ -157,13 +158,15 @@ export default function PillarNode({ id, data, selected }) {
       {/* Circular Token Disc */}
       <div
         className={`w-15 h-15 rounded-full flex items-center justify-center border-2 transition-all duration-150 relative shadow-lg ${
-          isDeactivated
-            ? 'opacity-40 grayscale border-dashed border-slate-500 bg-slate-800/50'
-            : isDarkMode
-              ? 'bg-[#22242B] border-[#3D414D] text-white hover:border-[#0091DA]'
-              : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] hover:border-[#00338D]'
+          isExecuting
+            ? 'ring-4 ring-[#0091DA] border-[#0091DA] animate-pulse shadow-[0_0_20px_rgba(0,145,218,0.7)] scale-105'
+            : isDeactivated
+              ? 'opacity-40 grayscale border-dashed border-slate-500 bg-slate-800/50'
+              : isDarkMode
+                ? 'bg-[#22242B] border-[#3D414D] text-white hover:border-[#0091DA]'
+                : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] hover:border-[#00338D]'
         } ${
-          selected
+          selected && !isExecuting
             ? 'ring-4 ring-[#0091DA]/30 border-[#0091DA] scale-105'
             : ''
         }`}
