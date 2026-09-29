@@ -19,6 +19,21 @@ import { PILLARS } from '../constants/pillars';
 import { PROVIDERS, getProviderCredential } from '../services/llmService';
 import { FRAMEWORKS } from '../constants/frameworks';
 
+// Reusable simple-language Info Tooltip (i)
+function InfoTooltip({ text }) {
+  return (
+    <div className="relative group/info inline-flex items-center ml-1 z-30">
+      <div className="w-3.5 h-3.5 rounded-full border border-slate-400 text-slate-500 hover:text-[#00338D] hover:border-[#00338D] hover:bg-[#E6EDF7] flex items-center justify-center text-[9px] font-mono font-bold cursor-help transition-all">
+        i
+      </div>
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/info:block w-56 p-2.5 bg-[#0B0F19] text-white text-[10px] leading-relaxed shadow-xl border border-[#3E424F] font-sans z-50 rounded-none animate-in fade-in duration-150 pointer-events-none">
+        {text}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0B0F19]" />
+      </div>
+    </div>
+  );
+}
+
 export default function Inspector({
   selectedNode,
   nodes = [],
@@ -98,7 +113,10 @@ export default function Inspector({
           <div className="space-y-2.5">
             <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span>GRAPH HEALTH</span>
+                <span className="flex items-center">
+                  GRAPH HEALTH
+                  <InfoTooltip text="Graph Health indicates whether all nodes in your visual workflow are properly connected without any missing sockets or wire collisions." />
+                </span>
                 <span className="font-bold text-[#009A44]">100% OPERATIONAL</span>
               </div>
               <div className="text-base font-extrabold text-[#001E50] mt-1 tracking-tight">
@@ -111,7 +129,10 @@ export default function Inspector({
 
             <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span>ACTIVE FOUNDATION MODEL</span>
+                <span className="flex items-center">
+                  ACTIVE FOUNDATION MODEL
+                  <InfoTooltip text="The AI brain model currently connected to your agent. This model processes all inputs, tools, and instructions." />
+                </span>
                 <span className="font-bold text-[#00338D]">LIVE API</span>
               </div>
               <div className="text-xs font-bold text-[#0B0F19] mt-1 truncate">
@@ -130,7 +151,10 @@ export default function Inspector({
 
             <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span>CRYPTOGRAPHIC AUDIT</span>
+                <span className="flex items-center">
+                  CRYPTOGRAPHIC AUDIT
+                  <InfoTooltip text="A tamper-proof digital fingerprint (SHA-256) recorded for every execution to guarantee safety, transparency, and compliance." />
+                </span>
                 <span className="font-bold text-[#001E50]">W3C SHA-256</span>
               </div>
               <div className="text-xs font-mono text-slate-700 mt-1 truncate">
@@ -260,8 +284,9 @@ export default function Inspector({
             {/* Target Multi-Agent Framework Selector */}
             <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#00338D]">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#00338D] flex items-center">
                   Target Multi-Agent Framework
+                  <InfoTooltip text="Select the framework (like Google ADK, LangGraph, AutoGen, CrewAI, or OpenAI) you want to export Python code for." />
                 </span>
                 <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[#00338D]/10 text-[#00338D] font-bold">
                   {activeUseCase?.framework?.category || 'SDK'}
@@ -289,8 +314,9 @@ export default function Inspector({
             {/* System Prompt Customizer */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono">
+                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
                   System Instruction Prompt
+                  <InfoTooltip text="The main instructions and behavioral rules given to the AI agent to tell it how to act, think, and format its response." />
                 </label>
                 <span className="text-[10px] font-mono text-[#00338D] font-bold">Persona</span>
               </div>
@@ -309,8 +335,9 @@ export default function Inspector({
             {/* Universal & Dynamic Injection Tokens */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono">
+                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
                   Dynamic Injection Tokens
+                  <InfoTooltip text="Placeholders (like {{user_input}} or {{transcript}}) that automatically insert real-time data into your agent's instructions when running." />
                 </span>
                 <span className="text-[9px] font-mono text-slate-400">Click to insert</span>
               </div>
@@ -396,7 +423,10 @@ export default function Inspector({
             <div className="space-y-4 pt-3 border-t border-[#E0E0E0]">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#0B0F19]">Temperature</span>
+                  <span className="text-xs font-bold text-[#0B0F19] flex items-center">
+                    Temperature
+                    <InfoTooltip text="Controls randomness: Lower numbers (0.0) make responses factual and focused; higher numbers (1.0) make responses more creative." />
+                  </span>
                   <span className="text-xs font-mono text-[#00338D] font-bold">{agentConfig.temperature}</span>
                 </div>
                 <input
@@ -416,7 +446,10 @@ export default function Inspector({
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#0B0F19]">Top-P</span>
+                  <span className="text-xs font-bold text-[#0B0F19] flex items-center">
+                    Top-P
+                    <InfoTooltip text="Filters word selection diversity: Lower values focus on the most likely words; higher values allow broader word variety." />
+                  </span>
                   <span className="text-xs font-mono text-[#00338D] font-bold">{agentConfig.topP || 0.95}</span>
                 </div>
                 <input
@@ -437,8 +470,9 @@ export default function Inspector({
             {/* Provider Selector */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono">
+                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
                   LLM Provider
+                  <InfoTooltip text="The AI provider service powering this model (e.g. Google Gemini, Anthropic Claude, OpenAI, Ollama, OpenRouter)." />
                 </label>
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
                   hasCredential || currentProvider === 'ollama'
@@ -489,8 +523,9 @@ export default function Inspector({
             {/* Model ID Selection */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono">
+                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
                   Model Identifier
+                  <InfoTooltip text="The exact version of the AI model being used (e.g. Gemini 2.0 Flash, Claude 3.5 Sonnet, GPT-4o)." />
                 </label>
                 <button
                   onClick={() => setCustomModelMode(!customModelMode)}
@@ -528,14 +563,18 @@ export default function Inspector({
               <div className="p-3 bg-[#E6EDF7] border border-[#00338D]/20 space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#00338D]">
                   <Server className="w-3.5 h-3.5" />
-                  <span>Local Private Host</span>
+                  <span className="flex items-center">
+                    Local Private Host
+                    <InfoTooltip text="Runs directly on your computer hardware. 100% private, zero token costs, air-gapped compliance." />
+                  </span>
                 </div>
                 <p className="text-[11px] text-[#001E50] leading-relaxed">
                   Runs directly on your computer hardware. 100% private, zero token costs, air-gapped compliance.
                 </p>
                 <div>
-                  <label className="text-[10px] font-mono text-slate-600 block mb-1">
+                  <label className="text-[10px] font-mono text-slate-600 block mb-1 flex items-center">
                     Ollama Base URL
+                    <InfoTooltip text="The local HTTP address of your running Ollama daemon." />
                   </label>
                   <input
                     type="text"
@@ -564,13 +603,17 @@ export default function Inspector({
 
             {/* Hyperparameters */}
             <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">
-              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block font-mono">
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block font-mono flex items-center">
                 Model Hyperparameters
+                <InfoTooltip text="Fine-tune how the AI model balances factual precision versus creative output." />
               </span>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#0B0F19]">Temperature</span>
+                  <span className="text-xs font-bold text-[#0B0F19] flex items-center">
+                    Temperature
+                    <InfoTooltip text="Controls randomness: 0.0 is exact and deterministic, 1.0 is creative and diverse." />
+                  </span>
                   <span className="text-xs font-mono text-[#00338D] font-bold">
                     {nodeData.config?.temperature ?? 0.2}
                   </span>
@@ -592,7 +635,10 @@ export default function Inspector({
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#0B0F19]">Top-P</span>
+                  <span className="text-xs font-bold text-[#0B0F19] flex items-center">
+                    Top-P
+                    <InfoTooltip text="Nucleus sampling threshold: Controls how many likely tokens are considered during generation." />
+                  </span>
                   <span className="text-xs font-mono text-[#00338D] font-bold">
                     {nodeData.config?.topP ?? 0.95}
                   </span>
@@ -615,7 +661,10 @@ export default function Inspector({
 
             {/* Provider Capability Overview */}
             <div className="p-3 bg-[#F8F9FB] border border-[#E0E0E0] text-[11px] text-slate-600 leading-relaxed">
-              <span className="font-bold text-[#0B0F19] block mb-1 font-mono">Provider Capabilities:</span>
+              <span className="font-bold text-[#0B0F19] block mb-1 font-mono flex items-center">
+                Provider Capabilities:
+                <InfoTooltip text="Key features supported by this AI provider, such as native audio, structured output, or offline execution." />
+              </span>
               {currentProvider === 'google' && 'Native multimodal audio ingestion (MP3), 1M-2M context window, fast JSON schema generation.'}
               {currentProvider === 'anthropic' && 'State-of-the-art analytical reasoning, nuanced long-form output, structured artifacts.'}
               {currentProvider === 'openai' && 'Flagship GPT-4o reasoning, strict JSON schema mode, widespread enterprise SDK compatibility.'}
@@ -627,8 +676,9 @@ export default function Inspector({
           /* Generic Inspector for other Pillars */
           <div className="space-y-4">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 block mb-1 font-mono">
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 block mb-1 font-mono flex items-center">
                 Pillar Category
+                <InfoTooltip text="Which of the 10 core AI pillars (Skills, MCP, Tools, Gateway, Memory, Guardrails, etc.) this component belongs to." />
               </span>
               <div className="p-2.5 bg-[#F8F9FB] border border-[#E0E0E0] flex items-center justify-between">
                 <span className="text-xs font-bold text-[#0B0F19] capitalize">{nodeData.pillarType}</span>
@@ -639,8 +689,9 @@ export default function Inspector({
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] block mb-1.5 font-mono">
+              <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] block mb-1.5 font-mono flex items-center">
                 Block Display Name
+                <InfoTooltip text="The name assigned to this block on your canvas workspace." />
               </label>
               <input
                 type="text"
@@ -651,8 +702,9 @@ export default function Inspector({
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] block mb-1.5 font-mono">
+              <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] block mb-1.5 font-mono flex items-center">
                 Description
+                <InfoTooltip text="A simple description explaining what this component does when your agent executes." />
               </label>
               <textarea
                 rows={3}
@@ -664,8 +716,9 @@ export default function Inspector({
 
             {nodeData.config && Object.keys(nodeData.config).length > 0 && (
               <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">
-                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block font-mono">
+                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block font-mono flex items-center">
                   Configuration Properties
+                  <InfoTooltip text="Custom key-value parameters passed directly to this component during runtime execution." />
                 </span>
                 {Object.entries(nodeData.config).map(([key, val]) => (
                   <div key={key}>
