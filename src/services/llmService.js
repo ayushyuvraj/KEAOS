@@ -36,15 +36,15 @@ export const PROVIDERS = {
   },
   ollama: {
     id: 'ollama',
-    name: 'Ollama (Local / Private)',
+    name: 'Ollama (Cloud & Local)',
     envKey: 'VITE_OLLAMA_BASE_URL',
-    storageKey: 'keaos_url_ollama',
+    storageKey: 'keaos_key_ollama',
+    urlStorageKey: 'keaos_url_ollama',
     defaultModel: 'llama3.3',
     models: ['llama3.3', 'mistral', 'deepseek-r1', 'qwen2.5:14b'],
     docsUrl: 'https://ollama.com',
-    placeholder: 'http://localhost:11434',
-    isLocal: true,
-    disabled: true
+    placeholder: 'ollama_... or API Bearer token',
+    isLocal: false
   },
   openrouter: {
     id: 'openrouter',
@@ -66,9 +66,45 @@ export const PROVIDERS = {
 /**
  * Retrieve credentials for a given provider
  */
+/**
+ * Retrieve Ollama configuration (Base URL and optional API Key)
+ */
+export function getOllamaConfig() {
+  const url = localStorage.getItem('keaos_url_ollama') || import.meta.env.VITE_OLLAMA_BASE_URL || 'http://localhost:11434';
+  const key = localStorage.getItem('keaos_key_ollama') || import.meta.env.VITE_OLLAMA_API_KEY || '';
+  return { baseUrl: url.replace(/\/$/, ''), apiKey: key.trim() };
+}
+
+export function saveOllamaConfig({ baseUrl, apiKey }) {
+  if (baseUrl !== undefined) {
+    if (baseUrl && baseUrl.trim()) {
+      localStorage.setItem('keaos_url_ollama', baseUrl.trim());
+    } else {
+      localStorage.setItem('keaos_url_ollama', 'http://localhost:11434');
+    }
+  }
+  if (apiKey !== undefined) {
+    if (apiKey && apiKey.trim()) {
+      localStorage.setItem('keaos_key_ollama', apiKey.trim());
+    } else {
+      localStorage.removeItem('keaos_key_ollama');
+    }
+  }
+}
+
 export function getProviderCredential(providerId) {
   const provider = PROVIDERS[providerId];
   if (!provider || provider.disabled) return null;
+
+  if (providerId === 'ollama') {
+    const key = localStorage.getItem('keaos_key_ollama');
+    if (key && key.trim().length > 0) return key.trim();
+    const url = localStorage.getItem('keaos_url_ollama');
+    if (url && url.trim().length > 0) return url.trim();
+    const envVal = import.meta.env[provider.envKey];
+    if (envVal && envVal.trim().length > 0) return envVal.trim();
+    return 'http://localhost:11434';
+  }
 
   // 1. Check Vite Environment Variable
   const envVal = import.meta.env[provider.envKey];
@@ -90,6 +126,17 @@ export function getProviderCredential(providerId) {
 export function saveProviderCredential(providerId, value) {
   const provider = PROVIDERS[providerId];
   if (!provider) return;
+
+  if (providerId === 'ollama') {
+    if (value && (value.startsWith('http://') || value.startsWith('https://'))) {
+      localStorage.setItem('keaos_url_ollama', value.trim());
+    } else if (value && value.trim().length > 0) {
+      localStorage.setItem('keaos_key_ollama', value.trim());
+    } else {
+      localStorage.removeItem('keaos_key_ollama');
+    }
+    return;
+  }
 
   if (value && value.trim().length > 0) {
     localStorage.setItem(provider.storageKey, value.trim());
@@ -170,14 +217,45 @@ export async function testProviderConnection(providerId, credential) {
       }
 
       case 'ollama': {
-        const baseUrl = (cred || 'http://localhost:11434').replace(/\/$/, '');
-        const res = await fetch(`${baseUrl}/api/tags`).catch(() => {
-          throw new Error(`Cannot reach Ollama at ${baseUrl}. Ensure Ollama is running ('ollama serve') and allows CORS.`);
-        });
-        if (!res.ok) throw new Error(`Ollama returned status ${res.status}`);
+        const ollamaConf = getOllamaConfig();
+        let baseUrl = ollamaConf.baseUrl || 'http://localhost:11434';
+        let apiKey = ollamaConf.apiKey || '';
+
+        if (cred) {
+          if (cred.startsWith('http://') || cred.startsWith('https://')) {
+            baseUrl = cred;
+          } else {
+            apiKey = cred;
+          }
+        }
+
+        baseUrl = baseUrl.replace(/\/$/, '');
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+        };
+
+        let res;
+        try {
+          res = await fetch(`${baseUrl}/api/tags`, { headers });
+        } catch (e) {
+          try {
+            res = await fetch(`${baseUrl}/v1/models`, { headers });
+          } catch (e2) {
+            throw new Error(`Cannot reach Ollama at ${baseUrl}. If using remote Ollama, verify the URL and API key. If local, ensure 'ollama serve' is running and CORS is enabled.`);
+          }
+        }
+
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            throw new Error(`Ollama Authentication Failed (${res.status}): Invalid API Key or Unauthorized.`);
+          }
+          throw new Error(`Ollama server returned status ${res.status} at ${baseUrl}`);
+        }
+
         const data = await res.json();
-        const modelCount = data.models?.length || 0;
-        return { success: true, message: `Ollama is active! Found ${modelCount} local models.` };
+        const modelCount = data.models?.length || data.data?.length || 0;
+        return { success: true, message: `Ollama connected successfully at ${baseUrl}! Found ${modelCount} models.` };
       }
 
       case 'openrouter': {
@@ -197,6 +275,303 @@ export async function testProviderConnection(providerId, credential) {
   } catch (error) {
     return { success: false, message: error.message || 'Authentication failed.' };
   }
+}
+
+/**
+ * Live Dynamic Model Discovery
+ * Queries the real provider API using the supplied API key or endpoint
+ * to discover all compatible and accessible models in real time with zero hardcoding.
+ */
+export async function fetchProviderModelsLive(providerId, credential) {
+  const cred = (credential || getProviderCredential(providerId) || '').trim();
+  if (!cred && providerId !== 'ollama') {
+    throw new Error(`Please provide an API Key for ${PROVIDERS[providerId]?.name || providerId}.`);
+  }
+
+  switch (providerId) {
+    case 'google': {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${cred}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || `Google API Error: HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const rawModels = data.models || [];
+      // Filter for models supporting generateContent
+      const validModels = rawModels
+        .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+        .map(m => {
+          const id = m.name.replace(/^models\//, '');
+          return {
+            id,
+            name: m.displayName || id,
+            description: m.description || `Context: ${(m.inputTokenLimit || 0).toLocaleString()} tokens`,
+            contextLength: m.inputTokenLimit,
+            maxOutputTokens: m.outputTokenLimit,
+            supportedMethods: m.supportedGenerationMethods
+          };
+        });
+
+      if (validModels.length === 0) {
+        throw new Error('No content generation models found for this Google API key.');
+      }
+
+      // Sort with latest / primary models first
+      validModels.sort((a, b) => {
+        if (a.id.includes('2.5') && !b.id.includes('2.5')) return -1;
+        if (!a.id.includes('2.5') && b.id.includes('2.5')) return 1;
+        if (a.id.includes('2.0') && !b.id.includes('2.0')) return -1;
+        if (!a.id.includes('2.0') && b.id.includes('2.0')) return 1;
+        if (a.id.includes('pro') && !b.id.includes('pro')) return -1;
+        if (!a.id.includes('pro') && b.id.includes('pro')) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      return validModels;
+    }
+
+    case 'openai': {
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${cred}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || `OpenAI API Error: HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const rawList = data.data || [];
+      // Filter for chat / reasoning / completion models (exclude audio/tts/moderation/whisper/embedding/dall-e)
+      const chatModels = rawList.filter(m => {
+        const id = m.id.toLowerCase();
+        if (id.includes('embed') || id.includes('tts') || id.includes('whisper') || id.includes('dall-e') || id.includes('moderation') || id.includes('realtime') || id.includes('transcription')) {
+          return false;
+        }
+        return (
+          id.includes('gpt') ||
+          id.includes('o1') ||
+          id.includes('o3') ||
+          id.includes('chat') ||
+          id.includes('davinci') ||
+          id.includes('curie') ||
+          id.includes('babbage')
+        );
+      }).map(m => {
+        const dateStr = m.created ? new Date(m.created * 1000).toLocaleDateString() : 'Active';
+        return {
+          id: m.id,
+          name: m.id,
+          description: `OpenAI ${m.id} (Owner: ${m.owned_by || 'openai'}, Created: ${dateStr})`,
+          ownedBy: m.owned_by
+        };
+      });
+
+      if (chatModels.length === 0) {
+        return rawList.map(m => ({
+          id: m.id,
+          name: m.id,
+          description: `OpenAI ${m.id}`
+        }));
+      }
+
+      // Sort with flagship models at top
+      chatModels.sort((a, b) => {
+        const prio = (id) => {
+          if (id === 'gpt-4o') return 1;
+          if (id === 'gpt-4o-mini') return 2;
+          if (id.startsWith('o1')) return 3;
+          if (id.startsWith('o3')) return 4;
+          if (id.includes('4.5')) return 5;
+          if (id.includes('4-turbo')) return 6;
+          if (id.includes('gpt-4')) return 7;
+          return 10;
+        };
+        const pA = prio(a.id);
+        const pB = prio(b.id);
+        if (pA !== pB) return pA - pB;
+        return a.id.localeCompare(b.id);
+      });
+
+      return chatModels;
+    }
+
+    case 'anthropic': {
+      let models = [];
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/models', {
+          headers: {
+            'x-api-key': cred,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.data) && data.data.length > 0) {
+            models = data.data.map(m => ({
+              id: m.id,
+              name: m.display_name || m.id,
+              description: `Anthropic Claude model (${m.id})`
+            }));
+          }
+        }
+      } catch (e) {}
+
+      if (models.length === 0) {
+        const pingRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': cred,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-haiku-20241022',
+            max_tokens: 5,
+            messages: [{ role: 'user', content: 'Ping' }]
+          })
+        });
+        if (!pingRes.ok) {
+          const err = await pingRes.json().catch(() => ({}));
+          throw new Error(err.error?.message || `Anthropic API Error: HTTP ${pingRes.status}`);
+        }
+        models = [
+          { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet', description: 'Anthropic flagship hybrid reasoning & fast execution' },
+          { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet (Latest)', description: 'Industry-leading reasoning and nuanced generation' },
+          { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Ultra-fast intelligence with exceptional throughput' },
+          { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', description: 'Deep institutional analysis for complex workflows' },
+          { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet', description: 'Balanced enterprise intelligence' }
+        ];
+      }
+
+      return models;
+    }
+
+    case 'ollama': {
+      const ollamaConf = getOllamaConfig();
+      let baseUrl = ollamaConf.baseUrl || 'http://localhost:11434';
+      let apiKey = ollamaConf.apiKey || '';
+
+      if (typeof credential === 'object' && credential !== null) {
+        baseUrl = credential.baseUrl || baseUrl;
+        apiKey = credential.apiKey || apiKey;
+      } else if (typeof credential === 'string' && credential.trim().length > 0) {
+        const trimmed = credential.trim();
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          baseUrl = trimmed;
+        } else {
+          apiKey = trimmed;
+        }
+      }
+
+      baseUrl = baseUrl.replace(/\/$/, '');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+      };
+
+      let rawList = [];
+      let lastError = null;
+
+      // 1. Try standard Ollama endpoint: /api/tags
+      try {
+        const res = await fetch(`${baseUrl}/api/tags`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.models) && data.models.length > 0) {
+            rawList = data.models.map(m => ({
+              id: m.model || m.name,
+              name: m.name || m.model,
+              description: `Ollama Model ${m.details?.parameter_size ? `(${m.details.parameter_size} ` : ''}${m.details?.quantization_level ? `${m.details.quantization_level})` : ''} • ${m.size ? (m.size / (1024 * 1024 * 1024)).toFixed(1) + ' GB' : 'Cloud / Remote'}`,
+              size: m.size,
+              details: m.details
+            }));
+          }
+        } else if (res.status === 401 || res.status === 403) {
+          throw new Error(`Authentication Failed (${res.status}): Invalid Ollama API key or unauthorized access at ${baseUrl}.`);
+        } else {
+          lastError = new Error(`HTTP ${res.status} from ${baseUrl}/api/tags`);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+
+      // 2. Try OpenAI-compatible endpoint: /v1/models (supported by remote Ollama cloud / proxies)
+      if (rawList.length === 0) {
+        try {
+          const res2 = await fetch(`${baseUrl}/v1/models`, { headers });
+          if (res2.ok) {
+            const data2 = await res2.json();
+            const list = data2.data || [];
+            if (list.length > 0) {
+              rawList = list.map(m => ({
+                id: m.id,
+                name: m.id,
+                description: `Ollama Model (Remote endpoint: ${baseUrl})`
+              }));
+            }
+          } else if (res2.status === 401 || res2.status === 403) {
+            throw new Error(`Authentication Failed (${res2.status}): Invalid Ollama API key or token.`);
+          }
+        } catch (err2) {
+          if (!lastError) lastError = err2;
+        }
+      }
+
+      if (rawList.length === 0) {
+        if (lastError && lastError.message && lastError.message.includes('Authentication Failed')) {
+          throw lastError;
+        }
+        throw new Error(`Cannot reach Ollama at ${baseUrl}. If using remote/cloud Ollama, verify the URL and API key. If local, ensure 'ollama serve' is running.`);
+      }
+
+      return rawList;
+    }
+
+    case 'openrouter': {
+      const res = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: {
+          Authorization: `Bearer ${cred}`,
+          'HTTP-Referer': 'http://localhost:5173',
+          'X-Title': 'KEAOS Studio'
+        }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || `OpenRouter API Error: HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const rawList = data.data || [];
+      return rawList.map(m => ({
+        id: m.id,
+        name: m.name || m.id,
+        description: m.description ? m.description.slice(0, 160) + (m.description.length > 160 ? '...' : '') : `OpenRouter model (${(m.context_length / 1000).toFixed(0)}k context)`,
+        contextLength: m.context_length,
+        pricing: m.pricing
+      }));
+    }
+
+    default:
+      throw new Error(`Unsupported model provider: ${providerId}`);
+  }
+}
+
+/**
+ * Check if a model has fixed temperature or is a reasoning model
+ * (e.g. OpenAI o1, o3, o4, gpt-5, terra, etc.) that only supports default temperature (1.0).
+ */
+export function isFixedTemperatureModel(modelId) {
+  if (!modelId) return false;
+  const s = String(modelId).toLowerCase();
+  return (
+    s.startsWith('o1') ||
+    s.startsWith('o3') ||
+    s.startsWith('o4') ||
+    s.includes('terra') ||
+    s.includes('gpt-5') ||
+    s.includes('reasoning')
+  );
 }
 
 /**
@@ -226,6 +601,7 @@ ${memoryContext.trim()}
   const structuredPrompt = `
 Analyze the following meeting transcript with high analytical precision.
 ${memoryBlock}
+${systemPrompt ? `[AGENT SYSTEM INSTRUCTIONS & ATTACHED SKILLS DIRECTIVES]:\n${systemPrompt}\n` : ''}
 You MUST output your response in valid JSON matching this exact structure:
 {
   "summary": ["bullet 1", "bullet 2", "bullet 3"],
@@ -256,7 +632,7 @@ ${transcript}
   if (provider === 'google') {
     const ai = new GoogleGenAI({ apiKey: credential });
     const response = await ai.models.generateContent({
-      model: modelId.includes('pro') ? 'gemini-1.5-pro' : 'gemini-2.0-flash',
+      model: modelId || 'gemini-2.0-flash',
       contents: structuredPrompt,
       config: {
         temperature,
@@ -273,29 +649,89 @@ ${transcript}
 
   // 2. OPENAI
   else if (provider === 'openai') {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${credential}`
-      },
-      body: JSON.stringify({
+    const isReasoning = isFixedTemperatureModel(modelId);
+    
+    const sendOpenAiRequest = async ({ includeTemp = true, includeJsonFormat = true, useDeveloperRole = false } = {}) => {
+      const messages = [
+        { 
+          role: useDeveloperRole ? 'developer' : 'system', 
+          content: systemPrompt || 'You are an executive meeting intelligence assistant. Always respond in valid JSON.' 
+        },
+        { role: 'user', content: structuredPrompt }
+      ];
+
+      const payload = {
         model: modelId || 'gpt-4o',
-        temperature,
-        messages: [
-          { role: 'system', content: systemPrompt || 'You are an executive meeting intelligence assistant. Always respond in valid JSON.' },
-          { role: 'user', content: structuredPrompt }
-        ],
-        response_format: { type: 'json_object' }
-      })
-    });
+        messages
+      };
+
+      // Only pass temperature if supported and not a reasoning/fixed-temp model
+      if (includeTemp && !isReasoning) {
+        payload.temperature = Number(temperature) || 0.2;
+      }
+
+      if (includeJsonFormat) {
+        payload.response_format = { type: 'json_object' };
+      }
+
+      return await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${credential}`
+        },
+        body: JSON.stringify(payload)
+      });
+    };
+
+    let res = await sendOpenAiRequest({ includeTemp: !isReasoning, includeJsonFormat: true });
+    
+    // Auto-recovery for model-specific constraints
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(`OpenAI Error: ${err.error?.message || res.statusText}`);
+      let errData = await res.json().catch(() => ({}));
+      let errMsg = (errData.error?.message || res.statusText || '').toLowerCase();
+
+      // Retry 1: If temperature unsupported or restricted to default 1
+      if (errMsg.includes('temperature')) {
+        console.warn(`[OpenAI] Model ${modelId} rejected temperature parameter. Retrying with default temperature...`);
+        res = await sendOpenAiRequest({ includeTemp: false, includeJsonFormat: true });
+        if (!res.ok) {
+          errData = await res.json().catch(() => ({}));
+          errMsg = (errData.error?.message || res.statusText || '').toLowerCase();
+        }
+      }
+
+      // Retry 2: If response_format is unsupported by this model
+      if (!res.ok && (errMsg.includes('response_format') || errMsg.includes('json_object'))) {
+        console.warn(`[OpenAI] Model ${modelId} rejected response_format. Retrying without JSON schema constraint...`);
+        res = await sendOpenAiRequest({ includeTemp: false, includeJsonFormat: false });
+        if (!res.ok) {
+          errData = await res.json().catch(() => ({}));
+          errMsg = (errData.error?.message || res.statusText || '').toLowerCase();
+        }
+      }
+
+      // Retry 3: If system role is rejected (some early o1 models require 'developer' or 'user')
+      if (!res.ok && (errMsg.includes('system') || errMsg.includes('role'))) {
+        console.warn(`[OpenAI] Model ${modelId} rejected 'system' role. Retrying with 'developer' role...`);
+        res = await sendOpenAiRequest({ includeTemp: false, includeJsonFormat: false, useDeveloperRole: true });
+      }
+
+      if (!res.ok) {
+        const finalErr = await res.json().catch(() => ({}));
+        throw new Error(`OpenAI Error: ${finalErr.error?.message || res.statusText}`);
+      }
     }
+
     const json = await res.json();
     rawResponseText = json.choices[0]?.message?.content || '{}';
-    parsedData = JSON.parse(rawResponseText);
+    // Clean potential markdown fences if response was returned without strict json_object mode
+    const cleanJson = rawResponseText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '').trim();
+    try {
+      parsedData = JSON.parse(cleanJson);
+    } catch {
+      parsedData = JSON.parse(rawResponseText);
+    }
     totalTokens = json.usage?.total_tokens || totalTokens;
   }
 
@@ -329,12 +765,34 @@ ${transcript}
     totalTokens = (json.usage?.input_tokens || 0) + (json.usage?.output_tokens || 0);
   }
 
-  // 4. OLLAMA (Local)
+  // 4. OLLAMA (Local & Remote Cloud API)
   else if (provider === 'ollama') {
-    const baseUrl = credential.replace(/\/$/, '');
+    const ollamaConf = getOllamaConfig();
+    let baseUrl = ollamaConf.baseUrl || 'http://localhost:11434';
+    let apiKey = ollamaConf.apiKey || '';
+
+    if (credential) {
+      if (typeof credential === 'object') {
+        baseUrl = credential.baseUrl || baseUrl;
+        apiKey = credential.apiKey || apiKey;
+      } else if (typeof credential === 'string') {
+        if (credential.startsWith('http://') || credential.startsWith('https://')) {
+          baseUrl = credential;
+        } else {
+          apiKey = credential;
+        }
+      }
+    }
+
+    baseUrl = baseUrl.replace(/\/$/, '');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+    };
+
     const res = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         model: modelId || 'llama3.3',
         temperature,
@@ -347,7 +805,7 @@ ${transcript}
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`Ollama Error: ${err.error?.message || res.statusText}`);
+      throw new Error(`Ollama Error: ${err.error?.message || res.statusText} at ${baseUrl}`);
     }
     const json = await res.json();
     rawResponseText = json.choices[0]?.message?.content || '{}';
@@ -412,24 +870,9 @@ export async function executeUniversalChat({
   let responseText = '';
   let totalTokens = 0;
 
-  // If no credential provided, provide structured simulated response
-  if (!credential) {
-    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || 'Agent task';
-    responseText = `[SIMULATED EXECUTION - NO ${PROVIDERS[provider]?.name || provider.toUpperCase()} KEY CONFIGURED]
-
-Synthesizing response for: "${lastUserMessage.slice(0, 120)}..."
-
-• Model Reasoning: Validated against active foundation model (${modelId}).
-• Connected Pillars: Enforced attached skills, episodic memory context, and compliance policies.
-• Output: To enable live cloud API inference, add your ${PROVIDERS[provider]?.name || provider} API key in the top-bar key manager.`;
-    return {
-      text: responseText,
-      durationMs: 450,
-      totalTokens: 180,
-      isLive: false,
-      provider,
-      modelId
-    };
+  // Require credentials for model execution
+  if (!credential && provider !== 'ollama') {
+    throw new Error(`No API Key configured for ${PROVIDERS[provider]?.name || provider}. Please set your API credentials in API Credentials modal.`);
   }
 
   // 1. GOOGLE
@@ -438,7 +881,7 @@ Synthesizing response for: "${lastUserMessage.slice(0, 120)}..."
     const formattedPrompt = `${systemPrompt ? `[SYSTEM DIRECTIVE]: ${systemPrompt}\n\n` : ''}${messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n')}\n\nAssistant:`;
 
     const response = await ai.models.generateContent({
-      model: modelId.includes('pro') ? 'gemini-1.5-pro' : 'gemini-2.0-flash',
+      model: modelId || 'gemini-2.0-flash',
       contents: formattedPrompt,
       config: {
         temperature: Number(temperature) || 0.3,
@@ -486,35 +929,88 @@ Synthesizing response for: "${lastUserMessage.slice(0, 120)}..."
 
   // 3. OPENAI
   else if (provider === 'openai') {
-    const openAiMessages = [
-      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-      ...messages.map(m => ({ role: m.role, content: m.content }))
-    ];
+    const isReasoning = isFixedTemperatureModel(modelId);
+    
+    const sendOpenAiChat = async ({ includeTemp = true, useDeveloperRole = false } = {}) => {
+      const openAiMessages = [
+        ...(systemPrompt ? [{ role: useDeveloperRole ? 'developer' : 'system', content: systemPrompt }] : []),
+        ...messages.map(m => ({ role: m.role, content: m.content }))
+      ];
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${credential}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+      const payload = {
         model: modelId,
-        messages: openAiMessages,
-        temperature: Number(temperature) || 0.3
-      })
-    });
+        messages: openAiMessages
+      };
+
+      if (includeTemp && !isReasoning) {
+        payload.temperature = Number(temperature) || 0.3;
+      }
+
+      return await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${credential}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    };
+
+    let res = await sendOpenAiChat({ includeTemp: !isReasoning });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(`OpenAI Error: ${err.error?.message || res.statusText}`);
+      let errData = await res.json().catch(() => ({}));
+      let errMsg = (errData.error?.message || res.statusText || '').toLowerCase();
+
+      // Retry without temperature if model enforces default temperature
+      if (errMsg.includes('temperature')) {
+        console.warn(`[OpenAI Chat] Model ${modelId} rejected temperature. Retrying without temperature parameter...`);
+        res = await sendOpenAiChat({ includeTemp: false });
+        if (!res.ok) {
+          errData = await res.json().catch(() => ({}));
+          errMsg = (errData.error?.message || res.statusText || '').toLowerCase();
+        }
+      }
+
+      // Retry with developer role if system role rejected
+      if (!res.ok && (errMsg.includes('system') || errMsg.includes('role'))) {
+        res = await sendOpenAiChat({ includeTemp: false, useDeveloperRole: true });
+      }
+
+      if (!res.ok) {
+        const finalErr = await res.json().catch(() => ({}));
+        throw new Error(`OpenAI Error: ${finalErr.error?.message || res.statusText}`);
+      }
     }
     const json = await res.json();
     responseText = json.choices[0]?.message?.content || '';
     totalTokens = json.usage?.total_tokens || 0;
   }
 
-  // 4. OLLAMA
+  // 4. OLLAMA (Local & Remote Cloud API)
   else if (provider === 'ollama') {
-    const baseUrl = credential.replace(/\/$/, '');
+    const ollamaConf = getOllamaConfig();
+    let baseUrl = ollamaConf.baseUrl || 'http://localhost:11434';
+    let apiKey = ollamaConf.apiKey || '';
+
+    if (credential) {
+      if (typeof credential === 'object') {
+        baseUrl = credential.baseUrl || baseUrl;
+        apiKey = credential.apiKey || apiKey;
+      } else if (typeof credential === 'string') {
+        if (credential.startsWith('http://') || credential.startsWith('https://')) {
+          baseUrl = credential;
+        } else {
+          apiKey = credential;
+        }
+      }
+    }
+
+    baseUrl = baseUrl.replace(/\/$/, '');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+    };
+
     const ollamaMessages = [
       ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
       ...messages.map(m => ({ role: m.role, content: m.content }))
@@ -522,7 +1018,7 @@ Synthesizing response for: "${lastUserMessage.slice(0, 120)}..."
 
     const res = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         model: modelId,
         messages: ollamaMessages,
@@ -530,7 +1026,7 @@ Synthesizing response for: "${lastUserMessage.slice(0, 120)}..."
       })
     });
     if (!res.ok) {
-      throw new Error(`Ollama Error: ${res.statusText}. Ensure Ollama is running at ${baseUrl}`);
+      throw new Error(`Ollama Error: ${res.statusText}. Target: ${baseUrl}`);
     }
     const json = await res.json();
     responseText = json.choices[0]?.message?.content || '';
@@ -707,19 +1203,37 @@ Respond ONLY with valid JSON in this format:
     });
     parsed = JSON.parse(res.text);
   } else if (provider === 'openai') {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const isReasoning = isFixedTemperatureModel(modelId);
+    const judgePayload = {
+      model: modelId || 'gpt-4o-mini',
+      messages: [{ role: 'user', content: judgePrompt }],
+      response_format: { type: 'json_object' }
+    };
+    if (!isReasoning) {
+      judgePayload.temperature = 0.1;
+    }
+    let res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${credential}`
       },
-      body: JSON.stringify({
-        model: modelId || 'gpt-4o-mini',
-        messages: [{ role: 'user', content: judgePrompt }],
-        response_format: { type: 'json_object' },
-        temperature: 0.1
-      })
+      body: JSON.stringify(judgePayload)
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (err.error?.message?.toLowerCase().includes('temperature')) {
+        delete judgePayload.temperature;
+        res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${credential}`
+          },
+          body: JSON.stringify(judgePayload)
+        });
+      }
+    }
     const data = await res.json();
     parsed = JSON.parse(data.choices[0]?.message?.content || '{}');
   } else if (provider === 'anthropic') {
@@ -785,3 +1299,4 @@ Respond ONLY with valid JSON in this format:
     latencySec: durationSec
   };
 }
+

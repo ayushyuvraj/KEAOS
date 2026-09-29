@@ -365,6 +365,8 @@ export default function App() {
         toolId: item.id,
         name: item.name,
         description: item.description,
+        customDirective: item.customDirective || null,
+        referenceDoc: item.referenceDoc || null,
         config: item.config || {},
         onDelete: handleDeleteNode
       }

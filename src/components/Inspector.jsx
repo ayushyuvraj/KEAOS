@@ -12,10 +12,12 @@ import {
   ExternalLink,
   Sliders,
   PanelRightClose,
-  PanelRightOpen
+  PanelRightOpen,
+  Upload,
+  FileText
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
-import { PROVIDERS, getProviderCredential } from '../services/llmService';
+import { PROVIDERS, getProviderCredential, isFixedTemperatureModel } from '../services/llmService';
 import { FRAMEWORKS } from '../constants/frameworks';
 
 // Reusable simple-language Info Tooltip (i)
@@ -452,7 +454,7 @@ export default function Inspector({
                   onChange={(e) => handleModelIdSelect(e.target.value)}
                   className="w-full px-3 py-2 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-bold text-[#0B0F19] focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors"
                 >
-                  {providerDef.models.map((m) => (
+                  {Array.from(new Set([currentModelId, ...(providerDef.models || [])])).filter(Boolean).map((m) => (
                     <option key={m} value={m}>
                       {m}
                     </option>
@@ -461,23 +463,23 @@ export default function Inspector({
               )}
             </div>
 
-            {/* Ollama Local Endpoint Settings */}
+            {/* Ollama Endpoint & API Token Settings */}
             {currentProvider === 'ollama' && (
               <div className="p-3 bg-[#E6EDF7] border border-[#00338D]/20 space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#00338D]">
                   <Server className="w-3.5 h-3.5" />
                   <span className="flex items-center">
-                    Local Private Host
-                    <InfoTooltip text="Runs directly on your computer hardware. 100% private, zero token costs, air-gapped compliance." align="left" />
+                    Ollama Host & API Settings
+                    <InfoTooltip text="Supports local daemon (http://localhost:11434) and authenticated remote cloud instances." align="left" />
                   </span>
                 </div>
                 <p className="text-[11px] text-[#001E50] leading-relaxed">
-                  Runs directly on your computer hardware. 100% private, zero token costs, air-gapped compliance.
+                  Connect to local on-device hardware or remote authenticated Ollama cloud endpoints.
                 </p>
                 <div>
                   <label className="text-[10px] font-mono text-slate-600 block mb-1 flex items-center">
-                    Ollama Base URL
-                    <InfoTooltip text="The local HTTP address of your running Ollama daemon." align="left" />
+                    Endpoint URL
+                    <InfoTooltip text="Local host address or remote cloud Ollama instance." align="left" />
                   </label>
                   <input
                     type="text"
@@ -487,6 +489,24 @@ export default function Inspector({
                         config: { ...nodeData.config, baseUrl: e.target.value }
                       });
                     }}
+                    placeholder="http://localhost:11434 or https://..."
+                    className="w-full px-2.5 py-1.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-mono text-[#0B0F19] focus:outline-none focus:border-[#00338D] rounded-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono text-slate-600 block mb-1 flex items-center">
+                    API Key / Bearer Token
+                    <InfoTooltip text="Optional token for authenticated remote Ollama servers." align="left" />
+                  </label>
+                  <input
+                    type="password"
+                    value={nodeData.config?.apiKey || ''}
+                    onChange={(e) => {
+                      onUpdateNodeData(selectedNode.id, {
+                        config: { ...nodeData.config, apiKey: e.target.value }
+                      });
+                    }}
+                    placeholder="ollama_... or Bearer token (optional for local)"
                     className="w-full px-2.5 py-1.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-mono text-[#0B0F19] focus:outline-none focus:border-[#00338D] rounded-none"
                   />
                 </div>
@@ -511,30 +531,51 @@ export default function Inspector({
                 <InfoTooltip text="Fine-tune how the AI model balances factual precision versus creative output." align="right" />
               </span>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#0B0F19] flex items-center">
-                    Temperature
-                    <InfoTooltip text="Controls randomness: 0.0 is exact and deterministic, 1.0 is creative and diverse." align="left" />
-                  </span>
-                  <span className="text-xs font-mono text-[#00338D] font-bold">
-                    {Number(nodeData.config?.temperature ?? 0.2).toFixed(2)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0.00"
-                  max="1.00"
-                  step="0.01"
-                  value={nodeData.config?.temperature ?? 0.2}
-                  onChange={(e) => {
-                    onUpdateNodeData(selectedNode.id, {
-                      config: { ...nodeData.config, temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) }
-                    });
-                  }}
-                  className="w-full accent-[#00338D]"
-                />
-              </div>
+              {(() => {
+                const isReasoning = isFixedTemperatureModel(currentModelId);
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-[#0B0F19] flex items-center gap-1.5">
+                        <span>Temperature</span>
+                        {isReasoning && (
+                          <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 font-bold">
+                            Default (1.0)
+                          </span>
+                        )}
+                        <InfoTooltip 
+                          text={isReasoning 
+                            ? "This reasoning model only supports the default (1.0) temperature. Custom values are restricted by the provider." 
+                            : "Controls randomness: 0.0 is exact and deterministic, 1.0 is creative and diverse."} 
+                          align="left" 
+                        />
+                      </span>
+                      <span className={`text-xs font-mono font-bold ${isReasoning ? 'text-slate-400' : 'text-[#00338D]'}`}>
+                        {isReasoning ? '1.00 (Fixed)' : Number(nodeData.config?.temperature ?? 0.2).toFixed(2)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.00"
+                      max="1.00"
+                      step="0.01"
+                      disabled={isReasoning}
+                      value={isReasoning ? 1.00 : (nodeData.config?.temperature ?? 0.2)}
+                      onChange={(e) => {
+                        onUpdateNodeData(selectedNode.id, {
+                          config: { ...nodeData.config, temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) }
+                        });
+                      }}
+                      className={`w-full accent-[#00338D] ${isReasoning ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    />
+                    {isReasoning && (
+                      <p className="text-[10px] text-amber-800 mt-1 font-sans italic leading-tight">
+                        Reasoning & frontier models only allow default temperature (1.0).
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -616,6 +657,101 @@ export default function Inspector({
                 className="w-full p-2.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs text-[#0B0F19] leading-relaxed focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none resize-none transition-colors"
               />
             </div>
+
+            {nodeData.pillarType === 'skills' && (
+              <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#009A44] block mb-1.5 font-mono flex items-center">
+                    Skill Directives & Output Rules
+                    <InfoTooltip text="Custom instructions and formatting commands injected directly into the LLM when executing this skill." align="right" />
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={nodeData.customDirective || ''}
+                    onChange={(e) => onUpdateNodeData(selectedNode.id, { customDirective: e.target.value })}
+                    placeholder="e.g. Format output as numbered bullet points with exact dollar figures and assignees..."
+                    className="w-full p-2.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs text-[#0B0F19] leading-relaxed focus:outline-none focus:border-[#009A44] focus:ring-1 focus:ring-[#009A44] rounded-none resize-none transition-colors font-mono"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#009A44] font-mono flex items-center">
+                      Reference Spec Document
+                      <InfoTooltip text="Attach a Word (.docx), TXT, Markdown, or JSON file containing sample outputs and exact specifications for the AI to follow." align="right" />
+                    </label>
+                    {nodeData.referenceDoc && (
+                      <span className="text-[10px] font-mono text-[#009A44] font-bold">✓ Attached</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept=".docx,.doc,.txt,.md,.json,.csv"
+                      id={`inspector-skill-file-${selectedNode.id}`}
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const fileName = file.name;
+                        const ext = fileName.split('.').pop().toLowerCase();
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          let rawText = evt.target.result || '';
+                          if (['docx', 'doc'].includes(ext)) {
+                            const matches = rawText.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
+                            if (matches && matches.length > 0) {
+                              rawText = matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
+                            } else {
+                              rawText = rawText.replace(/[\x00-\x1F\x7F-\x9F]+/g, ' ').replace(/<[^>]+>/g, ' ').trim();
+                            }
+                          }
+                          const cleanText = rawText.trim();
+                          onUpdateNodeData(selectedNode.id, {
+                            referenceDoc: { name: fileName, text: cleanText }
+                          });
+                        };
+                        reader.readAsText(file);
+                      }}
+                    />
+                    <label
+                      htmlFor={`inspector-skill-file-${selectedNode.id}`}
+                      className={`btn-tactile flex-1 py-2 px-3 border text-xs font-mono font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
+                        nodeData.referenceDoc
+                          ? 'bg-[#E6F5EC] border-[#009A44] text-[#009A44]'
+                          : 'bg-[#F8F9FB] border-[#CBD5E1] text-[#0B0F19] hover:bg-[#E6EDF7] hover:border-[#00338D]'
+                      }`}
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span className="truncate">
+                        {nodeData.referenceDoc ? nodeData.referenceDoc.name : 'Upload Word / Spec File'}
+                      </span>
+                    </label>
+
+                    {nodeData.referenceDoc && (
+                      <button
+                        type="button"
+                        onClick={() => onUpdateNodeData(selectedNode.id, { referenceDoc: null })}
+                        className="btn-tactile p-2 border border-[#CBD5E1] text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Remove attached file"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {nodeData.referenceDoc?.text && (
+                    <div className="mt-2 p-2 bg-[#F8F9FB] border border-[#CBD5E1] text-[10px] font-mono text-slate-600 space-y-1">
+                      <span className="font-bold text-[#009A44] block">Extracted Spec Preview:</span>
+                      <p className="line-clamp-3 leading-relaxed text-[#0B0F19]">
+                        {nodeData.referenceDoc.text}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {nodeData.config && Object.keys(nodeData.config).length > 0 && (
               <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">

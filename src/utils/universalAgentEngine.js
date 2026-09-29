@@ -139,6 +139,11 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
 
   // 6. IDENTIFY FOUNDATION MODEL PROVIDER
   const modelNode = attachedPillars.find(p => p.type === 'model');
+  if (!modelNode) {
+    logStep('Foundation Model Check Failed', '❌ ERROR: No active Foundation Model node connected to agent canvas.', 'model', null, 0);
+    throw new Error('No active Foundation Model node connected on canvas. Please wire a Model pillar to the model-in socket.');
+  }
+
   const provider = modelNode?.config?.provider || 
     (modelNode?.name?.toLowerCase().includes('claude') ? 'anthropic' :
      modelNode?.name?.toLowerCase().includes('gpt') ? 'openai' :
@@ -146,9 +151,9 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
      modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
 
   const modelId = modelNode?.config?.modelId || modelNode?.name || 'gemini-2.0-flash';
-  const modelDisplayName = modelNode ? modelNode.name : `${PROVIDERS[provider]?.name || provider} (${modelId})`;
+  const modelDisplayName = modelNode.name || `${PROVIDERS[provider]?.name || provider} (${modelId})`;
 
-  logStep(`Foundation Model (${PROVIDERS[provider]?.name || provider})`, `Dispatching multi-pillar context to ${modelDisplayName}...`, 'model', modelNode?.id, 0);
+  logStep(`Foundation Model (${PROVIDERS[provider]?.name || provider})`, `Dispatching multi-pillar context to ${modelDisplayName}...`, 'model', modelNode.id, 0);
 
   // 7. DISPATCH LIVE INFERENCE
   const formattedMessages = [

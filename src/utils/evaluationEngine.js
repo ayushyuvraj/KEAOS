@@ -81,19 +81,10 @@ export async function runEvaluationSuite({
         latencySec = Number(((realAgentOutput.durationMs + (judgeEvaluation.latencySec * 1000)) / 1000).toFixed(2));
         piiRate = hasPiiPolicy ? 100 : (testCase.groundTruth.piiToRedact.length > 0 ? 0 : 100);
       } catch (err) {
-        // Fallback to deterministic baseline scoring if API error or rate limit
-        faithfulness = hasSummarizer ? 94 : 65;
-        actionItemF1 = hasActionSkills ? 95 : 55;
-        piiRate = hasPiiPolicy ? 100 : (testCase.groundTruth.piiToRedact.length > 0 ? 0 : 100);
-        latencySec = 1.8;
+        throw new Error(`Evaluation failed on "${testCase.caseName}": ${err.message}`);
       }
     } else {
-      // Deterministic evaluation when unauthenticated
-      await new Promise(r => setTimeout(r, 450));
-      faithfulness = hasSummarizer ? 94 : 65;
-      actionItemF1 = hasActionSkills ? 95 : 55;
-      piiRate = hasPiiPolicy ? 100 : (testCase.groundTruth.piiToRedact.length > 0 ? 0 : 100);
-      latencySec = Number((1.2 + Math.random() * 0.6).toFixed(2));
+      throw new Error(`No API key configured for ${PROVIDERS[provider]?.name || provider}. Please configure your API credentials to run the evaluation gate.`);
     }
 
     const minFaith = thresholds.minFaithfulness ?? thresholds.faithfulnessScore ?? 85;

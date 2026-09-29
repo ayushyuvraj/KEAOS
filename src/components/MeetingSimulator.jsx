@@ -45,7 +45,7 @@ export default function MeetingSimulator({
   onAddToolToCanvas
 }) {
   const [inputMode, setInputMode] = useState('paste');
-  const [transcriptText, setTranscriptText] = useState(SAMPLE_MEETINGS[0].transcript);
+  const [transcriptText, setTranscriptText] = useState('');
   const [mp3File, setMp3File] = useState(null);
   const [txtFile, setTxtFile] = useState(null);
 
@@ -58,12 +58,14 @@ export default function MeetingSimulator({
   const [executionMode, setExecutionMode] = useState('local'); // 'local' | 'cluster'
 
   const attachedPillars = nodes
-    .filter(n => n.type === 'pillar')
+    .filter(n => n.type === 'pillar' && !n.data?.isDeactivated)
     .map(n => ({
       id: n.data.toolId || n.id,
       name: n.data.name,
       type: n.data.pillarType,
-      config: n.data.config
+      config: n.data.config || {},
+      customDirective: n.data.customDirective || null,
+      referenceDoc: n.data.referenceDoc || null
     }));
 
   const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
@@ -95,12 +97,7 @@ export default function MeetingSimulator({
           setIsTranscribingAudio(false);
         }
       } else {
-        setTranscriptText(`[00:02] Sarah Chen: Finalizing the Q3 Enterprise Launch roadmap and GPU cluster expansion.
-[00:18] David Miller: Streaming gateway is 95% complete. We anticipate a bottleneck without additional H100 instances.
-[01:05] Alex Wong: What is the cost impact?
-[01:12] David Miller: Approximately $45,000 extra per month. Base compensation already accounts for maintenance.
-[02:14] Alex Wong: Approved using the $60,000 Q2 marketing reserve buffer, provided Priya delivers the latency benchmark report by next Tuesday.
-[02:45] Priya Patel: I will run stress tests against Singapore and Frankfurt clusters and publish the final latency matrix by Tuesday, 5 PM EST.`);
+        alert('No Google or OpenAI API Key found. Please configure an API Key in API Credentials to transcribe MP3 audio files.');
       }
     }
   };

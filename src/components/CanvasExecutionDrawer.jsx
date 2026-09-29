@@ -46,9 +46,9 @@ export default function CanvasExecutionDrawer({
   const [drawerMode, setDrawerMode] = useState('chat');
 
   // Batch Test State
-  const [selectedSampleIndex, setSelectedSampleIndex] = useState(0);
-  const [transcriptText, setTranscriptText] = useState(SAMPLE_MEETINGS[0].transcript);
-  const [inputTab, setInputTab] = useState('preset');
+  const [selectedSampleIndex, setSelectedSampleIndex] = useState(null);
+  const [transcriptText, setTranscriptText] = useState('');
+  const [inputTab, setInputTab] = useState('raw');
   const [outputTab, setOutputTab] = useState('summary');
   const [isRunning, setIsRunning] = useState(false);
   const [executionSteps, setExecutionSteps] = useState([]);
@@ -90,8 +90,21 @@ export default function CanvasExecutionDrawer({
       id: n.data.toolId || n.id,
       name: n.data.name,
       type: n.data.pillarType,
-      config: n.data.config || {}
+      config: n.data.config || {},
+      customDirective: n.data.customDirective || null,
+      referenceDoc: n.data.referenceDoc || null
     }));
+
+  // Listen for canvas "Execute Workflow" button trigger
+  useEffect(() => {
+    const handleExecuteTrigger = () => {
+      setIsExpanded(true);
+      setDrawerMode('batch');
+      handleRunAgent();
+    };
+    window.addEventListener('keaos:execute-workflow', handleExecuteTrigger);
+    return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
+  }, [isRunning, transcriptText, activeUseCase, attachedPillars]);
 
   const modelNode = (nodes || []).find(n => n.type === 'pillar' && n.data?.pillarType === 'model' && !n.data?.isDeactivated);
   const modelDisplayName = modelNode?.data?.name || modelNode?.name || 'No Model Connected';
@@ -177,6 +190,13 @@ export default function CanvasExecutionDrawer({
 
   const handleRunAgent = async () => {
     if (isRunning) return;
+
+    if (!transcriptText || !transcriptText.trim()) {
+      alert('⚠️ No input transcript provided.\n\nPlease paste transcript text, select a preset sample, or upload a document/audio file before running execution.');
+      setIsExpanded(true);
+      setDrawerMode('batch');
+      return;
+    }
 
     setIsRunning(true);
     setExecutionSteps([]);

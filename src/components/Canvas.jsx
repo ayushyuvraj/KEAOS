@@ -38,7 +38,8 @@ import {
   Moon,
   PanelRight,
   Map as MapIcon,
-  GripVertical
+  GripVertical,
+  Play
 } from 'lucide-react';
 
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
@@ -402,9 +403,19 @@ function CanvasInner({
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
       const key = e.key;
 
-      // 1. Undo / Redo
+      // 1. Undo / Redo / Execute Workflow
       if (isCtrlOrCmd) {
-        if (key === 'z' || key === 'Z') {
+        if (key === 'Enter') {
+          e.preventDefault();
+          if (setIsDrawerExpanded) setIsDrawerExpanded(true);
+          window.dispatchEvent(new CustomEvent('keaos:execute-workflow'));
+          const toastMsg = '⚡ Executing Workflow...';
+          setToastNotification(toastMsg);
+          setTimeout(() => {
+            setToastNotification((curr) => (curr === toastMsg ? null : curr));
+          }, 2000);
+          return;
+        } else if (key === 'z' || key === 'Z') {
           e.preventDefault();
           if (e.shiftKey) {
             redo();
@@ -687,6 +698,47 @@ function CanvasInner({
           <button onClick={() => setToastNotification(null)} className="text-slate-400 hover:text-white ml-2 text-xs">✕</button>
         </div>
       )}
+
+      {/* Top-Left Prominent Canvas Action Overlay: Execute Workflow */}
+      <div className="absolute top-4 left-6 z-20 flex items-center gap-3">
+        <button
+          onClick={() => {
+            if (setIsDrawerExpanded) setIsDrawerExpanded(true);
+            window.dispatchEvent(new CustomEvent('keaos:execute-workflow'));
+          }}
+          disabled={executionState.isExecuting}
+          className={`btn-tactile px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2.5 shadow-2xl transition-all border cursor-pointer ${
+            executionState.isExecuting
+              ? 'bg-[#00338D] text-white border-[#0091DA] animate-pulse'
+              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#0091DA]/50 hover:border-[#0091DA] shadow-[0_4px_20px_rgba(0,51,141,0.35)]'
+          }`}
+          title="Execute complete multi-pillar agent workflow (Ctrl + Enter)"
+        >
+          {executionState.isExecuting ? (
+            <>
+              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              <span className="font-mono tracking-tight text-white">Executing Graph...</span>
+            </>
+          ) : (
+            <>
+              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                <Play className="w-3.5 h-3.5 fill-white text-white translate-x-0.5" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1.5">
+                  Execute Workflow
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-300 border border-emerald-400/30">
+                    READY
+                  </span>
+                </span>
+                <span className="text-[10px] font-mono text-slate-300">
+                  {activeUseCase?.framework?.name || 'Google ADK'} • {nodes.filter(n => !n.data?.isDeactivated).length} Active Nodes
+                </span>
+              </div>
+            </>
+          )}
+        </button>
+      </div>
 
       {/* Top-Right Minimal Vertical Action Stack (Matching Reference) */}
       <div className="absolute top-4 right-6 z-20 flex flex-col items-center gap-2">

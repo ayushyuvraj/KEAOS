@@ -69,8 +69,13 @@ export async function runMeetingSimulation({
 
   const startTime = performance.now();
 
+  if (!transcript || !transcript.trim()) {
+    logStep('Ingestion Failed', '❌ ERROR: No transcript input provided.', 0);
+    throw new Error('No transcript or meeting input provided. Please enter transcript text or upload a file before executing.');
+  }
+
   // Step 1: Ingestion & Diarization
-  logStep('Ingestion & Parsing', `Ingested transcript (${transcript.length} characters). Input validated.`, 80);
+  logStep('Ingestion & Parsing', `Ingested transcript (${transcript.trim().length} characters). Input validated.`, 80);
 
   // Step 2: Gateway & Policy Checks (PII Masking)
   let processedTranscript = transcript;
@@ -104,8 +109,13 @@ export async function runMeetingSimulation({
     logStep('Memory Bypass', `Stateless execution mode. No memory pillar connected.`, 25);
   }
 
-  // Step 4: Model Execution (LIVE Real Multi-LLM API or Deterministic Fallback)
+  // Step 4: Model Execution (LIVE Real Multi-LLM API)
   const modelNode = attachedPillars.find(p => p.type === 'model');
+  if (!modelNode) {
+    logStep('Model Check Failed', '❌ ERROR: No active Foundation Model node connected to agent canvas.', 0);
+    throw new Error('No active Foundation Model node connected on canvas. Please wire a Model pillar to the model-in socket.');
+  }
+
   const provider = modelNode?.config?.provider || 
     (modelNode?.name?.toLowerCase().includes('claude') ? 'anthropic' :
      modelNode?.name?.toLowerCase().includes('gpt') ? 'openai' :
@@ -113,66 +123,46 @@ export async function runMeetingSimulation({
      modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
 
   const modelId = modelNode?.config?.modelId || modelNode?.name || 'gemini-2.0-flash';
-  const modelDisplayName = modelNode ? modelNode.name : `${PROVIDERS[provider]?.name || provider} (${modelId})`;
-
-  let summary = [];
-  let actionItems = [];
-  let decisions = [];
-  let sentimentScore = 'Collaborative & Action-Oriented (92%)';
-  let totalTokens = Math.round(transcript.length / 4) + 650;
-  let modelLatency = 850;
-  let isLiveExecution = false;
+  const modelDisplayName = modelNode.name || `${PROVIDERS[provider]?.name || provider} (${modelId})`;
 
   const credential = getProviderCredential(provider);
-
-  if (credential) {
-    // REAL LIVE MULTI-LLM API INFERENCE CALL WITH MEMORY CONTEXT
-    logStep(`Core Model (${PROVIDERS[provider]?.name || provider})`, `Executing live API request to ${modelDisplayName}...`, 0);
-    try {
-      const realResult = await synthesizeMeetingUniversal({
-        provider,
-        modelId,
-        transcript: processedTranscript,
-        systemPrompt: agentConfig.prompt,
-        memoryContext,
-        temperature: agentConfig.temperature || 0.2
-      });
-
-      summary = realResult.parsedData.summary || [];
-      decisions = realResult.parsedData.decisions || [];
-      actionItems = realResult.parsedData.actionItems || [];
-      sentimentScore = realResult.parsedData.sentiment || 'Constructive';
-      modelLatency = realResult.durationMs;
-      totalTokens = realResult.totalTokens || totalTokens;
-      isLiveExecution = true;
-
-      logStep('Model Response (Live)', `Live ${PROVIDERS[provider]?.name} inference complete (${modelLatency}ms). Processed ${totalTokens} tokens.`, modelLatency);
-    } catch (err) {
-      logStep('API Inference Warning', `${PROVIDERS[provider]?.name} error: ${err.message}. Reverting to structured fallback.`, 200);
-      summary = [
-        'Reviewed executive roadmap, infrastructure budget allocation, and milestones.',
-        'Validated cross-functional dependencies and scaling thresholds.',
-        'Secured departmental sign-offs across technical and financial leads.'
-      ];
-      decisions = ['Approved resource allocation contingent on technical latency benchmarking.'];
-      actionItems = [
-        { id: 'ACT-01', assignee: 'Priya Patel', task: 'Run stress tests and publish latency matrix', deadline: 'Tuesday, 5 PM', priority: 'High', jiraTicket: 'ENG-1081' },
-        { id: 'ACT-02', assignee: 'Marcus', task: 'Review OAuth2 policy with legal team', deadline: 'Friday', priority: 'Medium', jiraTicket: 'SEC-304' }
-      ];
-    }
-  } else {
-    logStep('Core Agent Execution', `No API Key found for ${PROVIDERS[provider]?.name || provider}. Configure in API Settings for live calls.`, 380);
-    summary = [
-      'Reviewed executive roadmap, infrastructure budget allocation, and milestones.',
-      'Validated cross-functional dependencies and scaling thresholds.',
-      'Secured departmental sign-offs across technical and financial leads.'
-    ];
-    decisions = ['Approved resource allocation contingent on technical latency benchmarking.'];
-    actionItems = [
-      { id: 'ACT-01', assignee: 'Priya Patel', task: 'Run stress tests and publish latency matrix', deadline: 'Tuesday, 5 PM', priority: 'High', jiraTicket: 'ENG-1081' },
-      { id: 'ACT-02', assignee: 'Marcus', task: 'Review OAuth2 policy with legal team', deadline: 'Friday', priority: 'Medium', jiraTicket: 'SEC-304' }
-    ];
+  if (!credential && provider !== 'ollama') {
+    logStep('Model Authentication Failed', `❌ ERROR: No API Key found for ${PROVIDERS[provider]?.name || provider}.`, 0);
+    throw new Error(`No API key configured for ${PROVIDERS[provider]?.name || provider}. Please set your API credentials in API Settings modal.`);
   }
+
+  // Step 5: Compile Attached Skills & Custom Directives
+  const skillNodes = attachedPillars.filter(p => p.type === 'skills');
+  let skillsDirectiveText = '';
+  if (skillNodes.length > 0) {
+    skillsDirectiveText = `\n[ATTACHED SKILL DIRECTIVES & CAPABILITIES (${skillNodes.length} active skills connected)]:\nThe following skills are bound to this agent on the visual canvas. You MUST execute all of these skills and strictly enforce their formatting rules:\n${skillNodes.map((s, idx) => `Skill ${idx + 1}: "${s.name}" (${s.description || 'Custom Skill'})\n- Config & Rules: ${JSON.stringify(s.config || {})}${s.customDirective ? `\n- Custom Directive: ${s.customDirective}` : ''}${s.referenceDoc?.text ? `\n- Reference Specification Document (${s.referenceDoc.name}):\n"""\n${s.referenceDoc.text}\n"""` : ''}`).join('\n')}\n`;
+    logStep('Skills Processing', `Compiled ${skillNodes.length} attached skills (${skillNodes.map(s => s.name).join(', ')}). Injected directives and specification documents into model prompt.`, 90);
+  } else {
+    logStep('Skills Processing', `No skill pillars connected on canvas. Using standard agent directives.`, 30);
+  }
+
+  const fullSystemPrompt = `${agentConfig.prompt || 'You are an institutional executive meeting intelligence assistant.'}\n${skillsDirectiveText}`;
+
+  logStep(`Core Model (${PROVIDERS[provider]?.name || provider})`, `Executing live API request to ${modelDisplayName}...`, 0);
+
+  const realResult = await synthesizeMeetingUniversal({
+    provider,
+    modelId,
+    transcript: processedTranscript,
+    systemPrompt: fullSystemPrompt,
+    memoryContext,
+    temperature: modelNode?.config?.temperature !== undefined ? modelNode.config.temperature : (agentConfig.temperature ?? 0.2)
+  });
+
+  const summary = realResult.parsedData?.summary || [];
+  const decisions = realResult.parsedData?.decisions || [];
+  const actionItems = realResult.parsedData?.actionItems || [];
+  const sentimentScore = realResult.parsedData?.sentiment || 'Neutral';
+  const modelLatency = realResult.durationMs;
+  const totalTokens = realResult.totalTokens || Math.round(transcript.length / 4) + 650;
+  const isLiveExecution = true;
+
+  logStep('Model Response (Live)', `Live ${PROVIDERS[provider]?.name} inference complete (${modelLatency}ms). Processed ${totalTokens} tokens.`, modelLatency);
 
   // Step 5: Skills Processing
   logStep('Skills Processing', `Extracted ${summary.length} takeaways, ${decisions.length} decisions, ${actionItems.length} action items.`, 120);
