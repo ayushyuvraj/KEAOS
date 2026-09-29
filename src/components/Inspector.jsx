@@ -20,15 +20,15 @@ import { PROVIDERS, getProviderCredential } from '../services/llmService';
 import { FRAMEWORKS } from '../constants/frameworks';
 
 // Reusable simple-language Info Tooltip (i)
-function InfoTooltip({ text }) {
+function InfoTooltip({ text, align = 'right' }) {
   return (
     <div className="relative group/info inline-flex items-center ml-1 z-30">
       <div className="w-3.5 h-3.5 rounded-full border border-slate-400 text-slate-500 hover:text-[#00338D] hover:border-[#00338D] hover:bg-[#E6EDF7] flex items-center justify-center text-[9px] font-mono font-bold cursor-help transition-all">
         i
       </div>
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/info:block w-56 p-2.5 bg-[#0B0F19] text-white text-[10px] leading-relaxed shadow-xl border border-[#3E424F] font-sans z-50 rounded-none animate-in fade-in duration-150 pointer-events-none">
+      <div className={`absolute top-full ${align === 'left' ? 'left-0' : 'right-0'} mt-1.5 hidden group-hover/info:block w-56 p-2.5 bg-[#0B0F19] text-white text-[10px] leading-relaxed shadow-xl border border-[#3E424F] font-sans z-50 rounded-none animate-in fade-in duration-150 pointer-events-none`}>
         {text}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0B0F19]" />
+        <div className={`absolute bottom-full ${align === 'left' ? 'left-1.5' : 'right-1.5'} border-4 border-transparent border-b-[#0B0F19]`} />
       </div>
     </div>
   );
