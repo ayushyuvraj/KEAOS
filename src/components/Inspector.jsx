@@ -21,6 +21,7 @@ import { FRAMEWORKS } from '../constants/frameworks';
 
 export default function Inspector({
   selectedNode,
+  nodes = [],
   activeUseCase,
   onSelectFramework,
   agentConfig,
@@ -35,6 +36,9 @@ export default function Inspector({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [customTokens, setCustomTokens] = useState([]);
   const [newCustomToken, setNewCustomToken] = useState('');
+
+  const activeModelNode = (nodes || []).find(n => n.data?.pillarType === 'model' && !n.data?.isDeactivated);
+  const activeModelName = activeModelNode?.data?.name || 'No Model Connected';
 
   useEffect(() => {
     if (selectedNode) {
@@ -111,7 +115,7 @@ export default function Inspector({
                 <span className="font-bold text-[#00338D]">LIVE API</span>
               </div>
               <div className="text-xs font-bold text-[#0B0F19] mt-1 truncate">
-                Gemini 2.0 Flash (Multimodal)
+                {activeModelName}
               </div>
               <div className="flex items-center gap-1.5 mt-2">
                 <button

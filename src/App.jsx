@@ -565,6 +565,7 @@ export default function App() {
               {isInspectorOpen && (
                 <Inspector
                   selectedNode={selectedNode}
+                  nodes={nodes}
                   activeUseCase={activeUseCase}
                   onSelectFramework={handleSelectFramework}
                   agentConfig={activeUseCase.agent}

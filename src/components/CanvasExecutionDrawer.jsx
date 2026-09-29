@@ -94,6 +94,7 @@ export default function CanvasExecutionDrawer({
     }));
 
   const modelNode = (nodes || []).find(n => n.type === 'pillar' && n.data?.pillarType === 'model' && !n.data?.isDeactivated);
+  const modelDisplayName = modelNode?.data?.name || modelNode?.name || 'No Model Connected';
 
   // Handle Interactive Chat Submission
   const handleSendChat = async (e) => {
@@ -323,7 +324,7 @@ export default function CanvasExecutionDrawer({
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <span>{activeUseCase?.framework?.name || 'Google ADK'}</span>
             <span>•</span>
-            <span className="text-[#0091DA]">{modelNode?.name || 'Gemini 2.0'}</span>
+            <span className="text-[#0091DA]">{modelDisplayName}</span>
           </div>
 
           <button
