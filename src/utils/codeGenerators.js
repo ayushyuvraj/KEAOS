@@ -12,30 +12,38 @@ export function generateFrameworkCode(frameworkId, agentConfig, attachments) {
     case 'google-adk':
       return `# =====================================================================
 # KEAOS Generated Agent: Meeting Intelligence
-# Framework: Google ADK (Agent Development Kit) & Google GenAI SDK
+# Framework: Google ADK (Agent Development Kit) & Google GenAI SDK v2
 # =====================================================================
 import os
+from typing import List, Optional
+from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
-# 1. Initialize Google GenAI Client
+# 1. Initialize Google GenAI Client (Google ADK Runtime)
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 # 2. System Instruction & Persona
 SYSTEM_INSTRUCTION = """${systemPrompt}"""
 
-# 3. Model Configuration
-generation_config = types.GenerateContentConfig(
-    temperature=${agentConfig.temperature || 0.2},
-    top_p=0.95,
-    max_output_tokens=8192,
-    response_mime_type="application/json",
-    system_instruction=SYSTEM_INSTRUCTION
-)
+# 3. Define Typed Schema for Structured Output (Google ADK Contract)
+class ActionItem(BaseModel):
+    id: str = Field(description="Unique action ID e.g. ACT-01")
+    assignee: str = Field(description="Name of the person responsible")
+    task: str = Field(description="Specific actionable task")
+    deadline: str = Field(description="Stated or inferred deadline")
+    priority: str = Field(description="Critical | High | Medium | Low")
+    jira_ticket: Optional[str] = Field(default=None, description="Linked Jira/Linear ticket ID")
 
-${hasAudioTool ? `# 4. Audio Transcription Tool (Whisper / Speech-to-Text)
-def transcribe_mp3_audio(audio_path: str) -> str:
-    """Ingests MP3 meeting recording and transcribes into speaker-diarized text."""
+class MeetingIntelligenceOutput(BaseModel):
+    summary: List[str] = Field(description="Bulleted high-impact executive takeaways")
+    decisions: List[str] = Field(description="Formal decisions agreed upon in the meeting")
+    action_items: List[ActionItem] = Field(description="Extracted list of structured action items")
+    sentiment: str = Field(description="Meeting tone, morale, and conflict assessment")
+
+${hasAudioTool ? `# 4. Audio Ingestion Tool (Google ADK Native Multimodal / Whisper)
+def transcribe_meeting_audio(audio_path: str) -> str:
+    """Ingests meeting recording and transcribes into speaker-diarized text."""
     uploaded_file = client.files.upload(file=audio_path)
     response = client.models.generate_content(
         model="${modelName}",
@@ -43,7 +51,7 @@ def transcribe_mp3_audio(audio_path: str) -> str:
     )
     return response.text
 ` : ''}
-${hasMemory ? `# 5. Episodic Memory Store (Cross-Session Context RAG)
+${hasMemory ? `# 5. Episodic Memory Tool (Cross-Session Context RAG)
 def recall_episodic_memory() -> str:
     """Recalls past sprint commitments, unresolved tasks, and corporate constraints."""
     historical_commitments = [
@@ -52,29 +60,33 @@ def recall_episodic_memory() -> str:
     ]
     return "\\n".join(f"- {c}" for c in historical_commitments)
 ` : ''}
-${hasPii ? `# 6. Gateway Policy: PII Masking
+${hasPii ? `# 6. Gateway Policy Tool: PII Sanitization
 def apply_pii_sanitization(transcript: str) -> str:
+    """Masks salaries, compensation, and confidential personal data."""
     import re
-    # Mask salaries, phone numbers, and compensation details
-    redacted = re.sub(r'\\$[0-9,]+(\\.[0-9]{2})?', '[CONFIDENTIAL_FINANCIAL_INFO]', transcript)
-    return redacted
+    return re.sub(r'\\$[0-9,]+(\\.[0-9]{2})?', '[CONFIDENTIAL_FINANCIAL_INFO]', transcript)
 ` : ''}
-# 7. Core Meeting Intelligence Execution
+
+# 7. Model & Generation Configuration (Google ADK Schema & Tool Binding)
+generation_config = types.GenerateContentConfig(
+    temperature=${agentConfig.temperature || 0.2},
+    top_p=0.95,
+    max_output_tokens=8192,
+    response_mime_type="application/json",
+    response_schema=MeetingIntelligenceOutput,
+    system_instruction=SYSTEM_INSTRUCTION${hasMemory ? ',\n    tools=[recall_episodic_memory]' : ''}
+)
+
+# 8. Core Meeting Intelligence Agent Execution (Google ADK Pipeline)
 def run_meeting_intelligence(transcript_content: str):
-    print("Executing Google ADK Meeting Intelligence Agent...")
+    print("Executing Google ADK Agent Pipeline...")
     ${hasPii ? 'sanitized_transcript = apply_pii_sanitization(transcript_content)' : 'sanitized_transcript = transcript_content'}
     ${hasMemory ? 'memory_context = recall_episodic_memory()' : ''}
     
     prompt = f"""
-    Analyze the following meeting transcript.
+    Analyze the following meeting transcript according to your system instructions.
     ${hasMemory ? 'HISTORICAL EPISODIC MEMORY & PAST COMMITMENTS:\\n{memory_context}\\n' : ''}
-    Produce:
-    1. Executive Summary (concise bullet points)
-    2. Key Decisions Register
-    3. Action Items list (Assignee, Task, Deadline)
-    4. Sentiment Analysis
-    
-    Current Transcript:
+    Meeting Transcript:
     {sanitized_transcript}
     """
     
@@ -86,9 +98,9 @@ def run_meeting_intelligence(transcript_content: str):
     return response.text
 
 if __name__ == "__main__":
-    sample_transcript = "Sarah: Budget approved $45k. Priya: Will deliver benchmark report Tuesday."
+    sample_transcript = "Sarah: Budget approved $45k for cluster. Priya: Will deliver benchmark report Tuesday."
     result = run_meeting_intelligence(sample_transcript)
-    print(result)
+    print("Google ADK Output:", result)
 `;
 
     case 'langgraph':

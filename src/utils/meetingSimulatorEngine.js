@@ -141,7 +141,21 @@ export async function runMeetingSimulation({
     logStep('Skills Processing', `No skill pillars connected on canvas. Using standard agent directives.`, 30);
   }
 
-  const fullSystemPrompt = `${agentConfig.prompt || 'You are an institutional executive meeting intelligence assistant.'}\n${skillsDirectiveText}`;
+  // Step 4: Framework Runtime Harness & Orchestration Protocol
+  const frameworkName = {
+    'google-adk': 'Google ADK (Agent Development Kit)',
+    'langgraph': 'LangGraph',
+    'crewai': 'CrewAI',
+    'autogen': 'Microsoft AutoGen',
+    'langchain': 'LangChain',
+    'openai-swarm': 'OpenAI Swarm',
+    'microsoft-adk': 'Microsoft Semantic Kernel'
+  }[frameworkId] || (frameworkId || 'Google ADK');
+
+  logStep(`Framework Harness (${frameworkName})`, `Binding agent execution graph to ${frameworkName} runtime specifications, tool contracts, and schema validators.`, 45);
+
+  const frameworkDirective = `\n[TARGET ARCHITECTURAL FRAMEWORK: ${frameworkName.toUpperCase()}]:\nThis agent is compiled under the ${frameworkName} orchestration pattern. Enforce the execution contracts, tool definitions, and schema conventions of this framework.\n`;
+  const fullSystemPrompt = `${agentConfig.prompt || 'You are an institutional executive meeting intelligence assistant.'}\n${frameworkDirective}${skillsDirectiveText}`;
 
   logStep(`Core Model (${PROVIDERS[provider]?.name || provider})`, `Executing live API request to ${modelDisplayName}...`, 0);
 
@@ -239,7 +253,7 @@ export async function runMeetingSimulation({
       timestamp: new Date().toISOString(),
       eventType: isLiveExecution ? 'Live Multi-LLM Execution' : 'Deterministic Agent Test',
       agent: agentConfig?.name || 'Meeting Intelligence Agent',
-      framework: frameworkId || 'Google ADK',
+      framework: frameworkName || frameworkId || 'Google ADK',
       sha256Hash: auditHash,
       inputsLength: `${transcript.length} chars`,
       verified: true,
@@ -274,7 +288,7 @@ export async function runMeetingSimulation({
       totalTokens,
       modelUsed: modelDisplayName,
       provider,
-      framework: frameworkId,
+      framework: frameworkName || frameworkId,
       isLiveApi: isLiveExecution
     },
     economics: {
