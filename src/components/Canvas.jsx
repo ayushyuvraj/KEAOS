@@ -105,8 +105,6 @@ function CanvasInner({
   setIsDrawerExpanded
 }) {
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('model');
-  const [searchQuery, setSearchQuery] = useState('');
   const [isDraggingMiniMap, setIsDraggingMiniMap] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, initialX: 0, initialY: 0 });
   const [rfInstance, setRfInstance] = useState(null);
@@ -515,15 +513,6 @@ function CanvasInner({
     },
     [nodes, setEdges, setInvalidConnectionAlert, takeSnapshot, handleDeleteEdge]
   );
-
-  const handleAddFromPalette = (pillarKey, item) => {
-    takeSnapshot();
-    if (onAddNode) {
-      onAddNode(pillarKey, item);
-    }
-    setIsAddMenuOpen(false);
-    setSearchQuery('');
-  };
 
   const handleToggleEnforcer = (e) => {
     if (e) {

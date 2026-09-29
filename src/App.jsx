@@ -322,6 +322,13 @@ export default function App() {
   const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
   const [evaluationResult, setEvaluationResult] = useState(null);
 
+  // Handle deleting a node
+  const handleDeleteNode = useCallback((nodeId) => {
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setSelectedNode((curr) => (curr?.id === nodeId ? null : curr));
+  }, [setNodes, setEdges]);
+
   // Add node from Palette / Catalog
   const handleAddNode = useCallback((pillarKey, item) => {
     if (pillarKey === 'agentCore') {
@@ -344,7 +351,6 @@ export default function App() {
     }
 
     const newNodeId = `node-${pillarKey}-${Date.now().toString().slice(-4)}`;
-    const pillarDef = PILLARS[pillarKey];
 
     // Position staggered near center
     const xPos = 400 + Math.random() * 200;
@@ -367,13 +373,6 @@ export default function App() {
     setNodes((nds) => [...nds, newNode]);
     setSelectedNode(newNode);
   }, [setNodes, activeUseCase, handleDeleteNode]);
-
-  // Handle deleting a node
-  const handleDeleteNode = useCallback((nodeId) => {
-    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
-    setSelectedNode((curr) => (curr?.id === nodeId ? null : curr));
-  }, [setNodes, setEdges]);
 
   // Update Agent Config
   const handleUpdateAgentConfig = (updates) => {

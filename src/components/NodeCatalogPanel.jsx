@@ -242,7 +242,7 @@ export default function NodeCatalogPanel({
                   borderColor: `${activeCategory.color}40`
                 }}
               >
-                <activeCategory.icon className="w-4 h-4" />
+                {React.createElement(activeCategory.icon || Wrench, { className: 'w-4 h-4' })}
               </div>
               <div className="flex-1 truncate">
                 <h3 className="text-sm font-bold tracking-tight truncate">
@@ -321,7 +321,7 @@ export default function NodeCatalogPanel({
               searchResults.map(({ category, items }) => (
                 <div key={category.id} className="space-y-2">
                   <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase text-slate-400 px-1">
-                    <category.icon className="w-3 h-3" style={{ color: category.color }} />
+                    {React.createElement(category.icon || Wrench, { className: 'w-3 h-3', style: { color: category.color } })}
                     <span>{category.label}</span>
                   </div>
 
