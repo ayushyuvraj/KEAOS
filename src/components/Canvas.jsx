@@ -37,7 +37,7 @@ import {
   Sun,
   Moon,
   PanelRight,
-  Map,
+  Map as MapIcon,
   GripVertical
 } from 'lucide-react';
 
@@ -554,12 +554,15 @@ function CanvasInner({
       policies: 0
     };
 
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const nodeLookup = {};
+    (nodes || []).forEach(n => {
+      nodeLookup[n.id] = n;
+    });
 
-    edges.forEach((edge) => {
+    (edges || []).forEach((edge) => {
       if (edge.target === 'agent-core' && edge.targetHandle) {
         const pillar = SOCKET_RULES[edge.targetHandle];
-        const sourceNode = nodeMap.get(edge.source);
+        const sourceNode = nodeLookup[edge.source];
         const isSourceDeactivated = !!sourceNode?.data?.isDeactivated;
         if (pillar && activeCounts[pillar] !== undefined && !isSourceDeactivated) {
           activeCounts[pillar] += 1;
@@ -567,7 +570,7 @@ function CanvasInner({
       }
     });
 
-    return nodes.map(n => ({
+    return (nodes || []).map(n => ({
       ...n,
       data: {
         ...n.data,
@@ -600,11 +603,14 @@ function CanvasInner({
 
   // Edges styled dynamically: when source or target component is deactivated, disable the wire
   const edgesWithTheme = React.useMemo(() => {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const nodeLookup = {};
+    (nodes || []).forEach(n => {
+      nodeLookup[n.id] = n;
+    });
 
-    return edges.map((edge) => {
-      const sourceNode = nodeMap.get(edge.source);
-      const targetNode = nodeMap.get(edge.target);
+    return (edges || []).map((edge) => {
+      const sourceNode = nodeLookup[edge.source];
+      const targetNode = nodeLookup[edge.target];
       const isSourceDeactivated = !!sourceNode?.data?.isDeactivated;
       const isTargetDeactivated = !!targetNode?.data?.isDeactivated;
       const isDeactivated = isSourceDeactivated || isTargetDeactivated;
@@ -688,7 +694,7 @@ function CanvasInner({
             }`}
             title="Toggle MiniMap"
           >
-            <Map className="w-4 h-4" />
+            <MapIcon className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -890,7 +896,7 @@ function CanvasInner({
             >
               <div className="flex items-center gap-1.5">
                 <GripVertical className="w-3 h-3 text-slate-400" />
-                <Map className="w-3 h-3 text-[#0091DA]" />
+                <MapIcon className="w-3 h-3 text-[#0091DA]" />
                 <span>OVERVIEW</span>
               </div>
               <button onClick={() => setShowMiniMap(false)} className="text-slate-400 hover:text-white p-0.5">
