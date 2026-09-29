@@ -223,7 +223,46 @@ function CanvasInner({
     takeSnapshot();
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
-  }, [takeSnapshot, setNodes, setEdges]);
+    if (onSelectNode) {
+      onSelectNode(null);
+    }
+  }, [takeSnapshot, setNodes, setEdges, onSelectNode]);
+
+  // Global keyboard listener for Delete / Backspace node deletion
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+
+      // Ignore keypress if focus is inside an input, textarea, select, or contentEditable element
+      const activeEl = document.activeElement;
+      if (
+        activeEl && (
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          activeEl.isContentEditable
+        )
+      ) {
+        return;
+      }
+
+      // Find target node: selectedNode prop OR any node in state marked selected
+      const targetNodeId = selectedNode?.id || nodes.find(n => n.selected)?.id;
+      if (targetNodeId) {
+        e.preventDefault();
+        const targetNode = nodes.find(n => n.id === targetNodeId);
+        handleDeleteNode(targetNodeId);
+        const toastMsg = `🗑️ Deleted "${targetNode?.data?.name || 'Node'}"`;
+        setToastNotification(toastMsg);
+        setTimeout(() => {
+          setToastNotification((curr) => (curr === toastMsg ? null : curr));
+        }, 2000);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNode, nodes, handleDeleteNode, onSelectNode]);
 
   // Handle node duplicate with snapshot
   const handleDuplicateNode = useCallback((nodeId) => {
@@ -876,6 +915,12 @@ function CanvasInner({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         isValidConnection={isValidConnection}
+        deleteKeyCode={['Backspace', 'Delete']}
+        onNodesDelete={(deletedNodes) => {
+          takeSnapshot();
+          deletedNodes.forEach(n => handleDeleteNode(n.id));
+          if (onSelectNode) onSelectNode(null);
+        }}
         minZoom={0.25}
         maxZoom={1.75}
         defaultEdgeOptions={{ animated: true, type: 'deletable', data: { onDelete: handleDeleteEdge } }}
