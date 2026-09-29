@@ -38,6 +38,12 @@ export default function DeletableEdge({
   };
 
   const isVisible = isHovered || selected;
+  const isDeactivated = !!data?.isDeactivated;
+  const isDarkMode = data?.isDarkMode ?? true;
+
+  const defaultStroke = isDeactivated 
+    ? (isDarkMode ? '#475569' : '#94A3B8') 
+    : (style.stroke || '#0091DA');
 
   return (
     <>
@@ -47,10 +53,12 @@ export default function DeletableEdge({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: isVisible ? '#EF4444' : (style.stroke || '#0091DA'),
-          strokeWidth: isVisible ? 2.5 : (style.strokeWidth || 1.8),
+          stroke: isVisible ? '#EF4444' : defaultStroke,
+          strokeWidth: isVisible ? 2.5 : (isDeactivated ? 1.4 : (style.strokeWidth || 1.8)),
+          opacity: isVisible ? 1 : (isDeactivated ? 0.35 : (style.opacity ?? 1)),
+          strokeDasharray: isDeactivated ? '3 3' : (style.strokeDasharray || '4 4'),
           filter: isVisible ? 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.6))' : undefined,
-          transition: 'stroke 0.15s ease, stroke-width 0.15s ease'
+          transition: 'stroke 0.15s ease, stroke-width 0.15s ease, opacity 0.15s ease'
         }}
       />
 

@@ -48,9 +48,9 @@ export default function CanvasExecutionDrawer({
   const [audioFile, setAudioFile] = useState(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
 
-  // Attached pillars derived from canvas nodes
+  // Attached pillars derived from canvas nodes (excluding deactivated components)
   const attachedPillars = nodes
-    .filter(n => n.type === 'pillar')
+    .filter(n => n.type === 'pillar' && !n.data?.isDeactivated)
     .map(n => ({
       id: n.data.toolId || n.id,
       name: n.data.name,

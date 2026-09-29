@@ -543,7 +543,7 @@ function CanvasInner({
   };
 
   const nodesWithTheme = React.useMemo(() => {
-    // Dynamically calculate attachedCounts from active edges connected to agent-core
+    // Dynamically calculate attachedCounts from active, non-deactivated edges connected to agent-core
     const activeCounts = {
       model: 0,
       skills: 0,
@@ -554,10 +554,14 @@ function CanvasInner({
       policies: 0
     };
 
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
     edges.forEach((edge) => {
       if (edge.target === 'agent-core' && edge.targetHandle) {
         const pillar = SOCKET_RULES[edge.targetHandle];
-        if (pillar && activeCounts[pillar] !== undefined) {
+        const sourceNode = nodeMap.get(edge.source);
+        const isSourceDeactivated = !!sourceNode?.data?.isDeactivated;
+        if (pillar && activeCounts[pillar] !== undefined && !isSourceDeactivated) {
           activeCounts[pillar] += 1;
         }
       }
@@ -593,6 +597,41 @@ function CanvasInner({
     handleExecuteNode,
     handleRenameNode
   ]);
+
+  // Edges styled dynamically: when source or target component is deactivated, disable the wire
+  const edgesWithTheme = React.useMemo(() => {
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+    return edges.map((edge) => {
+      const sourceNode = nodeMap.get(edge.source);
+      const targetNode = nodeMap.get(edge.target);
+      const isSourceDeactivated = !!sourceNode?.data?.isDeactivated;
+      const isTargetDeactivated = !!targetNode?.data?.isDeactivated;
+      const isDeactivated = isSourceDeactivated || isTargetDeactivated;
+
+      const originalStroke = edge.style?.stroke || '#0091DA';
+      const deactivatedStroke = isDarkMode ? '#475569' : '#94A3B8';
+
+      return {
+        ...edge,
+        animated: isDeactivated ? false : (edge.animated ?? true),
+        style: {
+          ...edge.style,
+          stroke: isDeactivated ? deactivatedStroke : originalStroke,
+          strokeWidth: isDeactivated ? 1.4 : (edge.style?.strokeWidth || 1.8),
+          strokeDasharray: isDeactivated ? '3 3' : (edge.style?.strokeDasharray || '4 4'),
+          opacity: isDeactivated ? 0.35 : 1,
+          transition: 'stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease'
+        },
+        data: {
+          ...edge.data,
+          isDeactivated,
+          isDarkMode,
+          onDelete: handleDeleteEdge
+        }
+      };
+    });
+  }, [edges, nodes, isDarkMode, handleDeleteEdge]);
 
   return (
     <div className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${
@@ -872,7 +911,7 @@ function CanvasInner({
       {/* ReactFlow Workspace with Subtle Dot Grid */}
       <ReactFlow
         nodes={nodesWithTheme}
-        edges={edges}
+        edges={edgesWithTheme}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onNodeDragStart={handleNodeDragStart}

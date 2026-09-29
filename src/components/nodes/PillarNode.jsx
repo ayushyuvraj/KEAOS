@@ -54,6 +54,10 @@ export default function PillarNode({ id, data, selected }) {
   if (toolId === 'tool-doc-parser') IconComponent = FileText;
   if (toolId === 'tool-text-box-ingest') IconComponent = Type;
 
+  const handleBgColor = isDeactivated
+    ? (isDarkMode ? '#475569' : '#94A3B8')
+    : (pillarDef.color || '#0091DA');
+
   // Smart anatomical handle orientation:
   // - Model (above robot) -> handle at Bottom pointing down
   // - Tools / Gateway (left of robot) -> handle at Right pointing right
@@ -66,7 +70,7 @@ export default function PillarNode({ id, data, selected }) {
     width: '9px',
     height: '9px',
     borderRadius: '1.5px',
-    backgroundColor: pillarDef.color || '#0091DA',
+    backgroundColor: handleBgColor,
     borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
     borderWidth: '2px',
     top: '-4px'
@@ -80,7 +84,7 @@ export default function PillarNode({ id, data, selected }) {
       width: '9px',
       height: '9px',
       borderRadius: '1.5px',
-      backgroundColor: pillarDef.color || '#0091DA',
+      backgroundColor: handleBgColor,
       borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
       borderWidth: '2px',
       bottom: '-4px'
@@ -93,7 +97,7 @@ export default function PillarNode({ id, data, selected }) {
       width: '9px',
       height: '9px',
       borderRadius: '1.5px',
-      backgroundColor: pillarDef.color || '#0091DA',
+      backgroundColor: handleBgColor,
       borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
       borderWidth: '2px',
       right: '-4px'
@@ -106,7 +110,7 @@ export default function PillarNode({ id, data, selected }) {
       width: '9px',
       height: '9px',
       borderRadius: '1.5px',
-      backgroundColor: pillarDef.color || '#0091DA',
+      backgroundColor: handleBgColor,
       borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
       borderWidth: '2px',
       left: '-4px'
