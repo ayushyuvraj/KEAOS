@@ -44,7 +44,8 @@ export default function PillarNode({ id, data, selected }) {
     onToggleDeactivate,
     onOpenInspector,
     onDuplicate,
-    onCopy
+    onCopy,
+    onRename
   } = data;
   const pillarDef = PILLARS[pillarType] || PILLARS.tools;
   
@@ -143,6 +144,7 @@ export default function PillarNode({ id, data, selected }) {
         onOpenInspector={onOpenInspector}
         onDuplicate={onDuplicate}
         onCopy={onCopy}
+        onRename={onRename}
         isDarkMode={isDarkMode}
         className={toolbarPlacement}
         dropdownPlacement={dropdownPlacement}

@@ -7,7 +7,8 @@ import {
   Sliders, 
   Copy, 
   Files, 
-  CornerDownLeft 
+  CornerDownLeft,
+  Edit3
 } from 'lucide-react';
 
 export default function NodeActionToolbar({
@@ -20,6 +21,7 @@ export default function NodeActionToolbar({
   onOpenInspector,
   onDuplicate,
   onCopy,
+  onRename,
   isDarkMode = true,
   className = '',
   dropdownPlacement = 'auto' // 'auto' | 'top' | 'bottom' | 'right' | 'left' | 'top-left'
@@ -191,6 +193,31 @@ export default function NodeActionToolbar({
                   isDarkMode ? 'bg-[#292D38] text-slate-400' : 'bg-slate-100 text-slate-500'
                 }`}>↵</span>
               </button>
+
+              {/* Rename */}
+              {onRename && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMenuOpen(false);
+                    const newName = window.prompt(`Rename "${nodeName}":`, nodeName);
+                    if (newName && newName.trim() && newName.trim() !== nodeName) {
+                      onRename(nodeId, newName.trim());
+                    }
+                  }}
+                  className={`w-full px-3 py-1.5 flex items-center justify-between text-left transition-colors ${
+                    isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Rename</span>
+                  </div>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                    isDarkMode ? 'bg-[#292D38] text-slate-400' : 'bg-slate-100 text-slate-500'
+                  }`}>F2</span>
+                </button>
+              )}
 
               {/* Execute Step */}
               <button

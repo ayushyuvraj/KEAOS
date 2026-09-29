@@ -318,11 +318,36 @@ function CanvasInner({
     }, 1500);
   }, [nodes]);
 
+  // Handle rename node with snapshot
+  const handleRenameNode = useCallback((nodeId, newName) => {
+    if (!newName || !newName.trim()) return;
+    takeSnapshot();
+    const cleanName = newName.trim();
+    setNodes((nds) => nds.map((n) => {
+      if (n.id === nodeId) {
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            name: cleanName
+          }
+        };
+      }
+      return n;
+    }));
+    const toastMsg = `✏️ Renamed to "${cleanName}"`;
+    setToastNotification(toastMsg);
+    setTimeout(() => {
+      setToastNotification((curr) => (curr === toastMsg ? null : curr));
+    }, 2000);
+  }, [takeSnapshot, setNodes]);
+
   // Global Keyboard Shortcuts Listener:
   // - 'D' / 'd': Toggle Deactivate / Activate on selected or hovered node
   // - 'Ctrl+D': Duplicate selected or hovered node
   // - 'Ctrl+C': Copy selected or hovered node configuration
   // - 'Enter': Open Inspector for selected or hovered node
+  // - 'F2': Quick rename selected or hovered node
   // - 'Ctrl+Z': Undo canvas mutation
   // - 'Ctrl+Y' / 'Ctrl+Shift+Z': Redo canvas mutation
   useEffect(() => {
@@ -390,6 +415,17 @@ function CanvasInner({
         handleOpenInspector(targetNode.id);
         return;
       }
+
+      // 6. Quick Rename (F2)
+      if (key === 'F2') {
+        e.preventDefault();
+        const currentName = targetNode.data?.name || '';
+        const newName = window.prompt(`Rename "${currentName}":`, currentName);
+        if (newName && newName.trim() && newName.trim() !== currentName) {
+          handleRenameNode(targetNode.id, newName.trim());
+        }
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -402,7 +438,8 @@ function CanvasInner({
     handleToggleDeactivateNode, 
     handleDuplicateNode, 
     handleCopyNode, 
-    handleOpenInspector
+    handleOpenInspector,
+    handleRenameNode
   ]);
 
   // Handle node removals (e.g. keyboard delete)
@@ -539,7 +576,8 @@ function CanvasInner({
         onToggleDeactivate: handleToggleDeactivateNode,
         onCopy: handleCopyNode,
         onOpenInspector: handleOpenInspector,
-        onExecute: handleExecuteNode
+        onExecute: handleExecuteNode,
+        onRename: handleRenameNode
       }
     }));
   }, [
@@ -552,7 +590,8 @@ function CanvasInner({
     handleToggleDeactivateNode, 
     handleCopyNode, 
     handleOpenInspector, 
-    handleExecuteNode
+    handleExecuteNode,
+    handleRenameNode
   ]);
 
   return (
