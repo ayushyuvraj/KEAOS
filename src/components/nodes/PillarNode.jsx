@@ -149,7 +149,9 @@ export default function PillarNode({ id, data, selected }) {
         }`}>
           {name}
         </span>
-        <span className="text-[9px] font-mono text-slate-400 block -mt-0.5 uppercase tracking-wider">
+        <span className={`text-[9px] font-mono block -mt-0.5 uppercase tracking-wider ${
+          isDarkMode ? 'text-slate-400' : 'text-slate-600'
+        }`}>
           {pillarDef.label}
         </span>
       </div>
