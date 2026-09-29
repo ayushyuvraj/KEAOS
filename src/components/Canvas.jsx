@@ -407,11 +407,11 @@ function CanvasInner({
         <div className={`flex items-center border rounded-xl shadow-xl overflow-hidden backdrop-blur-md divide-x ${
           isDarkMode ? 'bg-[#22242B]/90 border-[#383B46] divide-[#383B46]' : 'bg-white/90 border-[#E5E7EB] divide-[#E5E7EB]'
         }`}>
-          {/* 1. Fit View [ ⛶ ] */}
+          {/* 1. Fit View [ ⛶ ] - Centers entire workflow symmetrically in viewport */}
           <button
-            onClick={() => rfInstance?.setViewport({ x: 120, y: 40, zoom: 0.85 })}
+            onClick={() => rfInstance?.fitView({ padding: 0.2, duration: 400 })}
             className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-            title="Fit View"
+            title="Fit View & Center Workflow"
           >
             <Maximize2 className="w-4 h-4" />
           </button>
@@ -514,8 +514,12 @@ function CanvasInner({
         onConnect={onConnect}
         onInit={(instance) => {
           setRfInstance(instance);
-          instance.setViewport({ x: 120, y: 40, zoom: 0.85 });
+          setTimeout(() => {
+            instance.fitView({ padding: 0.2, duration: 300 });
+          }, 60);
         }}
+        fitView
+        fitViewOptions={{ padding: 0.2 }}
         onNodeClick={(_, node) => onSelectNode(node)}
         onPaneClick={() => {
           onSelectNode(null);
