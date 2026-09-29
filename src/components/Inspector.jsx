@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bot, 
   Settings2, 
@@ -15,11 +15,37 @@ import {
   PanelRightOpen,
   Upload,
   FileText,
-  Save
+  Save,
+  RefreshCw,
+  Loader2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
-import { PROVIDERS, getProviderCredential, isFixedTemperatureModel } from '../services/llmService';
+import { 
+  PROVIDERS, 
+  getProviderCredential, 
+  saveProviderCredential,
+  isFixedTemperatureModel,
+  getCachedDiscoveredModels,
+  fetchProviderModelsLive
+} from '../services/llmService';
 import { FRAMEWORKS } from '../constants/frameworks';
+import {
+  GoogleLogo,
+  AnthropicLogo,
+  OpenAILogo,
+  OllamaLogo,
+  OpenRouterLogo
+} from '../constants/providerLogos';
+
+const PROVIDER_LOGOS = {
+  google: GoogleLogo,
+  anthropic: AnthropicLogo,
+  openai: OpenAILogo,
+  ollama: OllamaLogo,
+  openrouter: OpenRouterLogo
+};
 
 // Reusable simple-language Info Tooltip (i)
 function InfoTooltip({ text, align = 'left' }) {
@@ -56,9 +82,22 @@ export default function Inspector({
   const [newCustomToken, setNewCustomToken] = useState('');
   const [savedNotification, setSavedNotification] = useState(false);
 
+  // Model Provider and Live Discovery state for foundation models
+  const [isChangingProvider, setIsChangingProvider] = useState(false);
+  const [enteringKeyProvider, setEnteringKeyProvider] = useState(null);
+  const [providerKeyInput, setProviderKeyInput] = useState('');
+  const [showKeySecret, setShowKeySecret] = useState(false);
+  const [isDiscoveringNewProvider, setIsDiscoveringNewProvider] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState(null);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [discoveredModels, setDiscoveredModels] = useState({});
+
   useEffect(() => {
     if (selectedNode) {
       setIsCollapsed(false);
+      setIsChangingProvider(false);
+      setEnteringKeyProvider(null);
+      setDiscoveryError(null);
     }
   }, [selectedNode?.id]);
 
@@ -104,19 +143,131 @@ export default function Inspector({
   const providerDef = PROVIDERS[currentProvider] || PROVIDERS.google;
   const hasCredential = Boolean(getProviderCredential(currentProvider));
 
-  const handleProviderSelect = (newProvider) => {
-    const pDef = PROVIDERS[newProvider];
-    const defaultModel = pDef.defaultModel;
+  // The 4 other available providers when changing provider
+  const otherProviders = useMemo(() => {
+    return Object.values(PROVIDERS).filter(p => !p.disabled && p.id !== currentProvider);
+  }, [currentProvider]);
+
+  // Fetch or retrieve cached models for active provider
+  useEffect(() => {
+    if (!isModel) return;
+    const cached = getCachedDiscoveredModels(currentProvider);
+    if (cached && cached.length > 0) {
+      setDiscoveredModels(prev => ({ ...prev, [currentProvider]: cached }));
+    } else {
+      const cred = getProviderCredential(currentProvider);
+      if (cred || currentProvider === 'ollama') {
+        setIsLoadingModels(true);
+        fetchProviderModelsLive(currentProvider, cred)
+          .then(models => {
+            setDiscoveredModels(prev => ({ ...prev, [currentProvider]: models }));
+          })
+          .catch(err => {
+            console.warn('Auto model discovery error in Inspector:', err);
+          })
+          .finally(() => {
+            setIsLoadingModels(false);
+          });
+      }
+    }
+  }, [currentProvider, isModel, selectedNode?.id]);
+
+  // Available models for the dropdown (including current selection)
+  const availableModels = useMemo(() => {
+    const cached = discoveredModels[currentProvider] || getCachedDiscoveredModels(currentProvider) || [];
+    let list = cached.length > 0
+      ? cached
+      : (providerDef.models || []).map(m => (typeof m === 'string' ? { id: m, name: m } : m));
+
+    if (currentModelId && !list.some(m => m.id === currentModelId)) {
+      list = [{ id: currentModelId, name: currentModelId, description: 'Current Active Model' }, ...list];
+    }
+    return list;
+  }, [discoveredModels, currentProvider, providerDef.models, currentModelId]);
+
+  // Switch to an alternate provider where credentials are already configured
+  const handleSwitchProvider = async (targetProviderId) => {
+    const pDef = PROVIDERS[targetProviderId];
+    if (!pDef) return;
+    setIsChangingProvider(false);
+    setEnteringKeyProvider(null);
+    setDiscoveryError(null);
+
+    const cached = getCachedDiscoveredModels(targetProviderId);
+    const initialModel = cached?.[0]?.id || pDef.defaultModel;
+
     onUpdateNodeData(selectedNode.id, {
-      name: `${pDef.name} (${defaultModel})`,
+      name: `${pDef.name} (${initialModel})`,
       description: `${pDef.name} foundation model configured for live enterprise inference.`,
       config: {
         ...nodeData.config,
-        provider: newProvider,
-        modelId: defaultModel,
-        baseUrl: newProvider === 'ollama' ? (nodeData.config?.baseUrl || 'http://localhost:11434') : undefined
+        provider: targetProviderId,
+        modelId: initialModel,
+        baseUrl: targetProviderId === 'ollama' ? (nodeData.config?.baseUrl || 'http://localhost:11434') : undefined
       }
     });
+
+    if (!cached || cached.length === 0) {
+      const cred = getProviderCredential(targetProviderId);
+      if (cred || targetProviderId === 'ollama') {
+        setIsLoadingModels(true);
+        try {
+          const models = await fetchProviderModelsLive(targetProviderId, cred);
+          setDiscoveredModels(prev => ({ ...prev, [targetProviderId]: models }));
+          if (models.length > 0 && !models.some(m => m.id === initialModel)) {
+            onUpdateNodeData(selectedNode.id, {
+              name: `${pDef.name} (${models[0].id})`,
+              config: {
+                ...nodeData.config,
+                provider: targetProviderId,
+                modelId: models[0].id
+              }
+            });
+          }
+        } catch (err) {
+          console.warn('Model discovery error on switch:', err);
+        } finally {
+          setIsLoadingModels(false);
+        }
+      }
+    }
+  };
+
+  // Save key globally and switch provider
+  const handleSaveNewProviderKey = async (targetProviderId, keyVal) => {
+    const pDef = PROVIDERS[targetProviderId];
+    if (!pDef) return;
+    const trimmedKey = (keyVal || '').trim();
+    if (!trimmedKey && targetProviderId !== 'ollama') return;
+
+    saveProviderCredential(targetProviderId, trimmedKey);
+    setIsDiscoveringNewProvider(true);
+    setDiscoveryError(null);
+
+    try {
+      const models = await fetchProviderModelsLive(targetProviderId, trimmedKey);
+      setDiscoveredModels(prev => ({ ...prev, [targetProviderId]: models }));
+      const selectedModelId = models[0]?.id || pDef.defaultModel;
+
+      onUpdateNodeData(selectedNode.id, {
+        name: `${pDef.name} (${selectedModelId})`,
+        description: `${pDef.name} foundation model configured for live enterprise inference.`,
+        config: {
+          ...nodeData.config,
+          provider: targetProviderId,
+          modelId: selectedModelId,
+          baseUrl: targetProviderId === 'ollama' ? (nodeData.config?.baseUrl || 'http://localhost:11434') : undefined
+        }
+      });
+
+      setIsChangingProvider(false);
+      setEnteringKeyProvider(null);
+      setProviderKeyInput('');
+    } catch (err) {
+      setDiscoveryError(err.message || 'Failed to connect to API with the provided key.');
+    } finally {
+      setIsDiscoveringNewProvider(false);
+    }
   };
 
   const handleModelIdSelect = (newModelId) => {
@@ -262,72 +413,190 @@ export default function Inspector({
         ) : isModel ? (
           /* Specialized Multi-LLM Foundation Model Inspector */
           <div className="space-y-4">
-            {/* Provider Selector */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
-                  LLM Provider
-                  <InfoTooltip text="The AI provider service powering this model (e.g. Google Gemini, Anthropic Claude, OpenAI, Ollama, OpenRouter)." align="left" />
-                </label>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
-                  hasCredential || currentProvider === 'ollama'
-                    ? 'bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30'
-                    : 'bg-[#FEF6E6] text-[#EAAA00] border border-[#EAAA00]/30'
-                }`}>
-                  {hasCredential || currentProvider === 'ollama' ? (
-                    <>
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>{currentProvider === 'ollama' ? 'Local Service' : 'Key Ready'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="w-3 h-3" />
-                      <span>Key Missing</span>
-                    </>
-                  )}
-                </span>
+            {/* Top: Current Provider Card with Change Provider button */}
+            <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-white border border-[#CBD5E1] p-1 flex items-center justify-center shadow-xs">
+                    {(() => {
+                      const CurrentLogo = PROVIDER_LOGOS[currentProvider] || Cpu;
+                      return <CurrentLogo className="w-5 h-5" />;
+                    })()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-[#0B0F19]">{providerDef.name}</span>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full font-bold flex items-center gap-1 ${
+                        hasCredential || currentProvider === 'ollama'
+                          ? 'bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30'
+                          : 'bg-[#FEF6E6] text-[#EAAA00] border border-[#EAAA00]/30'
+                      }`}>
+                        {hasCredential || currentProvider === 'ollama' ? '● Key Ready' : '○ Key Missing'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">Active Foundation Model Provider</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsChangingProvider(!isChangingProvider);
+                    setEnteringKeyProvider(null);
+                    setDiscoveryError(null);
+                  }}
+                  className="btn-tactile text-[11px] font-bold font-mono px-2.5 py-1 bg-white border border-[#CBD5E1] hover:border-[#00338D] text-[#00338D] hover:bg-[#E6EDF7] flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  title="Switch to another LLM provider"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>{isChangingProvider ? 'Cancel' : 'Change Provider'}</span>
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-1.5">
-                {Object.entries(PROVIDERS).filter(([_, def]) => !def.disabled).map(([pId, def]) => {
-                  const isSelected = currentProvider === pId;
-                  const isConfigured = Boolean(getProviderCredential(pId));
-                  return (
-                    <button
-                      key={pId}
-                      onClick={() => handleProviderSelect(pId)}
-                      className={`btn-tactile px-3 py-2 text-left text-xs font-bold border transition-all flex items-center justify-between rounded-none ${
-                        isSelected
-                          ? 'border-[#00338D] bg-[#E6EDF7] text-[#00338D] shadow-sm'
-                          : 'border-[#CBD5E1] bg-[#FFFFFF] text-[#0B0F19] hover:bg-[#F8F9FB]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-[#00338D] beacon-live' : 'bg-[#CCCCCC]'}`} />
-                        <span>{def.name}</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-500">
-                        {isConfigured ? '● Active' : def.isLocal ? '● Local' : '○ Not set'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Provider Switcher Drawer: Remaining 4 providers */}
+              {isChangingProvider && (
+                <div className="mt-3 pt-3 border-t border-[#CBD5E1] space-y-2 animate-in fade-in duration-150">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block">
+                    Select Alternate Provider (Remaining 4)
+                  </span>
+
+                  <div className="space-y-1.5">
+                    {otherProviders.map(pDef => {
+                      const PLogo = PROVIDER_LOGOS[pDef.id] || Cpu;
+                      const hasKey = Boolean(getProviderCredential(pDef.id));
+                      const isEnteringKey = enteringKeyProvider === pDef.id;
+
+                      return (
+                        <div key={pDef.id} className="border border-[#CBD5E1] bg-white">
+                          <div
+                            onClick={() => {
+                              if (hasKey || pDef.id === 'ollama') {
+                                handleSwitchProvider(pDef.id);
+                              } else {
+                                setEnteringKeyProvider(isEnteringKey ? null : pDef.id);
+                                setProviderKeyInput('');
+                                setDiscoveryError(null);
+                              }
+                            }}
+                            className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
+                              isEnteringKey ? 'bg-[#E6EDF7]' : 'hover:bg-[#F8FAFC]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-6 h-6 p-0.5 bg-white border border-[#E2E8F0] flex items-center justify-center shrink-0">
+                                <PLogo className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-[#0B0F19]">{pDef.name}</div>
+                                <span className="text-[10px] font-mono text-slate-500">
+                                  {hasKey ? '● API Key Ready' : pDef.id === 'ollama' ? '● Local / Cloud' : '○ API Key Required'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <span className="text-[10px] font-mono font-bold text-[#00338D] flex items-center gap-1">
+                              {hasKey || pDef.id === 'ollama' ? 'Select →' : isEnteringKey ? 'Close' : '+ Enter API'}
+                            </span>
+                          </div>
+
+                          {/* Inline API key entry if not yet provided */}
+                          {isEnteringKey && (
+                            <div className="p-3 bg-[#F8FAFC] border-t border-[#CBD5E1] space-y-2 animate-in fade-in duration-150">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600">
+                                  Paste {pDef.name} API Key
+                                </label>
+                                {pDef.docsUrl && (
+                                  <a
+                                    href={pDef.docsUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[10px] text-[#00338D] hover:underline font-mono font-bold flex items-center gap-0.5"
+                                  >
+                                    <span>Get Key</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                )}
+                              </div>
+
+                              <div className="relative">
+                                <input
+                                  type={showKeySecret ? 'text' : 'password'}
+                                  value={providerKeyInput}
+                                  onChange={(e) => setProviderKeyInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleSaveNewProviderKey(pDef.id, providerKeyInput);
+                                    }
+                                  }}
+                                  placeholder={pDef.placeholder || 'Paste API Key...'}
+                                  className="w-full px-2.5 py-1.5 pr-8 text-xs font-mono border border-[#CBD5E1] bg-white text-[#0B0F19] rounded-none focus:outline-none focus:border-[#00338D]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowKeySecret(!showKeySecret)}
+                                  className="absolute right-2 top-2 text-slate-400 hover:text-slate-700"
+                                >
+                                  {showKeySecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+
+                              {discoveryError && (
+                                <div className="p-2 bg-red-50 border border-red-300 text-red-700 text-[10px] font-mono">
+                                  {discoveryError}
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                disabled={isDiscoveringNewProvider || (!providerKeyInput.trim() && pDef.id !== 'ollama')}
+                                onClick={() => handleSaveNewProviderKey(pDef.id, providerKeyInput)}
+                                className="btn-tactile w-full py-1.5 bg-[#00338D] hover:bg-[#005EB8] disabled:bg-slate-400 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                              >
+                                {isDiscoveringNewProvider ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span>Validating & Detecting Models...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="w-3 h-3" />
+                                    <span>Save Globally & Switch to {pDef.name}</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Model ID Selection */}
+            {/* Model Identifier Dropdown with all compatible models */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
                   Model Identifier
-                  <InfoTooltip text="The exact version of the AI model being used (e.g. Gemini 2.0 Flash, Claude 3.5 Sonnet, GPT-4o)." align="left" />
+                  <InfoTooltip text="Compatible models detected live via your API credentials." align="left" />
                 </label>
-                <button
-                  onClick={() => setCustomModelMode(!customModelMode)}
-                  className="text-[10px] font-mono text-[#00338D] hover:underline font-bold"
-                >
-                  {customModelMode ? 'Preset Models' : 'Custom Model ID'}
-                </button>
+                <div className="flex items-center gap-2">
+                  {isLoadingModels && (
+                    <span className="text-[10px] text-[#0091DA] font-mono flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Detecting...</span>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCustomModelMode(!customModelMode)}
+                    className="text-[10px] font-mono text-[#00338D] hover:underline font-bold"
+                  >
+                    {customModelMode ? 'Compatible List' : 'Custom Model ID'}
+                  </button>
+                </div>
               </div>
 
               {customModelMode ? (
@@ -335,22 +604,27 @@ export default function Inspector({
                   type="text"
                   value={currentModelId}
                   onChange={(e) => handleModelIdSelect(e.target.value)}
-                  placeholder="e.g. meta-llama/llama-3.3-70b-instruct"
+                  placeholder="e.g. gpt-4o, claude-3-5-sonnet, gemini-2.0-flash"
                   className="w-full px-3 py-2 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-mono text-[#0B0F19] focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors"
                 />
               ) : (
                 <select
                   value={currentModelId}
                   onChange={(e) => handleModelIdSelect(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-bold text-[#0B0F19] focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors"
+                  className="w-full px-3 py-2 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-bold text-[#0B0F19] focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors cursor-pointer"
                 >
-                  {Array.from(new Set([currentModelId, ...(providerDef.models || [])])).filter(Boolean).map((m) => (
-                    <option key={m} value={m}>
-                      {m}
+                  {availableModels.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name || m.id}
                     </option>
                   ))}
                 </select>
               )}
+              <span className="text-[10px] text-slate-500 font-mono mt-1 block">
+                {availableModels.length > 1
+                  ? `${availableModels.length} compatible models accessible via your ${providerDef.name} API.`
+                  : `Select any compatible model supported by ${providerDef.name}.`}
+              </span>
             </div>
 
             {/* Ollama Endpoint & API Token Settings */}
@@ -406,8 +680,9 @@ export default function Inspector({
             {/* Credential Action & Live Status */}
             <div>
               <button
+                type="button"
                 onClick={() => onOpenApiSettings && onOpenApiSettings(currentProvider)}
-                className="btn-tactile w-full flex items-center justify-center gap-2 py-2 text-xs font-bold bg-[#00338D] text-white hover:bg-[#005EB8] rounded-none transition-colors shadow-sm border-b-2 border-[#001E50]"
+                className="btn-tactile w-full flex items-center justify-center gap-2 py-2 text-xs font-bold bg-[#00338D] text-white hover:bg-[#005EB8] rounded-none transition-colors shadow-sm border-b-2 border-[#001E50] cursor-pointer"
               >
                 <Key className="w-3.5 h-3.5" />
                 <span>Configure {providerDef.name} Credentials</span>
@@ -504,6 +779,30 @@ export default function Inspector({
               {currentProvider === 'openai' && 'Flagship GPT-4o reasoning, strict JSON schema mode, widespread enterprise SDK compatibility.'}
               {currentProvider === 'ollama' && 'Private offline execution on local GPU/CPU. Complete compliance for confidential meetings.'}
               {currentProvider === 'openrouter' && 'Unified API gateway routing across 200+ models with automatic load balancing.'}
+            </div>
+
+            {/* Save Model Specification Button */}
+            <div className="pt-3 border-t border-[#E0E0E0]">
+              <button
+                type="button"
+                onClick={() => {
+                  setSavedNotification(true);
+                  setTimeout(() => setSavedNotification(false), 2500);
+                }}
+                className="btn-tactile w-full flex items-center justify-center gap-2 py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-bold font-mono rounded-none transition-colors border-b-2 border-[#001E50] shadow-sm cursor-pointer"
+              >
+                {savedNotification ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                    <span>Model Specification Saved ✓</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Model Specification</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         ) : (

@@ -288,6 +288,28 @@ export async function testProviderConnection(providerId, credential) {
 }
 
 /**
+ * Cached discovered models per provider (persisted in localStorage)
+ */
+export function getCachedDiscoveredModels(providerId) {
+  if (!providerId) return null;
+  try {
+    const raw = localStorage.getItem(`keaos_discovered_models_${providerId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
+export function saveCachedDiscoveredModels(providerId, models) {
+  if (!providerId || !Array.isArray(models) || models.length === 0) return;
+  try {
+    localStorage.setItem(`keaos_discovered_models_${providerId}`, JSON.stringify(models));
+  } catch (e) {}
+}
+
+/**
  * Live Dynamic Model Discovery
  * Queries the real provider API using the supplied API key or endpoint
  * to discover all compatible and accessible models in real time with zero hardcoding.
@@ -338,6 +360,7 @@ export async function fetchProviderModelsLive(providerId, credential) {
         return a.name.localeCompare(b.name);
       });
 
+      saveCachedDiscoveredModels('google', validModels);
       return validModels;
     }
 
@@ -377,11 +400,13 @@ export async function fetchProviderModelsLive(providerId, credential) {
       });
 
       if (chatModels.length === 0) {
-        return rawList.map(m => ({
+        const fallbackList = rawList.map(m => ({
           id: m.id,
           name: m.id,
           description: `OpenAI ${m.id}`
         }));
+        saveCachedDiscoveredModels('openai', fallbackList);
+        return fallbackList;
       }
 
       // Sort with flagship models at top
@@ -402,6 +427,7 @@ export async function fetchProviderModelsLive(providerId, credential) {
         return a.id.localeCompare(b.id);
       });
 
+      saveCachedDiscoveredModels('openai', chatModels);
       return chatModels;
     }
 
@@ -455,6 +481,7 @@ export async function fetchProviderModelsLive(providerId, credential) {
         ];
       }
 
+      saveCachedDiscoveredModels('anthropic', models);
       return models;
     }
 
@@ -542,6 +569,7 @@ export async function fetchProviderModelsLive(providerId, credential) {
         throw new Error(`Cannot reach remote Ollama endpoint at ${baseUrl}. Verify the URL and API key, and ensure the server is online.`);
       }
 
+      saveCachedDiscoveredModels('ollama', rawList);
       return rawList;
     }
 
@@ -559,13 +587,15 @@ export async function fetchProviderModelsLive(providerId, credential) {
       }
       const data = await res.json();
       const rawList = data.data || [];
-      return rawList.map(m => ({
+      const mappedList = rawList.map(m => ({
         id: m.id,
         name: m.name || m.id,
         description: m.description ? m.description.slice(0, 160) + (m.description.length > 160 ? '...' : '') : `OpenRouter model (${(m.context_length / 1000).toFixed(0)}k context)`,
         contextLength: m.context_length,
         pricing: m.pricing
       }));
+      saveCachedDiscoveredModels('openrouter', mappedList);
+      return mappedList;
     }
 
     default:
