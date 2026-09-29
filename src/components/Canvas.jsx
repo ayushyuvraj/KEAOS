@@ -40,10 +40,16 @@ import {
 } from 'lucide-react';
 
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
+import DeletableEdge from './edges/DeletableEdge';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
   pillar: PillarNode
+};
+
+const edgeTypes = {
+  deletable: DeletableEdge,
+  default: DeletableEdge
 };
 
 const PILLAR_ICONS = {
@@ -173,19 +179,24 @@ function CanvasInner({
 
   const onConnect = useCallback(
     (params) => {
+      const sourceNode = nodes.find(n => n.id === params.source);
+      const pillarDef = sourceNode ? PILLARS[sourceNode.data.pillarType] : null;
+      const strokeColor = pillarDef?.color || '#0091DA';
+
       setEdges((eds) =>
         addEdge(
           {
             ...params,
+            type: 'deletable',
             animated: true,
-            style: { stroke: '#4E5364', strokeWidth: 1.5, strokeDasharray: '4 4' }
+            style: { stroke: strokeColor, strokeWidth: 1.8, strokeDasharray: '4 4' }
           },
           eds
         )
       );
       setInvalidConnectionAlert(null);
     },
-    [setEdges, setInvalidConnectionAlert]
+    [nodes, setEdges, setInvalidConnectionAlert]
   );
 
   const handleAddFromPalette = (pillarKey, item) => {
@@ -215,16 +226,37 @@ function CanvasInner({
   };
 
   const nodesWithTheme = React.useMemo(() => {
+    // Dynamically calculate attachedCounts from active edges connected to agent-core
+    const activeCounts = {
+      model: 0,
+      skills: 0,
+      mcp: 0,
+      tools: 0,
+      gateway: 0,
+      memory: 0,
+      policies: 0
+    };
+
+    edges.forEach((edge) => {
+      if (edge.target === 'agent-core' && edge.targetHandle) {
+        const pillar = SOCKET_RULES[edge.targetHandle];
+        if (pillar && activeCounts[pillar] !== undefined) {
+          activeCounts[pillar] += 1;
+        }
+      }
+    });
+
     return nodes.map(n => ({
       ...n,
       data: {
         ...n.data,
         isDarkMode,
         isExecuting: n.type === 'agentCore' ? executionState.isExecuting : false,
-        executionStep: n.type === 'agentCore' ? executionState.step : undefined
+        executionStep: n.type === 'agentCore' ? executionState.step : undefined,
+        attachedCounts: n.type === 'agentCore' ? activeCounts : n.data.attachedCounts
       }
     }));
-  }, [nodes, isDarkMode, executionState]);
+  }, [nodes, edges, isDarkMode, executionState]);
 
   return (
     <div className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${
@@ -490,10 +522,11 @@ function CanvasInner({
           setIsAddMenuOpen(false);
         }}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         isValidConnection={isValidConnection}
         minZoom={0.25}
         maxZoom={1.75}
-        defaultEdgeOptions={{ animated: true }}
+        defaultEdgeOptions={{ animated: true, type: 'deletable' }}
       >
         <Background 
           variant={BackgroundVariant.Dots} 

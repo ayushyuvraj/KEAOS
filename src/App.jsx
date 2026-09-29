@@ -133,6 +133,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'model-in',
+      type: 'deletable',
       animated: true,
       style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
@@ -142,6 +143,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'tools-in',
+      type: 'deletable',
       animated: true,
       style: { stroke: '#005EB8', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
@@ -151,6 +153,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'mcp-in',
+      type: 'deletable',
       animated: true,
       style: { stroke: '#06B6D4', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
@@ -160,6 +163,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'policy-in',
+      type: 'deletable',
       animated: true,
       style: { stroke: '#EC4899', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
@@ -169,6 +173,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'memory-in',
+      type: 'deletable',
       animated: true,
       style: { stroke: '#8B5CF6', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
@@ -178,6 +183,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'skill-in',
+      type: 'deletable',
       animated: true,
       style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
     }
