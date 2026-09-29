@@ -245,10 +245,14 @@ export default function NodeCatalogPanel({
                 {React.createElement(activeCategory.icon || Wrench, { className: 'w-4 h-4' })}
               </div>
               <div className="flex-1 truncate">
-                <h3 className="text-sm font-bold tracking-tight truncate">
+                <h3 className={`text-sm font-bold tracking-tight truncate ${
+                  isDarkMode ? 'text-white' : 'text-[#001E50]'
+                }`}>
                   {activeCategory.label}
                 </h3>
-                <span className="text-[10px] font-mono text-slate-400">
+                <span className={`text-[10px] font-mono ${
+                  isDarkMode ? 'text-slate-400' : 'text-slate-500 font-medium'
+                }`}>
                   {activeCategory.items.length} {activeCategory.items.length === 1 ? 'component' : 'components'} available
                 </span>
               </div>
@@ -262,7 +266,9 @@ export default function NodeCatalogPanel({
                 <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#0091DA] block">
                   Nodes & Capabilities
                 </span>
-                <h3 className="text-sm font-bold tracking-tight">
+                <h3 className={`text-sm font-bold tracking-tight ${
+                  isDarkMode ? 'text-white' : 'text-[#001E50]'
+                }`}>
                   What happens next?
                 </h3>
               </div>
@@ -337,10 +343,14 @@ export default function NodeCatalogPanel({
                         }`}
                       >
                         <div className="flex-1 min-w-0">
-                          <h5 className="text-xs font-bold text-[#0B0F19] dark:text-white truncate">
+                          <h5 className={`text-xs font-bold truncate ${
+                            isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                          }`}>
                             {item.name}
                           </h5>
-                          <p className="text-[11px] text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">
+                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${
+                            isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                          }`}>
                             {item.description}
                           </p>
                         </div>
@@ -389,11 +399,15 @@ export default function NodeCatalogPanel({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <ItemIcon className="w-3.5 h-3.5 shrink-0" style={{ color: activeCategory.color }} />
-                        <h5 className="text-xs font-bold text-[#0B0F19] dark:text-white truncate">
+                        <h5 className={`text-xs font-bold truncate ${
+                          isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                        }`}>
                           {item.name}
                         </h5>
                       </div>
-                      <p className="text-[11px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                      <p className={`text-[11px] line-clamp-2 mt-1 leading-relaxed ${
+                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                      }`}>
                         {item.description}
                       </p>
                       <div className="mt-2 flex items-center gap-1.5">
@@ -461,20 +475,30 @@ export default function NodeCatalogPanel({
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-[#0B0F19] dark:text-white tracking-tight">
+                        <h4 className={`text-xs font-bold tracking-tight ${
+                          isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                        }`}>
                           {category.label}
                         </h4>
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 bg-black/10 dark:bg-white/10 text-slate-500 rounded font-bold">
+                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                          isDarkMode ? 'bg-white/10 text-slate-300' : 'bg-[#E6EDF7] text-[#00338D]'
+                        }`}>
                           {category.items.length}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
+                      <p className={`text-[11px] mt-0.5 line-clamp-2 leading-relaxed ${
+                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                      }`}>
                         {category.subtitle}
                       </p>
                     </div>
                   </div>
 
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className={`w-4 h-4 transition-all shrink-0 ${
+                    isDarkMode 
+                      ? 'text-slate-400 group-hover:text-white group-hover:translate-x-0.5' 
+                      : 'text-slate-400 group-hover:text-[#00338D] group-hover:translate-x-0.5'
+                  }`} />
                 </button>
               );
             })}
@@ -485,8 +509,8 @@ export default function NodeCatalogPanel({
       {/* ============================================================ */}
       {/* FOOTER: Architecture Info                                    */}
       {/* ============================================================ */}
-      <div className={`p-3 border-t text-[10px] font-mono text-slate-400 flex items-center justify-between shrink-0 ${
-        isDarkMode ? 'bg-[#14151B] border-[#2D313D]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
+      <div className={`p-3 border-t text-[10px] font-mono flex items-center justify-between shrink-0 ${
+        isDarkMode ? 'bg-[#14151B] border-[#2D313D] text-slate-400' : 'bg-[#F8FAFC] border-[#E2E8F0] text-slate-600 font-bold'
       }`}>
         <span>8 VISUAL PILLARS</span>
         <span>AUDIT & COST: INHERENT</span>
