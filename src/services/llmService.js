@@ -70,8 +70,19 @@ export const PROVIDERS = {
  * Retrieve Ollama configuration (Base URL and optional API Key)
  */
 export function getOllamaConfig() {
-  const url = localStorage.getItem('keaos_url_ollama') || import.meta.env.VITE_OLLAMA_BASE_URL || 'http://localhost:11434';
-  const key = localStorage.getItem('keaos_key_ollama') || import.meta.env.VITE_OLLAMA_API_KEY || '';
+  let url = localStorage.getItem('keaos_url_ollama') || import.meta.env.VITE_OLLAMA_BASE_URL || 'http://localhost:11434';
+  let key = localStorage.getItem('keaos_key_ollama') || import.meta.env.VITE_OLLAMA_API_KEY || '';
+
+  // Clean up legacy migration where URL was stored as key
+  if (key && (key.startsWith('http://') || key.startsWith('https://'))) {
+    if (!localStorage.getItem('keaos_url_ollama')) {
+      url = key;
+      localStorage.setItem('keaos_url_ollama', url);
+    }
+    localStorage.removeItem('keaos_key_ollama');
+    key = '';
+  }
+
   return { baseUrl: url.replace(/\/$/, ''), apiKey: key.trim() };
 }
 
@@ -84,8 +95,9 @@ export function saveOllamaConfig({ baseUrl, apiKey }) {
     }
   }
   if (apiKey !== undefined) {
-    if (apiKey && apiKey.trim()) {
-      localStorage.setItem('keaos_key_ollama', apiKey.trim());
+    const trimmedKey = (apiKey || '').trim();
+    if (trimmedKey && !trimmedKey.startsWith('http://') && !trimmedKey.startsWith('https://')) {
+      localStorage.setItem('keaos_key_ollama', trimmedKey);
     } else {
       localStorage.removeItem('keaos_key_ollama');
     }
@@ -98,12 +110,10 @@ export function getProviderCredential(providerId) {
 
   if (providerId === 'ollama') {
     const key = localStorage.getItem('keaos_key_ollama');
-    if (key && key.trim().length > 0) return key.trim();
-    const url = localStorage.getItem('keaos_url_ollama');
-    if (url && url.trim().length > 0) return url.trim();
-    const envVal = import.meta.env[provider.envKey];
-    if (envVal && envVal.trim().length > 0) return envVal.trim();
-    return 'http://localhost:11434';
+    if (key && key.trim().length > 0 && !key.startsWith('http://') && !key.startsWith('https://')) {
+      return key.trim();
+    }
+    return '';
   }
 
   // 1. Check Vite Environment Variable
@@ -465,10 +475,13 @@ export async function fetchProviderModelsLive(providerId, credential) {
         }
       }
 
-      baseUrl = baseUrl.replace(/\/$/, '');
+      baseUrl = baseUrl.replace(/\/+$/, '');
       const headers = {
         'Content-Type': 'application/json',
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+        ...(apiKey ? { 
+          'Authorization': `Bearer ${apiKey}`,
+          'x-api-key': apiKey
+        } : {})
       };
 
       let rawList = [];
@@ -523,10 +536,10 @@ export async function fetchProviderModelsLive(providerId, credential) {
         if (lastError && lastError.message && lastError.message.includes('Authentication Failed')) {
           throw lastError;
         }
-        if (apiKey && baseUrl.includes('localhost')) {
-          throw new Error(`API Key / Token was provided, but Host Endpoint is set to local (${baseUrl}). Please enter your remote/cloud Ollama Host Endpoint URL (e.g. https://your-cloud-ollama.com).`);
+        if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+          throw new Error(`Cannot reach Ollama on your computer at ${baseUrl}. Ensure Ollama is installed and running ('ollama serve' in your terminal or launch Ollama desktop). If you are using a cloud/remote Ollama server, enter its URL in the Host Endpoint field above.`);
         }
-        throw new Error(`Cannot reach Ollama at ${baseUrl}. If using remote/cloud Ollama, verify the URL and API key. If local, ensure 'ollama serve' is running.`);
+        throw new Error(`Cannot reach remote Ollama endpoint at ${baseUrl}. Verify the URL and API key, and ensure the server is online.`);
       }
 
       return rawList;

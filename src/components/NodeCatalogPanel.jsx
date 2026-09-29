@@ -243,6 +243,7 @@ export default function NodeCatalogPanel({
   const [isDiscoveringModels, setIsDiscoveringModels] = useState(false);
   const [discoveryError, setDiscoveryError] = useState(null);
   const [modelSearchFilter, setModelSearchFilter] = useState('');
+  const [customModelTag, setCustomModelTag] = useState('');
 
   // Custom user-defined skills (persisted in localStorage)
   const [customSkills, setCustomSkills] = useState(() => {
@@ -397,10 +398,6 @@ export default function NodeCatalogPanel({
       setOllamaEndpointUrl(ollamaConf.baseUrl || 'http://localhost:11434');
       setProviderApiKey(ollamaConf.apiKey || '');
       setShowKeySecret(false);
-
-      if (!discoveredModels[providerId]) {
-        handleTriggerModelDiscovery(providerId, ollamaConf.apiKey, ollamaConf.baseUrl);
-      }
       return;
     }
 
@@ -860,6 +857,22 @@ export default function NodeCatalogPanel({
                               }`}
                             />
                             <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
+                              {providerApiKey && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setProviderApiKey('');
+                                    setDiscoveryError(null);
+                                    if (selectedModelProvider === 'ollama') {
+                                      saveOllamaConfig({ baseUrl: ollamaEndpointUrl, apiKey: '' });
+                                    }
+                                  }}
+                                  className="px-1.5 py-0.5 text-[10px] font-mono text-slate-400 hover:text-red-400"
+                                  title="Clear API key"
+                                >
+                                  ✕
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => setShowKeySecret(!showKeySecret)}
@@ -875,9 +888,27 @@ export default function NodeCatalogPanel({
                         {/* Dedicated Server Endpoint URL for Ollama */}
                         {selectedModelProvider === 'ollama' && (
                           <div>
-                            <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-1">
-                              Ollama Host Endpoint (Remote or Local)
-                            </label>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                                Ollama Host Endpoint URL
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOllamaEndpointUrl('http://localhost:11434');
+                                    setDiscoveryError(null);
+                                  }}
+                                  className={`text-[9px] font-mono px-1.5 py-0.5 border ${
+                                    ollamaEndpointUrl.includes('localhost') || ollamaEndpointUrl.includes('127.0.0.1')
+                                      ? 'bg-[#00338D]/20 text-[#0091DA] border-[#0091DA]/40'
+                                      : 'text-slate-400 border-slate-600 hover:text-white'
+                                  }`}
+                                >
+                                  Localhost
+                                </button>
+                              </div>
+                            </div>
                             <input
                               type="text"
                               value={ollamaEndpointUrl}
@@ -885,7 +916,7 @@ export default function NodeCatalogPanel({
                                 setOllamaEndpointUrl(e.target.value);
                                 setDiscoveryError(null);
                               }}
-                              placeholder="http://localhost:11434 (default) or https://your-cloud-ollama.com"
+                              placeholder="http://localhost:11434 or https://your-cloud-ollama.com"
                               className={`w-full px-3 py-2 text-xs font-mono border rounded-none focus:outline-none transition-colors ${
                                 isDarkMode 
                                   ? 'bg-[#14151B] border-[#2D313D] text-white focus:border-[#0091DA]' 
@@ -893,18 +924,8 @@ export default function NodeCatalogPanel({
                               }`}
                             />
                             <span className="text-[10px] text-slate-500 font-mono mt-1 block">
-                              Supports local daemon (http://localhost:11434) and remote cloud/proxy Ollama instances.
+                              Connect to on-device Ollama (<code className="text-slate-400">http://localhost:11434</code>) or any remote/cloud Ollama server.
                             </span>
-
-                            {providerApiKey.trim() && ollamaEndpointUrl.includes('localhost') && (
-                              <div className="p-2.5 bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-sans leading-snug mt-2 animate-in fade-in">
-                                <span className="font-bold font-mono text-[10px] uppercase block text-amber-800 mb-0.5 flex items-center gap-1">
-                                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                                  <span>Remote Cloud API Token Detected</span>
-                                </span>
-                                You entered an API token, but the Host Endpoint is set to local (<code className="font-mono bg-amber-100 text-amber-900 px-1">http://localhost:11434</code>). Please enter your remote host URL above (e.g. <code className="font-mono bg-amber-100 text-amber-900 px-1">https://your-cloud-ollama.com</code>).
-                              </div>
-                            )}
                           </div>
                         )}
 
@@ -936,6 +957,59 @@ export default function NodeCatalogPanel({
                             <span>Authentication / Discovery Failed</span>
                           </div>
                           <p className="text-[11px] leading-relaxed break-words pl-5">{discoveryError}</p>
+                        </div>
+                      )}
+
+                      {/* Direct Model Tag Entry for Ollama (Always available if daemon is offline) */}
+                      {selectedModelProvider === 'ollama' && (
+                        <div className={`p-3 border space-y-2 ${
+                          isDarkMode ? 'bg-[#14151B] border-[#2D313D]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                              Or Add Model Tag Directly
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-mono">e.g. llama3.2, mistral, deepseek-r1</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={customModelTag}
+                              onChange={(e) => setCustomModelTag(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && customModelTag.trim()) {
+                                  handleAddDiscoveredModel({
+                                    id: customModelTag.trim(),
+                                    name: customModelTag.trim(),
+                                    description: `Ollama Model (${ollamaEndpointUrl.trim() || 'http://localhost:11434'})`
+                                  });
+                                  setCustomModelTag('');
+                                }
+                              }}
+                              placeholder="e.g. llama3.2, deepseek-r1, qwen2.5"
+                              className={`flex-1 px-2.5 py-1.5 text-xs font-mono border rounded-none focus:outline-none transition-colors ${
+                                isDarkMode 
+                                  ? 'bg-[#1E2028] border-[#2D313D] text-white focus:border-[#0091DA]' 
+                                  : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00338D]'
+                              }`}
+                            />
+                            <button
+                              type="button"
+                              disabled={!customModelTag.trim()}
+                              onClick={() => {
+                                if (!customModelTag.trim()) return;
+                                handleAddDiscoveredModel({
+                                  id: customModelTag.trim(),
+                                  name: customModelTag.trim(),
+                                  description: `Ollama Model (${ollamaEndpointUrl.trim() || 'http://localhost:11434'})`
+                                });
+                                setCustomModelTag('');
+                              }}
+                              className="btn-tactile px-3 py-1.5 bg-[#00338D] hover:bg-[#005EB8] disabled:bg-slate-600 text-white text-xs font-mono font-bold shrink-0 cursor-pointer"
+                            >
+                              + Add to Canvas
+                            </button>
+                          </div>
                         </div>
                       )}
 
