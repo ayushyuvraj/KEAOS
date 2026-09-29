@@ -111,6 +111,7 @@ function CanvasInner({
   const [rfInstance, setRfInstance] = useState(null);
   const [executionState, setExecutionState] = useState({ isExecuting: false, step: '' });
   const [toastNotification, setToastNotification] = useState(null);
+  const hoveredNodeIdRef = useRef(null);
 
   // Drag handler for summary map
   const handleMouseDownMiniMap = (e) => {
@@ -205,37 +206,7 @@ function CanvasInner({
     }, 1500);
   }, [nodes, edges, setNodes, setEdges]);
 
-  // Global Keyboard Listener for Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const target = e.target;
-      if (
-        target.tagName === 'INPUT' || 
-        target.tagName === 'TEXTAREA' || 
-        target.isContentEditable
-      ) {
-        return;
-      }
 
-      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-      if (!isCtrlOrCmd) return;
-
-      if (e.key === 'z' || e.key === 'Z') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
-      } else if (e.key === 'y' || e.key === 'Y') {
-        e.preventDefault();
-        redo();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
 
   // Take snapshot when node drag starts
   const handleNodeDragStart = useCallback(() => {
@@ -346,6 +317,93 @@ function CanvasInner({
       setToastNotification((curr) => (curr === toastMsg ? null : curr));
     }, 1500);
   }, [nodes]);
+
+  // Global Keyboard Shortcuts Listener:
+  // - 'D' / 'd': Toggle Deactivate / Activate on selected or hovered node
+  // - 'Ctrl+D': Duplicate selected or hovered node
+  // - 'Ctrl+C': Copy selected or hovered node configuration
+  // - 'Enter': Open Inspector for selected or hovered node
+  // - 'Ctrl+Z': Undo canvas mutation
+  // - 'Ctrl+Y' / 'Ctrl+Shift+Z': Redo canvas mutation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target;
+      if (
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      const key = e.key;
+
+      // 1. Undo / Redo
+      if (isCtrlOrCmd) {
+        if (key === 'z' || key === 'Z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            redo();
+          } else {
+            undo();
+          }
+          return;
+        } else if (key === 'y' || key === 'Y') {
+          e.preventDefault();
+          redo();
+          return;
+        }
+      }
+
+      // Determine active target node (selected on canvas, in inspector, or hovered)
+      const targetNode = nodes.find(n => n.selected) || 
+        (selectedNode ? nodes.find(n => n.id === selectedNode.id) : null) ||
+        (hoveredNodeIdRef.current ? nodes.find(n => n.id === hoveredNodeIdRef.current) : null);
+
+      if (!targetNode) return;
+
+      // 2. Duplicate Node (Ctrl+D)
+      if (isCtrlOrCmd && (key === 'd' || key === 'D')) {
+        e.preventDefault();
+        handleDuplicateNode(targetNode.id);
+        return;
+      }
+
+      // 3. Copy Node Config (Ctrl+C)
+      if (isCtrlOrCmd && (key === 'c' || key === 'C')) {
+        e.preventDefault();
+        handleCopyNode(targetNode.id);
+        return;
+      }
+
+      // 4. Toggle Deactivate / Activate (Single key "D" or "d")
+      if (!isCtrlOrCmd && !e.altKey && (key === 'd' || key === 'D')) {
+        e.preventDefault();
+        handleToggleDeactivateNode(targetNode.id);
+        return;
+      }
+
+      // 5. Open Inspector (Enter)
+      if (!isCtrlOrCmd && !e.altKey && key === 'Enter') {
+        e.preventDefault();
+        handleOpenInspector(targetNode.id);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    undo, 
+    redo, 
+    nodes, 
+    selectedNode, 
+    handleToggleDeactivateNode, 
+    handleDuplicateNode, 
+    handleCopyNode, 
+    handleOpenInspector
+  ]);
 
   // Handle node removals (e.g. keyboard delete)
   const handleNodesChange = useCallback((changes) => {
@@ -789,9 +847,16 @@ function CanvasInner({
         fitView
         fitViewOptions={{ padding: 0.2 }}
         onNodeClick={(_, node) => onSelectNode(node)}
+        onNodeMouseEnter={(_, node) => {
+          hoveredNodeIdRef.current = node.id;
+        }}
+        onNodeMouseLeave={() => {
+          hoveredNodeIdRef.current = null;
+        }}
         onPaneClick={() => {
           onSelectNode(null);
           setIsAddMenuOpen(false);
+          window.dispatchEvent(new CustomEvent('keaos:close-popups'));
         }}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}

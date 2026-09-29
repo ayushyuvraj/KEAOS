@@ -27,7 +27,7 @@ export default function NodeActionToolbar({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside (capture phase ensures canvas clicks always dismiss it)
   useEffect(() => {
     if (!isMenuOpen) return;
 
@@ -37,11 +37,20 @@ export default function NodeActionToolbar({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    window.addEventListener('pointerdown', handleClickOutside, true);
+    window.addEventListener('mousedown', handleClickOutside, true);
+    window.addEventListener('touchstart', handleClickOutside, true);
+    window.addEventListener('click', handleClickOutside, true);
+
+    const handleCustomClose = () => setIsMenuOpen(false);
+    window.addEventListener('keaos:close-popups', handleCustomClose);
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      window.removeEventListener('pointerdown', handleClickOutside, true);
+      window.removeEventListener('mousedown', handleClickOutside, true);
+      window.removeEventListener('touchstart', handleClickOutside, true);
+      window.removeEventListener('click', handleClickOutside, true);
+      window.removeEventListener('keaos:close-popups', handleCustomClose);
     };
   }, [isMenuOpen]);
 
