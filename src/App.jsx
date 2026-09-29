@@ -579,8 +579,8 @@ export default function App() {
                 />
               </div>
 
-              {/* Right Inspector (Slides in when isInspectorOpen is true) */}
-              {isInspectorOpen && (
+              {/* Right Inspector (Slides in when a node is selected) */}
+              {isInspectorOpen && selectedNode && (
                 <Inspector
                   selectedNode={selectedNode}
                   nodes={nodes}
@@ -590,7 +590,10 @@ export default function App() {
                   onUpdateAgentConfig={handleUpdateAgentConfig}
                   onUpdateNodeData={handleUpdateNodeData}
                   onDeleteNode={handleDeleteNode}
-                  onClose={() => setSelectedNode(null)}
+                  onClose={() => {
+                    setSelectedNode(null);
+                    setIsInspectorOpen(false);
+                  }}
                   onCollapse={() => setIsInspectorOpen(false)}
                   onOpenApiSettings={(providerId) => {
                     setApiSettingsTab(providerId || 'google');

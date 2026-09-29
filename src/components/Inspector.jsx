@@ -11,7 +11,6 @@ import {
   AlertCircle,
   ExternalLink,
   Sliders,
-  Activity,
   PanelRightClose,
   PanelRightOpen
 } from 'lucide-react';
@@ -53,9 +52,6 @@ export default function Inspector({
   const [customTokens, setCustomTokens] = useState([]);
   const [newCustomToken, setNewCustomToken] = useState('');
 
-  const activeModelNode = (nodes || []).find(n => n.data?.pillarType === 'model' && !n.data?.isDeactivated);
-  const activeModelName = activeModelNode?.data?.name || 'No Model Connected';
-
   useEffect(() => {
     if (selectedNode) {
       setIsCollapsed(false);
@@ -70,6 +66,10 @@ export default function Inspector({
     }
   };
 
+  if (!selectedNode) {
+    return null;
+  }
+
   if (isCollapsed) {
     return (
       <button
@@ -78,111 +78,9 @@ export default function Inspector({
         title="Open Inspector Panel"
       >
         <PanelRightOpen className="w-4 h-4 text-[#00338D]" />
-        <span>{selectedNode ? 'Inspect Block' : 'Studio HUD'}</span>
+        <span>Inspect Block</span>
         <span className="w-1.5 h-1.5 rounded-full bg-[#009A44] beacon-live" />
       </button>
-    );
-  }
-
-  if (!selectedNode) {
-    return (
-      <aside className="w-88 h-full bg-[#FFFFFF] border-l border-[#CBD5E1] p-5 flex flex-col justify-between shrink-0 overflow-y-auto select-none shadow-sm">
-        <div className="space-y-5">
-          {/* Header */}
-          <div className="border-b border-[#E0E0E0] pb-3 flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Activity className="w-4 h-4 text-[#00338D]" />
-                <h3 className="text-xs font-bold text-[#0B0F19] tracking-tight uppercase font-mono">
-                  Studio Architecture HUD
-                </h3>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Live topology health, socket allocation, and system telemetry.
-              </p>
-            </div>
-            <button
-              onClick={handleCollapse}
-              className="btn-tactile p-1 text-slate-400 hover:text-[#00338D] hover:bg-[#E6EDF7] border border-transparent hover:border-[#CBD5E1] transition-colors ml-2 shrink-0"
-              title="Collapse Right Panel"
-            >
-              <PanelRightClose className="w-4 h-4" />
-            </button>
-          </div>
-
-            {/* Graph Health Metric Cards */}
-          <div className="space-y-2.5">
-            <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span className="flex items-center">
-                  GRAPH HEALTH
-                  <InfoTooltip text="Graph Health indicates whether all nodes in your visual workflow are properly connected without any missing sockets or wire collisions." align="left" />
-                </span>
-                <span className="font-bold text-[#009A44]">100% OPERATIONAL</span>
-              </div>
-              <div className="text-base font-extrabold text-[#001E50] mt-1 tracking-tight">
-                10 / 10 Pillars Bound
-              </div>
-              <p className="text-[10px] text-slate-500 mt-0.5">
-                Strict typed sockets enforced. Zero connection collisions.
-              </p>
-            </div>
-
-            <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span className="flex items-center">
-                  ACTIVE FOUNDATION MODEL
-                  <InfoTooltip text="The AI brain model currently connected to your agent. This model processes all inputs, tools, and instructions." align="right" />
-                </span>
-                <span className="font-bold text-[#00338D]">LIVE API</span>
-              </div>
-              <div className="text-xs font-bold text-[#0B0F19] mt-1 truncate">
-                {activeModelName}
-              </div>
-              <div className="flex items-center gap-1.5 mt-2">
-                <button
-                  onClick={() => onOpenApiSettings && onOpenApiSettings('google')}
-                  className="btn-tactile text-[10px] font-mono font-bold text-[#00338D] hover:underline flex items-center gap-1"
-                >
-                  <Key className="w-3 h-3" />
-                  <span>Configure API Keys</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span className="flex items-center">
-                  CRYPTOGRAPHIC AUDIT
-                  <InfoTooltip text="A tamper-proof digital fingerprint (SHA-256) recorded for every execution to guarantee safety, transparency, and compliance." align="right" />
-                </span>
-                <span className="font-bold text-[#001E50]">W3C SHA-256</span>
-              </div>
-              <div className="text-xs font-mono text-slate-700 mt-1 truncate">
-                Immutable Ledger Active
-              </div>
-              <p className="text-[10px] text-slate-500 mt-0.5">
-                All meeting inputs and outputs cryptographically signed.
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Inspector Hint */}
-          <div className="p-3 bg-[#E6EDF7]/50 border border-[#00338D]/20 text-xs">
-            <span className="font-bold text-[#00338D] block mb-1">Canvas Inspection</span>
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              Click any block on the canvas to inspect its parameters, adjust LLM provider settings, or modify execution prompts.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer Quick Action */}
-        <div className="pt-4 border-t border-[#E0E0E0]">
-          <div className="text-[10px] font-mono text-slate-400 text-center">
-            KEAOS Operating Studio v2.4 • Production Ready
-          </div>
-        </div>
-      </aside>
     );
   }
 
