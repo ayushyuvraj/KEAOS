@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -18,15 +18,22 @@ import { getAllConfiguredProviders } from './services/llmService';
 import { FRAMEWORKS } from './constants/frameworks';
 import { PILLARS } from './constants/pillars';
 import { DEFAULT_THRESHOLDS } from './constants/goldenDataset';
+import {
+  loadUIState,
+  saveUIState,
+  loadCanvasState,
+  saveCanvasState,
+  clearCanvasState
+} from './utils/persistentState';
 
 // Initial Template Builder with clean architectural spacing (zero overlap)
 function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
   const initialNodes = [
-    // 1. Central Core Agent (Command Node)
+    // 1. Central Robot AI Agent (Command Node)
     {
       id: 'agent-core',
       type: 'agentCore',
-      position: { x: 540, y: 130 },
+      position: { x: 520, y: 160 },
       data: {
         name: 'Meeting Intelligence Agent',
         framework,
@@ -35,20 +42,20 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         topP: 0.95,
         attachedCounts: {
           model: 1,
-          skills: 2,
+          skills: 1,
           mcp: 1,
           tools: 1,
-          gateway: 1,
+          gateway: 0,
           memory: 1,
           policies: 1
         }
       }
     },
-    // Left Column: Model, Tools, Ingress Gateway, Memory Store
+    // 2. Brain / Model Node (Positioned directly above the Antenna)
     {
       id: 'node-model-1',
       type: 'pillar',
-      position: { x: 60, y: 10 },
+      position: { x: 595, y: 15 },
       data: {
         pillarType: 'model',
         name: 'Gemini 2.0 Flash',
@@ -56,33 +63,48 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
       }
     },
+    // 3. Hands / Tool Ingestion Node (Positioned to the left of the Left Arm Bolt)
     {
       id: 'node-tool-1',
       type: 'pillar',
-      position: { x: 60, y: 190 },
+      position: { x: 260, y: 220 },
       data: {
         pillarType: 'tools',
         toolId: 'tool-audio-transcribe',
-        name: 'MP3 Audio Transcription Tool',
+        name: 'Audio Transcriber',
         description: 'Accepts MP3 audio, runs Whisper/Speech-to-Text with speaker diarization.',
         config: { format: 'mp3', diarization: true }
       }
     },
+    // 4. Reach / MCP Protocol Node (Positioned to the right of the Right Arm Bolt)
     {
-      id: 'node-gateway-1',
+      id: 'node-mcp-1',
       type: 'pillar',
-      position: { x: 60, y: 370 },
+      position: { x: 880, y: 220 },
       data: {
-        pillarType: 'gateway',
-        name: 'Ingress Rate Limiter',
-        description: 'Caps execution at 60 RPM to protect API quotas.',
-        config: { maxRpm: 60, burstSize: 10 }
+        pillarType: 'mcp',
+        name: 'Calendar MCP',
+        description: 'Fetches meeting metadata, attendees, scheduled start/end, and invites.',
+        config: { endpoint: 'mcp://calendar.google.internal' }
       }
     },
+    // 5. Left Stance / Guardrails Policy Node (Positioned below the Left Foot)
+    {
+      id: 'node-policy-1',
+      type: 'pillar',
+      position: { x: 410, y: 440 },
+      data: {
+        pillarType: 'policies',
+        name: 'PII Redactor',
+        description: 'Detects and redacts salaries, personal phones, SSNs, and passwords.',
+        config: { redactSalaries: true, maskEmails: true }
+      }
+    },
+    // 6. Center Stance / Episodic Memory Node (Positioned below the Center Core Foot)
     {
       id: 'node-memory-1',
       type: 'pillar',
-      position: { x: 60, y: 550 },
+      position: { x: 595, y: 440 },
       data: {
         pillarType: 'memory',
         name: 'Episodic Sync Memory',
@@ -90,83 +112,16 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { ttlDays: 90, store: 'vector-sqlite' }
       }
     },
-    // Right Column: Specialized Skills, MCP, Policies, Audit Trail
+    // 7. Right Stance / Specialized Skills Node (Positioned below the Right Foot)
     {
       id: 'node-skill-1',
       type: 'pillar',
-      position: { x: 1060, y: 10 },
+      position: { x: 780, y: 440 },
       data: {
         pillarType: 'skills',
         name: 'Executive Summarizer',
         description: 'Generates TL;DR, high-level takeaways, and strategic themes.',
         config: { length: 'concise', focus: 'decisions' }
-      }
-    },
-    {
-      id: 'node-skill-2',
-      type: 'pillar',
-      position: { x: 1060, y: 190 },
-      data: {
-        pillarType: 'skills',
-        name: 'Action Item Extractor',
-        description: 'Extracts exact tasks, assignees, deadlines, and dependencies.',
-        config: { strictJson: true }
-      }
-    },
-    {
-      id: 'node-mcp-1',
-      type: 'pillar',
-      position: { x: 1060, y: 370 },
-      data: {
-        pillarType: 'mcp',
-        name: 'Google Calendar MCP',
-        description: 'Fetches meeting metadata, attendees, scheduled start/end, and invites.',
-        config: { endpoint: 'mcp://calendar.google.internal' }
-      }
-    },
-    {
-      id: 'node-policy-1',
-      type: 'pillar',
-      position: { x: 1060, y: 550 },
-      data: {
-        pillarType: 'policies',
-        name: 'PII & Confidentiality Redactor',
-        description: 'Detects and redacts salaries, personal phones, SSNs, and passwords.',
-        config: { redactSalaries: true, maskEmails: true }
-      }
-    },
-    {
-      id: 'node-audit-1',
-      type: 'pillar',
-      position: { x: 1060, y: 730 },
-      data: {
-        pillarType: 'audit',
-        name: 'Cryptographic Audit Trail',
-        description: 'Generates SHA-256 hash of raw transcripts and agent outputs.',
-        config: { hashingAlgorithm: 'sha256' }
-      }
-    },
-    // Bottom Horizon: Observability & ROI Accounting
-    {
-      id: 'node-obs-1',
-      type: 'pillar',
-      position: { x: 440, y: 670 },
-      data: {
-        pillarType: 'observability',
-        name: 'OpenTelemetry Trace Collector',
-        description: 'Captures per-step execution spans, token usage, and latency waterfalls.',
-        config: { exportOtlp: true }
-      }
-    },
-    {
-      id: 'node-roi-1',
-      type: 'pillar',
-      position: { x: 740, y: 670 },
-      data: {
-        pillarType: 'cost_benefit',
-        name: 'ROI & Time-Saved Calculator',
-        description: 'Measures agent compute cost ($0.02) vs employee manual transcription value ($45.00).',
-        config: { hourlyRateUsd: 65, averageMinsSaved: 40 }
       }
     }
   ];
@@ -179,52 +134,16 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'model-in',
       animated: true,
-      style: { stroke: '#00338D', strokeWidth: 2 }
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-tool',
       source: 'node-tool-1',
       sourceHandle: 'out',
       target: 'agent-core',
-      targetHandle: 'tool-in',
+      targetHandle: 'tools-in',
       animated: true,
-      style: { stroke: '#005EB8', strokeWidth: 2 }
-    },
-    {
-      id: 'edge-gateway',
-      source: 'node-gateway-1',
-      sourceHandle: 'out',
-      target: 'agent-core',
-      targetHandle: 'gateway-in',
-      animated: true,
-      style: { stroke: '#EAAA00', strokeWidth: 2 }
-    },
-    {
-      id: 'edge-memory',
-      source: 'node-memory-1',
-      sourceHandle: 'out',
-      target: 'agent-core',
-      targetHandle: 'memory-in',
-      animated: true,
-      style: { stroke: '#483698', strokeWidth: 2 }
-    },
-    {
-      id: 'edge-skill-1',
-      source: 'node-skill-1',
-      sourceHandle: 'out',
-      target: 'agent-core',
-      targetHandle: 'skill-in',
-      animated: true,
-      style: { stroke: '#009A44', strokeWidth: 2 }
-    },
-    {
-      id: 'edge-skill-2',
-      source: 'node-skill-2',
-      sourceHandle: 'out',
-      target: 'agent-core',
-      targetHandle: 'skill-in',
-      animated: true,
-      style: { stroke: '#009A44', strokeWidth: 2 }
+      style: { stroke: '#005EB8', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-mcp',
@@ -233,7 +152,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'mcp-in',
       animated: true,
-      style: { stroke: '#00A3A6', strokeWidth: 2 }
+      style: { stroke: '#06B6D4', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-policy',
@@ -242,34 +161,25 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'policy-in',
       animated: true,
-      style: { stroke: '#6D2077', strokeWidth: 2 }
+      style: { stroke: '#EC4899', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
-      id: 'edge-audit',
-      source: 'node-audit-1',
+      id: 'edge-memory',
+      source: 'node-memory-1',
       sourceHandle: 'out',
       target: 'agent-core',
-      targetHandle: 'audit-in',
+      targetHandle: 'memory-in',
       animated: true,
-      style: { stroke: '#001E50', strokeWidth: 2 }
+      style: { stroke: '#8B5CF6', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
-      id: 'edge-obs',
-      source: 'node-obs-1',
+      id: 'edge-skill-1',
+      source: 'node-skill-1',
       sourceHandle: 'out',
       target: 'agent-core',
-      targetHandle: 'observability-in',
+      targetHandle: 'skill-in',
       animated: true,
-      style: { stroke: '#0091DA', strokeWidth: 2 }
-    },
-    {
-      id: 'edge-roi',
-      source: 'node-roi-1',
-      sourceHandle: 'out',
-      target: 'agent-core',
-      targetHandle: 'cost-benefit-in',
-      animated: true,
-      style: { stroke: '#EAAA00', strokeWidth: 2 }
+      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
     }
   ];
 
@@ -277,28 +187,123 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
 }
 
 export default function App() {
-  const [activeUseCase, setActiveUseCase] = useState({
-    id: 'uc-meeting-intel',
-    name: 'Meeting Intelligence Agent',
-    description: 'Autonomous multi-speaker synthesis, action items, and task sync.',
-    framework: FRAMEWORKS[0], // Google ADK
-    agent: {
-      prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
-      temperature: 0.2,
-      topP: 0.95
+  // Load persistent UI state & Canvas topology state from localStorage
+  const initialUI = useMemo(() => loadUIState(), []);
+  const initialCanvas = useMemo(() => loadCanvasState(), []);
+
+  const [activeUseCase, setActiveUseCase] = useState(
+    initialCanvas?.activeUseCase || {
+      id: 'uc-meeting-intel',
+      name: 'Meeting Intelligence Agent',
+      description: 'Autonomous multi-speaker synthesis, action items, and task sync.',
+      framework: FRAMEWORKS[0], // Google ADK
+      agent: {
+        prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
+        temperature: 0.2,
+        topP: 0.95
+      }
     }
-  });
+  );
 
   const { initialNodes, initialEdges } = useMemo(
     () => getInitialNodesAndEdges(activeUseCase.framework),
     []
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  // Nodes & Edges (restore from persistent storage if available)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialCanvas?.nodes || initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialCanvas?.edges || initialEdges);
+
+  // Persistent UI States
+  const [isDarkMode, setIsDarkModeState] = useState(initialUI.isDarkMode);
+  const [isSidebarCollapsed, setIsSidebarCollapsedState] = useState(initialUI.isSidebarCollapsed);
+  const [isSidebarClosed, setIsSidebarClosedState] = useState(initialUI.isSidebarClosed);
+  const [isDrawerExpanded, setIsDrawerExpandedState] = useState(initialUI.isDrawerExpanded);
+  const [showMiniMap, setShowMiniMapState] = useState(initialUI.showMiniMap);
+  const [miniMapPos, setMiniMapPosState] = useState(initialUI.miniMapPos);
+  const [isInspectorOpen, setIsInspectorOpenState] = useState(initialUI.isInspectorOpen);
+  const [isEnforcerActive, setIsEnforcerActiveState] = useState(initialUI.isEnforcerActive);
+  const [viewMode, setViewModeState] = useState(initialUI.viewMode);
+
+  // Wrapped State Setters with localStorage Persistence
+  const setIsDarkMode = useCallback((val) => {
+    setIsDarkModeState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ isDarkMode: next });
+      return next;
+    });
+  }, []);
+
+  const setIsSidebarCollapsed = useCallback((val) => {
+    setIsSidebarCollapsedState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ isSidebarCollapsed: next });
+      return next;
+    });
+  }, []);
+
+  const setIsSidebarClosed = useCallback((val) => {
+    setIsSidebarClosedState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ isSidebarClosed: next });
+      return next;
+    });
+  }, []);
+
+  const setIsDrawerExpanded = useCallback((val) => {
+    setIsDrawerExpandedState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ isDrawerExpanded: next });
+      return next;
+    });
+  }, []);
+
+  const setShowMiniMap = useCallback((val) => {
+    setShowMiniMapState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ showMiniMap: next });
+      return next;
+    });
+  }, []);
+
+  const setMiniMapPos = useCallback((val) => {
+    setMiniMapPosState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ miniMapPos: next });
+      return next;
+    });
+  }, []);
+
+  const setIsInspectorOpen = useCallback((val) => {
+    setIsInspectorOpenState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ isInspectorOpen: next });
+      return next;
+    });
+  }, []);
+
+  const setIsEnforcerActive = useCallback((val) => {
+    setIsEnforcerActiveState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ isEnforcerActive: next });
+      return next;
+    });
+  }, []);
+
+  const setViewMode = useCallback((val) => {
+    setViewModeState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ viewMode: next });
+      return next;
+    });
+  }, []);
+
+  // Save Canvas Topology automatically to localStorage on change
+  useEffect(() => {
+    saveCanvasState({ nodes, edges, activeUseCase });
+  }, [nodes, edges, activeUseCase]);
+
   const [selectedNode, setSelectedNode] = useState(null);
-  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
-  const [viewMode, setViewMode] = useState('canvas'); // 'canvas' | 'simulator' | 'evaluation' | 'code'
   const [isMakeModalOpen, setIsMakeModalOpen] = useState(false);
   const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
@@ -426,6 +431,7 @@ export default function App() {
 
   // Reset to Pilot Template
   const handleResetTemplate = () => {
+    clearCanvasState();
     const { initialNodes: newNodes, initialEdges: newEdges } = getInitialNodesAndEdges(activeUseCase.framework);
     setNodes(newNodes);
     setEdges(newEdges);
@@ -451,7 +457,7 @@ export default function App() {
   };
 
   return (
-    <div className="w-screen h-screen flex bg-[#F5F6F8] text-[#0B0F19] overflow-hidden select-none">
+    <div className={`w-screen h-screen flex ${isDarkMode ? 'bg-[#0D111A] text-white' : 'bg-[#F5F6F8] text-[#0B0F19]'} overflow-hidden select-none transition-colors duration-200`}>
       {/* Unified Left Collapsible Sidebar */}
       <Sidebar
         activeUseCase={activeUseCase}
@@ -467,16 +473,27 @@ export default function App() {
           setApiSettingsTab('google');
           setIsApiSettingsOpen(true);
         }}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        isClosed={isSidebarClosed}
+        setIsClosed={setIsSidebarClosed}
       />
 
       {/* Main Right Area: Top Header + View Workspace */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <Header
           viewMode={viewMode}
+          setViewMode={setViewMode}
           activeUseCase={activeUseCase}
           hasApiKey={hasApiKey}
           configuredCount={configuredCount}
           onOpenClusterModal={() => setIsClusterModalOpen(true)}
+          isSidebarClosed={isSidebarClosed}
+          onToggleSidebarClosed={() => setIsSidebarClosed(!isSidebarClosed)}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebarCollapsed={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          isDarkMode={isDarkMode}
+          onToggleTheme={() => setIsDarkMode(!isDarkMode)}
         />
 
         <main className="flex-1 flex overflow-hidden relative">
@@ -485,6 +502,7 @@ export default function App() {
               {/* Center Canvas with Strict Socket Connections & Floating Toolbars */}
               <div className="flex-1 h-full relative">
                 <Canvas
+                  activeUseCase={activeUseCase}
                   nodes={nodes}
                   setNodes={setNodes}
                   onNodesChange={onNodesChange}
@@ -501,6 +519,16 @@ export default function App() {
                   isInspectorOpen={isInspectorOpen}
                   setIsInspectorOpen={setIsInspectorOpen}
                   selectedNode={selectedNode}
+                  isDarkMode={isDarkMode}
+                  setIsDarkMode={setIsDarkMode}
+                  isEnforcerActive={isEnforcerActive}
+                  setIsEnforcerActive={setIsEnforcerActive}
+                  showMiniMap={showMiniMap}
+                  setShowMiniMap={setShowMiniMap}
+                  miniMapPos={miniMapPos}
+                  setMiniMapPos={setMiniMapPos}
+                  isDrawerExpanded={isDrawerExpanded}
+                  setIsDrawerExpanded={setIsDrawerExpanded}
                 />
               </div>
 

@@ -1,298 +1,382 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { 
-  Bot, 
-  Terminal,
-  Activity,
-  Server,
-  Brain,
-  Wrench,
-  GitFork,
-  Database,
-  Sparkles,
-  ShieldCheck,
-  Fingerprint,
-  Coins
+  Brain, 
+  Wrench, 
+  Server, 
+  Database, 
+  ShieldCheck, 
+  Sparkles, 
+  Plus 
 } from 'lucide-react';
 
 export default function AgentCoreNode({ data, selected }) {
-  const { name, framework, prompt, temperature, topP, attachedCounts, isDarkMode } = data;
+  const { name, framework, attachedCounts, isDarkMode, isExecuting } = data;
 
-  const totalConnected = Object.values(attachedCounts || {}).reduce(
-    (acc, val) => acc + (typeof val === 'number' ? val : val ? 1 : 0), 
-    0
-  );
+  const hasModel = (attachedCounts?.model || 0) > 0;
+  const hasTools = (attachedCounts?.tools || 0) > 0;
+  const hasMcp = (attachedCounts?.mcp || 0) > 0;
+  const hasMemory = (attachedCounts?.memory || 0) > 0;
+  const hasPolicies = (attachedCounts?.policies || 0) > 0;
+  const hasSkills = (attachedCounts?.skills || 0) > 0;
 
   return (
-    <div
-      className={`relative w-[460px] border select-none transition-all duration-200 ${
-        isDarkMode
-          ? 'bg-[#141824] border-[#2B354B] text-white shadow-[0_16px_40px_rgba(0,0,0,0.5)]'
-          : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] shadow-[0_8px_30px_rgba(0,30,80,0.08)]'
-      } ${
-        selected
-          ? 'border-[#0091DA] ring-2 ring-[#0091DA]'
-          : isDarkMode ? 'hover:border-[#0091DA]' : 'hover:border-[#00338D]'
-      }`}
-    >
-      {/* 1. Command Header */}
-      <div className="px-5 py-3.5 bg-[#001E50] border-b border-[#00338D] flex items-center justify-between text-white">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00338D] border border-[#0091DA]/50 flex items-center justify-center text-white shadow-inner">
-            <Bot className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-[#0091DA] uppercase tracking-wider">
-                ORCHESTRATOR
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-slate-200 border border-white/20">
-                {framework?.name || 'Google ADK'}
-              </span>
-            </div>
-            <h3 className="text-sm font-bold text-white mt-0.5 tracking-tight">
-              {name || 'Meeting Intelligence Agent'}
-            </h3>
+    <div className="relative select-none flex flex-col items-center">
+      {/* ============================================================ */}
+      {/* 1. ANTENNA / BRAIN (Chat Model Socket - Position.Top)         */}
+      {/* ============================================================ */}
+      <div className="flex flex-col items-center z-10 -mb-1">
+        {/* Antenna Orb / Transmitter Dish */}
+        <div
+          className={`relative group w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md ${
+            hasModel
+              ? 'bg-[#0091DA]/20 border-[#0091DA] text-[#0091DA] shadow-[0_0_12px_rgba(0,145,218,0.5)]'
+              : isDarkMode
+                ? 'bg-[#222530] border-[#444856] text-slate-400'
+                : 'bg-white border-[#CBD5E1] text-slate-400'
+          }`}
+          title="Brain Socket: Connect Foundation Model (Gemini, Claude, GPT-4o, Ollama)"
+        >
+          {/* Target Handle for Model at Top */}
+          <Handle
+            type="target"
+            position={Position.Top}
+            id="model-in"
+            style={{
+              left: '50%',
+              transform: 'translateX(-50%) rotate(45deg)',
+              width: '10px',
+              height: '10px',
+              borderRadius: '2px',
+              backgroundColor: hasModel ? '#0091DA' : isDarkMode ? '#4B5563' : '#9CA3AF',
+              borderColor: isDarkMode ? '#1E2028' : '#FFFFFF',
+              borderWidth: '2px',
+              top: '-5px'
+            }}
+            title="Brain: Foundation Model"
+          />
+
+          <Brain className={`w-4 h-4 transition-transform ${hasModel ? 'scale-110 text-[#0091DA]' : ''}`} />
+
+          {/* Model Beacon Pulse when connected */}
+          {hasModel && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#0091DA] animate-ping" />
+          )}
+
+          {/* Socket Label Pill */}
+          <div className="absolute -top-6 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[8px] font-mono tracking-wider font-bold bg-[#0091DA]/15 text-[#0091DA] border border-[#0091DA]/40 uppercase">
+            Brain • Model
           </div>
         </div>
 
-        {/* Live Operational Status */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#009A44]/20 border border-[#009A44]/40 text-[#E6F5EC] text-[10px] font-mono font-bold">
-          <span className="w-2 h-2 rounded-full bg-[#009A44] beacon-live" />
-          <span>ACTIVE</span>
-        </div>
+        {/* Antenna Stem */}
+        <div className={`w-1 h-3.5 ${
+          hasModel ? 'bg-[#0091DA]' : isDarkMode ? 'bg-[#444856]' : 'bg-[#CBD5E1]'
+        } transition-colors`} />
       </div>
 
-      {/* 2. Embedded Directive Console */}
-      <div className={`p-4 space-y-4 transition-colors ${isDarkMode ? 'bg-[#141824]' : 'bg-[#FFFFFF]'}`}>
-        <div className={`border p-3 shadow-inner transition-colors ${
-          isDarkMode ? 'bg-[#0B0F19] border-[#1E293B]' : 'bg-[#0B0F19] border-[#1E293B]'
-        }`}>
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pb-2 mb-2 border-b border-[#1E293B]">
-            <div className="flex items-center gap-1.5 text-slate-300">
-              <Terminal className="w-3.5 h-3.5 text-[#0091DA]" />
-              <span className="font-bold">SYSTEM DIRECTIVE</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-amber-400">T: {temperature || 0.2}</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-cyan-400">P: {topP || 0.95}</span>
-            </div>
-          </div>
-          <p className="text-xs text-slate-200 leading-relaxed font-mono whitespace-pre-wrap">
-            {prompt || 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.'}
-          </p>
+      {/* ============================================================ */}
+      {/* 2. ROBOT HEAD CHASSIS (Main Visual Container)                */}
+      {/* ============================================================ */}
+      <div
+        className={`relative w-[270px] rounded-[26px] border-2 transition-all duration-200 shadow-2xl ${
+          isDarkMode
+            ? 'bg-[#1D2028] border-[#383C4A] text-white shadow-[0_16px_40px_rgba(0,0,0,0.6)]'
+            : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#111827] shadow-[0_12px_32px_rgba(0,30,80,0.08)]'
+        } ${
+          isExecuting
+            ? 'border-[#0091DA] ring-4 ring-[#0091DA]/30 shadow-[0_0_36px_rgba(0,145,218,0.5)]'
+            : selected
+              ? 'border-[#0091DA] ring-2 ring-[#0091DA]'
+              : isDarkMode ? 'hover:border-[#525769]' : 'hover:border-[#94A3B8]'
+        }`}
+        style={{ padding: '12px 14px' }}
+      >
+        {/* Subtle Corner Hardware Rivets */}
+        <div className="absolute top-2.5 left-3 w-1.5 h-1.5 rounded-full bg-white/20" />
+        <div className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full bg-white/20" />
+        <div className="absolute bottom-2.5 left-3 w-1.5 h-1.5 rounded-full bg-white/20" />
+        <div className="absolute bottom-2.5 right-3 w-1.5 h-1.5 rounded-full bg-white/20" />
+
+        {/* ------------------------------------------------------------ */}
+        {/* LEFT ARM / EAR BOLT (Tools Socket - Position.Left)           */}
+        {/* ------------------------------------------------------------ */}
+        <div
+          className={`absolute -left-[14px] top-[95px] -translate-y-1/2 w-4 h-11 rounded-l-md border-y border-l flex flex-col items-center justify-center transition-colors shadow-md ${
+            hasTools
+              ? 'bg-[#005EB8]/20 border-[#005EB8] text-[#005EB8]'
+              : isDarkMode
+                ? 'bg-[#252833] border-[#383C4A] text-slate-400'
+                : 'bg-[#F1F5F9] border-[#CBD5E1] text-slate-400'
+          }`}
+          title="Hands Socket: Connect Ingestion & Execution Tools (Whisper, Parser, Search)"
+        >
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="tools-in"
+            style={{
+              top: '50%',
+              transform: 'translateY(-50%) rotate(45deg)',
+              width: '9px',
+              height: '9px',
+              borderRadius: '2px',
+              backgroundColor: hasTools ? '#005EB8' : isDarkMode ? '#4B5563' : '#9CA3AF',
+              borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+              borderWidth: '2px',
+              left: '-5px'
+            }}
+            title="Hands: Tools Ingestion"
+          />
+          <Wrench className="w-3 h-3" />
         </div>
 
-        {/* 3. Architectural Sockets Port Bay */}
-        <div className={`border p-3 transition-colors ${
-          isDarkMode ? 'border-[#2B354B] bg-[#181D2A]' : 'border-[#CBD5E1] bg-[#F8F9FB]'
-        }`}>
-          <div className={`flex items-center justify-between text-xs font-bold mb-3 pb-2 border-b ${
-            isDarkMode ? 'text-white border-[#2B354B]' : 'text-[#0B0F19] border-[#E0E0E0]'
-          }`}>
-            <span className="tracking-tight">Architectural Socket Matrix</span>
-            <span className={`text-[10px] font-mono px-2 py-0.5 border rounded-full font-bold ${
-              isDarkMode ? 'bg-[#00338D]/40 text-[#0091DA] border-[#0091DA]/30' : 'bg-[#E6EDF7] text-[#00338D] border-[#00338D]/20'
-            }`}>
-              {totalConnected} / 10 Connected
-            </span>
+        {/* ------------------------------------------------------------ */}
+        {/* RIGHT ARM / EAR BOLT (MCP Socket - Position.Right)           */}
+        {/* ------------------------------------------------------------ */}
+        <div
+          className={`absolute -right-[14px] top-[95px] -translate-y-1/2 w-4 h-11 rounded-r-md border-y border-r flex flex-col items-center justify-center transition-colors shadow-md ${
+            hasMcp
+              ? 'bg-[#06B6D4]/20 border-[#06B6D4] text-[#06B6D4]'
+              : isDarkMode
+                ? 'bg-[#252833] border-[#383C4A] text-slate-400'
+                : 'bg-[#F1F5F9] border-[#CBD5E1] text-slate-400'
+          }`}
+          title="Reach Socket: Connect MCP Servers (Calendar, Slack, Jira, GitHub)"
+        >
+          <Handle
+            type="target"
+            position={Position.Right}
+            id="mcp-in"
+            style={{
+              top: '50%',
+              transform: 'translateY(-50%) rotate(45deg)',
+              width: '9px',
+              height: '9px',
+              borderRadius: '2px',
+              backgroundColor: hasMcp ? '#06B6D4' : isDarkMode ? '#4B5563' : '#9CA3AF',
+              borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+              borderWidth: '2px',
+              right: '-5px'
+            }}
+            title="Reach: MCP Protocol"
+          />
+          <Server className="w-3 h-3" />
+        </div>
+
+        {/* ------------------------------------------------------------ */}
+        {/* OUTPUT STREAM PORT (Workflow Out - Position.Right with [+])  */}
+        {/* ------------------------------------------------------------ */}
+        <div className="absolute -right-3 top-[152px] flex items-center">
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="out"
+            className="!w-3 !h-3 !rounded-full !bg-[#0091DA] !border-2 !border-[#1D2028]"
+            title="Agent output stream"
+          />
+          <div 
+            className="absolute left-3 w-5 h-5 rounded-md border border-[#444856] bg-[#222530] flex items-center justify-center text-slate-400 hover:text-white hover:border-[#0091DA] transition-colors cursor-pointer shadow-sm"
+            title="Chain next workflow step"
+          >
+            <Plus className="w-3 h-3" />
+          </div>
+        </div>
+
+        {/* ------------------------------------------------------------ */}
+        {/* ROBOT VISOR / DIGITAL FACE SCREEN                            */}
+        {/* ------------------------------------------------------------ */}
+        <div className="relative w-full h-[62px] rounded-2xl bg-[#0B0E14] border border-[#2B303C] flex items-center justify-center px-4 overflow-hidden shadow-inner">
+          {/* Scanning Beam Overlay during execution */}
+          {isExecuting && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0091DA]/30 to-transparent animate-pulse pointer-events-none" />
+          )}
+
+          {/* Two Expressive Robot Eyes */}
+          <div className="flex items-center gap-7 z-10">
+            {/* Left Eye */}
+            <div
+              className={`w-3 h-6 rounded-full transition-all duration-300 ${
+                isExecuting
+                  ? 'bg-[#38BDF8] shadow-[0_0_20px_#38BDF8] scale-110 animate-pulse'
+                  : 'bg-[#0091DA] shadow-[0_0_12px_#0091DA]'
+              }`}
+            />
+            {/* Right Eye */}
+            <div
+              className={`w-3 h-6 rounded-full transition-all duration-300 ${
+                isExecuting
+                  ? 'bg-[#38BDF8] shadow-[0_0_20px_#38BDF8] scale-110 animate-pulse'
+                  : 'bg-[#0091DA] shadow-[0_0_12px_#0091DA]'
+              }`}
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            {/* Left Port Column */}
-            <div className="space-y-2">
-              {/* Model Socket Row */}
-              <div className={`p-2 border flex items-center justify-between transition-colors relative ${
-                attachedCounts?.model 
-                  ? isDarkMode ? 'bg-[#00338D]/40 border-[#0091DA] text-white' : 'bg-[#E6EDF7] border-[#00338D] text-[#00338D]' 
-                  : isDarkMode ? 'bg-[#10141E] border-[#2B354B] text-slate-400' : 'bg-[#FFFFFF] border-[#CBD5E1] text-slate-400'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Brain className="w-3.5 h-3.5 shrink-0 text-[#00338D]" />
-                  <span className="font-bold text-[11px]">Model Socket</span>
-                </div>
-                <span className="font-mono text-[10px] font-bold">{attachedCounts?.model ? 'Active' : 'Unbound'}</span>
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="model-in"
-                  className="!left-[-17px] !w-3 !h-3 !bg-[#00338D] !border-2 !border-[#001E50]"
-                  title="Socket: model-in (Accepts Foundation Model only)"
-                />
-              </div>
+          {/* Digital Scanline lines */}
+          <div className="absolute inset-0 pointer-events-none opacity-20 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.08)_2px,rgba(255,255,255,0.08)_4px)]" />
 
-              {/* Tools Socket Row */}
-              <div className={`p-2 border flex items-center justify-between transition-colors relative ${
-                attachedCounts?.tools > 0 
-                  ? isDarkMode ? 'bg-[#005EB8]/30 border-[#0091DA] text-white' : 'bg-[#E6EFF8] border-[#005EB8] text-[#005EB8]' 
-                  : isDarkMode ? 'bg-[#10141E] border-[#2B354B] text-slate-400' : 'bg-[#FFFFFF] border-[#CBD5E1] text-slate-400'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Wrench className="w-3.5 h-3.5 shrink-0 text-[#005EB8]" />
-                  <span className="font-bold text-[11px]">Ingest Tools</span>
-                </div>
-                <span className="font-mono text-[10px] font-bold">{attachedCounts?.tools || 0}</span>
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="tool-in"
-                  className="!left-[-17px] !w-3 !h-3 !bg-[#005EB8] !border-2 !border-[#001E50]"
-                  title="Socket: tool-in (Accepts Execution & Ingestion Tools)"
-                />
-              </div>
+          {/* Idle status indicator */}
+          <div className="absolute top-2 right-2 flex items-center gap-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${isExecuting ? 'bg-[#0091DA] animate-ping' : 'bg-[#10B981]'}`} />
+          </div>
+        </div>
 
-              {/* Gateway Socket Row */}
-              <div className={`p-2 border flex items-center justify-between transition-colors relative ${
-                attachedCounts?.gateway 
-                  ? isDarkMode ? 'bg-[#EAAA00]/20 border-[#EAAA00] text-amber-300' : 'bg-[#FDF7E6] border-[#EAAA00] text-[#9E6D00]' 
-                  : isDarkMode ? 'bg-[#10141E] border-[#2B354B] text-slate-400' : 'bg-[#FFFFFF] border-[#CBD5E1] text-slate-400'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <GitFork className="w-3.5 h-3.5 shrink-0 text-[#EAAA00]" />
-                  <span className="font-bold text-[11px]">Ingress Gateway</span>
-                </div>
-                <span className="font-mono text-[10px] font-bold">{attachedCounts?.gateway ? 'Capped' : 'Pass'}</span>
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="gateway-in"
-                  className="!left-[-17px] !w-3 !h-3 !bg-[#EAAA00] !border-2 !border-[#9E6D00]"
-                  title="Socket: gateway-in (Accepts Ingress Rate Limiters)"
-                />
-              </div>
+        {/* ------------------------------------------------------------ */}
+        {/* AGENT IDENTITY / AUDIO SPEAKER GRILLE                        */}
+        {/* ------------------------------------------------------------ */}
+        <div className="mt-2.5 flex flex-col items-center text-center">
+          {/* Mini Speaker Grille Slots */}
+          <div className="flex items-center justify-center gap-1 mb-1.5 opacity-40">
+            <span className="w-3.5 h-0.5 rounded-full bg-slate-400" />
+            <span className="w-5 h-0.5 rounded-full bg-slate-400" />
+            <span className="w-3.5 h-0.5 rounded-full bg-slate-400" />
+          </div>
 
-              {/* Memory Socket Row */}
-              <div className={`p-2 border flex items-center justify-between transition-colors relative ${
-                attachedCounts?.memory 
-                  ? isDarkMode ? 'bg-[#483698]/30 border-[#483698] text-purple-200' : 'bg-[#EFEBF5] border-[#483698] text-[#483698]' 
-                  : isDarkMode ? 'bg-[#10141E] border-[#2B354B] text-slate-400' : 'bg-[#FFFFFF] border-[#CBD5E1] text-slate-400'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5 shrink-0 text-[#483698]" />
-                  <span className="font-bold text-[11px]">Sync Memory</span>
-                </div>
-                <span className="font-mono text-[10px] font-bold">{attachedCounts?.memory ? 'Sync' : 'Off'}</span>
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id="memory-in"
-                  className="!left-[-17px] !w-3 !h-3 !bg-[#483698] !border-2 !border-[#2E1A66]"
-                  title="Socket: memory-in (Accepts Memory Stores)"
-                />
-              </div>
-            </div>
+          <h3 className="text-xs font-bold tracking-tight text-white dark:text-white truncate max-w-[230px]">
+            {name || 'AI Agent'}
+          </h3>
+          <span className="text-[9px] font-mono font-medium text-slate-400 uppercase tracking-wider mt-0.5">
+            {framework?.name || 'Workflow Orchestrator'}
+          </span>
+        </div>
 
-            {/* Right Port Column */}
-            <div className="space-y-2">
-              {/* Skills Socket Row */}
-              <div className={`p-2 border flex items-center justify-between transition-colors relative ${
-                attachedCounts?.skills > 0 
-                  ? isDarkMode ? 'bg-[#009A44]/20 border-[#009A44] text-emerald-300' : 'bg-[#E6F5EC] border-[#009A44] text-[#009A44]' 
-                  : isDarkMode ? 'bg-[#10141E] border-[#2B354B] text-slate-400' : 'bg-[#FFFFFF] border-[#CBD5E1] text-slate-400'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#009A44]" />
-                  <span className="font-bold text-[11px]">Skills Hub</span>
-                </div>
-                <span className="font-mono text-[10px] font-bold">{attachedCounts?.skills || 0}</span>
-                <Handle
-                  type="target"
-                  position={Position.Right}
-                  id="skill-in"
-                  className="!right-[-17px] !w-3 !h-3 !bg-[#009A44] !border-2 !border-[#005A28]"
-                  title="Socket: skill-in (Accepts Specialized Skills)"
-                />
-              </div>
-
-              {/* MCP Socket Row */}
-              <div className={`p-2 border flex items-center justify-between transition-colors relative ${
-                attachedCounts?.mcp > 0 
-                  ? isDarkMode ? 'bg-[#00A3A6]/20 border-[#00A3A6] text-teal-300' : 'bg-[#E6F6F6] border-[#00A3A6] text-[#00A3A6]' 
-                  : isDarkMode ? 'bg-[#10141E] border-[#2B354B] text-slate-400' : 'bg-[#FFFFFF] border-[#CBD5E1] text-slate-400'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Server className="w-3.5 h-3.5 shrink-0 text-[#00A3A6]" />
-                  <span className="font-bold text-[11px]">MCP Servers</span>
-                </div>
-                <span className="font-mono text-[10px] font-bold">{attachedCounts?.mcp || 0}</span>
-                <Handle
-                  type="target"
-                  position={Position.Right}
-                  id="mcp-in"
-                  className="!right-[-17px] !w-3 !h-3 !bg-[#00A3A6] !border-2 !border-[#005A5C]"
-                  title="Socket: mcp-in (Accepts MCP Servers)"
-                />
-              </div>
-
-              {/* Policies Socket Row */}
-              <div className={`p-2 border flex items-center justify-between transition-colors relative ${
-                attachedCounts?.policies > 0 
-                  ? isDarkMode ? 'bg-[#6D2077]/30 border-[#6D2077] text-pink-200' : 'bg-[#F2E9F4] border-[#6D2077] text-[#6D2077]' 
-                  : isDarkMode ? 'bg-[#10141E] border-[#2B354B] text-slate-400' : 'bg-[#FFFFFF] border-[#CBD5E1] text-slate-400'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-[#6D2077]" />
-                  <span className="font-bold text-[11px]">Policy Guards</span>
-                </div>
-                <span className="font-mono text-[10px] font-bold">{attachedCounts?.policies || 0}</span>
-                <Handle
-                  type="target"
-                  position={Position.Right}
-                  id="policy-in"
-                  className="!right-[-17px] !w-3 !h-3 !bg-[#6D2077] !border-2 !border-[#470A68]"
-                  title="Socket: policy-in (Accepts Guardrails & Policies)"
-                />
-              </div>
-
-              {/* Audit Socket Row */}
-              <div className={`p-2 border flex items-center justify-between relative transition-colors ${
-                isDarkMode ? 'border-[#00338D] bg-[#001E50]/40 text-slate-200' : 'border-[#001E50] bg-[#001E50]/5 text-[#001E50]'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Fingerprint className="w-3.5 h-3.5 shrink-0 text-[#0091DA]" />
-                  <span className="font-bold text-[11px]">Audit Ledger</span>
-                </div>
-                <span className="font-mono text-[10px] font-bold">SHA-256</span>
-                <Handle
-                  type="target"
-                  position={Position.Right}
-                  id="audit-in"
-                  className="!right-[-17px] !w-3 !h-3 !bg-[#001E50] !border-2 !border-[#00338D]"
-                  title="Socket: audit-in (Accepts Cryptographic Audit)"
-                />
-              </div>
-            </div>
+        {/* ------------------------------------------------------------ */}
+        {/* CHEST CORE / CONTEXT HEART (Memory Glow Indicator)           */}
+        {/* ------------------------------------------------------------ */}
+        <div className="mt-2 pt-2 border-t border-dashed border-white/10 flex items-center justify-center gap-2">
+          <div 
+            className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[9px] font-mono transition-all ${
+              hasMemory
+                ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/50 text-[#8B5CF6] shadow-[0_0_10px_rgba(139,92,246,0.3)]'
+                : 'bg-transparent border-white/10 text-slate-500'
+            }`}
+            title="Heart / Memory Core: Remembers cross-meeting history"
+          >
+            <Database className="w-2.5 h-2.5" />
+            <span className="font-semibold">CORE RECALL</span>
           </div>
         </div>
       </div>
 
-      {/* Bottom Observability & Cost-Benefit Handles */}
-      <div className={`px-5 py-2.5 border-t flex items-center justify-between text-[11px] font-mono font-bold transition-colors ${
-        isDarkMode ? 'bg-[#10141E] border-[#2B354B] text-slate-300' : 'bg-[#F8F9FB] border-[#E0E0E0] text-slate-600'
-      }`}>
-        <div className="flex items-center gap-2 relative">
-          <Activity className="w-3.5 h-3.5 text-[#0091DA]" />
-          <span>Observability Span</span>
-          <Handle
-            type="target"
-            position={Position.Bottom}
-            id="observability-in"
-            className="!left-[50px] !bottom-[-7px] !w-3 !h-3 !bg-[#0091DA] !border-2 !border-[#001E50]"
-            title="Socket: observability-in (Accepts OpenTelemetry)"
-          />
+      {/* ============================================================ */}
+      {/* 3. LEGS & FOOTING PEDESTALS (Guardrails, Memory, Skills)      */}
+      {/* ============================================================ */}
+      <div className="relative w-[240px] flex items-center justify-between -mt-1 z-10 px-2">
+        {/* ------------------------------------------------------------ */}
+        {/* LEFT FOOT (Policy & Guardrails - Position.Bottom)            */}
+        {/* ------------------------------------------------------------ */}
+        <div className="flex flex-col items-center">
+          {/* Leg Strut */}
+          <div className={`w-1.5 h-3 ${hasPolicies ? 'bg-[#EC4899]' : isDarkMode ? 'bg-[#383C4A]' : 'bg-[#CBD5E1]'}`} />
+          {/* Foot Stance Pad */}
+          <div
+            className={`relative group w-16 h-7 rounded-b-lg border-x border-b flex items-center justify-center gap-1 px-1 transition-all ${
+              hasPolicies
+                ? 'bg-[#EC4899]/20 border-[#EC4899] text-[#EC4899] shadow-[0_4px_12px_rgba(236,72,153,0.3)]'
+                : isDarkMode
+                  ? 'bg-[#222530] border-[#383C4A] text-slate-400'
+                  : 'bg-white border-[#CBD5E1] text-slate-400'
+            }`}
+            title="Footing: Policies & Guardrails Socket"
+          >
+            <Handle
+              type="target"
+              position={Position.Bottom}
+              id="policy-in"
+              style={{
+                left: '50%',
+                transform: 'translateX(-50%) rotate(45deg)',
+                width: '9px',
+                height: '9px',
+                borderRadius: '2px',
+                backgroundColor: hasPolicies ? '#EC4899' : isDarkMode ? '#4B5563' : '#9CA3AF',
+                borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+                borderWidth: '2px',
+                bottom: '-5px'
+              }}
+              title="Guard: Policies & Compliance"
+            />
+            <ShieldCheck className="w-3 h-3" />
+            <span className="text-[8px] font-mono font-bold tracking-tighter">GUARD</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 relative">
-          <Coins className="w-3.5 h-3.5 text-[#EAAA00]" />
-          <span>ROI Unit Cost</span>
-          <Handle
-            type="target"
-            position={Position.Bottom}
-            id="cost-benefit-in"
-            className="!left-[45px] !bottom-[-7px] !w-3 !h-3 !bg-[#EAAA00] !border-2 !border-[#9E6D00]"
-            title="Socket: cost-benefit-in (Accepts Cost & Benefit ROI)"
-          />
+        {/* ------------------------------------------------------------ */}
+        {/* CENTER FOOT (Memory Context - Position.Bottom)               */}
+        {/* ------------------------------------------------------------ */}
+        <div className="flex flex-col items-center">
+          {/* Center Leg Strut */}
+          <div className={`w-1.5 h-3 ${hasMemory ? 'bg-[#8B5CF6]' : isDarkMode ? 'bg-[#383C4A]' : 'bg-[#CBD5E1]'}`} />
+          {/* Foot Stance Pad */}
+          <div
+            className={`relative group w-18 h-7 rounded-b-lg border-x border-b flex items-center justify-center gap-1 px-1 transition-all ${
+              hasMemory
+                ? 'bg-[#8B5CF6]/20 border-[#8B5CF6] text-[#8B5CF6] shadow-[0_4px_12px_rgba(139,92,246,0.3)]'
+                : isDarkMode
+                  ? 'bg-[#222530] border-[#383C4A] text-slate-400'
+                  : 'bg-white border-[#CBD5E1] text-slate-400'
+            }`}
+            title="Footing: Memory Socket"
+          >
+            <Handle
+              type="target"
+              position={Position.Bottom}
+              id="memory-in"
+              style={{
+                left: '50%',
+                transform: 'translateX(-50%) rotate(45deg)',
+                width: '9px',
+                height: '9px',
+                borderRadius: '2px',
+                backgroundColor: hasMemory ? '#8B5CF6' : isDarkMode ? '#4B5563' : '#9CA3AF',
+                borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+                borderWidth: '2px',
+                bottom: '-5px'
+              }}
+              title="Memory: Episodic Context"
+            />
+            <Database className="w-3 h-3" />
+            <span className="text-[8px] font-mono font-bold tracking-tighter">MEMORY</span>
+          </div>
+        </div>
+
+        {/* ------------------------------------------------------------ */}
+        {/* RIGHT FOOT (Specialized Skills - Position.Bottom)            */}
+        {/* ------------------------------------------------------------ */}
+        <div className="flex flex-col items-center">
+          {/* Leg Strut */}
+          <div className={`w-1.5 h-3 ${hasSkills ? 'bg-[#10B981]' : isDarkMode ? 'bg-[#383C4A]' : 'bg-[#CBD5E1]'}`} />
+          {/* Foot Stance Pad */}
+          <div
+            className={`relative group w-16 h-7 rounded-b-lg border-x border-b flex items-center justify-center gap-1 px-1 transition-all ${
+              hasSkills
+                ? 'bg-[#10B981]/20 border-[#10B981] text-[#10B981] shadow-[0_4px_12px_rgba(16,185,129,0.3)]'
+                : isDarkMode
+                  ? 'bg-[#222530] border-[#383C4A] text-slate-400'
+                  : 'bg-white border-[#CBD5E1] text-slate-400'
+            }`}
+            title="Footing: Skills & Capabilities Socket"
+          >
+            <Handle
+              type="target"
+              position={Position.Bottom}
+              id="skill-in"
+              style={{
+                left: '50%',
+                transform: 'translateX(-50%) rotate(45deg)',
+                width: '9px',
+                height: '9px',
+                borderRadius: '2px',
+                backgroundColor: hasSkills ? '#10B981' : isDarkMode ? '#4B5563' : '#9CA3AF',
+                borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+                borderWidth: '2px',
+                bottom: '-5px'
+              }}
+              title="Agility: Specialized Skills"
+            />
+            <Sparkles className="w-3 h-3" />
+            <span className="text-[8px] font-mono font-bold tracking-tighter">SKILLS</span>
+          </div>
         </div>
       </div>
     </div>

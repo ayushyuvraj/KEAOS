@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Bot, 
   Layers, 
@@ -15,7 +15,8 @@ import {
   PanelLeftOpen,
   Rocket,
   CheckCircle2,
-  Lock
+  Lock,
+  X
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -28,13 +29,19 @@ export default function Sidebar({
   onDeployClick,
   hasApiKey,
   configuredCount,
-  onOpenApiSettings
+  onOpenApiSettings,
+  isCollapsed = false,
+  setIsCollapsed,
+  isClosed = false,
+  setIsClosed
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  if (isClosed) {
+    return null;
+  }
+
 
   const tabs = [
-    { id: 'canvas', label: 'Visual Canvas', icon: Layers },
-    { id: 'simulator', label: 'Meeting Simulator', icon: Play, pulse: true },
+    { id: 'canvas', label: 'Visual Canvas & Run', icon: Layers },
     { id: 'evaluation', label: 'Evaluation & Gate', icon: FileCheck2, badge: evaluationPassed ? 'PASSED' : null },
     { id: 'code', label: 'Export SDK', icon: Code2 },
     { id: 'audit', label: 'Audit Ledger', icon: ShieldCheck },
@@ -101,11 +108,19 @@ export default function Sidebar({
           </button>
 
           <button
-            onClick={() => setIsCollapsed(false)}
+            onClick={() => setIsCollapsed?.(false)}
             className="w-10 h-10 text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
             title="Expand Sidebar"
           >
             <PanelLeftOpen className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => setIsClosed?.(true)}
+            className="w-10 h-10 text-slate-400 hover:text-red-400 hover:bg-white/10 flex items-center justify-center transition-colors"
+            title="Close / Hide Sidebar"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
       </aside>
@@ -115,7 +130,7 @@ export default function Sidebar({
   return (
     <aside className="w-72 h-full bg-[#001E50] border-r border-[#00338D] flex flex-col justify-between shrink-0 overflow-hidden shadow-xl select-none z-30">
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Sidebar Header: Brand & Collapse */}
+        {/* Sidebar Header: Brand, Collapse & Close */}
         <div className="p-4 border-b border-[#00338D] bg-[#001438] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#00338D] border border-[#0091DA]/60 flex items-center justify-center text-white shadow-inner shrink-0">
@@ -134,13 +149,22 @@ export default function Sidebar({
             </div>
           </div>
 
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="btn-tactile p-1.5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-            title="Collapse Sidebar"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsCollapsed?.(true)}
+              className="btn-tactile p-1.5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              title="Collapse Sidebar"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsClosed?.(true)}
+              className="btn-tactile p-1.5 text-slate-400 hover:text-red-400 hover:bg-white/10 transition-colors"
+              title="Close / Hide Sidebar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Active Specification & Action Bar */}

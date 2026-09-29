@@ -2,18 +2,15 @@ import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
-  Controls,
   Background,
   BackgroundVariant,
   addEdge,
-  MarkerType,
   ReactFlowProvider
 } from '@xyflow/react';
 import AgentCoreNode from './nodes/AgentCoreNode';
 import PillarNode from './nodes/PillarNode';
 import { SOCKET_RULES, PILLARS } from '../constants/pillars';
 import { 
-  Info, 
   AlertTriangle,
   Brain, 
   Sparkles, 
@@ -25,10 +22,10 @@ import {
   ShieldAlert,
   Fingerprint, 
   Activity, 
-  Coins,
+  Coins, 
   Plus,
   Minus,
-  Maximize,
+  Maximize2,
   Search,
   X,
   Layers,
@@ -37,12 +34,12 @@ import {
   Type,
   Sun,
   Moon,
-  ArrowUp,
-  PanelRightOpen,
-  PanelRightClose,
+  PanelRight,
   Map,
   GripVertical
 } from 'lucide-react';
+
+import CanvasExecutionDrawer from './CanvasExecutionDrawer';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
@@ -62,22 +59,18 @@ const PILLAR_ICONS = {
   cost_benefit: Coins
 };
 
-// Order matching attached Screenshot 1: Model, Skills, MCP, Gateway, Memory, Policies, Audit, Observability, ROI, Tools
 const PILLAR_ORDER = [
   'model',
+  'memory',
+  'tools',
   'skills',
   'mcp',
-  'gateway',
-  'memory',
   'policies',
-  'audit',
-  'observability',
-  'cost_benefit',
-  'tools'
+  'gateway'
 ];
 
-
 function CanvasInner({
+  activeUseCase,
   nodes,
   setNodes,
   onNodesChange,
@@ -90,20 +83,28 @@ function CanvasInner({
   onAddNode,
   isInspectorOpen,
   setIsInspectorOpen,
-  selectedNode
+  selectedNode,
+  isDarkMode = true,
+  setIsDarkMode,
+  isEnforcerActive = true,
+  setIsEnforcerActive,
+  showMiniMap = true,
+  setShowMiniMap,
+  miniMapPos = { x: 0, y: 0 },
+  setMiniMapPos,
+  isDrawerExpanded = false,
+  setIsDrawerExpanded
 }) {
-  const [selectedPillarKey, setSelectedPillarKey] = useState(null);
-  const [canvasSearch, setCanvasSearch] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark canvas matching Stitch SS
-  const [quickPrompt, setQuickPrompt] = useState('');
-  const [isEnforcerActive, setIsEnforcerActive] = useState(true); // Socket enforcer toggle state
-  const [showMiniMap, setShowMiniMap] = useState(true); // Summary Map toggle state
-  const [miniMapPos, setMiniMapPos] = useState({ x: 0, y: 0 }); // Offset for draggable summary map
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('model');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isDraggingMiniMap, setIsDraggingMiniMap] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, initialX: 0, initialY: 0 });
   const [rfInstance, setRfInstance] = useState(null);
+  const [executionState, setExecutionState] = useState({ isExecuting: false, step: '' });
+  const [toastNotification, setToastNotification] = useState(null);
 
-  // Drag handler for summary map header
+  // Drag handler for summary map
   const handleMouseDownMiniMap = (e) => {
     setIsDraggingMiniMap(true);
     dragStartRef.current = {
@@ -140,7 +141,6 @@ function CanvasInner({
 
   const isValidConnection = useCallback(
     (connection) => {
-      // If socket enforcer is toggled off manually, allow connection freely
       if (!isEnforcerActive) return true;
 
       const { source, target, targetHandle } = connection;
@@ -173,432 +173,299 @@ function CanvasInner({
 
   const onConnect = useCallback(
     (params) => {
-      const sourceNode = nodes.find(n => n.id === params.source);
-      const pillarDef = PILLARS[sourceNode?.data?.pillarType] || PILLARS.tools;
-
       setEdges((eds) =>
         addEdge(
           {
             ...params,
             animated: true,
-            style: { stroke: pillarDef.color, strokeWidth: 2.5 },
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              color: pillarDef.color,
-              width: 14,
-              height: 14
-            }
+            style: { stroke: '#4E5364', strokeWidth: 1.5, strokeDasharray: '4 4' }
           },
           eds
         )
       );
       setInvalidConnectionAlert(null);
     },
-    [nodes, setEdges, setInvalidConnectionAlert]
+    [setEdges, setInvalidConnectionAlert]
   );
 
-  const handlePillarClick = (pillarKey) => {
-    if (selectedPillarKey === pillarKey) {
-      setSelectedPillarKey(null);
-    } else {
-      setSelectedPillarKey(pillarKey);
-      setCanvasSearch('');
-    }
-  };
-
-  const handleAddFromCanvas = (pillarKey, item) => {
+  const handleAddFromPalette = (pillarKey, item) => {
     if (onAddNode) {
       onAddNode(pillarKey, item);
     }
-    setSelectedPillarKey(null);
+    setIsAddMenuOpen(false);
+    setSearchQuery('');
   };
 
-  const activePillarDef = selectedPillarKey ? PILLARS[selectedPillarKey] : null;
+  const handleToggleEnforcer = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const nextVal = !isEnforcerActive;
+    if (setIsEnforcerActive) {
+      setIsEnforcerActive(nextVal);
+    }
+    const msg = nextVal
+      ? '🛡️ Socket Enforcer: STRICT VALIDATION ACTIVE'
+      : '⚠️ Socket Enforcer: BYPASSED (Freeform connections allowed)';
+    setToastNotification(msg);
+    setTimeout(() => {
+      setToastNotification((curr) => (curr === msg ? null : curr));
+    }, 3200);
+  };
 
-  // Dynamically map theme state into nodes so all nodes update live on canvas
   const nodesWithTheme = React.useMemo(() => {
     return nodes.map(n => ({
       ...n,
       data: {
         ...n.data,
-        isDarkMode
+        isDarkMode,
+        isExecuting: n.type === 'agentCore' ? executionState.isExecuting : false,
+        executionStep: n.type === 'agentCore' ? executionState.step : undefined
       }
     }));
-  }, [nodes, isDarkMode]);
+  }, [nodes, isDarkMode, executionState]);
 
   return (
     <div className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${
-      isDarkMode ? 'bg-[#0D111A] text-white' : 'bg-[#F5F6F8] text-[#0B0F19]'
+      isDarkMode ? 'bg-[#141518] text-white' : 'bg-[#F9FAFB] text-[#111827]'
     }`}>
-      {/* 3. COLLAPSED SOCKET ENFORCER SYMBOL BUTTON (Top-Left) */}
-      <div className="absolute top-4 left-6 z-20 group relative">
-        <button
-          onClick={() => setIsEnforcerActive(!isEnforcerActive)}
-          className={`btn-tactile w-10 h-10 flex items-center justify-center border shadow-lg transition-all ${
-            isEnforcerActive
-              ? isDarkMode
-                ? 'bg-[#00338D] border-[#0091DA] text-white'
-                : 'bg-[#001E50] border-[#00338D] text-white'
-              : isDarkMode
-                ? 'bg-[#181D28] border-[#2B354B] text-slate-400 hover:text-white'
-                : 'bg-[#FFFFFF] border-[#CBD5E1] text-slate-400 hover:text-[#0B0F19]'
-          }`}
-          title="Socket Enforcer"
-        >
-          {isEnforcerActive ? (
-            <ShieldCheck className="w-5 h-5 text-[#0091DA]" />
-          ) : (
-            <ShieldAlert className="w-5 h-5 text-[#EAAA00]" />
-          )}
-        </button>
-
-        {/* Hover Tooltip displaying Socket Enforcer Status */}
-        <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-bold whitespace-nowrap shadow-xl border pointer-events-none z-30 animate-in fade-in slide-in-from-left-1 duration-150 ${
-          isDarkMode
-            ? 'bg-[#001438] text-white border-[#00338D]'
-            : 'bg-[#001E50] text-white border-[#00338D]'
-        }`}>
-          <span className={`w-2 h-2 rounded-full ${isEnforcerActive ? 'bg-[#009A44] beacon-live' : 'bg-[#EAAA00]'}`} />
-          <span>Socket Enforcer: {isEnforcerActive ? 'STRICT ENFORCED' : 'BYPASSED'}</span>
-          <span className="text-[10px] text-slate-300 font-normal">(Click to {isEnforcerActive ? 'bypass' : 'enforce'})</span>
+      {/* Toast Feedback */}
+      {toastNotification && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-4 py-2 bg-[#22242B] border border-[#3E424F] text-white text-xs font-mono font-bold rounded-lg shadow-2xl animate-in slide-in-from-top-2 duration-150 flex items-center gap-3">
+          <span>{toastNotification}</span>
+          <button onClick={() => setToastNotification(null)} className="text-slate-400 hover:text-white ml-2 text-xs">✕</button>
         </div>
-      </div>
+      )}
 
-      {/* 1. LEFT 10-PILLARS FLOATING PANEL (Matching Attached SS 1) */}
-      <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 flex items-start gap-3">
-        {/* Sleek Vertical Icon Panel matching Attached SS 1 */}
-        <div className={`flex flex-col items-center gap-3.5 p-2 border shadow-2xl backdrop-blur-md transition-colors w-13 ${
-          isDarkMode 
-            ? 'bg-[#181D28]/95 border-[#2B354B] shadow-[0_12px_40px_rgba(0,0,0,0.6)]' 
-            : 'bg-[#FFFFFF]/95 border-[#CBD5E1] shadow-[0_12px_40px_rgba(0,30,80,0.12)]'
+      {/* Top-Right Minimal Vertical Action Stack (Matching Reference) */}
+      <div className="absolute top-4 right-6 z-20 flex flex-col items-center gap-2">
+        <div className={`flex flex-col items-center border rounded-xl shadow-xl overflow-hidden backdrop-blur-md divide-y ${
+          isDarkMode ? 'bg-[#22242B]/90 border-[#383B46] divide-[#383B46]' : 'bg-white/90 border-[#E5E7EB] divide-[#E5E7EB]'
         }`}>
-          {PILLAR_ORDER.map((pillarKey) => {
-            const pillar = PILLARS[pillarKey];
-            const Icon = PILLAR_ICONS[pillarKey] || Layers;
-            const isSelected = selectedPillarKey === pillarKey;
-
-            return (
-              <div key={pillarKey} className="relative group">
-                <button
-                  onClick={() => handlePillarClick(pillarKey)}
-                  className={`btn-tactile w-9 h-9 flex items-center justify-center transition-all border ${
-                    isSelected
-                      ? 'border-[#0091DA] bg-[#0091DA]/20 text-white shadow-md'
-                      : isDarkMode
-                        ? 'border-transparent text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/15'
-                        : 'border-transparent text-slate-600 hover:text-[#00338D] hover:bg-[#F0F4FA] hover:border-[#CBD5E1]'
-                  }`}
-                >
-                  <Icon 
-                    className="w-5 h-5 transition-transform group-hover:scale-110" 
-                    style={{ color: pillar.color }} 
-                  />
-                </button>
-
-                {/* Tooltip ONLY upon hover (right side of icon) */}
-                <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-2 px-2.5 py-1.5 text-xs font-mono font-bold whitespace-nowrap shadow-xl border pointer-events-none z-30 animate-in fade-in slide-in-from-left-1 duration-100 ${
-                  isDarkMode 
-                    ? 'bg-[#001438] text-white border-[#00338D]' 
-                    : 'bg-[#001E50] text-white border-[#00338D]'
-                }`}>
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pillar.color }} />
-                  <span>{pillar.label}</span>
-                  <span className="text-[10px] text-slate-400">({pillar.items.length})</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Respective Popover Box upon Click */}
-        {selectedPillarKey && activePillarDef && (
-          <div 
-            className={`w-[440px] border shadow-2xl animate-in fade-in slide-in-from-left-2 duration-150 z-30 overflow-hidden ${
-              isDarkMode 
-                ? 'bg-[#141824] border-[#2B354B] text-white shadow-[0_20px_60px_rgba(0,0,0,0.7)]' 
-                : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] shadow-[0_20px_60px_rgba(0,30,80,0.2)]'
-            }`}
-            style={{ borderTop: `4px solid ${activePillarDef.color}` }}
-          >
-            {/* Popover Header */}
-            <div className={`p-3.5 border-b flex items-center justify-between ${
-              isDarkMode ? 'bg-[#181D2A] border-[#2B354B]' : 'bg-[#F8F9FB] border-[#E0E0E0]'
-            }`}>
-              <div className="flex items-center gap-2.5">
-                <div 
-                  className="w-7 h-7 flex items-center justify-center shrink-0 shadow-inner"
-                  style={{ 
-                    backgroundColor: activePillarDef.bgColor, 
-                    color: activePillarDef.color,
-                    border: `1px solid ${activePillarDef.color}40`
-                  }}
-                >
-                  {React.createElement(PILLAR_ICONS[selectedPillarKey] || Layers, { className: 'w-4 h-4' })}
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold tracking-tight">{activePillarDef.label}</h4>
-                  <p className="text-[10px] text-slate-400 font-mono">Port: {activePillarDef.socketId} • Click to instantiate</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedPillarKey(null)}
-                className={`btn-tactile p-1 transition-colors ${
-                  isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-[#0B0F19] hover:bg-[#E0E0E0]'
-                }`}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Quick Search */}
-            <div className={`p-2.5 border-b ${isDarkMode ? 'bg-[#141824] border-[#2B354B]' : 'bg-[#FFFFFF] border-[#E0E0E0]'}`}>
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                <input
-                  type="text"
-                  placeholder={`Search ${activePillarDef.label}...`}
-                  value={canvasSearch}
-                  onChange={(e) => setCanvasSearch(e.target.value)}
-                  className={`w-full pl-8 pr-2.5 py-1.5 text-xs focus:outline-none rounded-none font-mono ${
-                    isDarkMode 
-                      ? 'bg-[#1E2433] border border-[#2B354B] text-white placeholder-slate-500 focus:border-[#0091DA]' 
-                      : 'bg-[#FFFFFF] border border-[#CBD5E1] text-[#0B0F19] placeholder-slate-400 focus:border-[#00338D]'
-                  }`}
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {/* Items List */}
-            <div className={`max-h-[340px] overflow-y-auto p-2 space-y-2 ${
-              isDarkMode ? 'bg-[#10131C]' : 'bg-[#F8F9FB]'
-            }`}>
-              {activePillarDef.items
-                .filter(item => 
-                  !canvasSearch || 
-                  item.name.toLowerCase().includes(canvasSearch.toLowerCase()) || 
-                  item.description.toLowerCase().includes(canvasSearch.toLowerCase())
-                )
-                .map((item) => {
-                  let ItemIcon = PILLAR_ICONS[selectedPillarKey] || Layers;
-                  if (item.id === 'tool-audio-transcribe') ItemIcon = Mic;
-                  if (item.id === 'tool-doc-parser') ItemIcon = FileText;
-                  if (item.id === 'tool-text-box-ingest') ItemIcon = Type;
-
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleAddFromCanvas(selectedPillarKey, item)}
-                      className={`group p-2.5 border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                        isDarkMode
-                          ? 'border-[#2B354B] bg-[#181D2A] hover:border-[#0091DA] hover:bg-[#202738]'
-                          : 'border-[#CBD5E1] bg-[#FFFFFF] hover:border-[#00338D] hover:bg-[#F5F8FC]'
-                      }`}
-                    >
-                      <div className="flex-1 overflow-hidden">
-                        <div className="flex items-center gap-1.5">
-                          <ItemIcon className="w-3.5 h-3.5 shrink-0" style={{ color: activePillarDef.color }} />
-                          <span className={`text-xs font-bold truncate ${
-                            isDarkMode ? 'text-white group-hover:text-[#0091DA]' : 'text-[#0B0F19] group-hover:text-[#00338D]'
-                          }`}>
-                            {item.name}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
-                          {item.description}
-                        </p>
-                      </div>
-
-                      <button
-                        className="btn-tactile px-2 py-1 bg-[#00338D] text-white text-[10px] font-mono font-bold flex items-center gap-1 shrink-0 mt-0.5 border border-[#0091DA]/40 group-hover:bg-[#005EB8]"
-                      >
-                        <Plus className="w-3 h-3" />
-                        <span>Add</span>
-                      </button>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 2. RIGHT BOTTOM HORIZONTAL CONTROL PANEL (+, -, FitView, Theme Toggle, Map Toggle, Studio HUD) */}
-      <div className="absolute bottom-6 right-6 z-20 flex flex-row items-center">
-        <div className={`flex flex-row items-center border shadow-2xl backdrop-blur-md overflow-hidden ${
-          isDarkMode 
-            ? 'bg-[#181D28]/95 border-[#2B354B] text-[#0091DA] divide-x divide-[#2B354B]' 
-            : 'bg-[#FFFFFF]/95 border-[#CBD5E1] text-[#00338D] divide-x divide-[#CBD5E1]'
-        }`}>
-          {/* 1. Zoom In (+) */}
+          {/* 1. Add Node (+) */}
           <button
-            onClick={() => rfInstance?.zoomIn()}
-            className="w-10 h-10 flex items-center justify-center hover:bg-[#F0F4FA] dark:hover:bg-white/10 transition-colors"
-            title="Zoom In (+)"
-          >
-            <Plus className="w-4 h-4 font-bold" />
-          </button>
-
-          {/* 2. Zoom Out (-) */}
-          <button
-            onClick={() => rfInstance?.zoomOut()}
-            className="w-10 h-10 flex items-center justify-center hover:bg-[#F0F4FA] dark:hover:bg-white/10 transition-colors"
-            title="Zoom Out (-)"
-          >
-            <Minus className="w-4 h-4 font-bold" />
-          </button>
-
-          {/* 3. Fit View ([  ]) */}
-          <button
-            onClick={() => rfInstance?.setViewport({ x: 70, y: 15, zoom: 0.85 })}
-            className="w-10 h-10 flex items-center justify-center hover:bg-[#F0F4FA] dark:hover:bg-white/10 transition-colors"
-            title="Fit View"
-          >
-            <Maximize className="w-4 h-4" />
-          </button>
-
-          {/* 4. Light / Dark Theme Toggle */}
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="w-10 h-10 flex items-center justify-center hover:bg-[#F0F4FA] dark:hover:bg-white/10 transition-colors text-amber-500"
-            title={isDarkMode ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
-          >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#00338D]" strokeWidth={2.5} />}
-          </button>
-
-          {/* 5. Summary Map Toggle Button */}
-          <button
-            onClick={() => setShowMiniMap(!showMiniMap)}
+            onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
             className={`w-10 h-10 flex items-center justify-center transition-colors ${
-              showMiniMap 
-                ? 'bg-[#00338D]/20 text-[#0091DA]' 
-                : 'hover:bg-[#F0F4FA] dark:hover:bg-white/10 text-slate-400'
+              isAddMenuOpen 
+                ? 'bg-[#0091DA] text-white' 
+                : 'text-slate-400 hover:text-white hover:bg-white/10'
             }`}
-            title={showMiniMap ? 'Hide Summary Map' : 'Show Summary Map'}
+            title="Add Node / Component (+)"
           >
-            <Map className="w-4 h-4" />
+            <Plus className="w-5 h-5 font-bold" />
           </button>
 
-          {/* 6. Studio HUD & Inspector Toggle */}
+          {/* 2. Inspector / HUD Toggle */}
           {setIsInspectorOpen && (
             <button
               onClick={() => setIsInspectorOpen(!isInspectorOpen)}
               className={`w-10 h-10 flex items-center justify-center transition-colors ${
                 isInspectorOpen 
-                  ? 'bg-[#00338D] text-white' 
-                  : 'hover:bg-[#F0F4FA] dark:hover:bg-white/10 text-[#00338D] dark:text-slate-300'
+                  ? 'bg-white/15 text-white' 
+                  : 'text-slate-400 hover:text-white hover:bg-white/10'
               }`}
-              title={isInspectorOpen ? 'Collapse Studio HUD / Inspector' : 'Open Studio HUD / Inspector'}
+              title="Toggle Node Inspector"
             >
-              {isInspectorOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" strokeWidth={2.5} />}
+              <PanelRight className="w-4 h-4" />
             </button>
           )}
+
+          {/* 3. Summary Map Toggle */}
+          <button
+            onClick={() => setShowMiniMap(!showMiniMap)}
+            className={`w-10 h-10 flex items-center justify-center transition-colors ${
+              showMiniMap 
+                ? 'text-[#0091DA]' 
+                : 'text-slate-400 hover:text-white hover:bg-white/10'
+            }`}
+            title="Toggle MiniMap"
+          >
+            <Map className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Incompatible Socket Alert Modal / Toast */}
-      {invalidConnectionAlert && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-4 px-6 py-3.5 bg-[#001E50] border-l-4 border-[#6D2077] shadow-[0_16px_40px_rgba(0,30,80,0.5)] text-white animate-in slide-in-from-top-3 duration-150">
-          <AlertTriangle className="w-5 h-5 text-[#EAAA00] shrink-0" />
-          <div className="text-xs">
-            <span className="font-bold text-white tracking-wide">Incompatible Socket Rejection: </span>
-            <span className="text-slate-200">
-              Cannot connect <strong className="text-white bg-white/10 px-1.5 py-0.5">{invalidConnectionAlert.sourceName}</strong> to socket <code className="px-1.5 py-0.5 bg-[#00338D] text-white font-mono text-[11px] font-bold">{invalidConnectionAlert.targetHandle}</code>.
-            </span>
-            <div className="text-[11px] text-[#0091DA] mt-0.5 font-semibold">
-              Requires an architectural block of type: <strong className="uppercase underline">{invalidConnectionAlert.requiredType}</strong>.
+      {/* Clean Floating Add Node Palette Popover */}
+      {isAddMenuOpen && (
+        <div className={`absolute top-16 right-6 w-96 border rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${
+          isDarkMode ? 'bg-[#22242B] border-[#383B46] text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'
+        }`}>
+          <div className="p-3 border-b border-inherit flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Plus className="w-4 h-4 text-[#0091DA]" />
+              <span className="text-xs font-bold tracking-tight">Add Node Component</span>
+            </div>
+            <button onClick={() => setIsAddMenuOpen(false)} className="text-slate-400 hover:text-white p-1">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Quick Search */}
+          <div className="p-2.5 border-b border-inherit bg-black/10">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search models, memory, tools, skills..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border focus:outline-none ${
+                  isDarkMode ? 'bg-[#17191E] border-[#383B46] text-white focus:border-[#0091DA]' : 'bg-gray-50 border-gray-200 text-black'
+                }`}
+                autoFocus
+              />
             </div>
           </div>
-          <button
-            onClick={() => setInvalidConnectionAlert(null)}
-            className="btn-tactile text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white transition-colors ml-4 font-bold border border-white/20"
-          >
-            Dismiss
-          </button>
+
+          {/* Pillar Category Tabs */}
+          <div className="flex items-center gap-1 p-2 border-b border-inherit overflow-x-auto text-[11px] font-medium">
+            {PILLAR_ORDER.map(key => {
+              const def = PILLARS[key];
+              const isActive = selectedCategory === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedCategory(key)}
+                  className={`px-2.5 py-1 rounded-md transition-colors shrink-0 ${
+                    isActive 
+                      ? 'bg-[#0091DA] text-white font-bold' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {def?.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Items List */}
+          <div className="max-h-64 overflow-y-auto p-2 space-y-1.5">
+            {PILLARS[selectedCategory]?.items
+              .filter(item => !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map(item => {
+                const ItemIcon = PILLAR_ICONS[selectedCategory] || Layers;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleAddFromPalette(selectedCategory, item)}
+                    className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                      isDarkMode ? 'border-[#333642] bg-[#1E2026] hover:border-[#0091DA] hover:bg-[#252830]' : 'border-gray-200 bg-white hover:border-[#00338D]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center shrink-0">
+                        <ItemIcon className="w-4 h-4 text-[#0091DA]" />
+                      </div>
+                      <div className="truncate">
+                        <span className="text-xs font-bold block truncate">{item.name}</span>
+                        <span className="text-[10px] text-slate-400 truncate block">{item.description}</span>
+                      </div>
+                    </div>
+                    <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
 
-      {/* Bottom Center: Stitch-Style Agent Execution Bar */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-[540px] pointer-events-auto">
-        <div className={`p-2.5 border shadow-2xl backdrop-blur-md flex flex-col gap-2 transition-colors ${
-          isDarkMode 
-            ? 'bg-[#181D28]/95 border-[#2B354B] shadow-[0_16px_48px_rgba(0,0,0,0.7)] text-white' 
-            : 'bg-[#FFFFFF]/95 border-[#CBD5E1] shadow-[0_16px_48px_rgba(0,30,80,0.15)] text-[#0B0F19]'
+      {/* Bottom-Left Minimal Square Controls (Matching Reference Image) */}
+      <div className="absolute bottom-14 left-6 z-20 flex items-center gap-2">
+        <div className={`flex items-center border rounded-xl shadow-xl overflow-hidden backdrop-blur-md divide-x ${
+          isDarkMode ? 'bg-[#22242B]/90 border-[#383B46] divide-[#383B46]' : 'bg-white/90 border-[#E5E7EB] divide-[#E5E7EB]'
         }`}>
-          <div className="text-[11px] font-medium text-slate-400 px-1">
-            What would you like the agent to execute or modify?
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#0091DA] pl-1 font-mono">/</span>
-            <input
-              type="text"
-              placeholder="e.g. Synthesize transcripts and extract owner action items..."
-              value={quickPrompt}
-              onChange={(e) => setQuickPrompt(e.target.value)}
-              className={`flex-1 text-xs focus:outline-none font-mono py-1 px-2 ${
-                isDarkMode 
-                  ? 'bg-transparent text-white placeholder-slate-500' 
-                  : 'bg-transparent text-[#0B0F19] placeholder-slate-400'
-              }`}
-            />
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0091DA]/20 text-[#0091DA] border border-[#0091DA]/30 font-bold">
-                Live
-              </span>
-              <button
-                className="w-7 h-7 bg-[#00338D] hover:bg-[#005EB8] text-white flex items-center justify-center transition-colors shadow-sm"
-                title="Send Command"
-              >
-                <ArrowUp className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+          {/* 1. Fit View [ ⛶ ] */}
+          <button
+            onClick={() => rfInstance?.setViewport({ x: 120, y: 40, zoom: 0.85 })}
+            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            title="Fit View"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+
+          {/* 2. Zoom In (+) */}
+          <button
+            onClick={() => rfInstance?.zoomIn()}
+            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            title="Zoom In"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+
+          {/* 3. Zoom Out (-) */}
+          <button
+            onClick={() => rfInstance?.zoomOut()}
+            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            title="Zoom Out"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+
+          {/* 4. Socket Enforcer Toggle */}
+          <button
+            onClick={handleToggleEnforcer}
+            className={`w-9 h-9 flex items-center justify-center transition-colors ${
+              isEnforcerActive ? 'text-[#0091DA]' : 'text-amber-400'
+            }`}
+            title={isEnforcerActive ? 'Socket Enforcer Active (Strict)' : 'Socket Enforcer Bypassed'}
+          >
+            {isEnforcerActive ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+          </button>
+
+          {/* 5. Light/Dark Theme Toggle */}
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            title="Toggle Light/Dark Theme"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-400" />}
+          </button>
         </div>
       </div>
 
-      {/* 3. MOVABLE SUMMARY MAP PANEL WITH CURSOR DRAGGING */}
+      {/* Minimal Execution Deck / Logs Drawer */}
+      <CanvasExecutionDrawer
+        activeUseCase={activeUseCase}
+        nodes={nodes}
+        edges={edges}
+        isDarkMode={isDarkMode}
+        onExecutionStateChange={setExecutionState}
+        isExpanded={isDrawerExpanded}
+        setIsExpanded={setIsDrawerExpanded}
+      />
+
+      {/* Summary MiniMap */}
       {showMiniMap && (
         <div 
           className="absolute z-20 animate-in fade-in zoom-in-95 duration-150"
           style={{ 
-            bottom: `${80 - miniMapPos.y}px`, 
+            bottom: `${90 - miniMapPos.y}px`, 
             right: `${24 - miniMapPos.x}px` 
           }}
         >
-          <div className={`border shadow-2xl backdrop-blur-md overflow-hidden w-64 ${
-            isDarkMode 
-              ? 'bg-[#181D28]/95 border-[#2B354B] text-white' 
-              : 'bg-[#FFFFFF]/95 border-[#CBD5E1] text-[#0B0F19]'
+          <div className={`border rounded-xl shadow-2xl backdrop-blur-md overflow-hidden w-60 ${
+            isDarkMode ? 'bg-[#1E2026]/95 border-[#383B46] text-white' : 'bg-white/95 border-[#E5E7EB] text-[#111827]'
           }`}>
-            {/* Draggable Header Handle */}
             <div 
               onMouseDown={handleMouseDownMiniMap}
-              className={`px-3 py-1.5 flex items-center justify-between border-b cursor-grab active:cursor-grabbing select-none ${
-                isDarkMode ? 'bg-[#10141E] border-[#2B354B]' : 'bg-[#F0F4FA] border-[#CBD5E1]'
+              className={`px-3 py-1.5 flex items-center justify-between border-b cursor-grab active:cursor-grabbing select-none text-[10px] font-mono font-bold ${
+                isDarkMode ? 'bg-[#17191E] border-[#383B46]' : 'bg-gray-50 border-gray-200'
               }`}
             >
-              <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold tracking-tight">
-                <GripVertical className="w-3.5 h-3.5 text-slate-400" />
-                <Map className="w-3.5 h-3.5 text-[#0091DA]" />
-                <span>SUMMARY MAP</span>
+              <div className="flex items-center gap-1.5">
+                <GripVertical className="w-3 h-3 text-slate-400" />
+                <Map className="w-3 h-3 text-[#0091DA]" />
+                <span>OVERVIEW</span>
               </div>
-              <button
-                onClick={() => setShowMiniMap(false)}
-                className="btn-tactile p-0.5 text-slate-400 hover:text-white transition-colors"
-                title="Close Summary Map"
-              >
-                <X className="w-3.5 h-3.5" />
+              <button onClick={() => setShowMiniMap(false)} className="text-slate-400 hover:text-white p-0.5">
+                <X className="w-3 h-3" />
               </button>
             </div>
-
-            {/* Canvas Summary Map Preview */}
-            <div className="h-36 relative bg-opacity-40">
+            <div className="h-32 relative">
               <MiniMap
-                nodeColor={(n) => {
-                  if (n.type === 'agentCore') return '#00338D';
-                  return PILLARS[n.data?.pillarType]?.color || '#005EB8';
-                }}
-                maskColor={isDarkMode ? 'rgba(16, 19, 26, 0.75)' : 'rgba(245, 246, 248, 0.75)'}
+                nodeColor={(n) => n.type === 'agentCore' ? '#0091DA' : '#8B5CF6'}
+                maskColor={isDarkMode ? 'rgba(20, 21, 24, 0.8)' : 'rgba(249, 250, 251, 0.8)'}
                 className="!m-0 !w-full !h-full !relative !top-0 !left-0 !border-0"
               />
             </div>
@@ -606,7 +473,7 @@ function CanvasInner({
         </div>
       )}
 
-      {/* ReactFlow Workspace with Stitch Dot Grid */}
+      {/* ReactFlow Workspace with Subtle Dot Grid */}
       <ReactFlow
         nodes={nodesWithTheme}
         edges={edges}
@@ -615,12 +482,12 @@ function CanvasInner({
         onConnect={onConnect}
         onInit={(instance) => {
           setRfInstance(instance);
-          instance.setViewport({ x: 70, y: 15, zoom: 0.85 });
+          instance.setViewport({ x: 120, y: 40, zoom: 0.85 });
         }}
         onNodeClick={(_, node) => onSelectNode(node)}
         onPaneClick={() => {
           onSelectNode(null);
-          setSelectedPillarKey(null);
+          setIsAddMenuOpen(false);
         }}
         nodeTypes={nodeTypes}
         isValidConnection={isValidConnection}
@@ -630,10 +497,10 @@ function CanvasInner({
       >
         <Background 
           variant={BackgroundVariant.Dots} 
-          gap={24} 
-          size={1.5} 
-          color={isDarkMode ? '#2B354B' : '#94A3B8'} 
-          style={{ backgroundColor: isDarkMode ? '#0D111A' : '#F5F6F8' }}
+          gap={22} 
+          size={1.2} 
+          color={isDarkMode ? '#2D3039' : '#CBD5E1'} 
+          style={{ backgroundColor: isDarkMode ? '#16171B' : '#F9FAFB' }}
         />
       </ReactFlow>
     </div>
@@ -647,5 +514,3 @@ export default function Canvas(props) {
     </ReactFlowProvider>
   );
 }
-
-

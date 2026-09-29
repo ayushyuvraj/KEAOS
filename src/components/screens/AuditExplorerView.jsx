@@ -24,45 +24,61 @@ export default function AuditExplorerView({ activeUseCase }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState(null);
   
-  // Real cryptographic audit log records
-  const [auditLogs] = useState([
-    {
-      id: 'AUDIT-8941',
-      timestamp: new Date().toISOString(),
-      eventType: 'Meeting Synthesis Execution',
-      agent: 'Meeting Intelligence Agent',
-      framework: 'Google ADK',
-      sha256Hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      inputsLength: '1,420 chars (4 speakers)',
-      verified: true,
-      piiSanitizedCount: 2,
-      complianceStandard: 'SOC2 Type II / DPDP 2023'
-    },
-    {
-      id: 'AUDIT-8940',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      eventType: 'Alignment Benchmark Run',
-      agent: 'Meeting Intelligence Agent',
-      framework: 'LangGraph',
-      sha256Hash: '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
-      inputsLength: '4 Golden Test Cases',
-      verified: true,
-      piiSanitizedCount: 1,
-      complianceStandard: 'ISO 27001 AI Governance'
-    },
-    {
-      id: 'AUDIT-8939',
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-      eventType: 'PII Policy Update',
-      agent: 'System Security Lead',
-      framework: 'Enterprise Ingress Gateway',
-      sha256Hash: '9a6140fc9bda441dc35d773a5d9f8f50102677411833430b80980e0db7e23808',
-      inputsLength: 'Regex Financial Ruleset v2.4',
-      verified: true,
-      piiSanitizedCount: 0,
-      complianceStandard: 'Enterprise SecOps'
+  // Real cryptographic audit log records loaded dynamically from runs
+  const [auditLogs, setAuditLogs] = useState(() => {
+    const seedLogs = [
+      {
+        id: 'AUDIT-8941',
+        timestamp: new Date().toISOString(),
+        eventType: 'Meeting Synthesis Execution',
+        agent: 'Meeting Intelligence Agent',
+        framework: 'Google ADK',
+        sha256Hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        inputsLength: '1,420 chars (4 speakers)',
+        verified: true,
+        piiSanitizedCount: 2,
+        complianceStandard: 'SOC2 Type II / DPDP 2023'
+      },
+      {
+        id: 'AUDIT-8940',
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        eventType: 'Alignment Benchmark Run',
+        agent: 'Meeting Intelligence Agent',
+        framework: 'LangGraph',
+        sha256Hash: '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
+        inputsLength: '4 Golden Test Cases',
+        verified: true,
+        piiSanitizedCount: 1,
+        complianceStandard: 'ISO 27001 AI Governance'
+      },
+      {
+        id: 'AUDIT-8939',
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
+        eventType: 'PII Policy Update',
+        agent: 'System Security Lead',
+        framework: 'Enterprise Ingress Gateway',
+        sha256Hash: '9a6140fc9bda441dc35d773a5d9f8f50102677411833430b80980e0db7e23808',
+        inputsLength: 'Regex Financial Ruleset v2.4',
+        verified: true,
+        piiSanitizedCount: 0,
+        complianceStandard: 'Enterprise SecOps'
+      }
+    ];
+
+    try {
+      const stored = localStorage.getItem('keaos_audit_ledger');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return [...parsed, ...seedLogs];
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse audit ledger', e);
     }
-  ]);
+    return seedLogs;
+  });
+
 
   const filteredLogs = auditLogs.filter(log => 
     log.id.toLowerCase().includes(searchTerm.toLowerCase()) ||

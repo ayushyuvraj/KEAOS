@@ -347,15 +347,33 @@ export const PILLARS = {
   }
 };
 
+export const CANVAS_PILLARS = [
+  'model',
+  'skills',
+  'mcp',
+  'tools',
+  'gateway',
+  'memory',
+  'policies'
+];
+
+export const AMBIENT_PILLARS = [
+  'audit',
+  'observability',
+  'cost_benefit'
+];
+
 export const SOCKET_RULES = {
   'model-in': 'model',
   'skill-in': 'skills',
+  'skills-in': 'skills',
   'mcp-in': 'mcp',
   'gateway-in': 'gateway',
   'memory-in': 'memory',
   'policy-in': 'policies',
-  'audit-in': 'audit',
-  'observability-in': 'observability',
-  'cost-benefit-in': 'cost_benefit',
-  'tool-in': 'tools'
+  'policies-in': 'policies',
+  'tool-in': 'tools',
+  'tools-in': 'tools'
 };
+
+
