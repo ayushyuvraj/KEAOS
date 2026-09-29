@@ -43,8 +43,10 @@ export default function Header({
           onClick={onToggleSidebarClosed}
           className={`p-1.5 rounded-lg border transition-colors ${
             isSidebarClosed 
-              ? 'bg-[#0091DA]/20 border-[#0091DA] text-white' 
-              : 'border-transparent text-slate-400 hover:text-white hover:bg-white/10'
+              ? 'bg-[#0091DA]/20 border-[#0091DA] text-[#0091DA]' 
+              : isDarkMode
+                ? 'border-transparent text-slate-400 hover:text-white hover:bg-white/10'
+                : 'border-transparent text-slate-500 hover:text-black hover:bg-black/5'
           }`}
           title={isSidebarClosed ? 'Open Left Panel' : 'Hide Left Panel'}
         >
@@ -52,9 +54,9 @@ export default function Header({
         </button>
 
         <div className="flex items-center gap-2 text-xs font-medium">
-          <span className="text-slate-400 font-mono text-[11px]">Workspace</span>
-          <span className="text-slate-600">/</span>
-          <span className="font-bold text-white tracking-tight">
+          <span className={`font-mono text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Workspace</span>
+          <span className={isDarkMode ? 'text-slate-600' : 'text-slate-400'}>/</span>
+          <span className={`font-semibold tracking-tight ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             {activeUseCase?.name || 'My Agent Workflow'}
           </span>
         </div>
@@ -95,7 +97,11 @@ export default function Header({
         {/* Cluster Fleet Button */}
         <button
           onClick={onOpenClusterModal}
-          className="p-1.5 rounded-lg border border-transparent text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className={`p-1.5 rounded-lg border border-transparent transition-colors ${
+            isDarkMode 
+              ? 'text-slate-400 hover:text-white hover:bg-white/10' 
+              : 'text-slate-500 hover:text-black hover:bg-black/5'
+          }`}
           title="Cluster Fleet Diagnostics"
         >
           <Cpu className="w-4 h-4" />
@@ -129,10 +135,14 @@ export default function Header({
         {/* Light / Dark Mode Toggle */}
         <button
           onClick={onToggleTheme}
-          className="p-1.5 rounded-lg border border-transparent text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className={`p-1.5 rounded-lg border border-transparent transition-colors ${
+            isDarkMode 
+              ? 'text-slate-400 hover:text-white hover:bg-white/10' 
+              : 'text-slate-500 hover:text-black hover:bg-black/5'
+          }`}
           title="Toggle Theme"
         >
-          {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-400" />}
+          {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-500" />}
         </button>
       </div>
     </header>
