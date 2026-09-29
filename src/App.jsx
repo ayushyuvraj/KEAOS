@@ -33,7 +33,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
     {
       id: 'agent-core',
       type: 'agentCore',
-      position: { x: 520, y: 160 },
+      position: { x: 520, y: 165 },
       data: {
         name: 'Meeting Intelligence Agent',
         framework,
@@ -51,11 +51,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         }
       }
     },
-    // 2. Brain / Model Node (Positioned directly above the Antenna)
+    // 2. Brain / Model Node (Positioned directly above the Antenna with generous zero-overlap clearance)
     {
       id: 'node-model-1',
       type: 'pillar',
-      position: { x: 595, y: 15 },
+      position: { x: 595, y: -10 },
       data: {
         pillarType: 'model',
         name: 'Gemini 2.0 Flash',

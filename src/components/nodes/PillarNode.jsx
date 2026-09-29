@@ -112,9 +112,27 @@ export default function PillarNode({ id, data, selected }) {
     };
   }
 
+  // Strategic zero-overlap placement based on handle orientation and text position:
+  // - Pillars with TOP handles (memory, skills, policies): Wire comes from above.
+  //   Place toolbar on right side (top-1 -right-14) to completely avoid wires and text.
+  // - Pillars with BOTTOM handle (model): Top is 100% free. Place toolbar at -top-8,
+  //   with dropdown opening UPWARDS (top) so it never covers the node disc or label below.
+  // - Pillars with SIDE handles (tools, mcp, gateway): Top is 100% free.
+  //   Place toolbar at -top-8, with dropdown opening UPWARDS (top).
+  let toolbarPlacement = '-top-8 left-1/2 -translate-x-1/2';
+  let dropdownPlacement = 'top';
+
+  if (pillarType === 'memory' || pillarType === 'skills' || pillarType === 'policies') {
+    toolbarPlacement = 'top-1 -right-14';
+    dropdownPlacement = 'bottom';
+  } else {
+    toolbarPlacement = '-top-8 left-1/2 -translate-x-1/2';
+    dropdownPlacement = 'top';
+  }
+
   return (
     <div className="relative group flex flex-col items-center select-none">
-      {/* Floating Micro-Toolbar on Hover (Centered Above Node) */}
+      {/* Floating Micro-Toolbar on Hover: Strategically placed to guarantee zero text/wire overlap */}
       <NodeActionToolbar
         nodeId={id}
         nodeName={name}
@@ -126,7 +144,8 @@ export default function PillarNode({ id, data, selected }) {
         onDuplicate={onDuplicate}
         onCopy={onCopy}
         isDarkMode={isDarkMode}
-        className="-top-8 left-1/2 -translate-x-1/2"
+        className={toolbarPlacement}
+        dropdownPlacement={dropdownPlacement}
       />
 
       {/* Circular Token Disc */}

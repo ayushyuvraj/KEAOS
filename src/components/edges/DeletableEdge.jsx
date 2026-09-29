@@ -28,6 +28,12 @@ export default function DeletableEdge({
     targetPosition,
   });
 
+  // Strategic offset: On vertical connections, offset delete badge horizontally (+22px)
+  // so hovering the wire never covers socket labels (like 'Brain • Model') or node subtitle text
+  const isVertical = Math.abs(sourceX - targetX) < 40;
+  const badgeX = isVertical ? labelX + 22 : labelX;
+  const badgeY = labelY;
+
   const handleDelete = (e) => {
     e.stopPropagation();
     if (data?.onDelete) {
@@ -65,13 +71,13 @@ export default function DeletableEdge({
         onMouseLeave={() => setIsHovered(false)}
       />
 
-      {/* Floating Delete Button at Midpoint of the Wire */}
+      {/* Floating Delete Button strategically offset to never cover text */}
       <EdgeLabelRenderer>
         {isVisible && (
           <div
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${badgeX}px,${badgeY}px)`,
               pointerEvents: 'all',
             }}
             className="nodrag nopan z-50 animate-in fade-in zoom-in-75 duration-100"

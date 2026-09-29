@@ -21,7 +21,8 @@ export default function NodeActionToolbar({
   onDuplicate,
   onCopy,
   isDarkMode = true,
-  className = ''
+  className = '',
+  dropdownPlacement = 'auto' // 'auto' | 'top' | 'bottom' | 'right' | 'left' | 'top-left'
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -43,6 +44,29 @@ export default function NodeActionToolbar({
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isMenuOpen]);
+
+  // Strategic dropdown placement to guarantee zero overlap with node body, label text, or handles
+  let computedDropdownClass = 'top-full right-0 mt-1.5';
+  if (dropdownPlacement === 'top') {
+    computedDropdownClass = 'bottom-full right-0 mb-1.5';
+  } else if (dropdownPlacement === 'top-left') {
+    computedDropdownClass = 'bottom-full left-0 mb-1.5';
+  } else if (dropdownPlacement === 'right') {
+    computedDropdownClass = 'top-0 left-full ml-2';
+  } else if (dropdownPlacement === 'left') {
+    computedDropdownClass = 'top-0 right-full mr-2';
+  } else if (dropdownPlacement === 'bottom-left') {
+    computedDropdownClass = 'top-full left-0 mt-1.5';
+  } else if (dropdownPlacement === 'bottom' || dropdownPlacement === 'bottom-right') {
+    computedDropdownClass = 'top-full right-0 mt-1.5';
+  } else if (dropdownPlacement === 'auto') {
+    // If toolbar is placed above the node, open upwards so it never overlaps the node token or label text below!
+    if (className.includes('-top')) {
+      computedDropdownClass = 'bottom-full right-0 mb-1.5';
+    } else {
+      computedDropdownClass = 'top-full right-0 mt-1.5';
+    }
+  }
 
   return (
     <div 
@@ -133,7 +157,7 @@ export default function NodeActionToolbar({
           {/* Contextual Dropdown Menu (Matches Screenshot) */}
           {isMenuOpen && (
             <div 
-              className={`absolute top-full right-0 mt-1.5 w-56 rounded-xl border shadow-2xl py-1.5 text-xs z-50 animate-in fade-in zoom-in-95 duration-100 ${
+              className={`absolute ${computedDropdownClass} w-56 rounded-xl border shadow-2xl py-1.5 text-xs z-50 animate-in fade-in zoom-in-95 duration-100 ${
                 isDarkMode 
                   ? 'bg-[#1C1E26] border-[#383C4A] text-slate-200' 
                   : 'bg-white border-[#E2E8F0] text-[#0F172A]'

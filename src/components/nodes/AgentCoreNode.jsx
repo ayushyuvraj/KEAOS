@@ -36,21 +36,6 @@ export default function AgentCoreNode({ id, data, selected }) {
 
   return (
     <div className="relative group select-none flex flex-col items-center">
-      {/* Floating Micro-Toolbar on Hover (Centered Above Antenna) */}
-      <NodeActionToolbar
-        nodeId={id}
-        nodeName={name}
-        isDeactivated={isDeactivated}
-        onExecute={onExecute}
-        onToggleDeactivate={onToggleDeactivate}
-        onDelete={onDelete}
-        onOpenInspector={onOpenInspector}
-        onDuplicate={onDuplicate}
-        onCopy={onCopy}
-        isDarkMode={isDarkMode}
-        className="-top-10 left-1/2 -translate-x-1/2"
-      />
-
       {/* ============================================================ */}
       {/* 1. ANTENNA / BRAIN (Chat Model Socket - Position.Top)         */}
       {/* ============================================================ */}
@@ -133,6 +118,22 @@ export default function AgentCoreNode({ id, data, selected }) {
         }`}
         style={{ padding: '12px 14px' }}
       >
+        {/* Floating Micro-Toolbar on Hover: Strategically placed at top-right shoulder (ZERO overlap with antenna or model text) */}
+        <NodeActionToolbar
+          nodeId={id}
+          nodeName={name}
+          isDeactivated={isDeactivated}
+          onExecute={onExecute}
+          onToggleDeactivate={onToggleDeactivate}
+          onDelete={onDelete}
+          onOpenInspector={onOpenInspector}
+          onDuplicate={onDuplicate}
+          onCopy={onCopy}
+          isDarkMode={isDarkMode}
+          className="-top-8 right-3"
+          dropdownPlacement="bottom"
+        />
+
         {/* Subtle Corner Hardware Rivets */}
         <div className={`absolute top-2.5 left-3 w-1.5 h-1.5 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
         <div className={`absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
