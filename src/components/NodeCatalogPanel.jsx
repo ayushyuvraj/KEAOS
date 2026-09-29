@@ -420,12 +420,22 @@ export default function NodeCatalogPanel({
     let url = (customUrl !== undefined ? customUrl : ollamaEndpointUrl).trim();
     const providerDef = MODEL_PROVIDERS.find(p => p.id === pId);
 
-    // If user pasted a URL into key field for Ollama, auto-detect it
-    if (pId === 'ollama' && (key.startsWith('http://') || key.startsWith('https://'))) {
-      url = key;
-      key = '';
-      setOllamaEndpointUrl(url);
-      setProviderApiKey('');
+    // If user pasted a URL into key field or combined URL + Key for Ollama, auto-detect it
+    if (pId === 'ollama' && (key.includes('http://') || key.includes('https://'))) {
+      const parts = key.split(/\s+/);
+      const foundUrl = parts.find(p => p.startsWith('http://') || p.startsWith('https://'));
+      const foundKey = parts.find(p => !p.startsWith('http://') && !p.startsWith('https://'));
+      if (foundUrl) {
+        url = foundUrl;
+        setOllamaEndpointUrl(url);
+      }
+      if (foundKey) {
+        key = foundKey;
+        setProviderApiKey(key);
+      } else if (foundUrl) {
+        key = '';
+        setProviderApiKey('');
+      }
     }
 
     if (pId !== 'ollama' && !key) {
@@ -885,6 +895,16 @@ export default function NodeCatalogPanel({
                             <span className="text-[10px] text-slate-500 font-mono mt-1 block">
                               Supports local daemon (http://localhost:11434) and remote cloud/proxy Ollama instances.
                             </span>
+
+                            {providerApiKey.trim() && ollamaEndpointUrl.includes('localhost') && (
+                              <div className="p-2.5 bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-sans leading-snug mt-2 animate-in fade-in">
+                                <span className="font-bold font-mono text-[10px] uppercase block text-amber-800 mb-0.5 flex items-center gap-1">
+                                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>Remote Cloud API Token Detected</span>
+                                </span>
+                                You entered an API token, but the Host Endpoint is set to local (<code className="font-mono bg-amber-100 text-amber-900 px-1">http://localhost:11434</code>). Please enter your remote host URL above (e.g. <code className="font-mono bg-amber-100 text-amber-900 px-1">https://your-cloud-ollama.com</code>).
+                              </div>
+                            )}
                           </div>
                         )}
 

@@ -523,6 +523,9 @@ export async function fetchProviderModelsLive(providerId, credential) {
         if (lastError && lastError.message && lastError.message.includes('Authentication Failed')) {
           throw lastError;
         }
+        if (apiKey && baseUrl.includes('localhost')) {
+          throw new Error(`API Key / Token was provided, but Host Endpoint is set to local (${baseUrl}). Please enter your remote/cloud Ollama Host Endpoint URL (e.g. https://your-cloud-ollama.com).`);
+        }
         throw new Error(`Cannot reach Ollama at ${baseUrl}. If using remote/cloud Ollama, verify the URL and API key. If local, ensure 'ollama serve' is running.`);
       }
 
