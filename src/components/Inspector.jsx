@@ -320,52 +320,16 @@ export default function Inspector({
               </div>
             </div>
 
-            {/* Hyperparameters */}
-            <div className="space-y-4 pt-3 border-t border-[#E0E0E0]">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#0B0F19] flex items-center">
-                    Temperature
-                    <InfoTooltip text="Controls randomness: Lower numbers (0.0) make responses factual and focused; higher numbers (1.0) make responses more creative." align="left" />
-                  </span>
-                  <span className="text-xs font-mono text-[#00338D] font-bold">
-                    {Number(agentConfig.temperature ?? 0.2).toFixed(2)}
-                  </span>
+            {/* Architectural Clarification: Model Hyperparameters live on Model Pillar */}
+            <div className="pt-3 border-t border-[#E0E0E0]">
+              <div className="p-3 bg-[#F8FAFC] border border-[#CBD5E1]">
+                <div className="flex items-center gap-2 mb-1">
+                  <Cpu className="w-3.5 h-3.5 text-[#00338D]" />
+                  <span className="text-xs font-bold text-[#0B0F19]">Model Sampling Parameters</span>
                 </div>
-                <input
-                  type="range"
-                  min="0.00"
-                  max="1.00"
-                  step="0.01"
-                  value={agentConfig.temperature ?? 0.2}
-                  onChange={(e) => onUpdateAgentConfig({ temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) })}
-                  className="w-full accent-[#00338D]"
-                />
-                <div className="flex justify-between text-[10px] text-slate-500 mt-0.5 font-mono">
-                  <span>Deterministic (0.00)</span>
-                  <span>Creative (1.00)</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#0B0F19] flex items-center">
-                    Top-P
-                    <InfoTooltip text="Filters word selection diversity: Lower values focus on the most likely words; higher values allow broader word variety." align="left" />
-                  </span>
-                  <span className="text-xs font-mono text-[#00338D] font-bold">
-                    {Number(agentConfig.topP ?? 0.95).toFixed(2)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0.01"
-                  max="1.00"
-                  step="0.01"
-                  value={agentConfig.topP ?? 0.95}
-                  onChange={(e) => onUpdateAgentConfig({ topP: parseFloat(parseFloat(e.target.value).toFixed(2)) })}
-                  className="w-full accent-[#00338D]"
-                />
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Sampling hyperparameters (<code className="font-mono text-[#00338D] text-[10px]">Temperature</code> & <code className="font-mono text-[#00338D] text-[10px]">Top-P</code>) belong to the <strong>Foundation Model</strong>. To adjust them, click on the connected <strong>Model</strong> node on the canvas.
+                </p>
               </div>
             </div>
           </>

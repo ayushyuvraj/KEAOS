@@ -1,5 +1,7 @@
 export function generateFrameworkCode(frameworkId, agentConfig, attachments) {
-  const modelName = attachments.model?.name || 'gemini-2.0-flash';
+  const modelNode = attachments.model || (Array.isArray(attachments) ? attachments.find(p => p.type === 'model') : null);
+  const modelName = modelNode?.config?.modelId || modelNode?.name || attachments.model?.name || 'gemini-2.0-flash';
+  const modelTemperature = modelNode?.config?.temperature !== undefined ? modelNode.config.temperature : (agentConfig?.temperature ?? 0.2);
   const systemPrompt = agentConfig.prompt || 'You are an enterprise Meeting Intelligence Assistant.';
   const hasAudioTool = attachments.tools?.some(t => t.id === 'tool-audio-transcribe');
   const hasDocTool = attachments.tools?.some(t => t.id === 'tool-doc-parser');
@@ -69,7 +71,7 @@ def apply_pii_sanitization(transcript: str) -> str:
 
 # 7. Model & Generation Configuration (Google ADK Schema & Tool Binding)
 generation_config = types.GenerateContentConfig(
-    temperature=${agentConfig.temperature || 0.2},
+    temperature=${modelTemperature},
     top_p=0.95,
     max_output_tokens=8192,
     response_mime_type="application/json",
@@ -134,7 +136,7 @@ def pii_guard_node(state: MeetingState):
 
 # 3. Node: Reasoning & Synthesis
 def meeting_agent_node(state: MeetingState):
-    llm = ChatOpenAI(model="gpt-4o", temperature=${agentConfig.temperature || 0.2})
+    llm = ChatOpenAI(model="gpt-4o", temperature=${modelTemperature})
     ${hasMemory ? 'history_str = "\\n".join(state.get("prior_commitments", []))\n    mem_prompt = f"\\nPrior Commitments:\\n{history_str}\\n" if history_str else ""' : 'mem_prompt = ""'}
     messages = [
         SystemMessage(content="""${systemPrompt}""" + mem_prompt),
@@ -188,7 +190,7 @@ class MeetingSynthesis(BaseModel):
     action_items: List[ActionItem] = Field(description="Extracted list of action items")
 
 # 2. Prompt & Model Chain
-llm = ChatGoogleGenerativeAI(model="${modelName}", temperature=${agentConfig.temperature || 0.2})
+llm = ChatGoogleGenerativeAI(model="${modelName}", temperature=${modelTemperature})
 ${hasMemory ? `prompt = ChatPromptTemplate.from_messages([
     ("system", """${systemPrompt}\\n\\nPRIOR EPISODIC MEMORY:\\n{memory_context}"""),
     ("human", "Meeting Transcript:\\n{transcript}")
@@ -232,7 +234,7 @@ user_proxy = autogen.UserProxyAgent(
 meeting_analyst = autogen.AssistantAgent(
     name="MeetingAnalyst",
     system_message="""${systemPrompt}"""${hasMemory ? ' + "\\nPrior Commitments: [2026-09-14] Leadership capped GPU cluster budget at $45k/mo."' : ''},
-    llm_config={"config_list": config_list, "temperature": ${agentConfig.temperature || 0.2}}
+    llm_config={"config_list": config_list, "temperature": ${modelTemperature}}
 )
 
 # 3. Action Item Auditor Agent
