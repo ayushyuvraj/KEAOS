@@ -13,6 +13,7 @@ export default function DeletableEdge({
   style = {},
   markerEnd,
   selected,
+  data,
   interactionWidth = 24
 }) {
   const { setEdges } = useReactFlow();
@@ -29,7 +30,11 @@ export default function DeletableEdge({
 
   const handleDelete = (e) => {
     e.stopPropagation();
-    setEdges((eds) => eds.filter((edge) => edge.id !== id));
+    if (data?.onDelete) {
+      data.onDelete(id);
+    } else {
+      setEdges((eds) => eds.filter((edge) => edge.id !== id));
+    }
   };
 
   const isVisible = isHovered || selected;

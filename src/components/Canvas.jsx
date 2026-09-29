@@ -26,6 +26,8 @@ import {
   Plus,
   Minus,
   Maximize2,
+  Undo2,
+  Redo2,
   Search,
   X,
   Layers,
@@ -145,6 +147,130 @@ function CanvasInner({
     };
   }, [isDraggingMiniMap]);
 
+  // -------------------------------------------------------------
+  // Undo / Redo History Stack (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z)
+  // -------------------------------------------------------------
+  const pastRef = useRef([]);
+  const futureRef = useRef([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  // Take snapshot of current canvas topology before mutations
+  const takeSnapshot = useCallback(() => {
+    pastRef.current.push({
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges))
+    });
+    if (pastRef.current.length > 50) {
+      pastRef.current.shift();
+    }
+    futureRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
+  }, [nodes, edges]);
+
+  // Undo (Ctrl+Z)
+  const undo = useCallback(() => {
+    if (pastRef.current.length === 0) return;
+    const previous = pastRef.current.pop();
+    futureRef.current.push({
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges))
+    });
+    setNodes(previous.nodes);
+    setEdges(previous.edges);
+    setCanUndo(pastRef.current.length > 0);
+    setCanRedo(true);
+    setToastNotification('↩️ Undo');
+    setTimeout(() => {
+      setToastNotification((curr) => (curr === '↩️ Undo' ? null : curr));
+    }, 1500);
+  }, [nodes, edges, setNodes, setEdges]);
+
+  // Redo (Ctrl+Y / Ctrl+Shift+Z)
+  const redo = useCallback(() => {
+    if (futureRef.current.length === 0) return;
+    const next = futureRef.current.pop();
+    pastRef.current.push({
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges))
+    });
+    setNodes(next.nodes);
+    setEdges(next.edges);
+    setCanUndo(true);
+    setCanRedo(futureRef.current.length > 0);
+    setToastNotification('↪️ Redo');
+    setTimeout(() => {
+      setToastNotification((curr) => (curr === '↪️ Redo' ? null : curr));
+    }, 1500);
+  }, [nodes, edges, setNodes, setEdges]);
+
+  // Global Keyboard Listener for Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target;
+      if (
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      if (!isCtrlOrCmd) return;
+
+      if (e.key === 'z' || e.key === 'Z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      } else if (e.key === 'y' || e.key === 'Y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
+
+  // Take snapshot when node drag starts
+  const handleNodeDragStart = useCallback(() => {
+    takeSnapshot();
+  }, [takeSnapshot]);
+
+  // Handle edge delete with snapshot
+  const handleDeleteEdge = useCallback((edgeId) => {
+    takeSnapshot();
+    setEdges((eds) => eds.filter(e => e.id !== edgeId));
+  }, [takeSnapshot, setEdges]);
+
+  // Handle node delete with snapshot
+  const handleDeleteNode = useCallback((nodeId) => {
+    takeSnapshot();
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+  }, [takeSnapshot, setNodes, setEdges]);
+
+  // Handle node removals (e.g. keyboard delete)
+  const handleNodesChange = useCallback((changes) => {
+    if (changes.some(c => c.type === 'remove')) {
+      takeSnapshot();
+    }
+    onNodesChange(changes);
+  }, [takeSnapshot, onNodesChange]);
+
+  // Handle edge removals (e.g. keyboard delete)
+  const handleEdgesChange = useCallback((changes) => {
+    if (changes.some(c => c.type === 'remove')) {
+      takeSnapshot();
+    }
+    onEdgesChange(changes);
+  }, [takeSnapshot, onEdgesChange]);
+
   const isValidConnection = useCallback(
     (connection) => {
       if (!isEnforcerActive) return true;
@@ -183,23 +309,27 @@ function CanvasInner({
       const pillarDef = sourceNode ? PILLARS[sourceNode.data.pillarType] : null;
       const strokeColor = pillarDef?.color || '#0091DA';
 
+      takeSnapshot();
+
       setEdges((eds) =>
         addEdge(
           {
             ...params,
             type: 'deletable',
             animated: true,
-            style: { stroke: strokeColor, strokeWidth: 1.8, strokeDasharray: '4 4' }
+            style: { stroke: strokeColor, strokeWidth: 1.8, strokeDasharray: '4 4' },
+            data: { onDelete: handleDeleteEdge }
           },
           eds
         )
       );
       setInvalidConnectionAlert(null);
     },
-    [nodes, setEdges, setInvalidConnectionAlert]
+    [nodes, setEdges, setInvalidConnectionAlert, takeSnapshot, handleDeleteEdge]
   );
 
   const handleAddFromPalette = (pillarKey, item) => {
+    takeSnapshot();
     if (onAddNode) {
       onAddNode(pillarKey, item);
     }
@@ -253,10 +383,11 @@ function CanvasInner({
         isDarkMode,
         isExecuting: n.type === 'agentCore' ? executionState.isExecuting : false,
         executionStep: n.type === 'agentCore' ? executionState.step : undefined,
-        attachedCounts: n.type === 'agentCore' ? activeCounts : n.data.attachedCounts
+        attachedCounts: n.type === 'agentCore' ? activeCounts : n.data.attachedCounts,
+        onDelete: n.type === 'pillar' ? handleDeleteNode : n.data.onDelete
       }
     }));
-  }, [nodes, edges, isDarkMode, executionState]);
+  }, [nodes, edges, isDarkMode, executionState, handleDeleteNode]);
 
   return (
     <div className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${
@@ -434,7 +565,35 @@ function CanvasInner({
             <Minus className="w-4 h-4" />
           </button>
 
-          {/* 4. Socket Enforcer Toggle */}
+          {/* 4. Undo (Ctrl+Z) */}
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className={`w-9 h-9 flex items-center justify-center transition-colors ${
+              canUndo
+                ? 'text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer'
+                : 'text-slate-600 opacity-30 cursor-not-allowed'
+            }`}
+            title={canUndo ? "Undo (Ctrl+Z)" : "Undo (Ctrl+Z) - No actions to undo"}
+          >
+            <Undo2 className="w-4 h-4" />
+          </button>
+
+          {/* 5. Redo (Ctrl+Y / Ctrl+Shift+Z) */}
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className={`w-9 h-9 flex items-center justify-center transition-colors ${
+              canRedo
+                ? 'text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer'
+                : 'text-slate-600 opacity-30 cursor-not-allowed'
+            }`}
+            title={canRedo ? "Redo (Ctrl+Y / Ctrl+Shift+Z)" : "Redo - No actions to redo"}
+          >
+            <Redo2 className="w-4 h-4" />
+          </button>
+
+          {/* 6. Socket Enforcer Toggle */}
           <button
             onClick={handleToggleEnforcer}
             className={`w-9 h-9 flex items-center justify-center transition-colors ${
@@ -509,8 +668,9 @@ function CanvasInner({
       <ReactFlow
         nodes={nodesWithTheme}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
+        onNodeDragStart={handleNodeDragStart}
         onConnect={onConnect}
         onInit={(instance) => {
           setRfInstance(instance);
@@ -530,7 +690,7 @@ function CanvasInner({
         isValidConnection={isValidConnection}
         minZoom={0.25}
         maxZoom={1.75}
-        defaultEdgeOptions={{ animated: true, type: 'deletable' }}
+        defaultEdgeOptions={{ animated: true, type: 'deletable', data: { onDelete: handleDeleteEdge } }}
       >
         <Background 
           variant={BackgroundVariant.Dots} 
