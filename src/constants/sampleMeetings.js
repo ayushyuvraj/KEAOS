@@ -29,5 +29,20 @@ export const SAMPLE_MEETINGS = [
 [02:00] Tom Bradley: To prevent this permanently, I need to update the raft consensus quorum timeout from 200ms to 1200ms and add circuit-breaker probes.
 [02:30] Elena Rostova: Action item for Tom: Deploy the Raft consensus timeout update to staging by Wednesday, test with synthetic network partitions on Thursday, and promote to prod by Sunday night.
 [03:00] Kavita Singh: I will audit the automated alert routing because PagerDuty took 4 minutes to wake the secondary on-call engineer. I will update the escalation matrix by Thursday noon.`
+  },
+  {
+    id: 'meeting-ark-pilot-readiness',
+    title: 'ARK Internal Pilot Readiness & Launch Gate',
+    date: '2026-09-28',
+    duration: '35 mins',
+    attendees: ['Sarah Chen (VP Product)', 'David Miller (Head of Engineering)', 'Priya Patel (Chief Architect)', 'Marcus Vance (Security & Governance Lead)'],
+    transcript: `[00:01] Sarah Chen: Good morning everyone. Today's objective is to assess ARK's readiness for the internal pilot planned for Friday and identify any outstanding launch blockers.
+[00:25] David Miller: From engineering: the core Meeting Intelligence workflow is functional. Transcript upload, processing, decision extraction, action item extraction, risk identification, and summary generation are all passing tests. The Agent Control Page is functional with minor UI polishing remaining on the inspector sidebar.
+[01:10] Priya Patel: Multi-LLM evaluation integration is working cleanly. It evaluates agent outputs across 5 dimensions: Faithfulness, Completeness, Hallucination, Consistency, and Latency. The dynamic evaluation runs with quantitative scoring, and framework export is operational across Google ADK, LangGraph, AutoGen, and CrewAI.
+[02:00] Sarah Chen: Fantastic progress. Let's confirm the decisions: ARK will proceed with the internal pilot this Friday. We approve in-browser direct LLM API access for this initial pilot, with proxy transition scheduled for Q4. And we enforce an 85% composite score evaluation threshold.
+[02:40] Marcus Vance: On governance: I will review the OAuth2 token revocation policy with Legal by Thursday 5 PM.
+[03:00] Priya Patel: I will finalize the latency benchmarking report for Google GenAI and Anthropic models by Wednesday EOD.
+[03:20] David Miller: My team will finish the UI polish on the inspector panel by Thursday noon.
+[03:40] Sarah Chen: I will prepare internal pilot onboarding documentation and distribute it to the cohort by Thursday 6 PM. Thursday 6 PM is code freeze; Friday 9 AM we launch.`
   }
 ];

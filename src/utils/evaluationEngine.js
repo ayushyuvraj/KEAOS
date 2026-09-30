@@ -64,11 +64,12 @@ export async function runEvaluationSuite({
           modelId,
           transcript: testCase.inputTranscript,
           systemPrompt: agentPrompt,
-          temperature: 0.2
+          temperature: 0.2,
+          forceJsonSchema: true
         });
 
-        generatedSummary = realAgentOutput.parsedData.summary?.join(' ') || '';
-        generatedActionsCount = realAgentOutput.parsedData.actionItems?.length || 0;
+        generatedSummary = realAgentOutput.parsedData?.summary?.join(' ') || realAgentOutput.rawText || '';
+        generatedActionsCount = realAgentOutput.parsedData?.actionItems?.length || 0;
 
         // 2. Run Real Multi-LLM Judge Evaluation against Ground Truth
         const judgeEvaluation = await evaluateTestCaseUniversal({

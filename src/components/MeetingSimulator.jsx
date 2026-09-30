@@ -22,8 +22,15 @@ import {
   Check,
   Database,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  Download,
+  Code2,
+  Eye,
+  BookOpen,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
+import MarkdownViewer from './common/MarkdownViewer';
 import { SAMPLE_MEETINGS } from '../constants/sampleMeetings';
 import { 
   runMeetingSimulation, 
@@ -53,7 +60,9 @@ export default function MeetingSimulator({
   const [isRunning, setIsRunning] = useState(false);
   const [executionSteps, setExecutionSteps] = useState([]);
   const [simulationResult, setSimulationResult] = useState(null);
-  const [activeOutputTab, setActiveOutputTab] = useState('summary');
+  const [outputViewMode, setOutputViewMode] = useState('formatted'); // 'formatted' | 'raw'
+  const [copiedDoc, setCopiedDoc] = useState(false);
+  const [showMemorySection, setShowMemorySection] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
   const [executionMode, setExecutionMode] = useState('local'); // 'local' | 'cluster'
 
@@ -186,6 +195,44 @@ export default function MeetingSimulator({
     navigator.clipboard.writeText(hash);
     setCopiedHash(true);
     setTimeout(() => setCopiedHash(false), 2000);
+  };
+
+  const getDisplayContent = () => {
+    if (!simulationResult) return '';
+    if (simulationResult.rawOutput && simulationResult.rawOutput.trim()) {
+      return simulationResult.rawOutput;
+    }
+    // Fallback if structured json was present
+    const sections = [];
+    if (simulationResult.summary?.length) {
+      sections.push(`## Executive Summary\n\n${simulationResult.summary.map(s => `- ${s}`).join('\n')}`);
+    }
+    if (simulationResult.decisions?.length) {
+      sections.push(`## Decisions Register\n\n${simulationResult.decisions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`);
+    }
+    if (simulationResult.actionItems?.length) {
+      sections.push(`## Action Items\n\n| Assignee | Deliverable Task | Deadline | Priority |\n|---|---|---|---|\n${simulationResult.actionItems.map(a => `| ${a.assignee} | ${a.task} | ${a.deadline} | ${a.priority} |`).join('\n')}`);
+    }
+    return sections.join('\n\n') || 'Execution completed with no textual output.';
+  };
+
+  const handleCopyDocument = () => {
+    const content = getDisplayContent();
+    navigator.clipboard.writeText(content);
+    setCopiedDoc(true);
+    setTimeout(() => setCopiedDoc(false), 2000);
+  };
+
+  const handleDownloadMarkdown = () => {
+    const content = getDisplayContent();
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `KEAOS_Intelligence_Report_${Date.now()}.md`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -489,148 +536,164 @@ export default function MeetingSimulator({
               </div>
             </div>
 
-            {/* Structured Output Views */}
-            <div className="bg-[#FFFFFF] border border-[#CBD5E1] shadow-sm overflow-hidden">
-              {/* Output Navigation Tabs */}
-              <div className="flex items-center border-b border-[#E0E0E0] bg-[#F8F9FB] px-4 pt-2 gap-2">
-                <button
-                  onClick={() => setActiveOutputTab('summary')}
-                  className={`btn-tactile px-4 py-2 text-xs font-bold border-b-2 flex items-center gap-2 rounded-none transition-all ${
-                    activeOutputTab === 'summary'
-                      ? 'border-[#00338D] text-[#00338D] bg-[#FFFFFF] shadow-sm'
-                      : 'border-transparent text-slate-500 hover:text-[#0B0F19]'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-[#009A44]" />
-                  <span>Executive Synthesis ({simulationResult.summary.length})</span>
-                </button>
+            {/* Primary Natural Intelligence Output Document */}
+            <div className="bg-[#FFFFFF] dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] shadow-sm overflow-hidden rounded-none">
+              {/* Output Document Toolbar */}
+              <div className="flex flex-wrap items-center justify-between border-b border-[#E0E0E0] dark:border-[#334155] bg-[#F8F9FB] dark:bg-[#0B0F19] px-4 py-2.5 gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-[#00338D] text-white flex items-center justify-center rounded-none font-bold shadow-xs">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-[#001E50] dark:text-white uppercase tracking-wider font-mono">
+                        Synthesized Output Document
+                      </h4>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30 font-bold">
+                        NATURAL OUTPUT • SKILL GOVERNED
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Unconstrained response governed by your system prompt & canvas skills ({getDisplayContent().split(/\s+/).filter(Boolean).length} words • {getDisplayContent().length} chars)
+                    </p>
+                  </div>
+                </div>
 
-                <button
-                  onClick={() => setActiveOutputTab('decisions')}
-                  className={`btn-tactile px-4 py-2 text-xs font-bold border-b-2 flex items-center gap-2 rounded-none transition-all ${
-                    activeOutputTab === 'decisions'
-                      ? 'border-[#00338D] text-[#00338D] bg-[#FFFFFF] shadow-sm'
-                      : 'border-transparent text-slate-500 hover:text-[#0B0F19]'
-                  }`}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#00338D]" />
-                  <span>Decisions Register ({simulationResult.decisions.length})</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* View Mode Toggle: Formatted vs Raw */}
+                  <div className="flex items-center bg-[#E2E8F0] dark:bg-slate-800 p-0.5 border border-[#CBD5E1] dark:border-slate-700">
+                    <button
+                      onClick={() => setOutputViewMode('formatted')}
+                      className={`btn-tactile px-2.5 py-1 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        outputViewMode === 'formatted'
+                          ? 'bg-[#00338D] text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-[#0B0F19]'
+                      }`}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Formatted View</span>
+                    </button>
+                    <button
+                      onClick={() => setOutputViewMode('raw')}
+                      className={`btn-tactile px-2.5 py-1 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        outputViewMode === 'raw'
+                          ? 'bg-[#00338D] text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-[#0B0F19]'
+                      }`}
+                    >
+                      <Code2 className="w-3.5 h-3.5" />
+                      <span>Raw Source</span>
+                    </button>
+                  </div>
 
-                <button
-                  onClick={() => setActiveOutputTab('actions')}
-                  className={`btn-tactile px-4 py-2 text-xs font-bold border-b-2 flex items-center gap-2 rounded-none transition-all ${
-                    activeOutputTab === 'actions'
-                      ? 'border-[#00338D] text-[#00338D] bg-[#FFFFFF] shadow-sm'
-                      : 'border-transparent text-slate-500 hover:text-[#0B0F19]'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5 text-[#00A3A6]" />
-                  <span>Action Items Matrix ({simulationResult.actionItems.length})</span>
-                </button>
+                  {/* Copy Button */}
+                  <button
+                    onClick={handleCopyDocument}
+                    className="btn-tactile px-3 py-1 text-xs font-mono font-bold bg-[#FFFFFF] dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-[#00338D] dark:text-blue-400 hover:bg-[#F8F9FB] flex items-center gap-1.5 cursor-pointer"
+                    title="Copy full document text"
+                  >
+                    {copiedDoc ? <Check className="w-3.5 h-3.5 text-[#009A44]" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedDoc ? 'Copied' : 'Copy'}</span>
+                  </button>
 
-                <button
-                  onClick={() => setActiveOutputTab('memory')}
-                  className={`btn-tactile px-4 py-2 text-xs font-bold border-b-2 flex items-center gap-2 rounded-none transition-all ${
-                    activeOutputTab === 'memory'
-                      ? 'border-[#483698] text-[#483698] bg-[#FFFFFF] shadow-sm'
-                      : 'border-transparent text-slate-500 hover:text-[#0B0F19]'
-                  }`}
-                >
-                  <Database className="w-3.5 h-3.5 text-[#483698]" />
-                  <span>
-                    Episodic Memory ({simulationResult.memory?.hasMemory ? `${simulationResult.memory?.retrievedItems?.length || 0} Ingested` : 'Off'})
-                  </span>
-                </button>
+                  {/* Export Markdown */}
+                  <button
+                    onClick={handleDownloadMarkdown}
+                    className="btn-tactile px-3 py-1 text-xs font-mono font-bold bg-[#FFFFFF] dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-[#F8F9FB] flex items-center gap-1.5 cursor-pointer"
+                    title="Export Markdown document"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#0091DA]" />
+                    <span>Export .md</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Tab Contents */}
-              <div className="p-5">
-                {activeOutputTab === 'summary' && (
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-[#0B0F19] tracking-tight uppercase font-mono">
-                      High-Level Executive Takeaways
-                    </h4>
-                    <ul className="space-y-2">
-                      {simulationResult.summary.map((point, idx) => (
-                        <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#009A44] mt-1.5 shrink-0" />
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+              {/* Document Output Content */}
+              <div className="p-6 bg-white dark:bg-[#0B0F19] min-h-[360px] max-h-[700px] overflow-y-auto select-text">
+                {outputViewMode === 'formatted' ? (
+                  <MarkdownViewer content={getDisplayContent()} />
+                ) : (
+                  <pre className="p-4 bg-[#050811] text-slate-200 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap select-text border border-white/10">
+                    {getDisplayContent()}
+                  </pre>
                 )}
+              </div>
+            </div>
 
-                {activeOutputTab === 'decisions' && (
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-[#0B0F19] tracking-tight uppercase font-mono">
-                      Institutional Decisions Register
-                    </h4>
-                    <div className="divide-y divide-[#E0E0E0]">
-                      {simulationResult.decisions.map((dec, idx) => (
-                        <div key={idx} className="py-3 flex items-start gap-3">
-                          <span className="w-5 h-5 bg-[#00338D]/10 text-[#00338D] font-mono text-xs font-bold flex items-center justify-center shrink-0">
-                            {idx + 1}
+            {/* Episodic Memory State & Ledger Drawer */}
+            <div className="bg-[#FFFFFF] dark:bg-[#0F172A] border border-[#CBD5E1] dark:border-[#334155] shadow-sm rounded-none">
+              <button
+                onClick={() => setShowMemorySection(!showMemorySection)}
+                className="w-full px-4 py-3 bg-[#F8F9FB] dark:bg-[#0B0F19] hover:bg-[#EFEBF5]/40 flex items-center justify-between border-b border-[#E0E0E0] dark:border-[#334155] transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Database className="w-4 h-4 text-[#483698]" />
+                  <div>
+                    <span className="text-xs font-bold text-[#483698] uppercase font-mono tracking-wider">
+                      Episodic Memory State & Commit Ledger
+                    </span>
+                    <span className="ml-2 text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                      {simulationResult.memory?.hasMemory 
+                        ? `(Active: ${simulationResult.memory.retrievedItems?.length || 0} retrieved, +${simulationResult.memory.newCommittedCount} committed)`
+                        : '(Stateless / No memory pillar wired)'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase">
+                    {showMemorySection ? 'Collapse' : 'Expand Ledger'}
+                  </span>
+                  {showMemorySection ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                </div>
+              </button>
+
+              {showMemorySection && (
+                <div className="p-4 space-y-4">
+                  {simulationResult.memory?.hasMemory ? (
+                    <div className="space-y-4">
+                      {/* Ingested historical commitments */}
+                      <div className="p-3 bg-[#EFEBF5] dark:bg-[#1E1B4B]/30 border border-[#483698]/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-[#483698] font-mono uppercase flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#483698]" />
+                            Input Ingest: Retrieved Prior Commitments ({simulationResult.memory.retrievedItems?.length || 0})
                           </span>
-                          <span className="text-xs text-[#0B0F19] font-medium leading-relaxed">{dec}</span>
+                          <span className="text-[10px] font-mono text-[#483698] font-bold px-2 py-0.5 rounded-full bg-[#483698]/10">
+                            Injected into Model Context
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {activeOutputTab === 'actions' && (
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-[#0B0F19] tracking-tight uppercase font-mono">
-                      Action Items & Ownership Matrix
-                    </h4>
-                    <div className="overflow-x-auto border border-[#CBD5E1]">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-[#F8F9FB] border-b border-[#CBD5E1] text-[10px] font-mono font-bold text-slate-600">
-                            <th className="py-2.5 px-3">Assignee</th>
-                            <th className="py-2.5 px-3">Deliverable Task</th>
-                            <th className="py-2.5 px-3">Deadline</th>
-                            <th className="py-2.5 px-3">Priority</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#E0E0E0]">
-                          {simulationResult.actionItems.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-[#F8F9FB] transition-colors">
-                              <td className="py-2.5 px-3 font-bold text-[#00338D]">{item.assignee}</td>
-                              <td className="py-2.5 px-3 text-[#0B0F19]">{item.task}</td>
-                              <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">{item.deadline}</td>
-                              <td className="py-2.5 px-3">
-                                <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-full ${
-                                  item.priority === 'High' 
-                                    ? 'bg-[#F2E9F4] text-[#6D2077] border border-[#6D2077]/30' 
-                                    : 'bg-[#E6EFF8] text-[#005EB8] border border-[#005EB8]/30'
-                                }`}>
-                                  {item.priority}
-                                </span>
-                              </td>
-                            </tr>
+                        <div className="space-y-1.5">
+                          {simulationResult.memory.retrievedItems?.map((mem, idx) => (
+                            <div key={idx} className="p-2.5 bg-[#FFFFFF] dark:bg-[#0F172A] border border-[#483698]/20 text-xs text-slate-700 dark:text-slate-200 flex items-start gap-2.5 shadow-xs">
+                              <span className="font-mono text-[10px] px-1.5 py-0.5 bg-[#483698]/10 text-[#483698] font-bold shrink-0">
+                                {mem.date || 'Historical'}
+                              </span>
+                              <span className="font-mono text-[10px] font-bold uppercase text-[#483698] shrink-0">
+                                [{mem.type || 'NOTE'}]:
+                              </span>
+                              <span className="text-[11px] leading-relaxed text-[#0B0F19] dark:text-slate-200">{mem.text || mem.task}</span>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+                        </div>
+                      </div>
 
-                {activeOutputTab === 'memory' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-[#E0E0E0] pb-2">
-                      <div>
-                        <h4 className="text-xs font-bold text-[#483698] tracking-tight uppercase font-mono flex items-center gap-2">
-                          <Database className="w-4 h-4" />
-                          Cross-Session Episodic Memory Pipeline
-                        </h4>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Dual-path read/write memory loop preserving institutional state across meeting executions.
+                      {/* Committed new deliverables */}
+                      <div className="p-3 bg-[#E6F5EC] dark:bg-[#064E3B]/20 border border-[#009A44]/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-[#009A44] font-mono uppercase flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#009A44]" />
+                            Output Commit: Saved Deliverables to Memory
+                          </span>
+                          <span className="text-[10px] font-mono text-[#009A44] font-bold px-2 py-0.5 rounded-full bg-[#009A44]/10">
+                            +{simulationResult.memory.newCommittedCount} Committed to Local Persistent Store
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                          The synthesized commitments from this execution have been committed into the persistent store. Future runs will recall these commitments.
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+
+                      <div className="flex justify-end pt-1">
                         <button
                           onClick={() => {
                             if (window.confirm('Reset episodic memory store back to default seed commitments?')) {
@@ -638,70 +701,22 @@ export default function MeetingSimulator({
                               alert('Episodic memory store reset.');
                             }
                           }}
-                          className="btn-tactile text-[10px] font-mono font-bold px-2.5 py-1 bg-[#F8F9FB] border border-[#CBD5E1] text-slate-600 hover:bg-[#E0E0E0] flex items-center gap-1.5"
+                          className="btn-tactile text-[10px] font-mono font-bold px-2.5 py-1 bg-[#F8F9FB] dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-[#E0E0E0] flex items-center gap-1.5 cursor-pointer"
                         >
                           <RotateCcw className="w-3 h-3" />
                           <span>Reset Memory Store</span>
                         </button>
                       </div>
                     </div>
-
-                    {simulationResult.memory?.hasMemory ? (
-                      <div className="space-y-4">
-                        {/* Read Path: What was ingested */}
-                        <div className="p-3 bg-[#EFEBF5] border border-[#483698]/30 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-[#483698] font-mono uppercase flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-[#483698]" />
-                              Input Ingest: Retrieved Prior Commitments ({simulationResult.memory.retrievedItems?.length || 0})
-                            </span>
-                            <span className="text-[10px] font-mono text-[#483698] font-bold px-2 py-0.5 rounded-full bg-[#483698]/10">
-                              Injected into Model Context
-                            </span>
-                          </div>
-                          <div className="space-y-1.5">
-                            {simulationResult.memory.retrievedItems?.map((mem, idx) => (
-                              <div key={idx} className="p-2.5 bg-[#FFFFFF] border border-[#483698]/20 text-xs text-slate-700 flex items-start gap-2.5 shadow-xs">
-                                <span className="font-mono text-[10px] px-1.5 py-0.5 bg-[#483698]/10 text-[#483698] font-bold shrink-0">
-                                  {mem.date || 'Historical'}
-                                </span>
-                                <span className="font-mono text-[10px] font-bold uppercase text-[#483698] shrink-0">
-                                  [{mem.type || 'NOTE'}]:
-                                </span>
-                                <span className="text-[11px] leading-relaxed text-[#0B0F19]">{mem.text || mem.task}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Write Path: What was saved */}
-                        <div className="p-3 bg-[#E6F5EC] border border-[#009A44]/30 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-[#009A44] font-mono uppercase flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-[#009A44]" />
-                              Output Commit: Saved New Deliverables to Memory
-                            </span>
-                            <span className="text-[10px] font-mono text-[#009A44] font-bold px-2 py-0.5 rounded-full bg-[#009A44]/10">
-                              +{simulationResult.memory.newCommittedCount} Committed to Local Persistent Store
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-600">
-                            The newly synthesized decisions and action items from this meeting have been committed into the persistent store. When you run future meetings, the agent will recall these commitments to evaluate follow-through.
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-6 bg-[#F8F9FB] border border-[#CBD5E1] text-center space-y-2">
-                        <Database className="w-8 h-8 text-slate-400 mx-auto" />
-                        <h5 className="text-xs font-bold text-[#0B0F19]">Stateless Execution Mode</h5>
-                        <p className="text-[11px] text-slate-500 max-w-md mx-auto">
-                          No Memory pillar was connected to the agent on the visual canvas. Drag an <span className="font-bold text-[#483698]">Episodic Memory</span> or <span className="font-bold text-[#483698]">Vector Store</span> block and wire it into the <span className="font-mono font-bold text-[#483698]">memory-in</span> socket to enable historical cross-meeting reasoning.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div className="p-4 bg-[#F8F9FB] dark:bg-[#0B0F19] border border-[#CBD5E1] dark:border-[#334155] text-center space-y-1">
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        No Memory pillar connected on canvas. Execution ran in stateless mode. Wire an <span className="font-bold text-[#483698]">Episodic Memory</span> pillar to retain commitments across meetings.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Cryptographic Compliance Ledger Strip */}

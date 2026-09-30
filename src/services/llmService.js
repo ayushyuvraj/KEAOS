@@ -631,7 +631,8 @@ export async function synthesizeMeetingUniversal({
   transcript,
   systemPrompt,
   memoryContext = null,
-  temperature = 0.2
+  temperature = 0.2,
+  forceJsonSchema = false
 }) {
   const credential = getProviderCredential(provider);
   if (!credential) {
@@ -639,17 +640,14 @@ export async function synthesizeMeetingUniversal({
   }
 
   const memoryBlock = memoryContext && memoryContext.trim().length > 0
-    ? `
-[HISTORICAL EPISODIC MEMORY & PAST COMMITMENTS]:
-The following historical commitments, previous action items, and project constraints were retrieved from the memory store. Take these into account when analyzing the current transcript, noting if previous commitments were kept, delayed, or altered:
-${memoryContext.trim()}
-`
+    ? `\n[HISTORICAL EPISODIC MEMORY & PAST COMMITMENTS]:\n${memoryContext.trim()}\n`
     : '';
 
-  const structuredPrompt = `
-Analyze the following meeting transcript with high analytical precision.
+  // If forceJsonSchema is explicitly requested (e.g. for quantitative Golden Dataset benchmarks), enforce JSON.
+  // Otherwise, allow the user's prompt and attached skills to fully dictate format, length, style, and structure.
+  const userContent = forceJsonSchema
+    ? `Analyze the following meeting transcript with high analytical precision.
 ${memoryBlock}
-${systemPrompt ? `[AGENT SYSTEM INSTRUCTIONS & ATTACHED SKILLS DIRECTIVES]:\n${systemPrompt}\n` : ''}
 You MUST output your response in valid JSON matching this exact structure:
 {
   "summary": ["bullet 1", "bullet 2", "bullet 3"],
@@ -668,8 +666,12 @@ You MUST output your response in valid JSON matching this exact structure:
 }
 
 Current Meeting Transcript:
-${transcript}
-`;
+${transcript}`
+    : `${memoryBlock ? memoryBlock + '\n' : ''}Meeting Input / Audio Transcript:
+${transcript}`;
+
+  const defaultSystemInstruction = 'You are an institutional executive meeting intelligence assistant configured to execute domain workflows with high analytical rigor.';
+  const effectiveSystemPrompt = systemPrompt ? systemPrompt.trim() : defaultSystemInstruction;
 
   const startTime = performance.now();
   let parsedData = null;
@@ -679,17 +681,26 @@ ${transcript}
   // 1. GOOGLE
   if (provider === 'google') {
     const ai = new GoogleGenAI({ apiKey: credential });
+    const config = {
+      temperature,
+      systemInstruction: effectiveSystemPrompt
+    };
+    if (forceJsonSchema) {
+      config.responseMimeType = 'application/json';
+    }
+
     const response = await ai.models.generateContent({
       model: modelId || 'gemini-2.0-flash',
-      contents: structuredPrompt,
-      config: {
-        temperature,
-        systemInstruction: systemPrompt || 'You are an institutional executive meeting intelligence assistant.',
-        responseMimeType: 'application/json'
-      }
+      contents: userContent,
+      config
     });
-    rawResponseText = response.text;
-    parsedData = JSON.parse(response.text);
+    rawResponseText = response.text || '';
+    if (forceJsonSchema) {
+      try { parsedData = JSON.parse(rawResponseText); } catch { parsedData = null; }
+    } else {
+      // Optional soft parse: if response happens to be JSON, make it accessible
+      try { parsedData = JSON.parse(rawResponseText); } catch { parsedData = null; }
+    }
     if (response.usageMetadata) {
       totalTokens = response.usageMetadata.totalTokenCount || totalTokens;
     }
@@ -699,13 +710,13 @@ ${transcript}
   else if (provider === 'openai') {
     const isReasoning = isFixedTemperatureModel(modelId);
     
-    const sendOpenAiRequest = async ({ includeTemp = true, includeJsonFormat = true, useDeveloperRole = false } = {}) => {
+    const sendOpenAiRequest = async ({ includeTemp = true, includeJsonFormat = forceJsonSchema, useDeveloperRole = false } = {}) => {
       const messages = [
         { 
           role: useDeveloperRole ? 'developer' : 'system', 
-          content: systemPrompt || 'You are an executive meeting intelligence assistant. Always respond in valid JSON.' 
+          content: effectiveSystemPrompt
         },
-        { role: 'user', content: structuredPrompt }
+        { role: 'user', content: userContent }
       ];
 
       const payload = {
@@ -713,7 +724,6 @@ ${transcript}
         messages
       };
 
-      // Only pass temperature if supported and not a reasoning/fixed-temp model
       if (includeTemp && !isReasoning) {
         payload.temperature = Number(temperature) || 0.2;
       }
@@ -732,26 +742,24 @@ ${transcript}
       });
     };
 
-    let res = await sendOpenAiRequest({ includeTemp: !isReasoning, includeJsonFormat: true });
+    let res = await sendOpenAiRequest({ includeTemp: !isReasoning, includeJsonFormat: forceJsonSchema });
     
     // Auto-recovery for model-specific constraints
     if (!res.ok) {
       let errData = await res.json().catch(() => ({}));
       let errMsg = (errData.error?.message || res.statusText || '').toLowerCase();
 
-      // Retry 1: If temperature unsupported or restricted to default 1
       if (errMsg.includes('temperature')) {
-        console.warn(`[OpenAI] Model ${modelId} rejected temperature parameter. Retrying with default temperature...`);
-        res = await sendOpenAiRequest({ includeTemp: false, includeJsonFormat: true });
+        console.warn(`[OpenAI] Model ${modelId} rejected temperature. Retrying...`);
+        res = await sendOpenAiRequest({ includeTemp: false, includeJsonFormat: forceJsonSchema });
         if (!res.ok) {
           errData = await res.json().catch(() => ({}));
           errMsg = (errData.error?.message || res.statusText || '').toLowerCase();
         }
       }
 
-      // Retry 2: If response_format is unsupported by this model
       if (!res.ok && (errMsg.includes('response_format') || errMsg.includes('json_object'))) {
-        console.warn(`[OpenAI] Model ${modelId} rejected response_format. Retrying without JSON schema constraint...`);
+        console.warn(`[OpenAI] Model ${modelId} rejected response_format. Retrying unconstrained...`);
         res = await sendOpenAiRequest({ includeTemp: false, includeJsonFormat: false });
         if (!res.ok) {
           errData = await res.json().catch(() => ({}));
@@ -759,7 +767,6 @@ ${transcript}
         }
       }
 
-      // Retry 3: If system role is rejected (some early o1 models require 'developer' or 'user')
       if (!res.ok && (errMsg.includes('system') || errMsg.includes('role'))) {
         console.warn(`[OpenAI] Model ${modelId} rejected 'system' role. Retrying with 'developer' role...`);
         res = await sendOpenAiRequest({ includeTemp: false, includeJsonFormat: false, useDeveloperRole: true });
@@ -772,13 +779,12 @@ ${transcript}
     }
 
     const json = await res.json();
-    rawResponseText = json.choices[0]?.message?.content || '{}';
-    // Clean potential markdown fences if response was returned without strict json_object mode
-    const cleanJson = rawResponseText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '').trim();
-    try {
-      parsedData = JSON.parse(cleanJson);
-    } catch {
-      parsedData = JSON.parse(rawResponseText);
+    rawResponseText = json.choices[0]?.message?.content || '';
+    if (forceJsonSchema) {
+      const cleanJson = rawResponseText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '').trim();
+      try { parsedData = JSON.parse(cleanJson); } catch { parsedData = null; }
+    } else {
+      try { parsedData = JSON.parse(rawResponseText); } catch { parsedData = null; }
     }
     totalTokens = json.usage?.total_tokens || totalTokens;
   }
@@ -797,8 +803,8 @@ ${transcript}
         model: modelId || 'claude-3-5-sonnet-20241022',
         max_tokens: 4096,
         temperature,
-        system: (systemPrompt || 'You are an executive meeting intelligence assistant.') + ' You MUST output ONLY valid JSON, starting with { and ending with } without any markdown code fences.',
-        messages: [{ role: 'user', content: structuredPrompt }]
+        system: effectiveSystemPrompt,
+        messages: [{ role: 'user', content: userContent }]
       })
     });
     if (!res.ok) {
@@ -806,10 +812,13 @@ ${transcript}
       throw new Error(`Anthropic Error: ${err.error?.message || res.statusText}`);
     }
     const json = await res.json();
-    rawResponseText = json.content[0]?.text || '{}';
-    // Clean potential markdown fences
-    const cleanJson = rawResponseText.replace(/^```json/m, '').replace(/^```/m, '').replace(/```$/m, '').trim();
-    parsedData = JSON.parse(cleanJson);
+    rawResponseText = json.content[0]?.text || '';
+    if (forceJsonSchema) {
+      const cleanJson = rawResponseText.replace(/^```json/m, '').replace(/^```/m, '').replace(/```$/m, '').trim();
+      try { parsedData = JSON.parse(cleanJson); } catch { parsedData = null; }
+    } else {
+      try { parsedData = JSON.parse(rawResponseText); } catch { parsedData = null; }
+    }
     totalTokens = (json.usage?.input_tokens || 0) + (json.usage?.output_tokens || 0);
   }
 
@@ -838,30 +847,46 @@ ${transcript}
       ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
     };
 
+    const payload = {
+      model: modelId || 'llama3.3',
+      temperature,
+      messages: [
+        { role: 'system', content: effectiveSystemPrompt },
+        { role: 'user', content: userContent }
+      ]
+    };
+    if (forceJsonSchema) {
+      payload.response_format = { type: 'json_object' };
+    }
+
     const res = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        model: modelId || 'llama3.3',
-        temperature,
-        messages: [
-          { role: 'system', content: 'You are an executive meeting assistant. Output valid JSON only.' },
-          { role: 'user', content: structuredPrompt }
-        ],
-        response_format: { type: 'json_object' }
-      })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(`Ollama Error: ${err.error?.message || res.statusText} at ${baseUrl}`);
     }
     const json = await res.json();
-    rawResponseText = json.choices[0]?.message?.content || '{}';
-    parsedData = JSON.parse(rawResponseText);
+    rawResponseText = json.choices[0]?.message?.content || '';
+    try { parsedData = JSON.parse(rawResponseText); } catch { parsedData = null; }
   }
 
   // 5. OPENROUTER
   else if (provider === 'openrouter') {
+    const payload = {
+      model: modelId || 'anthropic/claude-3.5-sonnet',
+      temperature,
+      messages: [
+        { role: 'system', content: effectiveSystemPrompt },
+        { role: 'user', content: userContent }
+      ]
+    };
+    if (forceJsonSchema) {
+      payload.response_format = { type: 'json_object' };
+    }
+
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -870,23 +895,15 @@ ${transcript}
         'HTTP-Referer': 'http://localhost:5173',
         'X-Title': 'KEAOS Studio'
       },
-      body: JSON.stringify({
-        model: modelId || 'anthropic/claude-3.5-sonnet',
-        temperature,
-        messages: [
-          { role: 'system', content: systemPrompt || 'You are an executive meeting assistant. Output valid JSON only.' },
-          { role: 'user', content: structuredPrompt }
-        ],
-        response_format: { type: 'json_object' }
-      })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(`OpenRouter Error: ${err.error?.message || res.statusText}`);
     }
     const json = await res.json();
-    rawResponseText = json.choices[0]?.message?.content || '{}';
-    parsedData = JSON.parse(rawResponseText);
+    rawResponseText = json.choices[0]?.message?.content || '';
+    try { parsedData = JSON.parse(rawResponseText); } catch { parsedData = null; }
     totalTokens = json.usage?.total_tokens || totalTokens;
   }
 

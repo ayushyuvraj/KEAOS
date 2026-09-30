@@ -110,10 +110,28 @@ export const PILLARS = {
         config: { format: 'bullet_points', length: 'concise', focus: 'decisions' }
       },
       {
+        id: 'skill-comprehensive-mom',
+        name: 'Comprehensive MoM Synthesizer',
+        description: 'Generates institutional Minutes of Meeting with Objective, Status, Decisions, Actions, Risks, Release Plan, and Readiness.',
+        config: { format: 'minutes_of_meeting', depth: 'exhaustive', structure: 'formal' }
+      },
+      {
         id: 'skill-action-items',
         name: 'Action Item Extractor',
         description: 'Extracts exact tasks, assignees, deadlines, and dependencies.',
-        config: { extractAssignee: true, extractDeadlines: true, strictJson: true }
+        config: { extractAssignee: true, extractDeadlines: true, format: 'table_and_list' }
+      },
+      {
+        id: 'skill-markdown-reporter',
+        name: 'Executive Markdown Reporter',
+        description: 'Formats response into structured CommonMark with section headers, data tables, and callouts.',
+        config: { format: 'markdown', includeTables: true, boldKeyTerms: true }
+      },
+      {
+        id: 'skill-depth-maximizer',
+        name: 'Analytical Depth & Length Controller',
+        description: 'Maximizes output depth, exhaustive context analysis, and granular operational specifics.',
+        config: { depth: 'exhaustive', detailLevel: 'high' }
       },
       {
         id: 'skill-sentiment',

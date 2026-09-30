@@ -170,9 +170,11 @@ export async function runMeetingSimulation({
     transcript: processedTranscript,
     systemPrompt: fullSystemPrompt,
     memoryContext,
-    temperature: modelNode?.config?.temperature !== undefined ? modelNode.config.temperature : (agentConfig.temperature ?? 0.2)
+    temperature: modelNode?.config?.temperature !== undefined ? modelNode.config.temperature : (agentConfig.temperature ?? 0.2),
+    forceJsonSchema: false
   });
 
+  const rawOutput = realResult.rawText || (typeof realResult === 'string' ? realResult : '');
   const summary = realResult.parsedData?.summary || [];
   const decisions = realResult.parsedData?.decisions || [];
   const actionItems = realResult.parsedData?.actionItems || [];
@@ -183,8 +185,46 @@ export async function runMeetingSimulation({
 
   logStep('Model Response (Live)', `Live ${PROVIDERS[provider]?.name} inference complete (${modelLatency}ms). Processed ${totalTokens} tokens.`, modelLatency);
 
+  // Soft-extract decisions/actions if output is natural markdown text (so memory & audit remain populated)
+  let extractedDecisions = [...decisions];
+  let extractedActionItems = [...actionItems];
+  let extractedSummary = [...summary];
+
+  if (extractedSummary.length === 0 && rawOutput) {
+    const lines = rawOutput.split('\n').map(l => l.trim()).filter(Boolean);
+    const bullets = lines.filter(l => /^[•\-\*]\s+/.test(l)).map(l => l.replace(/^[•\-\*]\s+/, ''));
+    if (bullets.length > 0) {
+      extractedSummary = bullets.slice(0, 5);
+    } else {
+      extractedSummary = lines.filter(l => !l.startsWith('#')).slice(0, 3);
+    }
+  }
+
+  if (extractedDecisions.length === 0 && rawOutput) {
+    const lines = rawOutput.split('\n').map(l => l.trim()).filter(Boolean);
+    for (const line of lines) {
+      if (/^(decision|decided|approved):/i.test(line) || /^[•\-\*]\s*(decision|approved):/i.test(line)) {
+        extractedDecisions.push(line.replace(/^[•\-\*]\s*/, ''));
+      }
+    }
+  }
+
+  if (extractedActionItems.length === 0 && rawOutput) {
+    const lines = rawOutput.split('\n').map(l => l.trim()).filter(Boolean);
+    for (const line of lines) {
+      if (/^(action|task|todo):/i.test(line) || /^[•\-\*]\s*(\[ \]|\[x\])?\s*(action|todo|assignee)/i.test(line)) {
+        extractedActionItems.push({
+          assignee: 'Team',
+          task: line.replace(/^[•\-\*]\s*(\[ \]|\[x\])?\s*/, ''),
+          deadline: 'TBD',
+          priority: 'High'
+        });
+      }
+    }
+  }
+
   // Step 5: Skills Processing
-  logStep('Skills Processing', `Extracted ${summary.length} takeaways, ${decisions.length} decisions, ${actionItems.length} action items.`, 120);
+  logStep('Skills Processing', `Extracted ${rawOutput.length} characters of natural intelligence output (${extractedSummary.length} takeaways, ${extractedDecisions.length} decisions, ${extractedActionItems.length} action commitments).`, 120);
 
   // Step 6: MCP Integration
   const hasCalendarMcp = attachedPillars.some(p => p.id === 'mcp-google-calendar');
@@ -198,7 +238,7 @@ export async function runMeetingSimulation({
   // Step 7: Cryptographic Audit (Ambient W3C WebCrypto SHA-256 - ALWAYS ACTIVE)
   let auditHash = '';
   try {
-    const msgBuffer = new TextEncoder().encode(transcript + JSON.stringify(actionItems) + Date.now());
+    const msgBuffer = new TextEncoder().encode(transcript + rawOutput + Date.now());
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     auditHash = 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -209,18 +249,18 @@ export async function runMeetingSimulation({
 
   // Step 8: Episodic Memory State Commit (Write Back)
   let newMemoryCount = 0;
-  if (hasMemory && (actionItems.length > 0 || decisions.length > 0)) {
+  if (hasMemory && (extractedActionItems.length > 0 || extractedDecisions.length > 0)) {
     const existingStore = getEpisodicMemoryStore();
     const today = new Date().toISOString().split('T')[0];
     
     const newItems = [
-      ...decisions.map((dec, i) => ({
+      ...extractedDecisions.map((dec, i) => ({
         id: `DEC-${Date.now()}-${i}`,
         date: today,
         type: 'decision',
         text: dec
       })),
-      ...actionItems.map((act, i) => ({
+      ...extractedActionItems.map((act, i) => ({
         id: `ACT-${Date.now()}-${i}`,
         date: today,
         type: 'commitment',
@@ -272,11 +312,12 @@ export async function runMeetingSimulation({
   return {
     success: true,
     steps,
+    rawOutput,
     sanitizedTranscript: processedTranscript,
     redactedPiiCount: redactedCount,
-    summary,
-    decisions,
-    actionItems,
+    summary: extractedSummary,
+    decisions: extractedDecisions,
+    actionItems: extractedActionItems,
     sentiment: sentimentScore,
     auditHash,
     memory: {
