@@ -50,17 +50,26 @@ const PROVIDER_LOGOS = {
   openrouter: OpenRouterLogo
 };
 
+// Clean raw markdown link syntax and formatting from descriptions
+function cleanDescription(text) {
+  if (!text) return '';
+  return text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_`]/g, '')
+    .trim();
+}
+
 // Reusable simple-language Info Tooltip (i)
 function InfoTooltip({ text, align = 'left' }) {
   const isRight = align === 'right';
   return (
     <div className="relative group/info inline-flex items-center ml-1.5 z-30">
-      <div className="w-3.5 h-3.5 rounded-full border border-slate-400 text-slate-500 hover:text-[#00338D] hover:border-[#00338D] hover:bg-[#E6EDF7] flex items-center justify-center text-[9px] font-mono font-bold cursor-help transition-all">
+      <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-600 text-slate-400 hover:text-[#00338D] hover:border-[#00338D] hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center justify-center text-[9px] font-mono font-bold cursor-help transition-all">
         i
       </div>
-      <div className={`absolute top-full ${isRight ? 'right-0' : 'left-0'} mt-1.5 hidden group-hover/info:block w-48 p-2.5 bg-[#0B0F19] text-white text-[10px] normal-case font-sans font-normal tracking-normal leading-relaxed shadow-xl border border-[#3E424F] z-50 rounded-none animate-in fade-in duration-150 pointer-events-none`}>
+      <div className={`absolute top-full ${isRight ? 'right-0' : 'left-0'} mt-1.5 hidden group-hover/info:block w-52 p-2.5 bg-[#0B0F19] text-white text-[11px] normal-case font-sans font-normal tracking-normal leading-relaxed shadow-xl border border-slate-700/80 z-50 rounded-xl animate-in fade-in duration-150 pointer-events-none`}>
         {text}
-        <div className={`absolute bottom-full ${isRight ? 'right-1.5' : 'left-1.5'} border-4 border-transparent border-b-[#0B0F19]`} />
+        <div className={`absolute bottom-full ${isRight ? 'right-2' : 'left-2'} border-4 border-transparent border-b-[#0B0F19]`} />
       </div>
     </div>
   );
@@ -301,11 +310,11 @@ export default function Inspector({
       isEmbedded ? 'w-full h-full' : 'w-96 h-full border-l border-[#E0E0E0] shadow-sm'
     } bg-[#FFFFFF] flex flex-col shrink-0 overflow-hidden select-none`}>
       {/* Header */}
-      <div className={`p-4 border-b shrink-0 flex items-center justify-between ${
-        isDarkMode ? 'border-[#2D313D] bg-[#1E2028]' : 'border-[#E0E0E0] bg-[#F8F9FB]'
+      <div className={`p-3.5 border-b shrink-0 flex items-center justify-between backdrop-blur-md ${
+        isDarkMode ? 'border-slate-800/80 bg-[#16181F]/90 text-white' : 'border-slate-200/80 bg-white/90 text-slate-900'
       }`}>
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#00338D] text-white flex items-center justify-center shadow-inner">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#00338D] to-[#005EB8] text-white flex items-center justify-center shadow-xs shrink-0">
             {isAgent ? (
               <Bot className="w-4 h-4 text-white" />
             ) : isModel ? (
@@ -315,10 +324,10 @@ export default function Inspector({
             )}
           </div>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#00338D] block font-mono">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#00338D] dark:text-blue-400 block font-mono">
               {isAgent ? 'Core Agent Inspector' : isModel ? 'Foundation Model Spec' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
             </span>
-            <h4 className="text-xs font-bold text-[#0B0F19] truncate max-w-[190px] tracking-tight">
+            <h4 className="text-xs font-semibold truncate max-w-[190px] tracking-tight text-slate-900 dark:text-white">
               {nodeData.name}
             </h4>
           </div>
@@ -328,7 +337,7 @@ export default function Inspector({
           {!isAgent && (
             <button
               onClick={() => onDeleteNode(selectedNode.id)}
-              className="btn-tactile w-7 h-7 hover:bg-[#F2E9F4] text-slate-400 hover:text-[#6D2077] flex items-center justify-center transition-colors"
+              className="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 flex items-center justify-center transition-all card-pressable"
               title="Delete block"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -336,14 +345,14 @@ export default function Inspector({
           )}
           <button
             onClick={handleCollapse}
-            className="btn-tactile w-7 h-7 hover:bg-[#E0E0E0] text-slate-400 hover:text-[#0B0F19] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all card-pressable"
             title="Collapse Panel"
           >
             <PanelRightClose className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onClose}
-            className="btn-tactile w-7 h-7 hover:bg-[#E0E0E0] text-slate-400 hover:text-[#0B0F19] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all card-pressable"
             title="Close node inspector"
           >
             <X className="w-4 h-4" />
@@ -352,17 +361,17 @@ export default function Inspector({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FFFFFF]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-[#16181F]">
         {isAgent ? (
           <>
             {/* Target Multi-Agent Framework Selector */}
-            <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#00338D] flex items-center">
+            <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#00338D] dark:text-blue-400 flex items-center">
                   Target Multi-Agent Framework
                   <InfoTooltip text="Select the framework (like Google ADK, LangGraph, AutoGen, CrewAI, or OpenAI) you want to export Python code for." align="right" />
                 </span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[#00338D]/10 text-[#00338D] font-bold">
+                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#00338D]/10 text-[#00338D] dark:text-blue-400 font-semibold">
                   {activeUseCase?.framework?.category || 'SDK'}
                 </span>
               </div>
@@ -372,7 +381,7 @@ export default function Inspector({
                   const fw = FRAMEWORKS.find(f => f.id === e.target.value);
                   if (fw && onSelectFramework) onSelectFramework(fw);
                 }}
-                className="w-full p-2 text-xs font-mono font-bold bg-white border border-[#CBD5E1] text-[#0B0F19] rounded-none focus:outline-none focus:border-[#00338D] cursor-pointer"
+                className="w-full p-2 text-xs font-mono font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] cursor-pointer"
               >
                 {FRAMEWORKS.map(fw => (
                   <option key={fw.id} value={fw.id}>
@@ -380,26 +389,26 @@ export default function Inspector({
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
                 {activeUseCase?.framework?.description || 'Export idiomatic Python code matching your visual graph.'}
               </p>
             </div>
 
             {/* System Prompt Customizer */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white font-mono flex items-center">
                   System Instruction Prompt
                   <InfoTooltip text="The main instructions and behavioral rules given to the AI agent to tell it how to act, think, and format its response." align="right" />
                 </label>
-                <span className="text-[10px] font-mono text-[#00338D] font-bold">Persona</span>
+                <span className="text-[10px] font-mono text-[#00338D] dark:text-blue-400 font-semibold">Persona</span>
               </div>
               <textarea
                 rows={5}
                 value={agentConfig.prompt}
                 onChange={(e) => onUpdateAgentConfig({ prompt: e.target.value })}
                 placeholder="Provide authoritative prompt as to what we want the agent to do..."
-                className="w-full p-3 bg-[#FFFFFF] border border-[#CBD5E1] text-xs text-[#0B0F19] leading-relaxed focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none resize-none font-mono transition-colors"
+                className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl resize-none font-mono transition-colors"
               />
               <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
                 Authoritative instructions governing output schema, analytical rigor, and task assignments.
@@ -407,14 +416,14 @@ export default function Inspector({
             </div>
 
             {/* Save Agent Specification Button */}
-            <div className="pt-4 border-t border-[#E0E0E0]">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => {
                   setSavedNotification(true);
                   setTimeout(() => setSavedNotification(false), 2500);
                 }}
-                className="btn-tactile w-full flex items-center justify-center gap-2 py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-bold font-mono rounded-none transition-colors border-b-2 border-[#001E50] shadow-sm"
+                className="card-pressable w-full flex items-center justify-center gap-2 py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-semibold font-mono rounded-xl transition-all shadow-sm cursor-pointer"
               >
                 {savedNotification ? (
                   <>
@@ -434,7 +443,7 @@ export default function Inspector({
           /* Specialized Multi-LLM Foundation Model Inspector */
           <div className="space-y-4">
             {/* Top: Current Provider Card with Change Provider button */}
-            <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1]">
+            <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   {(() => {
@@ -443,8 +452,8 @@ export default function Inspector({
                   })()}
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-[#0B0F19]">{providerDef.name}</span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full font-bold flex items-center gap-1 ${
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{providerDef.name}</span>
+                      <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 ${
                         hasCredential || currentProvider === 'ollama'
                           ? 'bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30'
                           : 'bg-[#FEF6E6] text-[#EAAA00] border border-[#EAAA00]/30'
@@ -463,7 +472,7 @@ export default function Inspector({
                     setEnteringKeyProvider(null);
                     setDiscoveryError(null);
                   }}
-                  className="btn-tactile text-[11px] font-bold font-mono px-2.5 py-1 bg-white border border-[#CBD5E1] hover:border-[#00338D] text-[#00338D] hover:bg-[#E6EDF7] flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  className="card-pressable text-[11px] font-semibold font-mono px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#00338D] text-[#00338D] dark:text-blue-400 hover:bg-[#E6EDF7] dark:hover:bg-slate-700/50 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                   title="Switch to another LLM provider"
                 >
                   <RefreshCw className="w-3 h-3" />
@@ -473,8 +482,8 @@ export default function Inspector({
 
               {/* Provider Switcher Drawer: Remaining 4 providers */}
               {isChangingProvider && (
-                <div className="mt-3 pt-3 border-t border-[#CBD5E1] space-y-2 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block">
+                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in duration-150">
+                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-500 block">
                     Select Alternate Provider (Remaining 4)
                   </span>
 
@@ -485,7 +494,7 @@ export default function Inspector({
                       const isEnteringKey = enteringKeyProvider === pDef.id;
 
                       return (
-                        <div key={pDef.id} className="border border-[#CBD5E1] bg-white">
+                        <div key={pDef.id} className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 rounded-xl overflow-hidden shadow-2xs">
                           <div
                             onClick={() => {
                               if (hasKey || pDef.id === 'ollama') {
@@ -497,29 +506,29 @@ export default function Inspector({
                               }
                             }}
                             className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
-                              isEnteringKey ? 'bg-[#E6EDF7]' : 'hover:bg-[#F8FAFC]'
+                              isEnteringKey ? 'bg-blue-50/70 dark:bg-slate-700/60' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
                               <PLogo className="w-7 h-7 shrink-0" />
                               <div>
-                                <div className="text-xs font-bold text-[#0B0F19]">{pDef.name}</div>
+                                <div className="text-xs font-bold text-slate-900 dark:text-white">{pDef.name}</div>
                                 <span className="text-[10px] font-mono text-slate-500">
                                   {hasKey ? '● API Key Ready' : pDef.id === 'ollama' ? '● Local / Cloud' : '○ API Key Required'}
                                 </span>
                               </div>
                             </div>
 
-                            <span className="text-[10px] font-mono font-bold text-[#00338D] flex items-center gap-1">
+                            <span className="text-[10px] font-mono font-semibold text-[#00338D] dark:text-blue-400 flex items-center gap-1">
                               {hasKey || pDef.id === 'ollama' ? 'Select →' : isEnteringKey ? 'Close' : '+ Enter API'}
                             </span>
                           </div>
 
                           {/* Inline API key entry if not yet provided */}
                           {isEnteringKey && (
-                            <div className="p-3 bg-[#F8FAFC] border-t border-[#CBD5E1] space-y-2 animate-in fade-in duration-150">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in duration-150">
                               <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600">
+                                <label className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                                   Paste {pDef.name} API Key
                                 </label>
                                 {pDef.docsUrl && (
@@ -527,7 +536,7 @@ export default function Inspector({
                                     href={pDef.docsUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-[10px] text-[#00338D] hover:underline font-mono font-bold flex items-center gap-0.5"
+                                    className="text-[10px] text-[#00338D] dark:text-blue-400 hover:underline font-mono font-semibold flex items-center gap-0.5"
                                   >
                                     <span>Get Key</span>
                                     <ExternalLink className="w-2.5 h-2.5" />
@@ -546,19 +555,19 @@ export default function Inspector({
                                     }
                                   }}
                                   placeholder={pDef.placeholder || 'Paste API Key...'}
-                                  className="w-full px-2.5 py-1.5 pr-8 text-xs font-mono border border-[#CBD5E1] bg-white text-[#0B0F19] rounded-none focus:outline-none focus:border-[#00338D]"
+                                  className="w-full px-3 py-1.5 pr-8 text-xs font-mono border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D]"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowKeySecret(!showKeySecret)}
-                                  className="absolute right-2 top-2 text-slate-400 hover:text-slate-700"
+                                  className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                                 >
                                   {showKeySecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                 </button>
                               </div>
 
                               {discoveryError && (
-                                <div className="p-2 bg-red-50 border border-red-300 text-red-700 text-[10px] font-mono">
+                                <div className="p-2 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 text-[10px] font-mono rounded-lg">
                                   {discoveryError}
                                 </div>
                               )}
@@ -567,7 +576,7 @@ export default function Inspector({
                                 type="button"
                                 disabled={isDiscoveringNewProvider || (!providerKeyInput.trim() && pDef.id !== 'ollama')}
                                 onClick={() => handleSaveNewProviderKey(pDef.id, providerKeyInput)}
-                                className="btn-tactile w-full py-1.5 bg-[#00338D] hover:bg-[#005EB8] disabled:bg-slate-400 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                                className="card-pressable w-full py-1.5 bg-[#00338D] hover:bg-[#005EB8] disabled:bg-slate-400 text-white text-xs font-mono font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                               >
                                 {isDiscoveringNewProvider ? (
                                   <>
@@ -594,7 +603,7 @@ export default function Inspector({
             {/* Model Identifier Dropdown with all compatible models */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono flex items-center">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white font-mono flex items-center">
                   Model Identifier
                   <InfoTooltip text="Compatible models detected live via your API credentials." align="left" />
                 </label>
@@ -608,7 +617,7 @@ export default function Inspector({
                   <button
                     type="button"
                     onClick={() => setCustomModelMode(!customModelMode)}
-                    className="text-[10px] font-mono text-[#00338D] hover:underline font-bold"
+                    className="text-[10px] font-mono text-[#00338D] dark:text-blue-400 hover:underline font-semibold"
                   >
                     {customModelMode ? 'Compatible List' : 'Custom Model ID'}
                   </button>
@@ -621,13 +630,13 @@ export default function Inspector({
                   value={currentModelId}
                   onChange={(e) => handleModelIdSelect(e.target.value)}
                   placeholder="e.g. gpt-4o, claude-3-5-sonnet, gemini-2.0-flash"
-                  className="w-full px-3 py-2 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-mono text-[#0B0F19] focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl transition-all"
                 />
               ) : (
                 <select
                   value={currentModelId}
                   onChange={(e) => handleModelIdSelect(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-bold text-[#0B0F19] focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl transition-all cursor-pointer"
                 >
                   {availableModels.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -636,7 +645,7 @@ export default function Inspector({
                   ))}
                 </select>
               )}
-              <span className="text-[10px] text-slate-500 font-mono mt-1 block">
+              <span className="text-[10px] text-slate-500 font-mono mt-1.5 block">
                 {availableModels.length > 1
                   ? `${availableModels.length} compatible models accessible via your ${providerDef.name} API.`
                   : `Select any compatible model supported by ${providerDef.name}.`}
@@ -645,19 +654,19 @@ export default function Inspector({
 
             {/* Ollama Endpoint & API Token Settings */}
             {currentProvider === 'ollama' && (
-              <div className="p-3 bg-[#E6EDF7] border border-[#00338D]/20 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#00338D]">
+              <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#00338D] dark:text-blue-400">
                   <Server className="w-3.5 h-3.5" />
                   <span className="flex items-center">
                     Ollama Host & API Settings
                     <InfoTooltip text="Supports local daemon (http://localhost:11434) and authenticated remote cloud instances." align="left" />
                   </span>
                 </div>
-                <p className="text-[11px] text-[#001E50] leading-relaxed">
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
                   Connect to local on-device hardware or remote authenticated Ollama cloud endpoints.
                 </p>
                 <div>
-                  <label className="text-[10px] font-mono text-slate-600 block mb-1 flex items-center">
+                  <label className="text-[10px] font-mono text-slate-600 dark:text-slate-400 block mb-1 flex items-center">
                     Endpoint URL
                     <InfoTooltip text="Local host address or remote cloud Ollama instance." align="left" />
                   </label>
@@ -670,11 +679,11 @@ export default function Inspector({
                       });
                     }}
                     placeholder="http://localhost:11434 or https://..."
-                    className="w-full px-2.5 py-1.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-mono text-[#0B0F19] focus:outline-none focus:border-[#00338D] rounded-none"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D]"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-slate-600 block mb-1 flex items-center">
+                  <label className="text-[10px] font-mono text-slate-600 dark:text-slate-400 block mb-1 flex items-center">
                     API Key / Bearer Token
                     <InfoTooltip text="Optional token for authenticated remote Ollama servers." align="left" />
                   </label>
@@ -687,7 +696,7 @@ export default function Inspector({
                       });
                     }}
                     placeholder="ollama_... or Bearer token (optional for local)"
-                    className="w-full px-2.5 py-1.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs font-mono text-[#0B0F19] focus:outline-none focus:border-[#00338D] rounded-none"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D]"
                   />
                 </div>
               </div>
@@ -698,7 +707,7 @@ export default function Inspector({
               <button
                 type="button"
                 onClick={() => onOpenApiSettings && onOpenApiSettings(currentProvider)}
-                className="btn-tactile w-full flex items-center justify-center gap-2 py-2 text-xs font-bold bg-[#00338D] text-white hover:bg-[#005EB8] rounded-none transition-colors shadow-sm border-b-2 border-[#001E50] cursor-pointer"
+                className="card-pressable w-full flex items-center justify-center gap-2 py-2.5 text-xs font-semibold bg-[#00338D] text-white hover:bg-[#005EB8] rounded-xl transition-all shadow-sm cursor-pointer"
               >
                 <Key className="w-3.5 h-3.5" />
                 <span>Configure {providerDef.name} Credentials</span>
@@ -706,22 +715,22 @@ export default function Inspector({
             </div>
 
             {/* Hyperparameters */}
-            <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">
+            <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
               {(() => {
                 const isReasoning = isFixedTemperatureModel(currentModelId);
                 return (
                   <>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block font-mono flex items-center">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-900 dark:text-white block font-mono flex items-center">
                         Model Hyperparameters
                         <InfoTooltip text="Fine-tune how the AI model balances factual precision versus creative output." align="right" />
                       </span>
                       {isReasoning ? (
-                        <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 font-bold rounded-none">
+                        <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 font-semibold rounded-full">
                           Fixed Params (Reasoning)
                         </span>
                       ) : (
-                        <span className="text-[9px] font-mono uppercase bg-emerald-50 text-[#009A44] border border-[#009A44]/30 px-1.5 py-0.5 font-bold rounded-none">
+                        <span className="text-[9px] font-mono uppercase bg-emerald-50 text-[#009A44] border border-[#009A44]/30 px-2 py-0.5 font-semibold rounded-full">
                           Configurable
                         </span>
                       )}
@@ -729,11 +738,11 @@ export default function Inspector({
 
                     {/* Temperature Slider */}
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-[#0B0F19] flex items-center gap-1.5">
-                          <span className={isReasoning ? 'text-slate-400 font-normal' : 'text-[#0B0F19]'}>Temperature</span>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <span className={isReasoning ? 'text-slate-400 font-normal' : 'text-slate-900 dark:text-white'}>Temperature</span>
                           {isReasoning && (
-                            <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 font-bold">
+                            <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 font-semibold rounded-full">
                               Default (1.0)
                             </span>
                           )}
@@ -744,7 +753,11 @@ export default function Inspector({
                             align="left" 
                           />
                         </span>
-                        <span className={`text-xs font-mono font-bold ${isReasoning ? 'text-slate-400' : 'text-[#00338D]'}`}>
+                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
+                          isReasoning 
+                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' 
+                            : 'bg-[#00338D]/10 text-[#00338D] dark:text-blue-400'
+                        }`}>
                           {isReasoning ? '1.00 (Fixed)' : Number(nodeData.config?.temperature ?? 0.2).toFixed(2)}
                         </span>
                       </div>
@@ -760,10 +773,10 @@ export default function Inspector({
                             config: { ...nodeData.config, temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) }
                           });
                         }}
-                        className={`w-full accent-[#00338D] transition-opacity ${isReasoning ? 'opacity-35 cursor-not-allowed grayscale' : 'opacity-100 cursor-pointer'}`}
+                        className={`modern-slider w-full accent-[#00338D] transition-opacity ${isReasoning ? 'opacity-35 cursor-not-allowed grayscale' : 'opacity-100 cursor-pointer'}`}
                       />
                       {isReasoning && (
-                        <p className="text-[10px] text-amber-800 mt-1 font-sans italic leading-tight">
+                        <p className="text-[10px] text-amber-800 dark:text-amber-400 mt-1 font-sans italic leading-tight">
                           Reasoning & frontier models only permit default temperature (1.0).
                         </p>
                       )}
@@ -771,11 +784,11 @@ export default function Inspector({
 
                     {/* Top-P Slider */}
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-[#0B0F19] flex items-center gap-1.5">
-                          <span className={isReasoning ? 'text-slate-400 font-normal' : 'text-[#0B0F19]'}>Top-P</span>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <span className={isReasoning ? 'text-slate-400 font-normal' : 'text-slate-900 dark:text-white'}>Top-P</span>
                           {isReasoning && (
-                            <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 font-bold">
+                            <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 font-semibold rounded-full">
                               Default (1.0)
                             </span>
                           )}
@@ -786,7 +799,11 @@ export default function Inspector({
                             align="left" 
                           />
                         </span>
-                        <span className={`text-xs font-mono font-bold ${isReasoning ? 'text-slate-400' : 'text-[#00338D]'}`}>
+                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
+                          isReasoning 
+                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' 
+                            : 'bg-[#00338D]/10 text-[#00338D] dark:text-blue-400'
+                        }`}>
                           {isReasoning ? '1.00 (Fixed)' : Number(nodeData.config?.topP ?? 0.95).toFixed(2)}
                         </span>
                       </div>
@@ -802,10 +819,10 @@ export default function Inspector({
                             config: { ...nodeData.config, topP: parseFloat(parseFloat(e.target.value).toFixed(2)) }
                           });
                         }}
-                        className={`w-full accent-[#00338D] transition-opacity ${isReasoning ? 'opacity-35 cursor-not-allowed grayscale' : 'opacity-100 cursor-pointer'}`}
+                        className={`modern-slider w-full accent-[#00338D] transition-opacity ${isReasoning ? 'opacity-35 cursor-not-allowed grayscale' : 'opacity-100 cursor-pointer'}`}
                       />
                       {isReasoning && (
-                        <p className="text-[10px] text-amber-800 mt-1 font-sans italic leading-tight">
+                        <p className="text-[10px] text-amber-800 dark:text-amber-400 mt-1 font-sans italic leading-tight">
                           Nucleus sampling (Top-P) is restricted on reasoning models.
                         </p>
                       )}
@@ -819,38 +836,38 @@ export default function Inspector({
             {(() => {
               const profile = getLiveModelProfile(currentProvider, currentModelId);
               return (
-                <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1] space-y-2.5">
+                <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-3 shadow-xs">
                   {/* Top: Model Header & Context Limit */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <Sparkles className="w-3.5 h-3.5 text-[#00338D] shrink-0" />
-                      <span className="text-xs font-bold text-[#0B0F19] truncate font-mono">
+                      <Sparkles className="w-3.5 h-3.5 text-[#00338D] dark:text-blue-400 shrink-0" />
+                      <span className="text-xs font-bold text-slate-900 dark:text-white truncate font-mono">
                         {profile.displayName}
                       </span>
                     </div>
-                    <span className="text-[9px] font-mono font-bold bg-[#E6EDF7] text-[#00338D] px-1.5 py-0.5 border border-[#00338D]/20 shrink-0">
+                    <span className="text-[9px] font-mono font-semibold bg-[#E6EDF7] dark:bg-blue-900/40 text-[#00338D] dark:text-blue-300 px-2 py-0.5 rounded-full border border-[#00338D]/20 shrink-0">
                       {Math.round(profile.contextLength / 1000)}K Context
                     </span>
                   </div>
 
                   {/* Real-time Pricing Rate Card */}
-                  <div className="p-2.5 bg-white border border-[#E0E0E0] space-y-1.5">
+                  <div className="p-3 bg-white dark:bg-[#14151B] border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-2 shadow-xs">
                     <div className="flex items-center justify-between text-[10px] font-mono">
-                      <span className="text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-slate-500 font-semibold uppercase tracking-wider flex items-center gap-1">
                         <DollarSign className="w-3 h-3 text-[#EAAA00]" />
                         Live Token Rate Card
                       </span>
                       <span className="text-[9px] font-mono text-slate-400">USD / 1M Tokens</span>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#F1F5F9]">
-                      <div className="bg-[#F8F9FB] p-2 border border-[#CBD5E1]">
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <div className="bg-slate-50/80 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-700/60">
                         <span className="text-[9px] text-slate-500 font-mono block">Input (Prompt)</span>
-                        <span className="text-xs font-mono font-bold text-[#00338D]">
+                        <span className="text-xs font-mono font-bold text-[#00338D] dark:text-blue-400">
                           {profile.isFree ? '$0.00 (Free)' : `$${profile.promptPricePerMillion.toFixed(2)} / 1M`}
                         </span>
                       </div>
-                      <div className="bg-[#F8F9FB] p-2 border border-[#CBD5E1]">
+                      <div className="bg-slate-50/80 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-700/60">
                         <span className="text-[9px] text-slate-500 font-mono block">Output (Completion)</span>
                         <span className="text-xs font-mono font-bold text-[#009A44]">
                           {profile.isFree ? '$0.00 (Free)' : `$${profile.completionPricePerMillion.toFixed(2)} / 1M`}
@@ -858,25 +875,25 @@ export default function Inspector({
                       </div>
                     </div>
 
-                    <div className="text-[10px] font-mono text-slate-500 pt-1 flex justify-between items-center border-t border-[#F1F5F9]">
+                    <div className="text-[10px] font-mono text-slate-500 pt-1 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
                       <span>Est. Run Cost (1.2k tokens):</span>
-                      <strong className="text-[#0B0F19] font-bold font-mono">
+                      <strong className="text-slate-900 dark:text-white font-bold font-mono">
                         {profile.isFree ? '$0.0000' : `$${((350 * profile.promptPricePerToken) + (850 * profile.completionPricePerToken)).toFixed(4)}`}
                       </strong>
                     </div>
                   </div>
 
-                  {/* Live Model Description */}
-                  <p className="text-[11px] text-slate-600 leading-relaxed font-sans">
-                    {profile.description}
+                  {/* Live Model Description with cleaned markdown links */}
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                    {cleanDescription(profile.description)}
                   </p>
 
                   {/* Dynamic Capabilities Badges */}
-                  <div className="flex flex-wrap gap-1 pt-0.5">
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {profile.capabilities.map((cap, i) => (
                       <span
                         key={i}
-                        className="text-[9px] font-mono px-1.5 py-0.5 bg-white border border-[#CBD5E1] text-[#0B0F19] font-medium"
+                        className="text-[9px] font-mono px-2 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-full font-medium shadow-2xs"
                       >
                         ✓ {cap}
                       </span>
@@ -887,14 +904,14 @@ export default function Inspector({
             })()}
 
             {/* Save Model Specification Button */}
-            <div className="pt-3 border-t border-[#E0E0E0]">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => {
                   setSavedNotification(true);
                   setTimeout(() => setSavedNotification(false), 2500);
                 }}
-                className="btn-tactile w-full flex items-center justify-center gap-2 py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-bold font-mono rounded-none transition-colors border-b-2 border-[#001E50] shadow-sm cursor-pointer"
+                className="card-pressable w-full flex items-center justify-center gap-2 py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-semibold font-mono rounded-xl transition-all shadow-sm cursor-pointer"
               >
                 {savedNotification ? (
                   <>
@@ -914,20 +931,20 @@ export default function Inspector({
           /* Generic Inspector for other Pillars */
           <div className="space-y-4">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 block mb-1 font-mono flex items-center">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5 font-mono flex items-center">
                 Pillar Category
                 <InfoTooltip text="Which of the 10 core AI pillars (Skills, MCP, Tools, Gateway, Memory, Guardrails, etc.) this component belongs to." align="left" />
               </span>
-              <div className="p-2.5 bg-[#F8F9FB] border border-[#E0E0E0] flex items-center justify-between">
-                <span className="text-xs font-bold text-[#0B0F19] capitalize">{nodeData.pillarType}</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 bg-[#FFFFFF] text-[#00338D] border border-[#00338D]/20 font-bold">
+              <div className="p-3 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-between shadow-2xs">
+                <span className="text-xs font-bold text-slate-900 dark:text-white capitalize">{nodeData.pillarType}</span>
+                <span className="text-[10px] font-mono px-2.5 py-0.5 bg-white dark:bg-slate-800 text-[#00338D] dark:text-blue-400 border border-[#00338D]/20 rounded-full font-semibold shadow-2xs">
                   Socket: {pillarDef?.socketId}
                 </span>
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] block mb-1.5 font-mono flex items-center">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white block mb-1.5 font-mono flex items-center">
                 Block Display Name
                 <InfoTooltip text="The name assigned to this block on your canvas workspace." align="left" />
               </label>
@@ -935,12 +952,12 @@ export default function Inspector({
                 type="text"
                 value={nodeData.name}
                 onChange={(e) => onUpdateNodeData(selectedNode.id, { name: e.target.value })}
-                className="w-full px-3 py-1.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs text-[#0B0F19] focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl transition-all"
               />
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] block mb-1.5 font-mono flex items-center">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white block mb-1.5 font-mono flex items-center">
                 Description
                 <InfoTooltip text="A simple description explaining what this component does when your agent executes." align="left" />
               </label>
@@ -948,14 +965,14 @@ export default function Inspector({
                 rows={3}
                 value={nodeData.description}
                 onChange={(e) => onUpdateNodeData(selectedNode.id, { description: e.target.value })}
-                className="w-full p-2.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs text-[#0B0F19] leading-relaxed focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none resize-none transition-colors"
+                className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl resize-none transition-all"
               />
             </div>
 
             {nodeData.pillarType === 'skills' && (
-              <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">
+              <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#009A44] block mb-1.5 font-mono flex items-center">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[#009A44] block mb-1.5 font-mono flex items-center">
                     Skill Directives & Output Rules
                     <InfoTooltip text="Custom instructions and formatting commands injected directly into the LLM when executing this skill." align="right" />
                   </label>
@@ -964,18 +981,18 @@ export default function Inspector({
                     value={nodeData.customDirective || ''}
                     onChange={(e) => onUpdateNodeData(selectedNode.id, { customDirective: e.target.value })}
                     placeholder="e.g. Format output as numbered bullet points with exact dollar figures and assignees..."
-                    className="w-full p-2.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs text-[#0B0F19] leading-relaxed focus:outline-none focus:border-[#009A44] focus:ring-1 focus:ring-[#009A44] rounded-none resize-none transition-colors font-mono"
+                    className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#009A44]/20 focus:border-[#009A44] rounded-xl resize-none transition-all font-mono"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold uppercase tracking-[0.08em] text-[#009A44] font-mono flex items-center">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-[#009A44] font-mono flex items-center">
                       Reference Spec Document
                       <InfoTooltip text="Attach a Word (.docx), TXT, Markdown, or JSON file containing sample outputs and exact specifications for the AI to follow." align="right" />
                     </label>
                     {nodeData.referenceDoc && (
-                      <span className="text-[10px] font-mono text-[#009A44] font-bold">✓ Attached</span>
+                      <span className="text-[10px] font-mono text-[#009A44] font-semibold">✓ Attached</span>
                     )}
                   </div>
 
@@ -1011,10 +1028,10 @@ export default function Inspector({
                     />
                     <label
                       htmlFor={`inspector-skill-file-${selectedNode.id}`}
-                      className={`btn-tactile flex-1 py-2 px-3 border text-xs font-mono font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
+                      className={`card-pressable flex-1 py-2 px-3 border rounded-xl text-xs font-mono font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs ${
                         nodeData.referenceDoc
                           ? 'bg-[#E6F5EC] border-[#009A44] text-[#009A44]'
-                          : 'bg-[#F8F9FB] border-[#CBD5E1] text-[#0B0F19] hover:bg-[#E6EDF7] hover:border-[#00338D]'
+                          : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[#00338D]'
                       }`}
                     >
                       <Upload className="w-3.5 h-3.5" />
@@ -1027,7 +1044,7 @@ export default function Inspector({
                       <button
                         type="button"
                         onClick={() => onUpdateNodeData(selectedNode.id, { referenceDoc: null })}
-                        className="btn-tactile p-2 border border-[#CBD5E1] text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="card-pressable p-2 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                         title="Remove attached file"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -1036,9 +1053,9 @@ export default function Inspector({
                   </div>
 
                   {nodeData.referenceDoc?.text && (
-                    <div className="mt-2 p-2 bg-[#F8F9FB] border border-[#CBD5E1] text-[10px] font-mono text-slate-600 space-y-1">
-                      <span className="font-bold text-[#009A44] block">Extracted Spec Preview:</span>
-                      <p className="line-clamp-3 leading-relaxed text-[#0B0F19]">
+                    <div className="mt-2 p-3 bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl text-[10px] font-mono text-slate-600 dark:text-slate-400 space-y-1">
+                      <span className="font-semibold text-[#009A44] block">Extracted Spec Preview:</span>
+                      <p className="line-clamp-3 leading-relaxed text-slate-900 dark:text-white">
                         {nodeData.referenceDoc.text}
                       </p>
                     </div>
@@ -1048,8 +1065,8 @@ export default function Inspector({
             )}
 
             {nodeData.config && Object.keys(nodeData.config).length > 0 && (
-              <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">
-                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block font-mono flex items-center">
+              <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-900 dark:text-white block font-mono flex items-center">
                   Configuration Properties
                   <InfoTooltip text="Custom key-value parameters passed directly to this component during runtime execution." align="right" />
                 </span>
@@ -1065,7 +1082,7 @@ export default function Inspector({
                         const newConfig = { ...nodeData.config, [key]: e.target.value };
                         onUpdateNodeData(selectedNode.id, { config: newConfig });
                       }}
-                      className="w-full px-2.5 py-1.5 bg-[#FFFFFF] border border-[#CBD5E1] text-xs text-[#0B0F19] font-mono focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-lg transition-all"
                     />
                   </div>
                 ))}

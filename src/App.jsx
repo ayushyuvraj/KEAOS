@@ -611,17 +611,17 @@ export default function App() {
               {/* Single Unified Right Sidebar (Identical width w-96, flawless smooth transition between Inspector & Catalog) */}
               {((isInspectorOpen && selectedNode) || isAddMenuOpen) && (
                 <aside 
-                  className={`w-96 h-full border-l shrink-0 flex flex-col overflow-hidden select-none z-20 animate-in slide-in-from-right-3 duration-200 transition-all ${
-                    isDarkMode ? 'bg-[#181A20] border-[#2D313D]' : 'bg-[#FFFFFF] border-[#E0E0E0]'
+                  className={`w-96 h-full border-l shrink-0 flex flex-col overflow-hidden select-none z-20 animate-in slide-in-from-right-3 duration-250 ease-out transition-all ${
+                    isDarkMode ? 'bg-[#16181F] border-slate-800/80 shadow-2xl' : 'bg-white border-slate-200/80 shadow-xl'
                   }`}
                 >
                   <div className="relative w-full h-full overflow-hidden flex-1">
                     {/* View 1: Node & Capability Catalog */}
                     <div
-                      className={`absolute inset-0 w-full h-full flex flex-col transition-all duration-300 ease-in-out ${
+                      className={`absolute inset-0 w-full h-full flex flex-col transition-all duration-250 ease-out ${
                         isAddMenuOpen
                           ? 'opacity-100 translate-x-0 pointer-events-auto z-10'
-                          : 'opacity-0 translate-x-6 pointer-events-none z-0'
+                          : 'opacity-0 translate-x-4 pointer-events-none z-0'
                       }`}
                     >
                       <NodeCatalogPanel
@@ -638,10 +638,10 @@ export default function App() {
                     {/* View 2: Node & Foundation Model Inspector */}
                     {selectedNode && (
                       <div
-                        className={`absolute inset-0 w-full h-full flex flex-col transition-all duration-300 ease-in-out ${
+                        className={`absolute inset-0 w-full h-full flex flex-col transition-all duration-250 ease-out ${
                           !isAddMenuOpen && isInspectorOpen
                             ? 'opacity-100 translate-x-0 pointer-events-auto z-10'
-                            : 'opacity-0 -translate-x-6 pointer-events-none z-0'
+                            : 'opacity-0 -translate-x-4 pointer-events-none z-0'
                         }`}
                       >
                         <Inspector

@@ -522,8 +522,8 @@ export default function NodeCatalogPanel({
       {/* ============================================================ */}
       {/* HEADER: Dynamic based on Tier 1 vs Tier 2                    */}
       {/* ============================================================ */}
-      <div className={`p-4 border-b shrink-0 ${
-        isDarkMode ? 'border-[#2D313D] bg-[#1E2028]' : 'border-[#E2E8F0] bg-[#F8FAFC]'
+      <div className={`p-4 border-b shrink-0 transition-colors duration-200 ${
+        isDarkMode ? 'border-white/10 bg-[#16181F]/90 backdrop-blur-md' : 'border-slate-200/80 bg-white/90 backdrop-blur-md'
       }`}>
         {activeCategory ? (
           /* Tier 2 Header: Back button + Category Title */
@@ -535,10 +535,10 @@ export default function NodeCatalogPanel({
                     ? () => { setSelectedModelProvider(null); setDiscoveryError(null); }
                     : handleBackToCategories
                 }
-                className={`btn-tactile flex items-center gap-1.5 text-xs font-mono font-bold transition-colors ${
+                className={`btn-tactile flex items-center gap-1.5 text-xs font-semibold rounded-lg px-2 py-1 -ml-2 transition-colors ${
                   isDarkMode 
-                    ? 'text-slate-300 hover:text-white' 
-                    : 'text-slate-600 hover:text-[#00338D]'
+                    ? 'text-slate-400 hover:text-white hover:bg-white/10' 
+                    : 'text-slate-600 hover:text-[#00338D] hover:bg-slate-100'
                 }`}
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -551,8 +551,8 @@ export default function NodeCatalogPanel({
 
               <button
                 onClick={onClose}
-                className={`p-1 transition-colors ${
-                  isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-[#0B0F19]'
+                className={`btn-tactile p-1.5 rounded-lg transition-colors ${
+                  isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
                 }`}
                 title="Close panel"
               >
@@ -560,34 +560,34 @@ export default function NodeCatalogPanel({
               </button>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <div 
-                className="w-7 h-7 flex items-center justify-center shrink-0 border"
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-xs"
                 style={{ 
                   backgroundColor: activeCategory.bgColor, 
                   color: activeCategory.color,
-                  borderColor: `${activeCategory.color}40`
+                  borderColor: `${activeCategory.color}35`
                 }}
               >
                 {activeCategory.id === 'model' && selectedModelProvider ? (
                   (() => {
                     const CurrentLogo = MODEL_PROVIDERS.find(p => p.id === selectedModelProvider)?.logo || Cpu;
-                    return <CurrentLogo className="w-4 h-4" />;
+                    return <CurrentLogo className="w-4.5 h-4.5" />;
                   })()
                 ) : (
-                  React.createElement(activeCategory.icon || Wrench, { className: 'w-4 h-4' })
+                  React.createElement(activeCategory.icon || Wrench, { className: 'w-4.5 h-4.5' })
                 )}
               </div>
               <div className="flex-1 truncate">
                 <h3 className={`text-sm font-bold tracking-tight truncate ${
-                  isDarkMode ? 'text-white' : 'text-[#001E50]'
+                  isDarkMode ? 'text-white' : 'text-slate-900'
                 }`}>
                   {activeCategory.id === 'model' && selectedModelProvider
                     ? `${MODEL_PROVIDERS.find(p => p.id === selectedModelProvider)?.name} Models`
                     : activeCategory.label}
                 </h3>
-                <span className={`text-[10px] font-mono ${
-                  isDarkMode ? 'text-slate-400' : 'text-slate-500 font-medium'
+                <span className={`text-[11px] font-medium ${
+                  isDarkMode ? 'text-slate-400' : 'text-slate-500'
                 }`}>
                   {activeCategory.id === 'model'
                     ? selectedModelProvider
@@ -603,13 +603,13 @@ export default function NodeCatalogPanel({
         ) : (
           /* Tier 1 Header: Title + Search */
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <div>
                 <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#0091DA] block">
                   Nodes & Capabilities
                 </span>
-                <h3 className={`text-sm font-bold tracking-tight ${
-                  isDarkMode ? 'text-white' : 'text-[#001E50]'
+                <h3 className={`text-base font-bold tracking-tight ${
+                  isDarkMode ? 'text-white' : 'text-slate-900'
                 }`}>
                   What happens next?
                 </h3>
@@ -617,8 +617,8 @@ export default function NodeCatalogPanel({
 
               <button
                 onClick={onClose}
-                className={`p-1 transition-colors ${
-                  isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-[#0B0F19]'
+                className={`btn-tactile p-1.5 rounded-lg transition-colors ${
+                  isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
                 }`}
                 title="Close panel"
               >
@@ -630,23 +630,23 @@ export default function NodeCatalogPanel({
 
         {/* Search Input (only shown when not inside a selected model provider) */}
         {!(activeCategory?.id === 'model' && selectedModelProvider) && (
-          <div className="relative mt-2">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <div className="relative mt-2.5">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
             <input
               type="text"
-              placeholder={activeCategory ? `Search in ${activeCategory.label}...` : "Search nodes..."}
+              placeholder={activeCategory ? `Search in ${activeCategory.label}...` : "Search capabilities & nodes..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-9 pr-8 py-2 text-xs border focus:outline-none transition-colors rounded-none ${
+              className={`w-full pl-9 pr-9 py-2 text-xs rounded-xl border transition-all duration-200 outline-none ${
                 isDarkMode 
-                  ? 'bg-[#14151B] border-[#2D313D] text-white placeholder-slate-500 focus:border-[#0091DA]' 
-                  : 'bg-white border-[#CBD5E1] text-[#0B0F19] placeholder-slate-400 focus:border-[#00338D]'
+                  ? 'bg-white/[0.04] border-white/10 text-white placeholder-slate-500 focus:border-[#0091DA] focus:ring-2 focus:ring-[#0091DA]/20' 
+                  : 'bg-slate-100/80 border-slate-200/70 text-slate-900 placeholder-slate-400 focus:border-[#00338D]/50 focus:bg-white focus:ring-3 focus:ring-[#00338D]/10'
               }`}
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+                className="absolute right-2.5 top-2.5 p-0.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -1112,38 +1112,38 @@ export default function NodeCatalogPanel({
             )
           ) : (
             /* Other categories (Skills, MCP, Tools, etc.) */
-            <div className="p-3 space-y-3">
+            <div className="p-3 space-y-2.5">
               {/* Create Custom Skill Button & Form (for Skills Category) */}
               {activeCategory.id === 'skills' && (
-                <div className="space-y-2">
+                <div className="space-y-2 mb-2">
                   {!isCreatingSkill ? (
                     <button
                       onClick={() => setIsCreatingSkill(true)}
-                      className="btn-tactile w-full py-2.5 px-3 bg-[#009A44] hover:bg-[#007F38] text-white text-xs font-bold font-mono flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                      className="card-pressable w-full py-2.5 px-3 rounded-xl bg-[#009A44] hover:bg-[#007F38] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>+ Create Custom Skill</span>
                     </button>
                   ) : (
-                    <form onSubmit={handleCreateSkill} className={`p-3 border space-y-3 animate-in fade-in zoom-in-95 duration-150 ${
-                      isDarkMode ? 'bg-[#1E2028] border-[#009A44]/60' : 'bg-[#E6F5EC] border-[#009A44]/60'
+                    <form onSubmit={handleCreateSkill} className={`p-3.5 border rounded-xl space-y-3 animate-in fade-in zoom-in-95 duration-200 shadow-sm ${
+                      isDarkMode ? 'bg-[#1E2028] border-[#009A44]/50' : 'bg-[#E6F5EC]/60 border-[#009A44]/40'
                     }`}>
-                      <div className="flex items-center justify-between border-b border-[#009A44]/30 pb-2">
-                        <span className="text-xs font-bold text-[#009A44] font-mono flex items-center gap-1.5">
+                      <div className="flex items-center justify-between border-b border-[#009A44]/20 pb-2">
+                        <span className="text-xs font-semibold text-[#009A44] flex items-center gap-1.5">
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>Define New Custom Skill</span>
                         </span>
                         <button
                           type="button"
                           onClick={() => setIsCreatingSkill(false)}
-                          className="text-slate-400 hover:text-white text-xs"
+                          className="w-5 h-5 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs"
                         >
                           ✕
                         </button>
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-mono font-bold text-slate-400 block mb-1 uppercase">
+                        <label className="text-[10px] font-mono font-semibold text-slate-400 block mb-1 uppercase tracking-wider">
                           Skill Name *
                         </label>
                         <input
@@ -1152,17 +1152,17 @@ export default function NodeCatalogPanel({
                           onChange={(e) => setNewSkillName(e.target.value)}
                           placeholder="e.g. Contract Clause Extractor"
                           required
-                          className={`w-full px-2.5 py-1.5 text-xs border rounded-none focus:outline-none ${
+                          className={`w-full px-3 py-1.5 text-xs rounded-lg border transition-all focus:outline-none ${
                             isDarkMode 
-                              ? 'bg-[#14151B] border-[#2D313D] text-white focus:border-[#009A44]' 
-                              : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#009A44]'
+                              ? 'bg-[#14151B] border-slate-700 text-white focus:border-[#009A44] focus:ring-2 focus:ring-[#009A44]/20' 
+                              : 'bg-white border-slate-300 text-slate-900 focus:border-[#009A44] focus:ring-2 focus:ring-[#009A44]/20'
                           }`}
                           autoFocus
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-mono font-bold text-slate-400 block mb-1 uppercase">
+                        <label className="text-[10px] font-mono font-semibold text-slate-400 block mb-1 uppercase tracking-wider">
                           Description
                         </label>
                         <input
@@ -1170,18 +1170,18 @@ export default function NodeCatalogPanel({
                           value={newSkillDesc}
                           onChange={(e) => setNewSkillDesc(e.target.value)}
                           placeholder="e.g. Extracts termination clauses, liability limits, and SLAs."
-                          className={`w-full px-2.5 py-1.5 text-xs border rounded-none focus:outline-none ${
+                          className={`w-full px-3 py-1.5 text-xs rounded-lg border transition-all focus:outline-none ${
                             isDarkMode 
-                              ? 'bg-[#14151B] border-[#2D313D] text-white focus:border-[#009A44]' 
-                              : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#009A44]'
+                              ? 'bg-[#14151B] border-slate-700 text-white focus:border-[#009A44] focus:ring-2 focus:ring-[#009A44]/20' 
+                              : 'bg-white border-slate-300 text-slate-900 focus:border-[#009A44] focus:ring-2 focus:ring-[#009A44]/20'
                           }`}
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-mono font-bold text-slate-400 block mb-1 uppercase flex items-center justify-between">
+                        <label className="text-[10px] font-mono font-semibold text-slate-400 block mb-1 uppercase tracking-wider flex items-center justify-between">
                           <span>Attach Reference Spec (.docx, .txt, .md, .json)</span>
-                          {referenceDoc && <span className="text-[#009A44] font-bold">✓ Parsed</span>}
+                          {referenceDoc && <span className="text-[#009A44] font-semibold">✓ Parsed</span>}
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -1193,10 +1193,10 @@ export default function NodeCatalogPanel({
                           />
                           <label
                             htmlFor="custom-skill-doc-input"
-                            className={`btn-tactile flex-1 py-1.5 px-3 border text-xs font-mono font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
+                            className={`card-pressable flex-1 py-1.5 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-colors ${
                               referenceDoc
                                 ? 'bg-[#E6F5EC] border-[#009A44] text-[#009A44]'
-                                : 'bg-[#14151B] border-[#2D313D] text-slate-300 hover:text-white'
+                                : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                             }`}
                           >
                             <Upload className="w-3.5 h-3.5" />
@@ -1206,7 +1206,7 @@ export default function NodeCatalogPanel({
                             <button
                               type="button"
                               onClick={() => setReferenceDoc(null)}
-                              className="p-1.5 text-slate-400 hover:text-red-400"
+                              className="p-1.5 rounded-md text-slate-400 hover:text-red-400"
                               title="Remove attached file"
                             >
                               <X className="w-3.5 h-3.5" />
@@ -1216,7 +1216,7 @@ export default function NodeCatalogPanel({
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-mono font-bold text-slate-400 block mb-1 uppercase">
+                        <label className="text-[10px] font-mono font-semibold text-slate-400 block mb-1 uppercase tracking-wider">
                           Prompt Directives & Output Rules
                         </label>
                         <textarea
@@ -1224,10 +1224,10 @@ export default function NodeCatalogPanel({
                           value={newSkillDirective}
                           onChange={(e) => setNewSkillDirective(e.target.value)}
                           placeholder="e.g. Format output strictly as a markdown table with columns: Clause | Penalty | Severity..."
-                          className={`w-full p-2.5 text-xs font-mono border rounded-none focus:outline-none resize-none ${
+                          className={`w-full p-2.5 text-xs font-mono rounded-lg border transition-all focus:outline-none resize-none ${
                             isDarkMode 
-                              ? 'bg-[#14151B] border-[#2D313D] text-white focus:border-[#009A44]' 
-                              : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#009A44]'
+                              ? 'bg-[#14151B] border-slate-700 text-white focus:border-[#009A44] focus:ring-2 focus:ring-[#009A44]/20' 
+                              : 'bg-white border-slate-300 text-slate-900 focus:border-[#009A44] focus:ring-2 focus:ring-[#009A44]/20'
                           }`}
                         />
                       </div>
@@ -1236,7 +1236,7 @@ export default function NodeCatalogPanel({
                         <button
                           type="submit"
                           disabled={!newSkillName.trim()}
-                          className="btn-tactile flex-1 py-1.5 bg-[#009A44] hover:bg-[#007F38] disabled:bg-slate-600 text-white font-bold text-xs font-mono flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          className="card-pressable flex-1 py-1.5 rounded-lg bg-[#009A44] hover:bg-[#007F38] disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Save & Add to Canvas</span>
@@ -1244,7 +1244,7 @@ export default function NodeCatalogPanel({
                         <button
                           type="button"
                           onClick={() => setIsCreatingSkill(false)}
-                          className="btn-tactile px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-mono font-bold transition-colors cursor-pointer"
+                          className="card-pressable px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -1267,33 +1267,38 @@ export default function NodeCatalogPanel({
                     <div
                       key={item.id}
                       onClick={() => handleItemAdd(activeCategory.id, item)}
-                      className={`group p-3 border transition-all cursor-pointer flex items-start justify-between gap-3 shadow-sm ${
+                      className={`group p-3.5 border rounded-xl transition-all duration-200 cursor-pointer flex items-start justify-between gap-3 shadow-sm card-pressable ${
                         isDarkMode 
-                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0091DA] hover:bg-[#252833]' 
-                          : 'bg-white border-[#E2E8F0] hover:border-[#00338D] hover:bg-[#F8FAFC]'
+                          ? 'bg-[#1E2028]/90 border-slate-700/60 hover:border-[#0091DA]/80 hover:bg-[#252833] hover:shadow-md' 
+                          : 'bg-white border-slate-200/90 hover:border-[#00338D]/60 hover:bg-slate-50/80 hover:shadow-md'
                       }`}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <ItemIcon className="w-3.5 h-3.5 shrink-0" style={{ color: activeCategory.color }} />
-                          <h5 className={`text-xs font-bold truncate ${
-                            isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                          <div 
+                            className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: `${activeCategory.color}15`, color: activeCategory.color }}
+                          >
+                            <ItemIcon className="w-3.5 h-3.5" />
+                          </div>
+                          <h5 className={`text-xs font-semibold truncate ${
+                            isDarkMode ? 'text-white' : 'text-slate-900'
                           }`}>
                             {item.name}
                           </h5>
                         </div>
-                        <p className={`text-[11px] line-clamp-2 mt-1 leading-relaxed ${
+                        <p className={`text-[11px] line-clamp-2 mt-1.5 leading-relaxed ${
                           isDarkMode ? 'text-slate-400' : 'text-slate-600'
                         }`}>
                           {item.description}
                         </p>
-                        <div className="mt-2 flex items-center gap-1.5">
+                        <div className="mt-2.5 flex items-center gap-1.5">
                           <span 
-                            className="text-[9px] font-mono px-1.5 py-0.5 border flex items-center gap-1 font-bold"
+                            className="text-[9px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 font-medium"
                             style={{ 
                               backgroundColor: activeCategory.bgColor, 
                               color: activeCategory.color, 
-                              borderColor: `${activeCategory.color}40` 
+                              borderColor: `${activeCategory.color}30` 
                             }}
                           >
                             <Plug className="w-2.5 h-2.5" />
@@ -1301,18 +1306,18 @@ export default function NodeCatalogPanel({
                           </span>
 
                           {isCustom && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#009A44]/20 text-[#009A44] border border-[#009A44]/40 font-bold">
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 font-semibold">
                               CUSTOM
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {isCustom && (
                           <button
                             onClick={(e) => handleDeleteCustomSkill(item.id, e)}
-                            className="btn-tactile w-7 h-7 flex items-center justify-center shrink-0 border border-slate-700 hover:border-red-500 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all mt-0.5"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border border-slate-700/50 hover:border-red-500/60 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all card-pressable"
                             title="Delete Custom Skill"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1324,10 +1329,10 @@ export default function NodeCatalogPanel({
                             e.stopPropagation();
                             handleItemAdd(activeCategory.id, item);
                           }}
-                          className={`btn-tactile w-7 h-7 flex items-center justify-center shrink-0 border transition-all mt-0.5 ${
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-all card-pressable ${
                             addedItemId === item.id
                               ? 'bg-[#009A44] text-white border-[#009A44]'
-                              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#001E50]'
+                              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-sm'
                           }`}
                           title="Add to Canvas"
                         >
@@ -1340,30 +1345,27 @@ export default function NodeCatalogPanel({
             </div>
           )
         ) : (
-          /* Tier 1 Primary Category List (Exact sequence requested by user) */
-          <div className="divide-y divide-inherit">
+          /* Tier 1 Primary Category List (Modern floating cards with squircle icons) */
+          <div className="p-3 space-y-2">
             {NODE_CATEGORIES.map(category => {
               const CategoryIcon = category.icon;
               return (
                 <button
                   key={category.id}
                   onClick={() => handleSelectCategory(category.id)}
-                  className={`w-full p-4 flex items-center justify-between text-left transition-all group ${
+                  className={`w-full p-3 rounded-xl border flex items-center justify-between text-left transition-all duration-200 group card-pressable ${
                     isDarkMode 
-                      ? 'hover:bg-[#1E2028] hover:border-l-4 hover:border-l-[#0091DA]' 
-                      : 'hover:bg-[#F8FAFC] hover:border-l-4 hover:border-l-[#00338D]'
+                      ? 'bg-[#1A1C24]/80 border-slate-800/80 hover:border-slate-700 hover:bg-[#20232E]' 
+                      : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/70 hover:shadow-sm'
                   }`}
-                  style={{
-                    borderLeftColor: category.color
-                  }}
                 >
-                  <div className="flex items-start gap-3 min-w-0 pr-2">
+                  <div className="flex items-center gap-3 min-w-0 pr-2">
                     <div 
-                      className="w-8 h-8 flex items-center justify-center shrink-0 border shadow-inner mt-0.5"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform duration-200 group-hover:scale-105"
                       style={{ 
                         backgroundColor: category.bgColor, 
                         color: category.color,
-                        borderColor: `${category.color}40` 
+                        borderColor: `${category.color}35` 
                       }}
                     >
                       <CategoryIcon className="w-4 h-4" />
@@ -1371,30 +1373,32 @@ export default function NodeCatalogPanel({
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h4 className={`text-xs font-bold tracking-tight ${
-                          isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                        <h4 className={`text-xs font-semibold tracking-tight ${
+                          isDarkMode ? 'text-white' : 'text-slate-900'
                         }`}>
                           {category.label}
                         </h4>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-                          isDarkMode ? 'bg-white/10 text-slate-300' : 'bg-[#E6EDF7] text-[#00338D]'
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold ${
+                          isDarkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'
                         }`}>
                           {category.items.length}
                         </span>
                       </div>
-                      <p className={`text-[11px] mt-0.5 line-clamp-2 leading-relaxed ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                      <p className={`text-[11px] mt-0.5 line-clamp-1 leading-relaxed ${
+                        isDarkMode ? 'text-slate-400' : 'text-slate-500'
                       }`}>
                         {category.subtitle}
                       </p>
                     </div>
                   </div>
 
-                  <ChevronRight className={`w-4 h-4 transition-all shrink-0 ${
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 ${
                     isDarkMode 
-                      ? 'text-slate-400 group-hover:text-white group-hover:translate-x-0.5' 
-                      : 'text-slate-400 group-hover:text-[#00338D] group-hover:translate-x-0.5'
-                  }`} />
+                      ? 'text-slate-400 group-hover:text-white group-hover:bg-white/10 group-hover:translate-x-0.5' 
+                      : 'text-slate-400 group-hover:text-[#00338D] group-hover:bg-blue-50 group-hover:translate-x-0.5'
+                  }`}>
+                    <ChevronRight className="w-4 h-4" />
+                  </div>
                 </button>
               );
             })}
@@ -1406,10 +1410,16 @@ export default function NodeCatalogPanel({
       {/* FOOTER: Architecture Info                                    */}
       {/* ============================================================ */}
       <div className={`p-3 border-t text-[10px] font-mono flex items-center justify-between shrink-0 ${
-        isDarkMode ? 'bg-[#14151B] border-[#2D313D] text-slate-400' : 'bg-[#F8FAFC] border-[#E2E8F0] text-slate-600 font-bold'
+        isDarkMode ? 'bg-[#14151B]/80 border-slate-800 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
       }`}>
-        <span>8 VISUAL PILLARS</span>
-        <span>AUDIT & COST: INHERENT</span>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#009A44]" />
+          <span>8 VISUAL PILLARS</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA]" />
+          <span>AUDIT & COST: INHERENT</span>
+        </div>
       </div>
     </aside>
   );
