@@ -77,7 +77,9 @@ export default function Inspector({
   onDeleteNode,
   onClose,
   onCollapse,
-  onOpenApiSettings
+  onOpenApiSettings,
+  isDarkMode = true,
+  isEmbedded = false
 }) {
   // Always derive freshest node data from nodes array if available
   const selectedNode = useMemo(() => {
@@ -295,9 +297,13 @@ export default function Inspector({
   };
 
   return (
-    <aside className="w-88 h-full bg-[#FFFFFF] border-l border-[#E0E0E0] flex flex-col shrink-0 overflow-hidden shadow-sm select-none">
+    <aside className={`${
+      isEmbedded ? 'w-full h-full' : 'w-96 h-full border-l border-[#E0E0E0] shadow-sm'
+    } bg-[#FFFFFF] flex flex-col shrink-0 overflow-hidden select-none`}>
       {/* Header */}
-      <div className="p-4 border-b border-[#E0E0E0] bg-[#F8F9FB] flex items-center justify-between">
+      <div className={`p-4 border-b shrink-0 flex items-center justify-between ${
+        isDarkMode ? 'border-[#2D313D] bg-[#1E2028]' : 'border-[#E0E0E0] bg-[#F8F9FB]'
+      }`}>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-[#00338D] text-white flex items-center justify-center shadow-inner">
             {isAgent ? (

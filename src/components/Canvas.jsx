@@ -44,7 +44,6 @@ import {
 
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
 import DeletableEdge from './edges/DeletableEdge';
-import NodeCatalogPanel from './NodeCatalogPanel';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
@@ -93,6 +92,8 @@ function CanvasInner({
   onAddNode,
   isInspectorOpen,
   setIsInspectorOpen,
+  isAddMenuOpen: isAddMenuOpenProp,
+  setIsAddMenuOpen: setIsAddMenuOpenProp,
   selectedNode,
   isDarkMode = true,
   setIsDarkMode,
@@ -105,13 +106,29 @@ function CanvasInner({
   isDrawerExpanded = false,
   setIsDrawerExpanded
 }) {
-  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const [internalAddMenuOpen, setInternalAddMenuOpen] = useState(false);
+  const isAddMenuOpen = setIsAddMenuOpenProp !== undefined ? isAddMenuOpenProp : internalAddMenuOpen;
+  const setIsAddMenuOpen = setIsAddMenuOpenProp || setInternalAddMenuOpen;
   const [isDraggingMiniMap, setIsDraggingMiniMap] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, initialX: 0, initialY: 0 });
   const [rfInstance, setRfInstance] = useState(null);
   const [executionState, setExecutionState] = useState({ isExecuting: false, step: '' });
   const [toastNotification, setToastNotification] = useState(null);
   const hoveredNodeIdRef = useRef(null);
+
+  // Global toast listener for canvas messages
+  useEffect(() => {
+    const handleToast = (e) => {
+      if (e.detail?.message) {
+        setToastNotification(e.detail.message);
+        setTimeout(() => {
+          setToastNotification((curr) => (curr === e.detail.message ? null : curr));
+        }, 2200);
+      }
+    };
+    window.addEventListener('keaos:toast', handleToast);
+    return () => window.removeEventListener('keaos:toast', handleToast);
+  }, []);
 
   // Drag handler for summary map
   const handleMouseDownMiniMap = (e) => {
@@ -340,9 +357,10 @@ function CanvasInner({
   const handleOpenInspector = useCallback((nodeId) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
+    setIsAddMenuOpen(false);
     if (onSelectNode) onSelectNode(node);
     if (setIsInspectorOpen) setIsInspectorOpen(true);
-  }, [nodes, onSelectNode, setIsInspectorOpen]);
+  }, [nodes, onSelectNode, setIsInspectorOpen, setIsAddMenuOpen]);
 
   // Handle execute single step
   const handleExecuteNode = useCallback((nodeId) => {
@@ -747,7 +765,14 @@ function CanvasInner({
         }`}>
           {/* 1. Add Node (+) */}
           <button
-            onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+            onClick={() => {
+              const next = !isAddMenuOpen;
+              setIsAddMenuOpen(next);
+              if (next) {
+                if (setIsInspectorOpen) setIsInspectorOpen(false);
+                if (onSelectNode) onSelectNode(null);
+              }
+            }}
             className={`w-10 h-10 flex items-center justify-center transition-colors ${
               isAddMenuOpen 
                 ? 'bg-[#0091DA] text-white' 
@@ -761,9 +786,20 @@ function CanvasInner({
           {/* 2. Inspector / HUD Toggle */}
           {setIsInspectorOpen && (
             <button
-              onClick={() => setIsInspectorOpen(!isInspectorOpen)}
+              onClick={() => {
+                if (isInspectorOpen && !isAddMenuOpen) {
+                  setIsInspectorOpen(false);
+                } else {
+                  setIsAddMenuOpen(false);
+                  setIsInspectorOpen(true);
+                  if (!selectedNode && nodes.length > 0) {
+                    const coreNode = nodes.find(n => n.type === 'agentCore') || nodes[0];
+                    if (onSelectNode) onSelectNode(coreNode);
+                  }
+                }
+              }}
               className={`w-10 h-10 flex items-center justify-center transition-colors ${
-                isInspectorOpen 
+                isInspectorOpen && !isAddMenuOpen
                   ? 'bg-white/15 text-white' 
                   : 'text-slate-400 hover:text-white hover:bg-white/10'
               }`}
@@ -787,23 +823,6 @@ function CanvasInner({
           </button>
         </div>
       </div>
-
-      {/* n8n-Style Two-Tier Right Drawer Node Catalog Panel */}
-      <NodeCatalogPanel
-        isOpen={isAddMenuOpen}
-        onClose={() => setIsAddMenuOpen(false)}
-        onAddNode={(category, item) => {
-          if (onAddNode) {
-            onAddNode(category, item);
-          }
-          const toastMsg = `➕ Added "${item.name}" to Canvas`;
-          setToastNotification(toastMsg);
-          setTimeout(() => {
-            setToastNotification((curr) => (curr === toastMsg ? null : curr));
-          }, 2000);
-        }}
-        isDarkMode={isDarkMode}
-      />
 
       {/* Bottom-Left Minimal Square Controls (Matching Reference Image) */}
       <div className="absolute bottom-14 left-6 z-20 flex items-center gap-2">
@@ -952,7 +971,10 @@ function CanvasInner({
         }}
         fitView
         fitViewOptions={{ padding: 0.2 }}
-        onNodeClick={(_, node) => onSelectNode(node)}
+        onNodeClick={(_, node) => {
+          setIsAddMenuOpen(false);
+          if (onSelectNode) onSelectNode(node);
+        }}
         onNodeMouseEnter={(_, node) => {
           hoveredNodeIdRef.current = node.id;
         }}
@@ -960,7 +982,8 @@ function CanvasInner({
           hoveredNodeIdRef.current = null;
         }}
         onPaneClick={() => {
-          onSelectNode(null);
+          if (onSelectNode) onSelectNode(null);
+          if (setIsInspectorOpen) setIsInspectorOpen(false);
           setIsAddMenuOpen(false);
           window.dispatchEvent(new CustomEvent('keaos:close-popups'));
         }}

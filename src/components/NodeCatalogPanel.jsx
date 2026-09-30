@@ -228,7 +228,8 @@ export default function NodeCatalogPanel({
   isOpen,
   onClose,
   onAddNode,
-  isDarkMode = true
+  isDarkMode = true,
+  isEmbedded = false
 }) {
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -508,7 +509,11 @@ export default function NodeCatalogPanel({
 
   return (
     <aside 
-      className={`absolute top-0 right-0 w-96 h-full z-30 flex flex-col border-l shadow-2xl transition-all duration-200 animate-in slide-in-from-right duration-200 select-none ${
+      className={`${
+        isEmbedded 
+          ? 'w-full h-full' 
+          : 'absolute top-0 right-0 w-96 h-full z-30 border-l shadow-2xl animate-in slide-in-from-right duration-200'
+      } flex flex-col select-none overflow-hidden transition-all duration-200 ${
         isDarkMode 
           ? 'bg-[#181A20] border-[#2D313D] text-[#E2E8F0]' 
           : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19]'

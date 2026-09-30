@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Canvas from './components/Canvas';
 import Inspector from './components/Inspector';
+import NodeCatalogPanel from './components/NodeCatalogPanel';
 import MakeUseCaseModal from './components/MakeUseCaseModal';
 import MeetingSimulator from './components/MeetingSimulator';
 import EvaluationView from './components/EvaluationView';
@@ -228,6 +229,7 @@ export default function App() {
   const [showMiniMap, setShowMiniMapState] = useState(initialUI.showMiniMap);
   const [miniMapPos, setMiniMapPosState] = useState(initialUI.miniMapPos);
   const [isInspectorOpen, setIsInspectorOpenState] = useState(initialUI.isInspectorOpen);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isEnforcerActive, setIsEnforcerActiveState] = useState(initialUI.isEnforcerActive);
   const [viewMode, setViewModeState] = useState(initialUI.viewMode);
 
@@ -389,7 +391,12 @@ export default function App() {
 
     setNodes((nds) => [...nds, newNode]);
     setSelectedNode(newNode);
-  }, [setNodes, activeUseCase, handleDeleteNode]);
+    setIsInspectorOpen(true);
+    setIsAddMenuOpen(false);
+    window.dispatchEvent(new CustomEvent('keaos:toast', {
+      detail: { message: `➕ Added "${item.name}" to Canvas` }
+    }));
+  }, [setNodes, activeUseCase, handleDeleteNode, setIsInspectorOpen]);
 
   // Update Agent Config
   const handleUpdateAgentConfig = (updates) => {
@@ -575,13 +582,18 @@ export default function App() {
                   onEdgesChange={onEdgesChange}
                   onSelectNode={(node) => {
                     setSelectedNode(node);
-                    if (node) setIsInspectorOpen(true);
+                    if (node) {
+                      setIsInspectorOpen(true);
+                      setIsAddMenuOpen(false);
+                    }
                   }}
                   invalidConnectionAlert={invalidConnectionAlert}
                   setInvalidConnectionAlert={setInvalidConnectionAlert}
                   onAddNode={handleAddNode}
                   isInspectorOpen={isInspectorOpen}
                   setIsInspectorOpen={setIsInspectorOpen}
+                  isAddMenuOpen={isAddMenuOpen}
+                  setIsAddMenuOpen={setIsAddMenuOpen}
                   selectedNode={selectedNode}
                   isDarkMode={isDarkMode}
                   setIsDarkMode={setIsDarkMode}
@@ -596,27 +608,67 @@ export default function App() {
                 />
               </div>
 
-              {/* Right Inspector (Slides in when a node is selected) */}
-              {isInspectorOpen && selectedNode && (
-                <Inspector
-                  selectedNode={selectedNode}
-                  nodes={nodes}
-                  activeUseCase={activeUseCase}
-                  onSelectFramework={handleSelectFramework}
-                  agentConfig={activeUseCase.agent}
-                  onUpdateAgentConfig={handleUpdateAgentConfig}
-                  onUpdateNodeData={handleUpdateNodeData}
-                  onDeleteNode={handleDeleteNode}
-                  onClose={() => {
-                    setSelectedNode(null);
-                    setIsInspectorOpen(false);
-                  }}
-                  onCollapse={() => setIsInspectorOpen(false)}
-                  onOpenApiSettings={(providerId) => {
-                    setApiSettingsTab(providerId || 'google');
-                    setIsApiSettingsOpen(true);
-                  }}
-                />
+              {/* Single Unified Right Sidebar (Identical width w-96, flawless smooth transition between Inspector & Catalog) */}
+              {((isInspectorOpen && selectedNode) || isAddMenuOpen) && (
+                <aside 
+                  className={`w-96 h-full border-l shrink-0 flex flex-col overflow-hidden select-none z-20 animate-in slide-in-from-right-3 duration-200 transition-all ${
+                    isDarkMode ? 'bg-[#181A20] border-[#2D313D]' : 'bg-[#FFFFFF] border-[#E0E0E0]'
+                  }`}
+                >
+                  <div className="relative w-full h-full overflow-hidden flex-1">
+                    {/* View 1: Node & Capability Catalog */}
+                    <div
+                      className={`absolute inset-0 w-full h-full flex flex-col transition-all duration-300 ease-in-out ${
+                        isAddMenuOpen
+                          ? 'opacity-100 translate-x-0 pointer-events-auto z-10'
+                          : 'opacity-0 translate-x-6 pointer-events-none z-0'
+                      }`}
+                    >
+                      <NodeCatalogPanel
+                        isOpen={true}
+                        onClose={() => setIsAddMenuOpen(false)}
+                        onAddNode={(category, item) => {
+                          handleAddNode(category, item);
+                        }}
+                        isDarkMode={isDarkMode}
+                        isEmbedded={true}
+                      />
+                    </div>
+
+                    {/* View 2: Node & Foundation Model Inspector */}
+                    {selectedNode && (
+                      <div
+                        className={`absolute inset-0 w-full h-full flex flex-col transition-all duration-300 ease-in-out ${
+                          !isAddMenuOpen && isInspectorOpen
+                            ? 'opacity-100 translate-x-0 pointer-events-auto z-10'
+                            : 'opacity-0 -translate-x-6 pointer-events-none z-0'
+                        }`}
+                      >
+                        <Inspector
+                          selectedNode={selectedNode}
+                          nodes={nodes}
+                          activeUseCase={activeUseCase}
+                          onSelectFramework={handleSelectFramework}
+                          agentConfig={activeUseCase.agent}
+                          onUpdateAgentConfig={handleUpdateAgentConfig}
+                          onUpdateNodeData={handleUpdateNodeData}
+                          onDeleteNode={handleDeleteNode}
+                          onClose={() => {
+                            setSelectedNode(null);
+                            setIsInspectorOpen(false);
+                          }}
+                          onCollapse={() => setIsInspectorOpen(false)}
+                          onOpenApiSettings={(providerId) => {
+                            setApiSettingsTab(providerId || 'google');
+                            setIsApiSettingsOpen(true);
+                          }}
+                          isDarkMode={isDarkMode}
+                          isEmbedded={true}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </aside>
               )}
             </>
           )}
