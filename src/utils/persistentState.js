@@ -49,7 +49,7 @@ export function saveUIState(updates) {
   }
 }
 
-const CANVAS_VERSION = 'v4_output_component';
+const CANVAS_VERSION = 'v5_canvas_ingestion';
 
 /**
  * Loads Canvas topology state (nodes, edges, active use case) if saved.

@@ -27,7 +27,8 @@ import {
   AlertCircle,
   ExternalLink,
   RefreshCw,
-  Key
+  Key,
+  UploadCloud
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import {
@@ -246,6 +247,42 @@ const NODE_CATEGORIES = [
         description: 'Pipes upstream agent intelligence output to downstream agents or validation stages.',
         config: {
           format: 'markdown'
+        }
+      }
+    ]
+  },
+  {
+    id: 'ingestionNode',
+    label: 'File & Data Ingestion',
+    subtitle: 'Upload audio (MP3/WAV), documents (PDF/DOCX), spreadsheets (CSV/Excel) or raw text',
+    icon: UploadCloud,
+    color: '#0091DA', // Pacific Blue
+    bgColor: '#E6F4FC',
+    badge: 'INGESTION PORT',
+    socketId: 'tools-in',
+    items: [
+      {
+        id: 'ingest-universal-file',
+        name: 'Universal File & Audio Ingest',
+        description: 'Accepts audio (MP3, WAV, M4A) with auto-transcription, PDFs, DOCX, CSV spreadsheets, and raw notes on canvas.',
+        config: {
+          fileType: 'auto'
+        }
+      },
+      {
+        id: 'ingest-audio-stream',
+        name: 'Dedicated Audio Ingestion Port',
+        description: 'Optimized for recorded executive meetings, phone calls, and earnings calls with speaker diarization.',
+        config: {
+          fileType: 'audio'
+        }
+      },
+      {
+        id: 'ingest-raw-text',
+        name: 'Raw Direct Text Stream',
+        description: 'Instant manual text paste area for immediate prompts, policies, or quick test payloads.',
+        config: {
+          fileType: 'text'
         }
       }
     ]

@@ -45,11 +45,13 @@ import {
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
 import DeletableEdge from './edges/DeletableEdge';
 import OutputDisplayNode from './nodes/OutputDisplayNode';
+import IngestionNode from './nodes/IngestionNode';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
   pillar: PillarNode,
-  outputNode: OutputDisplayNode
+  outputNode: OutputDisplayNode,
+  ingestionNode: IngestionNode
 };
 
 const edgeTypes = {
@@ -236,6 +238,52 @@ function CanvasInner({
 
     window.addEventListener('keaos:spawn-output-node', handleSpawnOutput);
     return () => window.removeEventListener('keaos:spawn-output-node', handleSpawnOutput);
+  }, [nodes, setNodes, setEdges, onSelectNode]);
+
+  // Listen for quick-spawn Ingestion Node from Agent Core left arm bolt [+] button
+  useEffect(() => {
+    const handleSpawnIngest = (e) => {
+      const { agentId, agentPosition } = e.detail || {};
+      const targetAgent = nodes.find(n => n.id === agentId);
+      const posX = (agentPosition?.x ?? targetAgent?.position?.x ?? 595) - 340;
+      const posY = (agentPosition?.y ?? targetAgent?.position?.y ?? 220);
+
+      const newIngestId = `node-ingest-${Date.now().toString().slice(-4)}`;
+      const newIngestNode = {
+        id: newIngestId,
+        type: 'ingestionNode',
+        position: { x: posX, y: posY },
+        data: {
+          title: 'Data & Audio Ingestion',
+          content: '',
+          status: 'idle',
+          isExpanded: true
+        }
+      };
+
+      const newEdge = {
+        id: `edge-ingest-${Date.now().toString().slice(-4)}`,
+        source: newIngestId,
+        sourceHandle: 'data-out',
+        target: agentId || 'agent-core',
+        targetHandle: 'tools-in',
+        type: 'deletable',
+        animated: true,
+        style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      };
+
+      setNodes((nds) => [...nds, newIngestNode]);
+      setEdges((eds) => [...eds, newEdge]);
+      if (onSelectNode) onSelectNode(newIngestNode);
+      window.dispatchEvent(
+        new CustomEvent('keaos:toast', {
+          detail: { message: `📥 Attached Ingestion Component to ${targetAgent?.data?.name || 'Agent'}` }
+        })
+      );
+    };
+
+    window.addEventListener('keaos:spawn-ingest-node', handleSpawnIngest);
+    return () => window.removeEventListener('keaos:spawn-ingest-node', handleSpawnIngest);
   }, [nodes, setNodes, setEdges, onSelectNode]);
 
   // Update output nodes to 'generating' state during execution
@@ -490,18 +538,40 @@ function CanvasInner({
     if (setIsInspectorOpen) setIsInspectorOpen(true);
   }, [nodes, onSelectNode, setIsInspectorOpen, setIsAddMenuOpen]);
 
-  // Handle execute single step
+  // Handle execute node / step
   const handleExecuteNode = useCallback((nodeId) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
-    setExecutionState({ isExecuting: true, step: `Executing ${node.data?.name || 'step'}...` });
+
+    if (node.type === 'agentCore') {
+      // Find connected Ingestion node on canvas for this agent
+      const incomingEdges = (edges || []).filter(e => e.target === nodeId);
+      const connectedIngestEdge = incomingEdges.find(e => {
+        const src = nodes.find(n => n.id === e.source);
+        return src?.type === 'ingestionNode';
+      });
+
+      if (connectedIngestEdge) {
+        const ingestNode = nodes.find(n => n.id === connectedIngestEdge.source);
+        if (ingestNode?.data?.content?.trim()) {
+          window.dispatchEvent(new CustomEvent('keaos:ingestion-updated', {
+            detail: { content: ingestNode.data.content, nodeId: ingestNode.id }
+          }));
+        }
+      }
+
+      window.dispatchEvent(new CustomEvent('keaos:execute-workflow', { detail: { agentId: nodeId } }));
+      return;
+    }
+
+    setExecutionState({ isExecuting: true, step: `Executing ${node.data?.name || 'step'}...`, pillarType: node.data?.pillarType });
     const toastMsg = `⚡ Executing step: "${node.data?.name || 'Node'}"`;
     setToastNotification(toastMsg);
     setTimeout(() => {
       setExecutionState({ isExecuting: false, step: '' });
       setToastNotification((curr) => (curr === toastMsg ? null : curr));
     }, 1500);
-  }, [nodes]);
+  }, [nodes, edges]);
 
   // Handle rename node with snapshot
   const handleRenameNode = useCallback((nodeId, newName) => {
@@ -677,6 +747,13 @@ function CanvasInner({
         }
       }
 
+      // Allow connections from Ingestion Node into Agent Core tools-in (or any agent handle) or pillar tools
+      if (sourceNode.type === 'ingestionNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'pillar') {
+          return true;
+        }
+      }
+
       if (targetNode.type === 'agentCore') {
         const requiredPillar = SOCKET_RULES[targetHandle];
         const sourcePillar = sourceNode.data?.pillarType;
@@ -708,6 +785,8 @@ function CanvasInner({
 
       if (targetNode?.type === 'outputNode' || sourceNode?.type === 'outputNode') {
         strokeColor = '#10B981'; // Emerald accent for data/output pipelines
+      } else if (sourceNode?.type === 'ingestionNode') {
+        strokeColor = '#0091DA'; // Pacific Blue for data ingestion stream
       }
 
       takeSnapshot();
@@ -757,6 +836,7 @@ function CanvasInner({
       const isThisNodeActive = executionState.isExecuting && (
         n.id === executionState.nodeId || 
         (n.type === 'agentCore' && !executionState.nodeId) ||
+        (n.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
         (n.data?.pillarType && n.data.pillarType === executionState.pillarType)
       );
 
@@ -825,7 +905,7 @@ function CanvasInner({
     handleRenameNode
   ]);
 
-  // Edges styled dynamically: when source or target component is deactivated, disable the wire
+  // Edges styled dynamically: when executing, active transmitting edge glows and pulses with taxonomy color
   const edgesWithTheme = React.useMemo(() => {
     const nodeLookup = {};
     (nodes || []).forEach(n => {
@@ -842,16 +922,30 @@ function CanvasInner({
       const originalStroke = edge.style?.stroke || '#0091DA';
       const deactivatedStroke = isDarkMode ? '#475569' : '#94A3B8';
 
+      // Live Active Wire Animation: When source pillar or ingestion node is actively transmitting
+      const isSourceActive = executionState.isExecuting && (
+        (sourceNode?.data?.pillarType && sourceNode.data.pillarType === executionState.pillarType) ||
+        (sourceNode?.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
+        (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode' && (executionState.step === 'Complete' || executionState.step === 'Starting'))
+      );
+
+      const activeColor = sourceNode?.data?.pillarType 
+        ? (PILLARS[sourceNode.data.pillarType]?.color || '#0091DA') 
+        : (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') 
+          ? '#10B981' 
+          : '#0091DA';
+
       return {
         ...edge,
-        animated: isDeactivated ? false : (edge.animated ?? true),
+        animated: isDeactivated ? false : true,
         style: {
           ...edge.style,
-          stroke: isDeactivated ? deactivatedStroke : originalStroke,
-          strokeWidth: isDeactivated ? 1.4 : (edge.style?.strokeWidth || 1.8),
-          strokeDasharray: isDeactivated ? '3 3' : (edge.style?.strokeDasharray || '4 4'),
+          stroke: isSourceActive ? activeColor : (isDeactivated ? deactivatedStroke : originalStroke),
+          strokeWidth: isSourceActive ? 3.4 : (isDeactivated ? 1.4 : (edge.style?.strokeWidth || 1.8)),
+          strokeDasharray: isSourceActive ? '5 5' : (isDeactivated ? '3 3' : (edge.style?.strokeDasharray || '4 4')),
+          filter: isSourceActive ? `drop-shadow(0 0 8px ${activeColor})` : undefined,
           opacity: isDeactivated ? 0.35 : 1,
-          transition: 'stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease'
+          transition: 'stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease'
         },
         data: {
           ...edge.data,
@@ -861,7 +955,7 @@ function CanvasInner({
         }
       };
     });
-  }, [edges, nodes, isDarkMode, handleDeleteEdge]);
+  }, [edges, nodes, isDarkMode, handleDeleteEdge, executionState]);
 
   return (
     <div className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${

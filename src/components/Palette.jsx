@@ -18,7 +18,8 @@ import {
   Mic,
   FileText,
   Type,
-  Plug
+  Plug,
+  UploadCloud
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 
@@ -139,6 +140,38 @@ export default function Palette({ onAddNode }) {
                 onClick={() => onAddNode('outputNode', { name: 'Agent Output' })}
                 className="btn-tactile w-7 h-7 bg-[#10B981] hover:bg-[#059669] text-white flex items-center justify-center transition-all shrink-0 border border-[#047857] shadow-sm cursor-pointer"
                 title="Add new Output Component to canvas"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Data & Audio Ingestion Component Provisioner */}
+        {(!search || 'ingest upload audio file data document input source'.includes(search.toLowerCase())) && (
+          <div 
+            className="border border-[#0091DA]/30 bg-[#FFFFFF] overflow-hidden shadow-sm transition-all" 
+            style={{ borderLeft: '3px solid #0091DA' }}
+          >
+            <div className="p-2.5 bg-gradient-to-r from-[#F0F8FF] to-white flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#0091DA] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <UploadCloud className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h5 className="text-xs font-bold text-[#0B0F19] tracking-tight">File Ingestion</h5>
+                    <span className="text-[8px] font-mono px-1 py-0.2 bg-[#0091DA]/10 text-[#0091DA] font-bold rounded">
+                      INPUT
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Audio, Docs & Data stream</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onAddNode('ingestionNode', { name: 'File Ingestion' })}
+                className="btn-tactile w-7 h-7 bg-[#0091DA] hover:bg-[#005EB8] text-white flex items-center justify-center transition-all shrink-0 border border-[#00338D] shadow-sm cursor-pointer"
+                title="Add new Ingestion Tool to canvas"
               >
                 <Plus className="w-4 h-4" />
               </button>

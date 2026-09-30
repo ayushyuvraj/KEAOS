@@ -22,7 +22,8 @@ import {
   EyeOff,
   DollarSign,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  UploadCloud
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { 
@@ -132,6 +133,7 @@ export default function Inspector({
 
   const isAgent = selectedNode?.type === 'agentCore';
   const isOutput = selectedNode?.type === 'outputNode';
+  const isIngest = selectedNode?.type === 'ingestionNode';
   const nodeData = selectedNode?.data || {};
   const pillarDef = PILLARS[nodeData?.pillarType];
   const isModel = nodeData?.pillarType === 'model';
@@ -354,6 +356,8 @@ export default function Inspector({
               <Bot className="w-4 h-4 text-blue-300" />
             ) : isOutput ? (
               <Sparkles className="w-4 h-4 text-emerald-400" />
+            ) : isIngest ? (
+              <UploadCloud className="w-4 h-4 text-[#0091DA]" />
             ) : isModel ? (
               <Cpu className="w-4 h-4 text-blue-300" />
             ) : (
@@ -362,10 +366,10 @@ export default function Inspector({
           </div>
           <div>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400 block font-mono">
-              {isAgent ? 'Core Agent Inspector' : isOutput ? 'Output Component' : isModel ? 'Foundation Model' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
+              {isAgent ? 'Core Agent Inspector' : isOutput ? 'Output Component' : isIngest ? 'Ingestion Port' : isModel ? 'Foundation Model' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
             </span>
             <h4 className={`text-sm font-semibold truncate max-w-[190px] tracking-tight ${t.title}`}>
-              {isOutput ? (nodeData.title || 'Agent Output') : nodeData.name}
+              {isOutput ? (nodeData.title || 'Agent Output') : isIngest ? (nodeData.fileName || nodeData.title || 'Data Ingestion') : nodeData.name}
             </h4>
           </div>
         </div>
@@ -566,6 +570,79 @@ export default function Inspector({
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Remove Output Node</span>
+              </button>
+            </div>
+          </div>
+        ) : isIngest ? (
+          /* Specialized Ingestion Port Inspector */
+          <div className="space-y-4">
+            <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
+                  Ingestion Payload Status
+                </span>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
+                  nodeData.status === 'ready' 
+                    ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                    : nodeData.status === 'transcribing'
+                      ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30 animate-pulse'
+                      : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                }`}>
+                  {nodeData.status || (nodeData.content ? 'Ready' : 'Empty')}
+                </span>
+              </div>
+              <p className={`text-xs ${t.subText}`}>
+                Upload audio (MP3, WAV), documents (PDF, DOCX), spreadsheets (CSV), or raw text directly into this canvas node. Feeds directly into the agent pipeline.
+              </p>
+
+              <div>
+                <label className={`text-[10px] font-mono ${t.subText} block mb-1`}>
+                  Source Name
+                </label>
+                <input
+                  type="text"
+                  value={nodeData.fileName || nodeData.title || 'Data Ingestion'}
+                  onChange={(e) => onUpdateNodeData(selectedNode.id, { fileName: e.target.value })}
+                  className={`w-full px-3 py-2 text-xs font-sans rounded-lg transition-all ${t.input}`}
+                />
+              </div>
+
+              {nodeData.fileSize && (
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className={t.subText}>Payload Size:</span>
+                  <span className="font-mono font-bold text-[#0091DA]">{nodeData.fileSize}</span>
+                </div>
+              )}
+            </div>
+
+            {nodeData.content && (
+              <div className={`p-4 ${t.card} rounded-2xl space-y-2`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider text-slate-400 block font-mono`}>
+                    Extracted Payload Preview
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                    {nodeData.content.length} chars
+                  </span>
+                </div>
+                <div className={`p-2.5 rounded-lg max-h-40 overflow-y-auto text-[11px] font-mono leading-relaxed select-text ${
+                  isDarkMode ? 'bg-black/40 text-slate-300' : 'bg-slate-100 text-slate-800'
+                }`}>
+                  {nodeData.content.slice(0, 500)}
+                  {nodeData.content.length > 500 ? '...' : ''}
+                </div>
+              </div>
+            )}
+
+            <div className={`p-4 ${t.card} rounded-2xl flex items-center justify-between`}>
+              <span className={`text-xs ${t.subText}`}>Remove from Canvas</span>
+              <button
+                type="button"
+                onClick={() => onDeleteNode(selectedNode.id)}
+                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Remove Ingestion Node</span>
               </button>
             </div>
           </div>

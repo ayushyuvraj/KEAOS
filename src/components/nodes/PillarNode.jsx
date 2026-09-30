@@ -155,11 +155,22 @@ export default function PillarNode({ id, data, selected }) {
         dropdownPlacement={dropdownPlacement}
       />
 
+      {/* Active Component Floating Status Beacon */}
+      {isExecuting && (
+        <div 
+          className="absolute -top-7 whitespace-nowrap px-2 py-0.5 rounded-full text-[8.5px] font-mono tracking-wider font-bold uppercase shadow-lg z-30 flex items-center gap-1.5 text-white animate-bounce pointer-events-none"
+          style={{ backgroundColor: pillarDef.color || '#0091DA' }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+          <span>{pillarDef.label || 'ACTIVE'}</span>
+        </div>
+      )}
+
       {/* Circular Token Disc */}
       <div
-        className={`w-15 h-15 rounded-full flex items-center justify-center border-2 transition-all duration-150 relative shadow-lg ${
+        className={`w-15 h-15 rounded-full flex items-center justify-center border-2 transition-all duration-200 relative shadow-lg ${
           isExecuting
-            ? 'ring-4 ring-[#0091DA] border-[#0091DA] animate-pulse shadow-[0_0_20px_rgba(0,145,218,0.7)] scale-105'
+            ? 'scale-110 ring-4'
             : isDeactivated
               ? 'opacity-40 grayscale border-dashed border-slate-500 bg-slate-800/50'
               : isDarkMode
@@ -170,7 +181,25 @@ export default function PillarNode({ id, data, selected }) {
             ? 'ring-4 ring-[#0091DA]/30 border-[#0091DA] scale-105'
             : ''
         }`}
+        style={isExecuting ? {
+          borderColor: pillarDef.color || '#0091DA',
+          boxShadow: `0 0 28px ${pillarDef.color || '#0091DA'}B0, inset 0 0 12px ${pillarDef.color || '#0091DA'}40`
+        } : {}}
       >
+        {/* Animated Concentric Radar Wave when Active */}
+        {isExecuting && (
+          <>
+            <span 
+              className="absolute -inset-3 rounded-full animate-ping opacity-50 pointer-events-none"
+              style={{ backgroundColor: pillarDef.color || '#0091DA' }}
+            />
+            <span 
+              className="absolute -inset-1.5 rounded-full animate-pulse opacity-40 pointer-events-none"
+              style={{ backgroundColor: pillarDef.color || '#0091DA' }}
+            />
+          </>
+        )}
+
         {/* Diamond Output Handle positioned anatomically */}
         <Handle
           type="source"
@@ -184,7 +213,7 @@ export default function PillarNode({ id, data, selected }) {
         />
         {/* Pillar Category/Brand Icon */}
         <IconComponent 
-          className="w-7 h-7 transition-transform group-hover:scale-110" 
+          className={`w-7 h-7 transition-transform group-hover:scale-110 ${isExecuting ? 'scale-115' : ''}`} 
           style={{ color: isDeactivated ? '#94A3B8' : (pillarDef.color || '#0091DA') }}
         />
       </div>

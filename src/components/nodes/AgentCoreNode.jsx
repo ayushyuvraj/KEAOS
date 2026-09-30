@@ -179,6 +179,18 @@ export default function AgentCoreNode({ id, data, selected }) {
             title="Hands: Tools Ingestion"
           />
           <Wrench className="w-2.5 h-2.5" />
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('keaos:spawn-ingest-node', {
+                detail: { agentId: id, agentPosition: { x: 595, y: 220 } }
+              }));
+            }}
+            className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-[#0091DA] hover:bg-[#005EB8] text-white flex items-center justify-center shadow-xs cursor-pointer transition-transform hover:scale-115 active:scale-95 z-20"
+            title="Attach Canvas Ingestion Node to this agent"
+          >
+            <Plus className="w-2.5 h-2.5" />
+          </div>
         </div>
 
         {/* ------------------------------------------------------------ */}

@@ -62,21 +62,31 @@ export async function runMeetingSimulation({
   onStepProgress
 }) {
   const steps = [];
-  const logStep = (stepName, detail, latencyMs = 200) => {
-    const entry = { step: stepName, detail, latencyMs, timestamp: new Date().toLocaleTimeString() };
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const logStep = async (stepName, detail, latencyMs = 200, pillarType = null) => {
+    const entry = { 
+      step: stepName, 
+      detail, 
+      latencyMs, 
+      pillarType, 
+      timestamp: new Date().toLocaleTimeString() 
+    };
     steps.push(entry);
     if (onStepProgress) onStepProgress(entry, [...steps]);
+    // Observable step pacing so each canvas component visibly animates sequentially
+    await delay(Math.min(300, Math.max(160, latencyMs)));
   };
 
   const startTime = performance.now();
 
   if (!transcript || !transcript.trim()) {
-    logStep('Ingestion Failed', '❌ ERROR: No transcript input provided.', 0);
+    await logStep('Ingestion Failed', '❌ ERROR: No transcript input provided.', 0, 'tools');
     throw new Error('No transcript or meeting input provided. Please enter transcript text or upload a file before executing.');
   }
 
   // Step 1: Ingestion & Diarization
-  logStep('Ingestion & Parsing', `Ingested transcript (${transcript.trim().length} characters). Input validated.`, 80);
+  await logStep('Ingestion & Parsing', `Ingested transcript (${transcript.trim().length} characters). Input validated.`, 120, 'tools');
 
   // Step 2: Gateway & Policy Checks (PII Masking)
   let processedTranscript = transcript;
@@ -90,9 +100,9 @@ export async function runMeetingSimulation({
       redactedCount = matches.length;
       processedTranscript = transcript.replace(salaryRegex, '[CONFIDENTIAL_FINANCIAL_REDACTED]');
     }
-    logStep('Gateway & Policies', `PII Redaction active. Masked ${redactedCount} confidential financial values.`, 90);
+    await logStep('Gateway & Policies', `PII Redaction active. Masked ${redactedCount} confidential financial values.`, 180, 'policies');
   } else {
-    logStep('Gateway Pass-through', `Ingress rate limiter checked. No PII policy attached.`, 40);
+    await logStep('Gateway Pass-through', `Ingress rate limiter checked. No PII policy attached.`, 120, 'policies');
   }
 
   // Step 3: Real Episodic Memory Lookup
@@ -105,15 +115,15 @@ export async function runMeetingSimulation({
     memoryContext = retrievedMemoryItems
       .map(m => `• [${m.date || 'Historical'}] (${m.type?.toUpperCase() || 'NOTE'}): ${m.text || m.task || JSON.stringify(m)}`)
       .join('\n');
-    logStep('Episodic Memory Query (Live)', `Loaded ${retrievedMemoryItems.length} historical commitments across past sessions into model context.`, 110);
+    await logStep('Episodic Memory Query (Live)', `Loaded ${retrievedMemoryItems.length} historical commitments across past sessions into model context.`, 220, 'memory');
   } else {
-    logStep('Memory Bypass', `Stateless execution mode. No memory pillar connected.`, 25);
+    await logStep('Memory Bypass', `Stateless execution mode. No memory pillar connected.`, 100, 'memory');
   }
 
   // Step 4: Model Execution (LIVE Real Multi-LLM API)
   const modelNode = attachedPillars.find(p => p.type === 'model');
   if (!modelNode) {
-    logStep('Model Check Failed', '❌ ERROR: No active Foundation Model node connected to agent canvas.', 0);
+    await logStep('Model Check Failed', '❌ ERROR: No active Foundation Model node connected to agent canvas.', 0, 'model');
     throw new Error('No active Foundation Model node connected on canvas. Please wire a Model pillar to the model-in socket.');
   }
 
@@ -132,7 +142,7 @@ export async function runMeetingSimulation({
 
   const credential = getProviderCredential(provider);
   if (!credential && provider !== 'ollama') {
-    logStep('Model Authentication Failed', `❌ ERROR: No API Key found for ${PROVIDERS[provider]?.name || provider}.`, 0);
+    await logStep('Model Authentication Failed', `❌ ERROR: No API Key found for ${PROVIDERS[provider]?.name || provider}.`, 0, 'model');
     throw new Error(`No API key configured for ${PROVIDERS[provider]?.name || provider}. Please set your API credentials in API Settings modal.`);
   }
 
@@ -141,9 +151,9 @@ export async function runMeetingSimulation({
   let skillsDirectiveText = '';
   if (skillNodes.length > 0) {
     skillsDirectiveText = `\n[ATTACHED SKILL DIRECTIVES & CAPABILITIES (${skillNodes.length} active skills connected)]:\nThe following skills are bound to this agent on the visual canvas. You MUST execute all of these skills and strictly enforce their formatting rules:\n${skillNodes.map((s, idx) => `Skill ${idx + 1}: "${s.name}" (${s.description || 'Custom Skill'})\n- Config & Rules: ${JSON.stringify(s.config || {})}${s.customDirective ? `\n- Custom Directive: ${s.customDirective}` : ''}${s.referenceDoc?.text ? `\n- Reference Specification Document (${s.referenceDoc.name}):\n"""\n${s.referenceDoc.text}\n"""` : ''}`).join('\n')}\n`;
-    logStep('Skills Processing', `Compiled ${skillNodes.length} attached skills (${skillNodes.map(s => s.name).join(', ')}). Injected directives and specification documents into model prompt.`, 90);
+    await logStep('Skills Processing', `Compiled ${skillNodes.length} attached skills (${skillNodes.map(s => s.name).join(', ')}). Injected directives and specification documents into model prompt.`, 180, 'skills');
   } else {
-    logStep('Skills Processing', `No skill pillars connected on canvas. Using standard agent directives.`, 30);
+    await logStep('Skills Processing', `No skill pillars connected on canvas. Using standard agent directives.`, 100, 'skills');
   }
 
   // Step 4: Framework Runtime Harness & Orchestration Protocol
@@ -157,12 +167,12 @@ export async function runMeetingSimulation({
     'microsoft-adk': 'Microsoft Semantic Kernel'
   }[frameworkId] || (frameworkId || 'Google ADK');
 
-  logStep(`Framework Harness (${frameworkName})`, `Binding agent execution graph to ${frameworkName} runtime specifications, tool contracts, and schema validators.`, 45);
+  await logStep(`Framework Harness (${frameworkName})`, `Binding agent execution graph to ${frameworkName} runtime specifications, tool contracts, and schema validators.`, 120, 'gateway');
 
   const frameworkDirective = `\n[TARGET ARCHITECTURAL FRAMEWORK: ${frameworkName.toUpperCase()}]:\nThis agent is compiled under the ${frameworkName} orchestration pattern. Enforce the execution contracts, tool definitions, and schema conventions of this framework.\n`;
   const fullSystemPrompt = `${agentConfig.prompt || 'You are an institutional executive meeting intelligence assistant.'}\n${frameworkDirective}${skillsDirectiveText}`;
 
-  logStep(`Core Model (${PROVIDERS[provider]?.name || provider})`, `Executing live API request to ${modelDisplayName}...`, 0);
+  await logStep(`Core Model (${PROVIDERS[provider]?.name || provider})`, `Executing live API request to ${modelDisplayName}...`, 240, 'model');
 
   const realResult = await synthesizeMeetingUniversal({
     provider,
@@ -183,7 +193,7 @@ export async function runMeetingSimulation({
   const totalTokens = realResult.totalTokens || Math.round(transcript.length / 4) + 650;
   const isLiveExecution = true;
 
-  logStep('Model Response (Live)', `Live ${PROVIDERS[provider]?.name} inference complete (${modelLatency}ms). Processed ${totalTokens} tokens.`, modelLatency);
+  await logStep('Model Response (Live)', `Live ${PROVIDERS[provider]?.name} inference complete (${modelLatency}ms). Processed ${totalTokens} tokens.`, 180, 'model');
 
   // Soft-extract decisions/actions if output is natural markdown text (so memory & audit remain populated)
   let extractedDecisions = [...decisions];
@@ -224,7 +234,7 @@ export async function runMeetingSimulation({
   }
 
   // Step 5: Skills Processing
-  logStep('Skills Processing', `Extracted ${rawOutput.length} characters of natural intelligence output (${extractedSummary.length} takeaways, ${extractedDecisions.length} decisions, ${extractedActionItems.length} action commitments).`, 120);
+  await logStep('Skills Processing', `Extracted ${rawOutput.length} characters of natural intelligence output (${extractedSummary.length} takeaways, ${extractedDecisions.length} decisions, ${extractedActionItems.length} action commitments).`, 180, 'skills');
 
   // Step 6: MCP Integration
   const hasCalendarMcp = attachedPillars.some(p => p.id === 'mcp-google-calendar');
@@ -232,7 +242,7 @@ export async function runMeetingSimulation({
   const hasJiraMcp = attachedPillars.some(p => p.id === 'mcp-jira-linear');
 
   if (hasCalendarMcp || hasSlackMcp || hasJiraMcp) {
-    logStep('MCP Dispatch', `Synchronized with ${hasCalendarMcp ? 'Calendar, ' : ''}${hasSlackMcp ? 'Slack, ' : ''}${hasJiraMcp ? 'Jira' : ''}`, 150);
+    await logStep('MCP Dispatch', `Synchronized with ${hasCalendarMcp ? 'Calendar, ' : ''}${hasSlackMcp ? 'Slack, ' : ''}${hasJiraMcp ? 'Jira' : ''}`, 180, 'mcp');
   }
 
   // Step 7: Cryptographic Audit (Ambient W3C WebCrypto SHA-256 - ALWAYS ACTIVE)
@@ -242,7 +252,7 @@ export async function runMeetingSimulation({
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     auditHash = 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    logStep('Ambient Cryptographic Audit', `Supervised SHA-256: ${auditHash.substring(0, 24)}... verified & ledgered.`, 35);
+    await logStep('Ambient Cryptographic Audit', `Supervised SHA-256: ${auditHash.substring(0, 24)}... verified & ledgered.`, 140, 'audit');
   } catch (e) {
     auditHash = 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
   }
@@ -271,7 +281,7 @@ export async function runMeetingSimulation({
     const updatedStore = [...newItems, ...existingStore].slice(0, 25);
     saveEpisodicMemoryStore(updatedStore);
     newMemoryCount = newItems.length;
-    logStep('Episodic Memory Commit', `Committed ${newMemoryCount} new decisions & commitments into persistent memory store.`, 45);
+    await logStep('Episodic Memory Commit', `Committed ${newMemoryCount} new decisions & commitments into persistent memory store.`, 160, 'memory');
   }
 
   // Step 9: Ambient Financial Cost & Labor ROI (Live Model Pricing Basis)

@@ -216,33 +216,43 @@ export default function CanvasExecutionDrawer({
   const handleRunAgent = useCallback(async () => {
     if (isRunning) return;
 
-    if (!transcriptText || !transcriptText.trim()) {
-      alert('⚠️ No input transcript provided.\n\nPlease paste transcript text or upload a document/audio file before running execution.');
-      if (setIsExpanded) setIsExpanded(true);
-      setDrawerMode('batch');
+    // Check if an ingestion node on canvas has content if transcriptText is not set
+    let activeTranscript = transcriptText;
+    if (!activeTranscript || !activeTranscript.trim()) {
+      const ingestNode = (nodes || []).find(n => n.type === 'ingestionNode' && n.data?.content?.trim());
+      if (ingestNode) {
+        activeTranscript = ingestNode.data.content;
+        setTranscriptText(activeTranscript);
+      }
+    }
+
+    if (!activeTranscript || !activeTranscript.trim()) {
+      alert('⚠️ No input data provided.\n\nPlease upload an audio, document, or data file into the Ingestion Node on the canvas (or enter text) before executing.');
       return;
     }
 
     setIsRunning(true);
     setExecutionSteps([]);
     setSimulationResult(null);
-    if (setIsExpanded) setIsExpanded(true);
-    setDrawerMode('batch');
 
     if (onExecutionStateChange) {
-      onExecutionStateChange({ isExecuting: true, step: 'Starting' });
+      onExecutionStateChange({ isExecuting: true, step: 'Starting', pillarType: 'tools' });
     }
 
     try {
       const result = await runMeetingSimulation({
-        transcript: transcriptText,
+        transcript: activeTranscript,
         frameworkId: activeUseCase?.framework?.id || 'google-adk',
         agentConfig: activeUseCase?.agent || {},
         attachedPillars: globalAttachedPillars,
         onStepProgress: (currentStep, allSteps) => {
           setExecutionSteps([...allSteps]);
           if (onExecutionStateChange) {
-            onExecutionStateChange({ isExecuting: true, step: currentStep.step });
+            onExecutionStateChange({ 
+              isExecuting: true, 
+              step: currentStep.step, 
+              pillarType: currentStep.pillarType 
+            });
           }
         }
       });
@@ -284,13 +294,22 @@ export default function CanvasExecutionDrawer({
   // Listen for canvas "Execute Workflow" button trigger
   useEffect(() => {
     const handleExecuteTrigger = () => {
-      if (setIsExpanded) setIsExpanded(true);
-      setDrawerMode('batch');
       handleRunAgent();
     };
     window.addEventListener('keaos:execute-workflow', handleExecuteTrigger);
     return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
-  }, [handleRunAgent, setIsExpanded]);
+  }, [handleRunAgent]);
+
+  // Keep transcriptText in sync when user uploads or pastes in Ingestion Node on canvas
+  useEffect(() => {
+    const handleIngestionUpdated = (e) => {
+      if (e.detail?.content) {
+        setTranscriptText(e.detail.content);
+      }
+    };
+    window.addEventListener('keaos:ingestion-updated', handleIngestionUpdated);
+    return () => window.removeEventListener('keaos:ingestion-updated', handleIngestionUpdated);
+  }, []);
 
   // Handle Interactive Chat Submission
   const handleSendChat = async (e) => {

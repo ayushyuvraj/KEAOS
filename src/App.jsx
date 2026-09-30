@@ -137,6 +137,18 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         format: 'markdown',
         isExpanded: false
       }
+    },
+    // 9. Input Ingestion Node (Positioned to the left of Agent Core tools-in socket)
+    {
+      id: 'node-ingest-1',
+      type: 'ingestionNode',
+      position: { x: 260, y: 180 },
+      data: {
+        title: 'Data & Audio Ingestion',
+        content: '',
+        status: 'idle',
+        isExpanded: false
+      }
     }
   ];
 
@@ -147,6 +159,16 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'model-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-ingest-1',
+      source: 'node-ingest-1',
+      sourceHandle: 'data-out',
+      target: 'agent-core',
+      targetHandle: 'tools-in',
       type: 'deletable',
       animated: true,
       style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
@@ -452,6 +474,56 @@ export default function App() {
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `✨ Added Output Component to Canvas` }
+      }));
+      return;
+    }
+
+    if (pillarKey === 'ingestionNode') {
+      const newNodeId = `node-ingest-${Date.now().toString().slice(-4)}`;
+      setNodes((nds) => {
+        const agentNode = nds.find(n => n.type === 'agentCore');
+        const xPos = agentNode ? agentNode.position.x - 340 : 260;
+        const yPos = agentNode ? agentNode.position.y : 220;
+
+        const newNode = {
+          id: newNodeId,
+          type: 'ingestionNode',
+          position: { x: xPos, y: yPos },
+          data: {
+            title: item.name || 'Data & Audio Ingestion',
+            content: '',
+            status: 'idle',
+            isExpanded: true
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      // Auto-wire to agent-core if tools-in edge not yet present
+      setEdges((eds) => {
+        const hasToolsInput = eds.some(e => e.target === 'agent-core' && e.targetHandle === 'tools-in');
+        if (!hasToolsInput) {
+          return [
+            ...eds,
+            {
+              id: `edge-ingest-${Date.now().toString().slice(-4)}`,
+              source: newNodeId,
+              sourceHandle: 'data-out',
+              target: 'agent-core',
+              targetHandle: 'tools-in',
+              type: 'deletable',
+              animated: true,
+              style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+            }
+          ];
+        }
+        return eds;
+      });
+
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `📥 Added Ingestion Component to Canvas` }
       }));
       return;
     }
