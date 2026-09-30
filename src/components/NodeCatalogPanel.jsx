@@ -1345,23 +1345,23 @@ export default function NodeCatalogPanel({
             </div>
           )
         ) : (
-          /* Tier 1 Primary Category List (Modern floating cards with squircle icons) */
-          <div className="p-3 space-y-2">
+          /* Tier 1 Primary Category List (Clean borderless list, tighter spacing, smooth hover) */
+          <div className="px-2 py-1 space-y-1">
             {NODE_CATEGORIES.map(category => {
               const CategoryIcon = category.icon;
               return (
                 <button
                   key={category.id}
                   onClick={() => handleSelectCategory(category.id)}
-                  className={`w-full p-3 rounded-xl border flex items-center justify-between text-left transition-all duration-200 group card-pressable ${
+                  className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-200 group cursor-pointer ${
                     isDarkMode 
-                      ? 'bg-[#1A1C24]/80 border-slate-800/80 hover:border-slate-700 hover:bg-[#20232E]' 
-                      : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/70 hover:shadow-sm'
+                      ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                      : 'hover:bg-slate-100/80 active:bg-slate-200/60'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
                     <div 
-                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform duration-200 group-hover:scale-105"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border shadow-xs transition-transform duration-200 group-hover:scale-105"
                       style={{ 
                         backgroundColor: category.bgColor, 
                         color: category.color,
@@ -1378,13 +1378,13 @@ export default function NodeCatalogPanel({
                         }`}>
                           {category.label}
                         </h4>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold ${
-                          isDarkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-semibold ${
+                          isDarkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-200/80 text-slate-700'
                         }`}>
                           {category.items.length}
                         </span>
                       </div>
-                      <p className={`text-[11px] mt-0.5 line-clamp-1 leading-relaxed ${
+                      <p className={`text-[11px] mt-0.5 line-clamp-1 leading-snug ${
                         isDarkMode ? 'text-slate-400' : 'text-slate-500'
                       }`}>
                         {category.subtitle}
@@ -1392,12 +1392,12 @@ export default function NodeCatalogPanel({
                     </div>
                   </div>
 
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 ${
+                  <div className={`w-5 h-5 flex items-center justify-center transition-all duration-200 shrink-0 ${
                     isDarkMode 
-                      ? 'text-slate-400 group-hover:text-white group-hover:bg-white/10 group-hover:translate-x-0.5' 
-                      : 'text-slate-400 group-hover:text-[#00338D] group-hover:bg-blue-50 group-hover:translate-x-0.5'
+                      ? 'text-slate-500 group-hover:text-white group-hover:translate-x-0.5' 
+                      : 'text-slate-400 group-hover:text-[#00338D] group-hover:translate-x-0.5'
                   }`}>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </div>
                 </button>
               );
