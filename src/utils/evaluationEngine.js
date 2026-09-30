@@ -18,7 +18,11 @@ export async function runEvaluationSuite({
   const modelNode = attachedPillars.find(p => p.type === 'model');
   let provider = modelNode?.config?.provider || 
     (modelNode?.name?.toLowerCase().includes('claude') ? 'anthropic' :
-     modelNode?.name?.toLowerCase().includes('gpt') ? 'openai' :
+     (modelNode?.name?.toLowerCase().includes('gpt') ||
+      modelNode?.name?.toLowerCase().includes('openai') ||
+      modelNode?.name?.toLowerCase().includes('o1') ||
+      modelNode?.name?.toLowerCase().includes('o3') ||
+      modelNode?.name?.toLowerCase().includes('o4')) ? 'openai' :
      modelNode?.name?.toLowerCase().includes('ollama') ? 'ollama' :
      modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
 

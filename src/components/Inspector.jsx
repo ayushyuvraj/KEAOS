@@ -19,7 +19,9 @@ import {
   RefreshCw,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  DollarSign,
+  Sparkles
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { 
@@ -30,6 +32,7 @@ import {
   getCachedDiscoveredModels,
   fetchProviderModelsLive
 } from '../services/llmService';
+import { getLiveModelProfile, fetchLivePricingCatalog } from '../services/modelPricingService';
 import { FRAMEWORKS } from '../constants/frameworks';
 import {
   GoogleLogo,
@@ -64,7 +67,7 @@ function InfoTooltip({ text, align = 'left' }) {
 }
 
 export default function Inspector({
-  selectedNode,
+  selectedNode: selectedNodeProp,
   nodes = [],
   activeUseCase,
   onSelectFramework,
@@ -76,6 +79,12 @@ export default function Inspector({
   onCollapse,
   onOpenApiSettings
 }) {
+  // Always derive freshest node data from nodes array if available
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeProp) return null;
+    return nodes.find((n) => n.id === selectedNodeProp.id) || selectedNodeProp;
+  }, [nodes, selectedNodeProp]);
+
   const [customModelMode, setCustomModelMode] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [customTokens, setCustomTokens] = useState([]);
@@ -128,14 +137,18 @@ export default function Inspector({
   }
 
   const isAgent = selectedNode.type === 'agentCore';
-  const nodeData = selectedNode.data;
+  const nodeData = selectedNode.data || {};
   const pillarDef = PILLARS[nodeData.pillarType];
   const isModel = nodeData.pillarType === 'model';
 
   // Multi-LLM provider detection for model nodes
   const currentProvider = nodeData.config?.provider || 
     (nodeData.name?.toLowerCase().includes('claude') ? 'anthropic' :
-     nodeData.name?.toLowerCase().includes('gpt') ? 'openai' :
+     (nodeData.name?.toLowerCase().includes('gpt') ||
+      nodeData.name?.toLowerCase().includes('openai') ||
+      nodeData.name?.toLowerCase().includes('o1') ||
+      nodeData.name?.toLowerCase().includes('o3') ||
+      nodeData.name?.toLowerCase().includes('o4')) ? 'openai' :
      nodeData.name?.toLowerCase().includes('ollama') ? 'ollama' :
      nodeData.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
 
@@ -275,6 +288,7 @@ export default function Inspector({
       name: `${providerDef.name} (${newModelId})`,
       config: {
         ...nodeData.config,
+        provider: currentProvider,
         modelId: newModelId
       }
     });
@@ -687,95 +701,184 @@ export default function Inspector({
 
             {/* Hyperparameters */}
             <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">
-              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block font-mono flex items-center">
-                Model Hyperparameters
-                <InfoTooltip text="Fine-tune how the AI model balances factual precision versus creative output." align="right" />
-              </span>
-
               {(() => {
                 const isReasoning = isFixedTemperatureModel(currentModelId);
                 return (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-[#0B0F19] flex items-center gap-1.5">
-                        <span>Temperature</span>
-                        {isReasoning && (
-                          <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 font-bold">
-                            Default (1.0)
-                          </span>
-                        )}
-                        <InfoTooltip 
-                          text={isReasoning 
-                            ? "This reasoning model only supports the default (1.0) temperature. Custom values are restricted by the provider." 
-                            : "Controls randomness: 0.0 is exact and deterministic, 1.0 is creative and diverse."} 
-                          align="left" 
-                        />
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0B0F19] block font-mono flex items-center">
+                        Model Hyperparameters
+                        <InfoTooltip text="Fine-tune how the AI model balances factual precision versus creative output." align="right" />
                       </span>
-                      <span className={`text-xs font-mono font-bold ${isReasoning ? 'text-slate-400' : 'text-[#00338D]'}`}>
-                        {isReasoning ? '1.00 (Fixed)' : Number(nodeData.config?.temperature ?? 0.2).toFixed(2)}
-                      </span>
+                      {isReasoning ? (
+                        <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 font-bold rounded-none">
+                          Fixed Params (Reasoning)
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono uppercase bg-emerald-50 text-[#009A44] border border-[#009A44]/30 px-1.5 py-0.5 font-bold rounded-none">
+                          Configurable
+                        </span>
+                      )}
                     </div>
-                    <input
-                      type="range"
-                      min="0.00"
-                      max="1.00"
-                      step="0.01"
-                      disabled={isReasoning}
-                      value={isReasoning ? 1.00 : (nodeData.config?.temperature ?? 0.2)}
-                      onChange={(e) => {
-                        onUpdateNodeData(selectedNode.id, {
-                          config: { ...nodeData.config, temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) }
-                        });
-                      }}
-                      className={`w-full accent-[#00338D] ${isReasoning ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    />
-                    {isReasoning && (
-                      <p className="text-[10px] text-amber-800 mt-1 font-sans italic leading-tight">
-                        Reasoning & frontier models only allow default temperature (1.0).
-                      </p>
-                    )}
-                  </div>
+
+                    {/* Temperature Slider */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-[#0B0F19] flex items-center gap-1.5">
+                          <span className={isReasoning ? 'text-slate-400 font-normal' : 'text-[#0B0F19]'}>Temperature</span>
+                          {isReasoning && (
+                            <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 font-bold">
+                              Default (1.0)
+                            </span>
+                          )}
+                          <InfoTooltip 
+                            text={isReasoning 
+                              ? "This reasoning model only supports the default (1.0) temperature. Custom values are restricted by the provider." 
+                              : "Controls randomness: 0.0 is exact and deterministic, 1.0 is creative and diverse."} 
+                            align="left" 
+                          />
+                        </span>
+                        <span className={`text-xs font-mono font-bold ${isReasoning ? 'text-slate-400' : 'text-[#00338D]'}`}>
+                          {isReasoning ? '1.00 (Fixed)' : Number(nodeData.config?.temperature ?? 0.2).toFixed(2)}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.00"
+                        max="1.00"
+                        step="0.01"
+                        disabled={isReasoning}
+                        value={isReasoning ? 1.00 : (nodeData.config?.temperature ?? 0.2)}
+                        onChange={(e) => {
+                          onUpdateNodeData(selectedNode.id, {
+                            config: { ...nodeData.config, temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) }
+                          });
+                        }}
+                        className={`w-full accent-[#00338D] transition-opacity ${isReasoning ? 'opacity-35 cursor-not-allowed grayscale' : 'opacity-100 cursor-pointer'}`}
+                      />
+                      {isReasoning && (
+                        <p className="text-[10px] text-amber-800 mt-1 font-sans italic leading-tight">
+                          Reasoning & frontier models only permit default temperature (1.0).
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Top-P Slider */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-[#0B0F19] flex items-center gap-1.5">
+                          <span className={isReasoning ? 'text-slate-400 font-normal' : 'text-[#0B0F19]'}>Top-P</span>
+                          {isReasoning && (
+                            <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 font-bold">
+                              Default (1.0)
+                            </span>
+                          )}
+                          <InfoTooltip 
+                            text={isReasoning
+                              ? "Reasoning models enforce fixed nucleus sampling. Custom Top-P is restricted by the provider."
+                              : "Nucleus sampling threshold: Controls how many likely tokens are considered during generation."} 
+                            align="left" 
+                          />
+                        </span>
+                        <span className={`text-xs font-mono font-bold ${isReasoning ? 'text-slate-400' : 'text-[#00338D]'}`}>
+                          {isReasoning ? '1.00 (Fixed)' : Number(nodeData.config?.topP ?? 0.95).toFixed(2)}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.01"
+                        max="1.00"
+                        step="0.01"
+                        disabled={isReasoning}
+                        value={isReasoning ? 1.00 : (nodeData.config?.topP ?? 0.95)}
+                        onChange={(e) => {
+                          onUpdateNodeData(selectedNode.id, {
+                            config: { ...nodeData.config, topP: parseFloat(parseFloat(e.target.value).toFixed(2)) }
+                          });
+                        }}
+                        className={`w-full accent-[#00338D] transition-opacity ${isReasoning ? 'opacity-35 cursor-not-allowed grayscale' : 'opacity-100 cursor-pointer'}`}
+                      />
+                      {isReasoning && (
+                        <p className="text-[10px] text-amber-800 mt-1 font-sans italic leading-tight">
+                          Nucleus sampling (Top-P) is restricted on reasoning models.
+                        </p>
+                      )}
+                    </div>
+                  </>
                 );
               })()}
+            </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#0B0F19] flex items-center">
-                    Top-P
-                    <InfoTooltip text="Nucleus sampling threshold: Controls how many likely tokens are considered during generation." align="left" />
-                  </span>
-                  <span className="text-xs font-mono text-[#00338D] font-bold">
-                    {Number(nodeData.config?.topP ?? 0.95).toFixed(2)}
-                  </span>
+            {/* Dynamic Model Intelligence & Real-Time Economics Card */}
+            {(() => {
+              const profile = getLiveModelProfile(currentProvider, currentModelId);
+              return (
+                <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1] space-y-2.5">
+                  {/* Top: Model Header & Context Limit */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Sparkles className="w-3.5 h-3.5 text-[#00338D] shrink-0" />
+                      <span className="text-xs font-bold text-[#0B0F19] truncate font-mono">
+                        {profile.displayName}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-mono font-bold bg-[#E6EDF7] text-[#00338D] px-1.5 py-0.5 border border-[#00338D]/20 shrink-0">
+                      {Math.round(profile.contextLength / 1000)}K Context
+                    </span>
+                  </div>
+
+                  {/* Real-time Pricing Rate Card */}
+                  <div className="p-2.5 bg-white border border-[#E0E0E0] space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <DollarSign className="w-3 h-3 text-[#EAAA00]" />
+                        Live Token Rate Card
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-400">USD / 1M Tokens</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#F1F5F9]">
+                      <div className="bg-[#F8F9FB] p-2 border border-[#CBD5E1]">
+                        <span className="text-[9px] text-slate-500 font-mono block">Input (Prompt)</span>
+                        <span className="text-xs font-mono font-bold text-[#00338D]">
+                          {profile.isFree ? '$0.00 (Free)' : `$${profile.promptPricePerMillion.toFixed(2)} / 1M`}
+                        </span>
+                      </div>
+                      <div className="bg-[#F8F9FB] p-2 border border-[#CBD5E1]">
+                        <span className="text-[9px] text-slate-500 font-mono block">Output (Completion)</span>
+                        <span className="text-xs font-mono font-bold text-[#009A44]">
+                          {profile.isFree ? '$0.00 (Free)' : `$${profile.completionPricePerMillion.toFixed(2)} / 1M`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] font-mono text-slate-500 pt-1 flex justify-between items-center border-t border-[#F1F5F9]">
+                      <span>Est. Run Cost (1.2k tokens):</span>
+                      <strong className="text-[#0B0F19] font-bold font-mono">
+                        {profile.isFree ? '$0.0000' : `$${((350 * profile.promptPricePerToken) + (850 * profile.completionPricePerToken)).toFixed(4)}`}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Live Model Description */}
+                  <p className="text-[11px] text-slate-600 leading-relaxed font-sans">
+                    {profile.description}
+                  </p>
+
+                  {/* Dynamic Capabilities Badges */}
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {profile.capabilities.map((cap, i) => (
+                      <span
+                        key={i}
+                        className="text-[9px] font-mono px-1.5 py-0.5 bg-white border border-[#CBD5E1] text-[#0B0F19] font-medium"
+                      >
+                        ✓ {cap}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="0.01"
-                  max="1.00"
-                  step="0.01"
-                  value={nodeData.config?.topP ?? 0.95}
-                  onChange={(e) => {
-                    onUpdateNodeData(selectedNode.id, {
-                      config: { ...nodeData.config, topP: parseFloat(parseFloat(e.target.value).toFixed(2)) }
-                    });
-                  }}
-                  className="w-full accent-[#00338D]"
-                />
-              </div>
-            </div>
-
-            {/* Provider Capability Overview */}
-            <div className="p-3 bg-[#F8F9FB] border border-[#E0E0E0] text-[11px] text-slate-600 leading-relaxed">
-              <span className="font-bold text-[#0B0F19] block mb-1 font-mono flex items-center">
-                Provider Capabilities:
-                <InfoTooltip text="Key features supported by this AI provider, such as native audio, structured output, or offline execution." align="right" />
-              </span>
-              {currentProvider === 'google' && 'Native multimodal audio ingestion (MP3), 1M-2M context window, fast JSON schema generation.'}
-              {currentProvider === 'anthropic' && 'State-of-the-art analytical reasoning, nuanced long-form output, structured artifacts.'}
-              {currentProvider === 'openai' && 'Flagship GPT-4o reasoning, strict JSON schema mode, widespread enterprise SDK compatibility.'}
-              {currentProvider === 'ollama' && 'Private offline execution on local GPU/CPU. Complete compliance for confidential meetings.'}
-              {currentProvider === 'openrouter' && 'Unified API gateway routing across 200+ models with automatic load balancing.'}
-            </div>
+              );
+            })()}
 
             {/* Save Model Specification Button */}
             <div className="pt-3 border-t border-[#E0E0E0]">

@@ -3,6 +3,7 @@ import {
   getProviderCredential, 
   PROVIDERS 
 } from '../services/llmService';
+import { calculateInferenceCost } from '../services/modelPricingService';
 
 export const EPISODIC_MEMORY_STORAGE_KEY = 'keaos_episodic_memory_store';
 
@@ -118,7 +119,11 @@ export async function runMeetingSimulation({
 
   const provider = modelNode?.config?.provider || 
     (modelNode?.name?.toLowerCase().includes('claude') ? 'anthropic' :
-     modelNode?.name?.toLowerCase().includes('gpt') ? 'openai' :
+     (modelNode?.name?.toLowerCase().includes('gpt') ||
+      modelNode?.name?.toLowerCase().includes('openai') ||
+      modelNode?.name?.toLowerCase().includes('o1') ||
+      modelNode?.name?.toLowerCase().includes('o3') ||
+      modelNode?.name?.toLowerCase().includes('o4')) ? 'openai' :
      modelNode?.name?.toLowerCase().includes('ollama') ? 'ollama' :
      modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
 
@@ -229,16 +234,12 @@ export async function runMeetingSimulation({
     logStep('Episodic Memory Commit', `Committed ${newMemoryCount} new decisions & commitments into persistent memory store.`, 45);
   }
 
-  // Step 9: Ambient Financial Cost & Labor ROI (Always Metered)
-  // Dynamic pricing rate card based on provider
-  let costPerMillion = 0.35;
-  if (provider === 'ollama') costPerMillion = 0.00;
-  else if (provider === 'google') costPerMillion = 0.20;
-  else if (provider === 'anthropic') costPerMillion = 3.00;
-  else if (provider === 'openai') costPerMillion = 2.50;
-  else if (provider === 'openrouter') costPerMillion = 0.50;
-
-  const costUsd = Number(((totalTokens / 1_000_000) * costPerMillion).toFixed(5));
+  // Step 9: Ambient Financial Cost & Labor ROI (Live Model Pricing Basis)
+  const costUsd = calculateInferenceCost({
+    provider,
+    modelId,
+    totalTokens
+  });
   const humanMinutesSaved = 35;
   const humanValueSavedUsd = Number(((humanMinutesSaved / 60) * 65).toFixed(2));
   const netRoiMultiplier = costUsd > 0 ? Math.round(humanValueSavedUsd / costUsd) : 999;

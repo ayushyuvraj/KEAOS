@@ -611,11 +611,13 @@ export function isFixedTemperatureModel(modelId) {
   if (!modelId) return false;
   const s = String(modelId).toLowerCase();
   return (
+    /(^|[\/-])(o1|o3|o4)\b/i.test(s) ||
     s.startsWith('o1') ||
     s.startsWith('o3') ||
     s.startsWith('o4') ||
     s.includes('terra') ||
     s.includes('gpt-5') ||
+    s.includes('deepseek-r1') ||
     s.includes('reasoning')
   );
 }

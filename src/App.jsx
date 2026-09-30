@@ -309,7 +309,22 @@ export default function App() {
     saveCanvasState({ nodes, edges, activeUseCase });
   }, [nodes, edges, activeUseCase]);
 
-  const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const selectedNode = useMemo(() => {
+    return nodes.find((n) => n.id === selectedNodeId) || null;
+  }, [nodes, selectedNodeId]);
+
+  const setSelectedNode = useCallback((nodeOrFn) => {
+    if (typeof nodeOrFn === 'function') {
+      setSelectedNodeId((prevId) => {
+        const prevNode = nodes.find((n) => n.id === prevId) || null;
+        const next = nodeOrFn(prevNode);
+        return next?.id || null;
+      });
+    } else {
+      setSelectedNodeId(nodeOrFn?.id || null);
+    }
+  }, [nodes]);
   const [isMakeModalOpen, setIsMakeModalOpen] = useState(false);
   const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
@@ -642,6 +657,7 @@ export default function App() {
           {viewMode === 'observability' && (
             <ObservabilityView
               activeUseCase={activeUseCase}
+              nodes={nodes}
             />
           )}
 

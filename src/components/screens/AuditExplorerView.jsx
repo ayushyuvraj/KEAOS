@@ -186,6 +186,7 @@ export default function AuditExplorerView({ activeUseCase }) {
                   <th className="p-3">Audit ID</th>
                   <th className="p-3">Event Type</th>
                   <th className="p-3">Timestamp</th>
+                  <th className="p-3">Model Cost & Volume</th>
                   <th className="p-3">Cryptographic SHA-256 Fingerprint</th>
                   <th className="p-3">Compliance Standard</th>
                   <th className="p-3">Status</th>
@@ -197,6 +198,16 @@ export default function AuditExplorerView({ activeUseCase }) {
                     <td className="p-3 font-mono font-bold text-[#00338D]">{log.id}</td>
                     <td className="p-3 font-bold text-[#0B0F19]">{log.eventType}</td>
                     <td className="p-3 text-slate-500 font-mono text-[11px]">{new Date(log.timestamp).toLocaleString()}</td>
+                    <td className="p-3 font-mono text-[11px]">
+                      {log.costUsd !== undefined ? (
+                        <span className="font-bold text-[#00338D]">
+                          ${log.costUsd.toFixed(4)}
+                          <span className="text-slate-400 font-normal ml-1">({(log.tokens || 0).toLocaleString()} tok)</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono">$0.0000</span>
+                      )}
+                    </td>
                     <td className="p-3 font-mono text-[11px] text-[#0B0F19] max-w-xs truncate">
                       <div className="flex items-center gap-2">
                         <span className="truncate">{log.sha256Hash}</span>

@@ -160,6 +160,7 @@ export default function CanvasExecutionDrawer({
         auditHash: result.auditHash,
         tokens: result.observability?.totalTokens || 0,
         latencyMs: result.observability?.totalLatencyMs || 0,
+        costUsd: result.economics?.costUsd || 0,
         redactedPiiCount: result.redactedPiiCount || 0,
         steps: result.steps
       };
@@ -441,6 +442,12 @@ export default function CanvasExecutionDrawer({
                             <>
                               <span>•</span>
                               <span>{msg.latencyMs}ms</span>
+                            </>
+                          )}
+                          {!isUser && msg.costUsd !== undefined && (
+                            <>
+                              <span>•</span>
+                              <span className="text-amber-500 font-bold">${msg.costUsd.toFixed(4)}</span>
                             </>
                           )}
                         </div>

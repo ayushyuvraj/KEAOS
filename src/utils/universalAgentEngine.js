@@ -4,6 +4,7 @@ import {
   PROVIDERS 
 } from '../services/llmService';
 import { getEpisodicMemoryStore } from './meetingSimulatorEngine';
+import { calculateInferenceCost } from '../services/modelPricingService';
 
 /**
  * Universal SHA-256 Audit Fingerprint Generator (W3C WebCrypto)
@@ -146,7 +147,11 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
 
   const provider = modelNode?.config?.provider || 
     (modelNode?.name?.toLowerCase().includes('claude') ? 'anthropic' :
-     modelNode?.name?.toLowerCase().includes('gpt') ? 'openai' :
+     (modelNode?.name?.toLowerCase().includes('gpt') ||
+      modelNode?.name?.toLowerCase().includes('openai') ||
+      modelNode?.name?.toLowerCase().includes('o1') ||
+      modelNode?.name?.toLowerCase().includes('o3') ||
+      modelNode?.name?.toLowerCase().includes('o4')) ? 'openai' :
      modelNode?.name?.toLowerCase().includes('ollama') ? 'ollama' :
      modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
 
@@ -191,7 +196,11 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
 
   // 9. OBSERVABILITY & ROI METRICS
   const totalRuntimeMs = Math.round(performance.now() - startTime);
-  const costUsd = Number(((totalTokens / 1000) * 0.0003).toFixed(5));
+  const costUsd = calculateInferenceCost({
+    provider,
+    modelId,
+    totalTokens
+  });
   const humanMinutesSaved = Math.max(3, Math.round(totalTokens / 50));
   const humanValueSavedUsd = Number(((humanMinutesSaved / 60) * 65).toFixed(2));
   const netRoiMultiplier = costUsd > 0 ? Number((humanValueSavedUsd / costUsd).toFixed(0)) : 100;
