@@ -137,7 +137,7 @@ export default function CanvasExecutionDrawer({
   const generateGreeting = useCallback((agent, modelPillar, pillars) => {
     const isBrainActive = Boolean(modelPillar);
     const agentName = agent?.data?.name || activeUseCase?.name || 'Autonomous Agent';
-    const frameworkName = agent?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK';
+    const frameworkName = agent?.data?.framework?.name || activeUseCase?.framework?.name;
     const promptMission = agent?.data?.prompt || activeUseCase?.agent?.prompt || 'Autonomous multi-pillar workflow orchestration.';
     const otherPillars = (pillars || []).filter(p => p.type !== 'model');
 
@@ -145,8 +145,9 @@ export default function CanvasExecutionDrawer({
       return {
         id: `msg-init-${agent?.id || 'default'}`,
         role: 'assistant',
-        content: `Hello! I am **${agentName}** built on **${frameworkName}**.\n\n` +
+        content: `Hello! I am **${agentName}**.\n\n` +
           `🧠 **Active Brain**: \`${modelPillar.name || modelPillar.config?.modelId || 'Foundation Model'}\`\n` +
+          (frameworkName ? `⚙️ **SDK Architecture**: \`${frameworkName}\`\n` : '') +
           `⚡ **Connected Peripherals** (${otherPillars.length}): ${otherPillars.map(p => p.name).join(', ') || 'Standard Core'}\n` +
           `📋 **Mission**: _${promptMission}_\n\n` +
           `My reasoning brain is active and all bound peripherals are compiled. How can I assist you right now?`,
@@ -160,11 +161,11 @@ export default function CanvasExecutionDrawer({
     return {
       id: `msg-init-${agent?.id || 'default'}`,
       role: 'assistant',
-      content: `👋 I am **${agentName}** (${frameworkName}).\n\n` +
+      content: `👋 I am **${agentName}**.\n\n` +
         `⚠️ **Antenna Offline — No Brain Connected**\n\n` +
         `I am deployed on the canvas, but my top socket (\`model-in\`) is currently empty. I cannot run live conversational reasoning without a Foundation Model connected.\n\n` +
         `**Configured Profile:**\n` +
-        `• **Target Framework**: ${frameworkName}\n` +
+        (frameworkName ? `• **Target Framework**: ${frameworkName}\n` : '') +
         `• **Configured Mission**: ${promptMission}\n` +
         `• **Attached Capabilities**: ${otherPillars.map(p => p.name).join(', ') || 'None yet'}\n\n` +
         `💡 **To activate me:** Drag a Foundation Model block (Google Gemini, Anthropic Claude, OpenAI, or Ollama) from the Component Dock and wire it to my top **Model** socket.`,
@@ -180,8 +181,12 @@ export default function CanvasExecutionDrawer({
 
   const chatMessages = React.useMemo(() => {
     if (!activeAgentNode) return [];
-    if (chatHistories[activeAgentId]) {
-      return chatHistories[activeAgentId];
+    if (chatHistories[activeAgentId] && chatHistories[activeAgentId].length > 0) {
+      // Only lock into static chatHistories if user has actually engaged in a conversation
+      const hasUserMessage = chatHistories[activeAgentId].some(m => m.role === 'user');
+      if (hasUserMessage) {
+        return chatHistories[activeAgentId];
+      }
     }
     return [generateGreeting(activeAgentNode, connectedModel, connectedPillars)];
   }, [activeAgentNode, activeAgentId, chatHistories, connectedModel, connectedPillars, generateGreeting]);
