@@ -207,3 +207,63 @@ input[type="range"].modern-slider::-moz-range-thumb {
 .beacon-live {
   animation: beacon-pulse 2s infinite ease-in-out;
 }
+
+/* Apple-inspired Fluid Curves and Micro-Interactions */
+:root {
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-apple-spring: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-out-fluid: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.drawer-apple-motion {
+  transition: transform 320ms var(--ease-apple), 
+              opacity 260ms var(--ease-apple), 
+              max-height 360ms var(--ease-apple),
+              height 360ms var(--ease-apple),
+              box-shadow 300ms ease;
+  will-change: transform, height, opacity;
+}
+
+@keyframes appleScaleIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-apple-in {
+  animation: appleScaleIn 240ms var(--ease-out-fluid) forwards;
+}
+
+@keyframes brainBeaconBreath {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(0, 145, 218, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 145, 218, 0.85);
+  }
+}
+
+.brain-glow-breath {
+  animation: brainBeaconBreath 3s infinite ease-in-out;
+}
+
+@keyframes agentSwitchCrossfade {
+  from {
+    opacity: 0.2;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.agent-switch-motion {
+  animation: agentSwitchCrossfade 220ms var(--ease-out-fluid) forwards;
+}
+

@@ -29,7 +29,9 @@ import {
   Maximize2,
   Minimize2,
   Minus,
-  RotateCcw
+  RotateCcw,
+  AlertTriangle,
+  Brain
 } from 'lucide-react';
 import MarkdownViewer from './common/MarkdownViewer';
 import { runMeetingSimulation } from '../utils/meetingSimulatorEngine';
@@ -42,12 +44,71 @@ export default function CanvasExecutionDrawer({
   nodes,
   edges,
   isDarkMode = true,
+  activeChatAgentId,
+  setActiveChatAgentId,
   onExecutionStateChange,
   isExpanded = false,
   setIsExpanded
 }) {
   // Mode: 'chat' (interactive live chat) | 'batch' (transcript benchmark runner)
   const [drawerMode, setDrawerMode] = useState('chat');
+
+  // Discover all agent cores currently on the canvas
+  const allAgentNodes = React.useMemo(() => {
+    return (nodes || []).filter(n => n.type === 'agentCore');
+  }, [nodes]);
+
+  // Determine the active agent node target for chat
+  const activeAgentNode = React.useMemo(() => {
+    if (activeChatAgentId) {
+      const found = allAgentNodes.find(n => n.id === activeChatAgentId);
+      if (found) return found;
+    }
+    return allAgentNodes[0] || null;
+  }, [allAgentNodes, activeChatAgentId]);
+
+  const activeAgentId = activeAgentNode?.id || 'agent-primary';
+
+  // Listen for custom event to switch drawer mode and active agent
+  useEffect(() => {
+    const handleSetDrawerMode = (e) => {
+      if (e.detail?.mode) setDrawerMode(e.detail.mode);
+      if (e.detail?.agentId && setActiveChatAgentId) {
+        setActiveChatAgentId(e.detail.agentId);
+      }
+    };
+    window.addEventListener('keaos:set-drawer-mode', handleSetDrawerMode);
+    return () => window.removeEventListener('keaos:set-drawer-mode', handleSetDrawerMode);
+  }, [setActiveChatAgentId]);
+
+  // Trace the peripheral pillars connected specifically to THIS active agent node
+  const connectedPillars = React.useMemo(() => {
+    if (!activeAgentNode) return [];
+    const incomingEdges = (edges || []).filter(e => e.target === activeAgentNode.id);
+    const nodeLookup = Object.fromEntries((nodes || []).map(n => [n.id, n]));
+    
+    return incomingEdges.map(e => {
+      const src = nodeLookup[e.source];
+      if (!src || src.data?.isDeactivated) return null;
+      return {
+        id: src.data.toolId || src.id,
+        name: src.data.name,
+        type: src.data.pillarType,
+        config: src.data.config || {},
+        customDirective: src.data.customDirective || null,
+        referenceDoc: src.data.referenceDoc || null,
+        handle: e.targetHandle
+      };
+    }).filter(Boolean);
+  }, [edges, nodes, activeAgentNode]);
+
+  // Check whether this active agent has a connected Foundation Model brain
+  const connectedModel = React.useMemo(() => {
+    return connectedPillars.find(p => p.type === 'model') || null;
+  }, [connectedPillars]);
+
+  const hasBrain = Boolean(connectedModel);
+  const modelDisplayName = connectedModel?.name || connectedModel?.config?.modelId || 'No Brain Connected';
 
   // Batch Test State
   const [transcriptText, setTranscriptText] = useState('');
@@ -63,34 +124,74 @@ export default function CanvasExecutionDrawer({
   const [isTranscribing, setIsTranscribing] = useState(false);
 
   // Batch Test Bench Resizing, Minimizing & Maximizing state
-  const [colWidths, setColWidths] = useState([33.33, 33.33, 33.34]); // Percentage width for [input, traces, output]
+  const [colWidths, setColWidths] = useState([33.33, 33.33, 33.34]);
   const [minimizedCols, setMinimizedCols] = useState({
     input: false,
     traces: false,
     output: false
   });
-  const [maximizedCol, setMaximizedCol] = useState(null); // null | 'input' | 'traces' | 'output'
+  const [maximizedCol, setMaximizedCol] = useState(null);
 
   const containerRef = useRef(null);
   const draggingDividerRef = useRef(null);
 
-  // Interactive Live Chat State
+  // Interactive Live Chat State (Scoped by Agent ID)
   const [chatInput, setChatInput] = useState('');
   const [isChatRunning, setIsChatRunning] = useState(false);
   const [currentChatStep, setCurrentChatStep] = useState(null);
   const chatBottomRef = useRef(null);
 
-  const initialGreeting = {
-    id: 'msg-init',
-    role: 'assistant',
-    content: `Hello! I am your **${activeUseCase?.name || 'Autonomous Agent'}** built on **${activeUseCase?.framework?.name || 'Google ADK'}**.\n\nAll connected canvas pillars (**Foundation Model**, **Skills**, **MCP Servers**, **Tools**, **Episodic Memory**, and **Guardrails**) are compiled and active. You can chat with me or give me any enterprise task!`,
-    timestamp: 'Live',
-    auditHash: 'W3C-VERIFIED-GEN01',
-    tokens: 48,
-    latencyMs: 120
-  };
+  const generateGreeting = useCallback((agent, modelPillar, pillars) => {
+    const isBrainActive = Boolean(modelPillar);
+    const agentName = agent?.data?.name || activeUseCase?.name || 'Autonomous Agent';
+    const frameworkName = agent?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK';
+    const promptMission = agent?.data?.prompt || activeUseCase?.agent?.prompt || 'Autonomous multi-pillar workflow orchestration.';
+    const otherPillars = (pillars || []).filter(p => p.type !== 'model');
 
-  const [chatMessages, setChatMessages] = useState([initialGreeting]);
+    if (isBrainActive) {
+      return {
+        id: `msg-init-${agent?.id || 'default'}`,
+        role: 'assistant',
+        content: `Hello! I am **${agentName}** built on **${frameworkName}**.\n\n` +
+          `🧠 **Active Brain**: \`${modelPillar.name || modelPillar.config?.modelId || 'Foundation Model'}\`\n` +
+          `⚡ **Connected Peripherals** (${otherPillars.length}): ${otherPillars.map(p => p.name).join(', ') || 'Standard Core'}\n` +
+          `📋 **Mission**: _${promptMission}_\n\n` +
+          `My reasoning brain is active and all bound peripherals are compiled. How can I assist you right now?`,
+        timestamp: 'Live',
+        auditHash: 'W3C-VERIFIED-GEN01',
+        tokens: 42,
+        latencyMs: 85
+      };
+    }
+
+    return {
+      id: `msg-init-${agent?.id || 'default'}`,
+      role: 'assistant',
+      content: `👋 I am **${agentName}** (${frameworkName}).\n\n` +
+        `⚠️ **Antenna Offline — No Brain Connected**\n\n` +
+        `I am deployed on the canvas, but my top socket (\`model-in\`) is currently empty. I cannot run live conversational reasoning without a Foundation Model connected.\n\n` +
+        `**Configured Profile:**\n` +
+        `• **Target Framework**: ${frameworkName}\n` +
+        `• **Configured Mission**: ${promptMission}\n` +
+        `• **Attached Capabilities**: ${otherPillars.map(p => p.name).join(', ') || 'None yet'}\n\n` +
+        `💡 **To activate me:** Drag a Foundation Model block (Google Gemini, Anthropic Claude, OpenAI, or Ollama) from the Component Dock and wire it to my top **Model** socket.`,
+      timestamp: 'Idle',
+      auditHash: null,
+      tokens: 0,
+      latencyMs: 0
+    };
+  }, [activeUseCase]);
+
+  // Persist conversation history per agent ID
+  const [chatHistories, setChatHistories] = useState({});
+
+  const chatMessages = React.useMemo(() => {
+    if (!activeAgentNode) return [];
+    if (chatHistories[activeAgentId]) {
+      return chatHistories[activeAgentId];
+    }
+    return [generateGreeting(activeAgentNode, connectedModel, connectedPillars)];
+  }, [activeAgentNode, activeAgentId, chatHistories, connectedModel, connectedPillars, generateGreeting]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -99,17 +200,19 @@ export default function CanvasExecutionDrawer({
     }
   }, [chatMessages, isChatRunning, isExpanded, drawerMode]);
 
-  // Attached pillars derived from canvas nodes (excluding deactivated components)
-  const attachedPillars = (nodes || [])
-    .filter(n => n.type === 'pillar' && !n.data?.isDeactivated)
-    .map(n => ({
-      id: n.data.toolId || n.id,
-      name: n.data.name,
-      type: n.data.pillarType,
-      config: n.data.config || {},
-      customDirective: n.data.customDirective || null,
-      referenceDoc: n.data.referenceDoc || null
-    }));
+  // Global attached pillars for batch simulator mode
+  const globalAttachedPillars = useMemo(() => {
+    return (nodes || [])
+      .filter(n => n.type === 'pillar' && !n.data?.isDeactivated)
+      .map(n => ({
+        id: n.data.toolId || n.id,
+        name: n.data.name,
+        type: n.data.pillarType,
+        config: n.data.config || {},
+        customDirective: n.data.customDirective || null,
+        referenceDoc: n.data.referenceDoc || null
+      }));
+  }, [nodes]);
 
   // Listen for canvas "Execute Workflow" button trigger
   useEffect(() => {
@@ -120,16 +223,18 @@ export default function CanvasExecutionDrawer({
     };
     window.addEventListener('keaos:execute-workflow', handleExecuteTrigger);
     return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
-  }, [isRunning, transcriptText, activeUseCase, attachedPillars]);
-
-  const modelNode = (nodes || []).find(n => n.type === 'pillar' && n.data?.pillarType === 'model' && !n.data?.isDeactivated);
-  const modelDisplayName = modelNode?.data?.name || modelNode?.name || 'No Model Connected';
+  }, [isRunning, transcriptText, activeUseCase, globalAttachedPillars]);
 
   // Handle Interactive Chat Submission
   const handleSendChat = async (e) => {
     if (e) e.preventDefault();
     const promptText = chatInput.trim();
     if (!promptText || isChatRunning) return;
+
+    if (!hasBrain) {
+      alert(`⚠️ ${activeAgentNode?.data?.name || 'This agent'} has no brain connected!\n\nPlease wire a Foundation Model (Gemini, Claude, GPT, or Ollama) to its top antenna socket on the canvas to chat with it.`);
+      return;
+    }
 
     const userMsgId = `user-${Date.now()}`;
     const newUserMsg = {
@@ -139,22 +244,31 @@ export default function CanvasExecutionDrawer({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setChatMessages(prev => [...prev, newUserMsg]);
+    const currentThread = chatMessages;
+    setChatHistories(prev => ({
+      ...prev,
+      [activeAgentId]: [...currentThread, newUserMsg]
+    }));
+
     setChatInput('');
     setIsChatRunning(true);
-    setCurrentChatStep({ step: 'Compiling Graph Topology', detail: 'Gathering active pillars...' });
+    setCurrentChatStep({ step: 'Reasoning through Connected Brain', detail: `Invoking ${modelDisplayName}...` });
 
     if (onExecutionStateChange) {
-      onExecutionStateChange({ isExecuting: true, step: 'Starting chat...' });
+      onExecutionStateChange({ isExecuting: true, step: `Querying ${modelDisplayName}...` });
     }
 
     try {
       const result = await executeUniversalAgentChat({
         userMessage: promptText,
-        conversationHistory: chatMessages.slice(-6).map(m => ({ role: m.role, content: m.content })),
-        frameworkId: activeUseCase?.framework?.id || 'google-adk',
-        agentConfig: activeUseCase?.agent || {},
-        attachedPillars,
+        conversationHistory: currentThread.slice(-6).map(m => ({ role: m.role, content: m.content })),
+        frameworkId: activeAgentNode?.data?.framework?.id || activeUseCase?.framework?.id || 'google-adk',
+        agentConfig: {
+          prompt: activeAgentNode?.data?.prompt || activeUseCase?.agent?.prompt || 'You are an autonomous enterprise agent...',
+          temperature: activeAgentNode?.data?.temperature ?? 0.2,
+          topP: activeAgentNode?.data?.topP ?? 0.95
+        },
+        attachedPillars: connectedPillars,
         onStepProgress: (currStep, allSteps) => {
           setCurrentChatStep(currStep);
           if (onExecutionStateChange) {
@@ -181,7 +295,10 @@ export default function CanvasExecutionDrawer({
         steps: result.steps
       };
 
-      setChatMessages(prev => [...prev, assistantMsg]);
+      setChatHistories(prev => ({
+        ...prev,
+        [activeAgentId]: [...(prev[activeAgentId] || currentThread), newUserMsg, assistantMsg]
+      }));
     } catch (err) {
       console.error('Chat execution failed:', err);
       const errorMsg = {
@@ -191,7 +308,10 @@ export default function CanvasExecutionDrawer({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isError: true
       };
-      setChatMessages(prev => [...prev, errorMsg]);
+      setChatHistories(prev => ({
+        ...prev,
+        [activeAgentId]: [...(prev[activeAgentId] || currentThread), newUserMsg, errorMsg]
+      }));
     } finally {
       setIsChatRunning(false);
       setCurrentChatStep(null);
@@ -202,7 +322,10 @@ export default function CanvasExecutionDrawer({
   };
 
   const handleClearChat = () => {
-    setChatMessages([initialGreeting]);
+    setChatHistories(prev => ({
+      ...prev,
+      [activeAgentId]: [generateGreeting(activeAgentNode, connectedModel, connectedPillars)]
+    }));
   };
 
   const handleRunAgent = async () => {
@@ -381,7 +504,7 @@ export default function CanvasExecutionDrawer({
   };
 
   return (
-    <div className={`absolute bottom-0 left-0 right-0 z-30 transition-all duration-200 select-none border-t shadow-2xl ${
+    <div className={`absolute bottom-0 left-0 right-0 z-30 drawer-apple-motion select-none border-t shadow-2xl ${
       isDarkMode 
         ? 'bg-[#18191E] border-[#2E313B] text-white' 
         : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#111827]'
@@ -391,8 +514,8 @@ export default function CanvasExecutionDrawer({
         onClick={() => setIsExpanded(!isExpanded)}
         className="h-10 px-5 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors"
       >
-        {/* Left: Mode Switcher Tabs */}
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        {/* Left: Mode Switcher Tabs & Multi-Agent Pills */}
+        <div className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
           <div className={`flex items-center p-0.5 rounded-lg border text-xs font-semibold ${
             isDarkMode ? 'bg-[#121316] border-[#2A2D36]' : 'bg-gray-100 border-gray-200'
           }`}>
@@ -420,6 +543,38 @@ export default function CanvasExecutionDrawer({
             </button>
           </div>
 
+          {/* Multi-Agent Pill Switcher: appears when canvas has multiple AI agents */}
+          {allAgentNodes.length > 1 && (
+            <div className={`hidden sm:flex items-center p-0.5 rounded-full border text-xs ${
+              isDarkMode ? 'bg-[#121316] border-[#2A2D36]' : 'bg-gray-100 border-gray-200'
+            }`}>
+              {allAgentNodes.map(agent => {
+                const isCurrent = agent.id === activeAgentNode?.id;
+                const isAgentHasBrain = (edges || []).some(e => e.target === agent.id && e.targetHandle === 'model-in');
+                return (
+                  <button
+                    key={agent.id}
+                    onClick={() => {
+                      if (setActiveChatAgentId) setActiveChatAgentId(agent.id);
+                      setDrawerMode('chat');
+                      setIsExpanded(true);
+                    }}
+                    className={`px-2.5 py-0.5 rounded-full transition-all flex items-center gap-1.5 text-[10px] font-mono font-bold active:scale-95 ${
+                      isCurrent
+                        ? 'bg-[#00338D] text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title={`Switch chat to ${agent.data?.name || 'Agent'} (${isAgentHasBrain ? 'Brain Connected' : 'No Brain'})`}
+                  >
+                    <Bot className="w-3 h-3" />
+                    <span className="truncate max-w-[90px]">{agent.data?.name || 'Agent'}</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isAgentHasBrain ? 'bg-[#0091DA]' : 'bg-amber-400'}`} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Real-time Status Indicator */}
           {isChatRunning && (
             <div className="flex items-center gap-1.5 text-[11px] text-[#0091DA] font-mono animate-pulse ml-2">
@@ -441,10 +596,14 @@ export default function CanvasExecutionDrawer({
         {/* Right: Quick Run & Expand Icon */}
         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
           <div className="text-[11px] font-mono text-slate-400 hidden md:flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>{activeUseCase?.framework?.name || 'Google ADK'}</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${hasBrain ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+            <span className="font-bold text-white/90">{activeAgentNode?.data?.name || 'Agent'}</span>
             <span>•</span>
-            <span className="text-[#0091DA]">{modelDisplayName}</span>
+            <span className="text-slate-400">{activeAgentNode?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK'}</span>
+            <span>•</span>
+            <span className={hasBrain ? 'text-[#0091DA] font-semibold' : 'text-amber-400'}>
+              {hasBrain ? modelDisplayName : 'No Brain'}
+            </span>
           </div>
 
           <button
@@ -472,15 +631,30 @@ export default function CanvasExecutionDrawer({
                 isDarkMode ? 'bg-[#18191E] border-[#2A2D36] text-slate-400' : 'bg-white border-gray-200 text-slate-600'
               }`}>
                 <div className="flex items-center gap-2">
-                  <Bot className="w-4 h-4 text-[#0091DA]" />
-                  <span className="font-bold text-white">
-                    {activeUseCase?.name || 'Agent Core'}
+                  <div className={`w-5 h-5 rounded-md flex items-center justify-center ${
+                    hasBrain ? 'bg-[#0091DA]/20 text-[#0091DA]' : 'bg-amber-500/20 text-amber-400'
+                  }`}>
+                    <Bot className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-bold text-white text-sm tracking-tight">
+                    {activeAgentNode?.data?.name || 'Autonomous Agent'}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0091DA]/20 text-[#0091DA]">
-                    {activeUseCase?.framework?.name || 'Google ADK'}
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0091DA]/15 text-[#0091DA] border border-[#0091DA]/30">
+                    {activeAgentNode?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK'}
                   </span>
-                  <span className="text-[10px] text-slate-500">
-                    ({attachedPillars.length} active pillars bound)
+                  {hasBrain ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-bold">
+                      <Brain className="w-3 h-3 text-emerald-400" />
+                      <span>{modelDisplayName}</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1 font-bold">
+                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                      <span>NO BRAIN CONNECTED</span>
+                    </span>
+                  )}
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">
+                    ({connectedPillars.filter(p => p.type !== 'model').length} peripherals bound)
                   </span>
                 </div>
 
@@ -496,14 +670,14 @@ export default function CanvasExecutionDrawer({
                 </div>
               </div>
 
-              {/* Chat Stream History Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 font-sans text-xs">
+              {/* Chat Stream History Area (with Apple-style crossfade on agent switch) */}
+              <div key={activeAgentId} className="flex-1 overflow-y-auto p-4 space-y-4 font-sans text-xs agent-switch-motion">
                 {chatMessages.map((msg) => {
                   const isUser = msg.role === 'user';
                   return (
                     <div
                       key={msg.id}
-                      className={`flex gap-3 max-w-[85%] ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}
+                      className={`flex gap-3 max-w-[85%] animate-apple-in ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}
                     >
                       {/* Avatar */}
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
@@ -557,7 +731,7 @@ export default function CanvasExecutionDrawer({
 
                 {/* Live Step Progress / Thinking Indicator */}
                 {isChatRunning && (
-                  <div className="flex gap-3 mr-auto max-w-[85%]">
+                  <div className="flex gap-3 mr-auto max-w-[85%] animate-apple-in">
                     <div className="w-7 h-7 rounded-full bg-[#0091DA]/20 border border-[#0091DA] text-[#0091DA] flex items-center justify-center shrink-0 animate-pulse">
                       <Sparkles className="w-3.5 h-3.5" />
                     </div>
@@ -574,30 +748,52 @@ export default function CanvasExecutionDrawer({
                 <div ref={chatBottomRef} />
               </div>
 
+              {/* Informational Guidance Banner if Agent is Brainless */}
+              {!hasBrain && (
+                <div className={`mx-4 mb-2 p-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs animate-apple-in ${
+                  isDarkMode 
+                    ? 'bg-amber-950/20 border-amber-500/30 text-amber-300' 
+                    : 'bg-amber-50 border-amber-200 text-amber-900'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <div>
+                      <span className="font-bold">Antenna Disconnected</span>
+                      <span className="opacity-80 ml-1.5 text-[11px]">Wire a Foundation Model (Gemini, Claude, GPT, Ollama) to this agent's top socket to chat.</span>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold border border-amber-500/40 shrink-0">
+                    PORT: model-in
+                  </span>
+                </div>
+              )}
+
               {/* Quick Starter Chips */}
-              <div className="px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-700/20 text-[10px] font-mono shrink-0">
-                <span className="text-slate-500 font-bold shrink-0">Prompts:</span>
-                {[
-                  'Extract key decisions & owners',
-                  'Audit commitments against historical memory',
-                  'Verify compliance against NDA & PII policies',
-                  'Draft executive follow-up email'
-                ].map((chip, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setChatInput(chip);
-                    }}
-                    className={`px-2 py-0.5 rounded border whitespace-nowrap transition-colors ${
-                      isDarkMode 
-                        ? 'bg-[#1F2128] border-[#383C4A] text-slate-300 hover:text-white hover:border-[#0091DA]' 
-                        : 'bg-white border-[#CBD5E1] text-slate-700 hover:text-black hover:border-[#00338D]'
-                    }`}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
+              {hasBrain && (
+                <div className="px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-700/20 text-[10px] font-mono shrink-0">
+                  <span className="text-slate-500 font-bold shrink-0">Prompts:</span>
+                  {[
+                    'Explain your active architecture & tools',
+                    'Extract key decisions & owners',
+                    'Audit commitments against historical memory',
+                    'Verify compliance against NDA & PII policies'
+                  ].map((chip, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setChatInput(chip);
+                      }}
+                      className={`px-2 py-0.5 rounded border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${
+                        isDarkMode 
+                          ? 'bg-[#1F2128] border-[#383C4A] text-slate-300 hover:text-white hover:border-[#0091DA]' 
+                          : 'bg-white border-[#CBD5E1] text-slate-700 hover:text-black hover:border-[#00338D]'
+                      }`}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Apple-style Interactive Chat Input Bar */}
               <form onSubmit={handleSendChat} className={`p-3 border-t flex items-center gap-2 ${
@@ -607,19 +803,25 @@ export default function CanvasExecutionDrawer({
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={`Ask ${activeUseCase?.name || 'Agent'} anything across tools, memory & guardrails... (Press Enter)`}
-                  disabled={isChatRunning}
+                  placeholder={
+                    hasBrain
+                      ? `Ask ${activeAgentNode?.data?.name || 'Agent'} anything across tools, memory & guardrails... (Press Enter)`
+                      : `Connect a Foundation Model to ${activeAgentNode?.data?.name || 'this agent'} to enable chat...`
+                  }
+                  disabled={isChatRunning || !hasBrain}
                   className={`flex-1 px-3 py-2 text-xs font-sans rounded-none border focus:outline-none transition-colors ${
-                    isDarkMode 
-                      ? 'bg-[#121316] border-[#383C4A] text-white focus:border-[#0091DA]' 
-                      : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00338D]'
+                    !hasBrain 
+                      ? 'bg-slate-800/30 border-slate-700 text-slate-500 cursor-not-allowed'
+                      : isDarkMode 
+                        ? 'bg-[#121316] border-[#383C4A] text-white focus:border-[#0091DA]' 
+                        : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00338D]'
                   }`}
                 />
                 <button
                   type="submit"
-                  disabled={isChatRunning || !chatInput.trim()}
-                  className={`px-4 py-2 text-xs font-bold font-mono rounded-none flex items-center gap-1.5 transition-all ${
-                    isChatRunning || !chatInput.trim()
+                  disabled={isChatRunning || !chatInput.trim() || !hasBrain}
+                  className={`px-4 py-2 text-xs font-bold font-mono rounded-none flex items-center gap-1.5 transition-all btn-tactile ${
+                    isChatRunning || !chatInput.trim() || !hasBrain
                       ? 'opacity-40 bg-slate-700 text-slate-400 cursor-not-allowed'
                       : 'bg-[#00338D] hover:bg-[#005EB8] text-white shadow-sm cursor-pointer'
                   }`}

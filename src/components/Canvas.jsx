@@ -114,7 +114,19 @@ function CanvasInner({
   const [rfInstance, setRfInstance] = useState(null);
   const [executionState, setExecutionState] = useState({ isExecuting: false, step: '' });
   const [toastNotification, setToastNotification] = useState(null);
+  const [activeChatAgentId, setActiveChatAgentId] = useState(null);
   const hoveredNodeIdRef = useRef(null);
+
+  // Switch to specific agent chat and expand bottom drawer with Apple-style smooth ease
+  const handleOpenAgentChat = useCallback((agentId) => {
+    setActiveChatAgentId(agentId);
+    if (setIsDrawerExpanded) setIsDrawerExpanded(true);
+    window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', { detail: { mode: 'chat', agentId } }));
+    const targetNode = (nodes || []).find(n => n.id === agentId);
+    if (targetNode && onSelectNode) {
+      onSelectNode(targetNode);
+    }
+  }, [setIsDrawerExpanded, nodes, onSelectNode]);
 
   // Global toast listener for canvas messages
   useEffect(() => {
@@ -601,31 +613,9 @@ function CanvasInner({
   };
 
   const nodesWithTheme = React.useMemo(() => {
-    // Dynamically calculate attachedCounts from active, non-deactivated edges connected to agent-core
-    const activeCounts = {
-      model: 0,
-      skills: 0,
-      mcp: 0,
-      tools: 0,
-      gateway: 0,
-      memory: 0,
-      policies: 0
-    };
-
     const nodeLookup = {};
     (nodes || []).forEach(n => {
       nodeLookup[n.id] = n;
-    });
-
-    (edges || []).forEach((edge) => {
-      if (edge.target === 'agent-core' && edge.targetHandle) {
-        const pillar = SOCKET_RULES[edge.targetHandle];
-        const sourceNode = nodeLookup[edge.source];
-        const isSourceDeactivated = !!sourceNode?.data?.isDeactivated;
-        if (pillar && activeCounts[pillar] !== undefined && !isSourceDeactivated) {
-          activeCounts[pillar] += 1;
-        }
-      }
     });
 
     return (nodes || []).map(n => {
@@ -635,6 +625,36 @@ function CanvasInner({
         (n.data?.pillarType && n.data.pillarType === executionState.pillarType)
       );
 
+      // Dynamically calculate attachedCounts and connectedModelName specifically for THIS agent node
+      let agentCounts = n.data?.attachedCounts;
+      let connectedModelName = null;
+
+      if (n.type === 'agentCore') {
+        agentCounts = {
+          model: 0,
+          skills: 0,
+          mcp: 0,
+          tools: 0,
+          gateway: 0,
+          memory: 0,
+          policies: 0
+        };
+
+        (edges || []).forEach((edge) => {
+          if (edge.target === n.id && edge.targetHandle) {
+            const pillar = SOCKET_RULES[edge.targetHandle];
+            const sourceNode = nodeLookup[edge.source];
+            const isSourceDeactivated = !!sourceNode?.data?.isDeactivated;
+            if (pillar && agentCounts[pillar] !== undefined && !isSourceDeactivated) {
+              agentCounts[pillar] += 1;
+              if (pillar === 'model' && sourceNode) {
+                connectedModelName = sourceNode.data?.name || sourceNode.data?.config?.modelId || 'Foundation Model';
+              }
+            }
+          }
+        });
+      }
+
       return {
         ...n,
         data: {
@@ -642,7 +662,9 @@ function CanvasInner({
           isDarkMode,
           isExecuting: isThisNodeActive || (n.type === 'agentCore' && executionState.isExecuting),
           executionStep: executionState.step,
-          attachedCounts: n.type === 'agentCore' ? activeCounts : n.data.attachedCounts,
+          attachedCounts: agentCounts,
+          connectedModelName: connectedModelName,
+          onOpenAgentChat: handleOpenAgentChat,
           onDelete: handleDeleteNode,
           onDuplicate: handleDuplicateNode,
           onToggleDeactivate: handleToggleDeactivateNode,
@@ -658,6 +680,7 @@ function CanvasInner({
     edges, 
     isDarkMode, 
     executionState, 
+    handleOpenAgentChat,
     handleDeleteNode, 
     handleDuplicateNode, 
     handleToggleDeactivateNode, 
@@ -912,6 +935,8 @@ function CanvasInner({
         nodes={nodes}
         edges={edges}
         isDarkMode={isDarkMode}
+        activeChatAgentId={activeChatAgentId}
+        setActiveChatAgentId={setActiveChatAgentId}
         onExecutionStateChange={setExecutionState}
         isExpanded={isDrawerExpanded}
         setIsExpanded={setIsDrawerExpanded}

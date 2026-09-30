@@ -7,7 +7,8 @@ import {
   Database, 
   ShieldCheck, 
   Sparkles, 
-  Plus 
+  Plus,
+  MessageSquare 
 } from 'lucide-react';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
@@ -16,9 +17,11 @@ export default function AgentCoreNode({ id, data, selected }) {
     name, 
     framework, 
     attachedCounts, 
+    connectedModelName,
     isDarkMode, 
     isExecuting,
     isDeactivated,
+    onOpenAgentChat,
     onExecute,
     onToggleDeactivate,
     onDelete,
@@ -46,13 +49,13 @@ export default function AgentCoreNode({ id, data, selected }) {
           className={`relative group w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md ${
             hasModel
               ? isDarkMode
-                ? 'bg-[#0091DA]/20 border-[#0091DA] text-[#38BDF8] shadow-[0_0_12px_rgba(0,145,218,0.5)]'
-                : 'bg-[#0091DA]/15 border-[#0091DA] text-[#005EB8] shadow-sm'
+                ? 'bg-[#0091DA]/20 border-[#0091DA] text-[#38BDF8] brain-glow-breath'
+                : 'bg-[#0091DA]/15 border-[#0091DA] text-[#005EB8] brain-glow-breath'
               : isDarkMode
                 ? 'bg-[#222530] border-[#444856] text-slate-400'
                 : 'bg-white border-[#CBD5E1] text-slate-500'
           }`}
-          title="Model Socket: Connect Foundation Model (Gemini, Claude, GPT-4o, Ollama)"
+          title={hasModel ? `Model Connected: ${connectedModelName || 'Active Brain'}` : "Model Socket: Connect Foundation Model (Gemini, Claude, GPT, Ollama)"}
         >
           {/* Target Handle for Model at Top */}
           <Handle
@@ -124,6 +127,7 @@ export default function AgentCoreNode({ id, data, selected }) {
           nodeId={id}
           nodeName={name}
           isDeactivated={isDeactivated}
+          onOpenChat={onOpenAgentChat}
           onExecute={onExecute}
           onToggleDeactivate={onToggleDeactivate}
           onDelete={onDelete}
@@ -273,13 +277,18 @@ export default function AgentCoreNode({ id, data, selected }) {
 
           {/* Status indicator */}
           <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              isDeactivated 
-                ? 'bg-amber-500' 
-                : isExecuting 
-                  ? 'bg-[#0091DA] animate-ping' 
-                  : 'bg-[#10B981]'
-            }`} />
+            <span 
+              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                isDeactivated 
+                  ? 'bg-slate-500' 
+                  : isExecuting 
+                    ? 'bg-[#0091DA] animate-ping' 
+                    : hasModel 
+                      ? 'bg-[#10B981] shadow-[0_0_6px_#10B981]' 
+                      : 'bg-amber-400'
+              }`} 
+              title={isDeactivated ? 'Deactivated' : hasModel ? 'Brain Active (Model Connected)' : 'Idle (Model Disconnected)'}
+            />
           </div>
         </div>
 
@@ -308,6 +317,37 @@ export default function AgentCoreNode({ id, data, selected }) {
           }`}>
             {isDeactivated ? 'Deactivated' : (framework?.name || 'Workflow Orchestrator')}
           </span>
+
+          {/* Apple-style Interactive Chat Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onOpenAgentChat) onOpenAgentChat(id);
+            }}
+            className={`mt-2 w-full py-1 px-2.5 rounded-full border flex items-center justify-between gap-1 text-[10px] font-mono font-bold transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.96] ${
+              hasModel
+                ? isDarkMode
+                  ? 'bg-[#0091DA]/15 hover:bg-[#0091DA]/25 border-[#0091DA]/40 text-[#38BDF8] hover:shadow-[0_0_12px_rgba(0,145,218,0.4)]'
+                  : 'bg-[#E6F3FA] hover:bg-[#CCE7F5] border-[#0091DA]/50 text-[#005EB8] hover:shadow-sm'
+                : isDarkMode
+                  ? 'bg-[#222530] hover:bg-[#2A2E3B] border-[#383C4A] text-slate-400'
+                  : 'bg-[#F1F5F9] hover:bg-[#E2E8F0] border-[#CBD5E1] text-slate-600'
+            }`}
+            title={hasModel ? `Open Live Chat with ${name} (${connectedModelName || 'Model Active'})` : `${name} has no connected brain. Click to inspect.`}
+          >
+            <div className="flex items-center gap-1.5 truncate">
+              <MessageSquare className="w-3 h-3 shrink-0" />
+              <span className="truncate">{hasModel ? 'Live Chat' : 'No Brain'}</span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                hasModel ? 'bg-[#0091DA] animate-pulse' : 'bg-amber-400'
+              }`} />
+              <span className="text-[8px] font-mono opacity-70">
+                {hasModel ? 'LIVE' : 'IDLE'}
+              </span>
+            </div>
+          </button>
         </div>
       </div>
 

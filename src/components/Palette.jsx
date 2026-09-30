@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { 
+  Bot,
   Cpu, 
   Sparkles, 
   Layers, 
@@ -81,6 +82,38 @@ export default function Palette({ onAddNode }) {
 
       {/* Accordion Categories */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#F8F9FB]">
+        {/* Autonomous AI Agent Core Provisioner */}
+        {(!search || 'ai agent core autonomous'.includes(search.toLowerCase())) && (
+          <div 
+            className="border border-[#00338D]/30 bg-[#FFFFFF] overflow-hidden shadow-sm transition-all" 
+            style={{ borderLeft: '3px solid #00338D' }}
+          >
+            <div className="p-2.5 bg-gradient-to-r from-[#F0F4FA] to-white flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#00338D] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Bot className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h5 className="text-xs font-bold text-[#0B0F19] tracking-tight">AI Agent Core</h5>
+                    <span className="text-[8px] font-mono px-1 py-0.2 bg-[#00338D]/10 text-[#00338D] font-bold rounded">
+                      AGENT
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Autonomous multi-pillar agent</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onAddNode('agentCore', { name: 'Autonomous Agent' })}
+                className="btn-tactile w-7 h-7 bg-[#00338D] hover:bg-[#005EB8] text-white flex items-center justify-center transition-all shrink-0 border border-[#001E50] shadow-sm cursor-pointer"
+                title="Add new AI Agent to canvas"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {Object.entries(PILLARS).map(([pillarKey, pillar]) => {
           const Icon = PILLAR_ICONS[pillarKey] || Wrench;
           const isOpen = openCategories[pillarKey];

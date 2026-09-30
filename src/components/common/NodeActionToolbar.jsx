@@ -8,13 +8,15 @@ import {
   Copy, 
   Files, 
   CornerDownLeft,
-  Edit3
+  Edit3,
+  MessageSquare
 } from 'lucide-react';
 
 export default function NodeActionToolbar({
   nodeId,
   nodeName,
   isDeactivated = false,
+  onOpenChat,
   onExecute,
   onToggleDeactivate,
   onDelete,
@@ -94,6 +96,24 @@ export default function NodeActionToolbar({
             : 'bg-white/95 border-[#CBD5E1] text-slate-500'
         }`}
       >
+        {/* 0. Live Chat with Agent */}
+        {onOpenChat && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenChat(nodeId);
+            }}
+            className={`p-1 rounded-md transition-all ${
+              isDarkMode
+                ? 'hover:text-[#38BDF8] hover:bg-white/10 active:scale-95 text-[#0091DA]'
+                : 'hover:text-[#00338D] hover:bg-black/5 active:scale-95 text-[#005EB8]'
+            }`}
+            title={`Open Live Chat with ${nodeName || 'Agent'}`}
+          >
+            <MessageSquare className="w-3 h-3" />
+          </button>
+        )}
+
         {/* 1. Play / Execute Step */}
         <button
           onClick={(e) => {

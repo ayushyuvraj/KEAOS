@@ -349,21 +349,36 @@ export default function App() {
   // Add node from Palette / Catalog
   const handleAddNode = useCallback((pillarKey, item) => {
     if (pillarKey === 'agentCore') {
-      const newNodeId = `agent-${Date.now().toString().slice(-4)}`;
-      const newNode = {
-        id: newNodeId,
-        type: 'agentCore',
-        position: { x: 380, y: 220 },
-        data: {
-          name: item.name || 'Autonomous Agent Core',
-          framework: activeUseCase?.framework || { id: 'google-adk', name: 'Google ADK' },
-          prompt: activeUseCase?.agent?.prompt || 'You are an autonomous enterprise agent...',
-          temperature: 0.2,
-          topP: 0.95
-        }
-      };
-      setNodes((nds) => [...nds, newNode]);
-      setSelectedNode(newNode);
+      const newNodeId = `agent-core-${Date.now().toString().slice(-4)}`;
+      let agentCount = 1;
+      setNodes((nds) => {
+        const existingAgents = nds.filter(n => n.type === 'agentCore');
+        agentCount = existingAgents.length + 1;
+        const xPos = 280 + (existingAgents.length * 300);
+        const yPos = 200 + ((existingAgents.length % 2) * 60);
+
+        const newNode = {
+          id: newNodeId,
+          type: 'agentCore',
+          position: { x: xPos, y: yPos },
+          data: {
+            name: item.name && item.name !== 'Autonomous Agent' && item.name !== 'Autonomous Agent Core'
+              ? `${item.name} #${agentCount}`
+              : `Autonomous Agent #${agentCount}`,
+            framework: activeUseCase?.framework || { id: 'google-adk', name: 'Google ADK' },
+            prompt: activeUseCase?.agent?.prompt || 'You are an autonomous enterprise agent...',
+            temperature: 0.2,
+            topP: 0.95
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `🤖 Deployed AI Agent to Canvas` }
+      }));
       return;
     }
 
