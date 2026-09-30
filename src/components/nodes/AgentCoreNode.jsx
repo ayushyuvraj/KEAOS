@@ -228,12 +228,16 @@ export default function AgentCoreNode({ id, data, selected }) {
             title="Agent output stream"
           />
           <div 
-            className={`absolute left-2.5 w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer shadow-sm ${
+            onClick={(e) => {
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('keaos:spawn-output-node', { detail: { sourceAgentId: id } }));
+            }}
+            className={`absolute left-2.5 w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95 ${
               isDarkMode
-                ? 'border-[#444856] bg-[#222530] text-slate-400 hover:text-white hover:border-[#0091DA]'
-                : 'border-[#CBD5E1] bg-white text-slate-600 hover:text-black hover:border-[#0091DA]'
+                ? 'border-[#444856] bg-[#222530] text-slate-400 hover:text-white hover:border-[#10B981]'
+                : 'border-[#CBD5E1] bg-white text-slate-600 hover:text-black hover:border-[#10B981]'
             }`}
-            title="Chain next workflow step"
+            title="Attach Canvas Output Component to this agent"
           >
             <Plus className="w-2.5 h-2.5" />
           </div>

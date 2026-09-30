@@ -49,7 +49,7 @@ export function saveUIState(updates) {
   }
 }
 
-const CANVAS_VERSION = 'v3_robot';
+const CANVAS_VERSION = 'v4_output_component';
 
 /**
  * Loads Canvas topology state (nodes, edges, active use case) if saved.

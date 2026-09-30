@@ -44,10 +44,12 @@ import {
 
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
 import DeletableEdge from './edges/DeletableEdge';
+import OutputDisplayNode from './nodes/OutputDisplayNode';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
-  pillar: PillarNode
+  pillar: PillarNode,
+  outputNode: OutputDisplayNode
 };
 
 const edgeTypes = {
@@ -141,6 +143,120 @@ function CanvasInner({
     window.addEventListener('keaos:toast', handleToast);
     return () => window.removeEventListener('keaos:toast', handleToast);
   }, []);
+
+  // Listen for real-time Agent Output events and update connected Canvas Output Nodes
+  useEffect(() => {
+    const handleAgentOutput = (e) => {
+      const detail = e.detail;
+      if (!detail) return;
+
+      setNodes((nds) => {
+        const outputNodes = nds.filter((n) => n.type === 'outputNode');
+        if (outputNodes.length === 0) return nds;
+
+        return nds.map((n) => {
+          if (n.type === 'outputNode') {
+            const isConnectedToAgent = (edges || []).some(
+              (ed) => ed.source === detail.agentId && ed.target === n.id
+            );
+            const hasIncomingEdges = (edges || []).some((ed) => ed.target === n.id);
+
+            // Update if connected directly to this agent, or if it's the lone output node on the canvas
+            if (isConnectedToAgent || !hasIncomingEdges || outputNodes.length === 1) {
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  outputContent: detail.output || '',
+                  auditHash: detail.auditHash || null,
+                  observability: detail.observability || {
+                    totalTokens: detail.tokens || 0,
+                    latencyMs: detail.latencyMs || 0
+                  },
+                  costUsd: detail.costUsd || 0,
+                  status: 'ready',
+                  isExpanded: true // Auto-expand when fresh output arrives so user sees it right away!
+                }
+              };
+            }
+          }
+          return n;
+        });
+      });
+    };
+
+    window.addEventListener('keaos:agent-output', handleAgentOutput);
+    return () => window.removeEventListener('keaos:agent-output', handleAgentOutput);
+  }, [edges, setNodes]);
+
+  // Listen for spawn-output-node event (e.g. from agent [+] button)
+  useEffect(() => {
+    const handleSpawnOutput = (e) => {
+      const sourceAgentId = e.detail?.sourceAgentId;
+      if (!sourceAgentId) return;
+
+      const sourceNode = (nodes || []).find((n) => n.id === sourceAgentId);
+      const newOutputId = `node-output-${Date.now().toString().slice(-4)}`;
+      const xPos = sourceNode ? sourceNode.position.x + 280 : 700;
+      const yPos = sourceNode ? sourceNode.position.y : 220;
+
+      const newOutputNode = {
+        id: newOutputId,
+        type: 'outputNode',
+        position: { x: xPos, y: yPos },
+        data: {
+          name: 'Stage Output',
+          title: `${sourceNode?.data?.name || 'Agent'} Output`,
+          status: 'idle',
+          outputContent: '',
+          isExpanded: false
+        }
+      };
+
+      const newEdge = {
+        id: `edge-output-${Date.now().toString().slice(-4)}`,
+        source: sourceAgentId,
+        sourceHandle: 'out',
+        target: newOutputId,
+        targetHandle: 'data-in',
+        type: 'deletable',
+        animated: true,
+        style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      };
+
+      setNodes((nds) => [...nds, newOutputNode]);
+      setEdges((eds) => [...eds, newEdge]);
+      if (onSelectNode) onSelectNode(newOutputNode);
+      window.dispatchEvent(
+        new CustomEvent('keaos:toast', {
+          detail: { message: `✨ Connected Output Component to ${sourceNode?.data?.name || 'Agent'}` }
+        })
+      );
+    };
+
+    window.addEventListener('keaos:spawn-output-node', handleSpawnOutput);
+    return () => window.removeEventListener('keaos:spawn-output-node', handleSpawnOutput);
+  }, [nodes, setNodes, setEdges, onSelectNode]);
+
+  // Update output nodes to 'generating' state during execution
+  useEffect(() => {
+    if (executionState.isExecuting) {
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.type === 'outputNode') {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                status: 'generating'
+              }
+            };
+          }
+          return n;
+        })
+      );
+    }
+  }, [executionState.isExecuting, setNodes]);
 
   // Drag handler for summary map
   const handleMouseDownMiniMap = (e) => {
@@ -547,16 +663,30 @@ function CanvasInner({
 
       if (!sourceNode || !targetNode) return false;
 
+      // Allow connections into Canvas Output Node from Agent Core, Tools, or another Output Node
+      if (targetNode.type === 'outputNode') {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'pillar' || sourceNode.type === 'outputNode') {
+          return true;
+        }
+      }
+
+      // Allow pass-through connections from Output Node to downstream Agent Core or next Output Node
+      if (sourceNode.type === 'outputNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'outputNode') {
+          return true;
+        }
+      }
+
       if (targetNode.type === 'agentCore') {
         const requiredPillar = SOCKET_RULES[targetHandle];
-        const sourcePillar = sourceNode.data.pillarType;
+        const sourcePillar = sourceNode.data?.pillarType;
 
         if (requiredPillar === sourcePillar) {
           return true;
         } else {
           setInvalidConnectionAlert({
-            sourceName: sourceNode.data.name,
-            sourceType: sourcePillar,
+            sourceName: sourceNode.data?.name || 'Block',
+            sourceType: sourcePillar || sourceNode.type,
             targetHandle,
             requiredType: requiredPillar
           });
@@ -572,8 +702,13 @@ function CanvasInner({
   const onConnect = useCallback(
     (params) => {
       const sourceNode = nodes.find(n => n.id === params.source);
-      const pillarDef = sourceNode ? PILLARS[sourceNode.data.pillarType] : null;
-      const strokeColor = pillarDef?.color || '#0091DA';
+      const targetNode = nodes.find(n => n.id === params.target);
+      const pillarDef = sourceNode ? PILLARS[sourceNode.data?.pillarType] : null;
+      let strokeColor = pillarDef?.color || '#0091DA';
+
+      if (targetNode?.type === 'outputNode' || sourceNode?.type === 'outputNode') {
+        strokeColor = '#10B981'; // Emerald accent for data/output pipelines
+      }
 
       takeSnapshot();
 

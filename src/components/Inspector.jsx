@@ -131,6 +131,7 @@ export default function Inspector({
   };
 
   const isAgent = selectedNode?.type === 'agentCore';
+  const isOutput = selectedNode?.type === 'outputNode';
   const nodeData = selectedNode?.data || {};
   const pillarDef = PILLARS[nodeData?.pillarType];
   const isModel = nodeData?.pillarType === 'model';
@@ -351,6 +352,8 @@ export default function Inspector({
           <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
             {isAgent ? (
               <Bot className="w-4 h-4 text-blue-300" />
+            ) : isOutput ? (
+              <Sparkles className="w-4 h-4 text-emerald-400" />
             ) : isModel ? (
               <Cpu className="w-4 h-4 text-blue-300" />
             ) : (
@@ -359,10 +362,10 @@ export default function Inspector({
           </div>
           <div>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400 block font-mono">
-              {isAgent ? 'Core Agent Inspector' : isModel ? 'Foundation Model' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
+              {isAgent ? 'Core Agent Inspector' : isOutput ? 'Output Component' : isModel ? 'Foundation Model' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
             </span>
             <h4 className={`text-sm font-semibold truncate max-w-[190px] tracking-tight ${t.title}`}>
-              {nodeData.name}
+              {isOutput ? (nodeData.title || 'Agent Output') : nodeData.name}
             </h4>
           </div>
         </div>
@@ -478,6 +481,94 @@ export default function Inspector({
               </button>
             </div>
           </>
+        ) : isOutput ? (
+          /* Specialized Canvas Output Display Inspector */
+          <div className="space-y-4">
+            <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
+                  Output Component State
+                </span>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
+                  nodeData.status === 'generating' 
+                    ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30 animate-pulse'
+                    : nodeData.content 
+                      ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                      : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                }`}>
+                  {nodeData.status || (nodeData.content ? 'Ready' : 'Idle')}
+                </span>
+              </div>
+              <p className={`text-xs ${t.subText}`}>
+                Dual-state visual component. Click the circular badge on the canvas to expand with Apple-inspired physics and inspect real-time outputs, W3C SHA-256 audit, and latency.
+              </p>
+
+              <div>
+                <label className={`text-[10px] font-mono ${t.subText} block mb-1`}>
+                  Display Title
+                </label>
+                <input
+                  type="text"
+                  value={nodeData.title || 'Agent Output'}
+                  onChange={(e) => onUpdateNodeData(selectedNode.id, { title: e.target.value })}
+                  className={`w-full px-3 py-2 text-xs font-sans rounded-lg transition-all ${t.input}`}
+                />
+              </div>
+
+              <div>
+                <label className={`text-[10px] font-mono ${t.subText} block mb-1`}>
+                  Default Presentation Format
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateNodeData(selectedNode.id, { format: 'markdown' })}
+                    className={`px-3 py-2 text-xs font-mono rounded-lg border transition-all ${
+                      (nodeData.format || 'markdown') === 'markdown'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-bold'
+                        : `${t.subCard} ${t.subText} hover:text-white`
+                    }`}
+                  >
+                    Markdown
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateNodeData(selectedNode.id, { format: 'raw' })}
+                    className={`px-3 py-2 text-xs font-mono rounded-lg border transition-all ${
+                      nodeData.format === 'raw'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-bold'
+                        : `${t.subCard} ${t.subText} hover:text-white`
+                    }`}
+                  >
+                    Raw Text
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {nodeData.auditHash && (
+              <div className={`p-4 ${t.card} rounded-2xl space-y-2`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider text-slate-400 block font-mono`}>
+                  Cryptographic Audit Hash
+                </span>
+                <p className="text-[10px] font-mono text-emerald-400 break-all bg-black/40 p-2 rounded border border-emerald-500/20">
+                  {nodeData.auditHash}
+                </p>
+              </div>
+            )}
+
+            <div className={`p-4 ${t.card} rounded-2xl flex items-center justify-between`}>
+              <span className={`text-xs ${t.subText}`}>Remove from Canvas</span>
+              <button
+                type="button"
+                onClick={() => onDeleteNode(selectedNode.id)}
+                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Remove Output Node</span>
+              </button>
+            </div>
+          </div>
         ) : isModel ? (
           /* Specialized Multi-LLM Foundation Model Inspector */
           <div className="space-y-4">

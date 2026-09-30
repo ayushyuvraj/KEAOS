@@ -124,6 +124,19 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         description: 'Generates TL;DR, high-level takeaways, and strategic themes.',
         config: { length: 'concise', focus: 'decisions' }
       }
+    },
+    // 8. Output Component Node (Positioned to the right of Agent Core output stream socket)
+    {
+      id: 'node-output-1',
+      type: 'outputNode',
+      position: { x: 890, y: 190 },
+      data: {
+        title: 'Agent Intelligence Output',
+        content: '',
+        status: 'idle',
+        format: 'markdown',
+        isExpanded: false
+      }
     }
   ];
 
@@ -184,6 +197,16 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'skill-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-output-1',
+      source: 'agent-core',
+      sourceHandle: 'out',
+      target: 'node-output-1',
+      targetHandle: 'data-in',
       type: 'deletable',
       animated: true,
       style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
@@ -378,6 +401,57 @@ export default function App() {
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `🤖 Deployed AI Agent to Canvas` }
+      }));
+      return;
+    }
+
+    if (pillarKey === 'outputNode') {
+      const newNodeId = `node-output-${Date.now().toString().slice(-4)}`;
+      setNodes((nds) => {
+        const agentNode = nds.find(n => n.type === 'agentCore');
+        const xPos = agentNode ? agentNode.position.x + 360 : 700;
+        const yPos = agentNode ? agentNode.position.y : 220;
+
+        const newNode = {
+          id: newNodeId,
+          type: 'outputNode',
+          position: { x: xPos, y: yPos },
+          data: {
+            title: item.name || 'Agent Output',
+            content: '',
+            status: 'idle',
+            format: 'markdown',
+            isExpanded: false
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      // Auto-wire from agent-core if output edge not yet present
+      setEdges((eds) => {
+        const hasAgentOutput = eds.some(e => e.source === 'agent-core' && e.sourceHandle === 'out');
+        if (!hasAgentOutput) {
+          return [
+            ...eds,
+            {
+              id: `edge-output-${Date.now().toString().slice(-4)}`,
+              source: 'agent-core',
+              sourceHandle: 'out',
+              target: newNodeId,
+              targetHandle: 'data-in',
+              type: 'deletable',
+              animated: true,
+              style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+            }
+          ];
+        }
+        return eds;
+      });
+
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `✨ Added Output Component to Canvas` }
       }));
       return;
     }

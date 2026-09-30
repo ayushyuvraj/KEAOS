@@ -221,6 +221,34 @@ const NODE_CATEGORIES = [
     badge: 'GATEWAY',
     socketId: 'gateway-in',
     items: PILLARS.gateway?.items || []
+  },
+  {
+    id: 'outputNode',
+    label: 'Output Component',
+    subtitle: 'Morphing live canvas output, cryptographic audit hash, observability & downstream chaining',
+    icon: Sparkles,
+    color: '#10B981', // Emerald
+    bgColor: '#ECFDF5',
+    badge: 'OUTPUT STREAM',
+    socketId: 'output-display',
+    items: [
+      {
+        id: 'output-display-card',
+        name: 'Canvas Output Display',
+        description: 'Dual-state morphing canvas component. Default sleek circular badge that animates into an expanded rich markdown viewer with audit & telemetry.',
+        config: {
+          format: 'markdown'
+        }
+      },
+      {
+        id: 'output-pass-through',
+        name: 'Chained Pipeline Relay',
+        description: 'Pipes upstream agent intelligence output to downstream agents or validation stages.',
+        config: {
+          format: 'markdown'
+        }
+      }
+    ]
   }
 ];
 

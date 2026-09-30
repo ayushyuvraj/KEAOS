@@ -114,6 +114,38 @@ export default function Palette({ onAddNode }) {
           </div>
         )}
 
+        {/* Output Display Component Provisioner */}
+        {(!search || 'output result response display stream'.includes(search.toLowerCase())) && (
+          <div 
+            className="border border-[#10B981]/30 bg-[#FFFFFF] overflow-hidden shadow-sm transition-all" 
+            style={{ borderLeft: '3px solid #10B981' }}
+          >
+            <div className="p-2.5 bg-gradient-to-r from-[#F0FDF4] to-white flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h5 className="text-xs font-bold text-[#0B0F19] tracking-tight">Output Display</h5>
+                    <span className="text-[8px] font-mono px-1 py-0.2 bg-[#10B981]/10 text-[#059669] font-bold rounded">
+                      STREAM
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Morphing output card & audit</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onAddNode('outputNode', { name: 'Agent Output' })}
+                className="btn-tactile w-7 h-7 bg-[#10B981] hover:bg-[#059669] text-white flex items-center justify-center transition-all shrink-0 border border-[#047857] shadow-sm cursor-pointer"
+                title="Add new Output Component to canvas"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {Object.entries(PILLARS).map(([pillarKey, pillar]) => {
           const Icon = PILLAR_ICONS[pillarKey] || Wrench;
           const isOpen = openCategories[pillarKey];

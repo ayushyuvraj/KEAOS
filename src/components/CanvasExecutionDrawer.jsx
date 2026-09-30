@@ -248,6 +248,21 @@ export default function CanvasExecutionDrawer({
       });
 
       setSimulationResult(result);
+
+      // Real-time Canvas Output Node broadcast
+      try {
+        window.dispatchEvent(new CustomEvent('keaos:agent-output', {
+          detail: {
+            agentId: activeAgentId || 'agent-core',
+            output: result.rawOutput || (typeof result === 'string' ? result : JSON.stringify(result, null, 2)),
+            auditHash: result.auditHash,
+            observability: result.observability,
+            costUsd: result.economics?.costUsd || 0
+          }
+        }));
+      } catch (evErr) {
+        console.warn('Failed to dispatch keaos:agent-output:', evErr);
+      }
     } catch (err) {
       console.error('Execution failed:', err);
       alert(`Agent execution failed: ${err.message}`);
@@ -351,6 +366,21 @@ export default function CanvasExecutionDrawer({
         ...prev,
         [activeAgentId]: [...(prev[activeAgentId] || [...currentThread, newUserMsg]), assistantMsg]
       }));
+
+      // Real-time Canvas Output Node broadcast
+      try {
+        window.dispatchEvent(new CustomEvent('keaos:agent-output', {
+          detail: {
+            agentId: activeAgentId,
+            output: result.response,
+            auditHash: result.auditHash,
+            observability: result.observability,
+            costUsd: result.economics?.costUsd || 0
+          }
+        }));
+      } catch (evErr) {
+        console.warn('Failed to dispatch keaos:agent-output:', evErr);
+      }
     } catch (err) {
       console.error('Chat execution failed:', err);
       const errorMsg = {

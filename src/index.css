@@ -267,3 +267,17 @@ input[type="range"].modern-slider::-moz-range-thumb {
   animation: agentSwitchCrossfade 220ms var(--ease-out-fluid) forwards;
 }
 
+.morph-apple-motion {
+  transition: width 320ms var(--ease-apple),
+              min-width 320ms var(--ease-apple),
+              max-width 320ms var(--ease-apple),
+              height 320ms var(--ease-apple),
+              min-height 320ms var(--ease-apple),
+              border-radius 280ms var(--ease-apple),
+              padding 280ms var(--ease-apple),
+              box-shadow 280ms var(--ease-apple),
+              transform 260ms var(--ease-apple);
+  will-change: width, height, border-radius, transform;
+}
+
+
