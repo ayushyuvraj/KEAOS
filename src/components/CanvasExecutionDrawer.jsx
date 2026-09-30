@@ -564,7 +564,7 @@ export default function CanvasExecutionDrawer({
                     className={`px-2.5 py-0.5 rounded-full transition-all flex items-center gap-1.5 text-[10px] font-mono font-bold active:scale-95 ${
                       isCurrent
                         ? 'bg-[#00338D] text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-black'
                     }`}
                     title={`Switch chat to ${agent.data?.name || 'Agent'} (${isAgentHasBrain ? 'Brain Connected' : 'No Brain'})`}
                   >
@@ -593,24 +593,40 @@ export default function CanvasExecutionDrawer({
         </div>
 
         {/* Center: Tactile Pill Drag Handle */}
-        <div className="w-12 h-1 rounded-full bg-slate-600/40 hover:bg-slate-400 transition-colors" />
+        <div className={`w-12 h-1 rounded-full transition-colors ${
+          isDarkMode ? 'bg-slate-600/40 hover:bg-slate-400' : 'bg-slate-300 hover:bg-slate-400'
+        }`} />
 
         {/* Right: Quick Run & Expand Icon */}
         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-          <div className="text-[11px] font-mono text-slate-400 hidden md:flex items-center gap-1.5">
+          <div className={`text-[11px] font-mono hidden md:flex items-center gap-1.5 ${
+            isDarkMode ? 'text-slate-400' : 'text-slate-600'
+          }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${hasBrain ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-            <span className="font-bold text-white/90">{activeAgentNode?.data?.name || 'Agent'}</span>
+            <span className={`font-bold transition-colors ${
+              isDarkMode ? 'text-white/90' : 'text-[#0B0F19]'
+            }`}>
+              {activeAgentNode?.data?.name || 'Agent'}
+            </span>
             <span>•</span>
-            <span className="text-slate-400">{activeAgentNode?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK'}</span>
+            <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>
+              {activeAgentNode?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK'}
+            </span>
             <span>•</span>
-            <span className={hasBrain ? 'text-[#0091DA] font-semibold' : 'text-amber-400'}>
+            <span className={
+              hasBrain 
+                ? (isDarkMode ? 'text-[#0091DA]' : 'text-[#005EB8]') + ' font-semibold' 
+                : 'text-amber-500 font-semibold'
+            }>
               {hasBrain ? modelDisplayName : 'No Brain'}
             </span>
           </div>
 
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 text-slate-400 hover:text-white transition-colors"
+            className={`p-1 transition-colors ${
+              isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-black'
+            }`}
             title={isExpanded ? 'Collapse Drawer' : 'Expand Drawer'}
           >
             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
@@ -629,19 +645,27 @@ export default function CanvasExecutionDrawer({
           {drawerMode === 'chat' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               {/* Chat Sub-Header */}
-              <div className={`px-5 py-2 border-b flex items-center justify-between text-xs font-mono ${
+              <div className={`px-5 py-2 border-b flex items-center justify-between text-xs font-mono transition-colors ${
                 isDarkMode ? 'bg-[#18191E] border-[#2A2D36] text-slate-400' : 'bg-white border-gray-200 text-slate-600'
               }`}>
                 <div className="flex items-center gap-2">
                   <div className={`w-5 h-5 rounded-md flex items-center justify-center ${
-                    hasBrain ? 'bg-[#0091DA]/20 text-[#0091DA]' : 'bg-amber-500/20 text-amber-400'
+                    hasBrain 
+                      ? isDarkMode ? 'bg-[#0091DA]/20 text-[#0091DA]' : 'bg-blue-50 text-[#00338D]'
+                      : 'bg-amber-500/20 text-amber-500'
                   }`}>
                     <Bot className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-bold text-white text-sm tracking-tight">
+                  <span className={`font-bold text-sm tracking-tight transition-colors ${
+                    isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                  }`}>
                     {activeAgentNode?.data?.name || 'Autonomous Agent'}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0091DA]/15 text-[#0091DA] border border-[#0091DA]/30">
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                    isDarkMode 
+                      ? 'bg-[#0091DA]/15 text-[#0091DA] border-[#0091DA]/30' 
+                      : 'bg-blue-50 text-[#005EB8] border-blue-200'
+                  }`}>
                     {activeAgentNode?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK'}
                   </span>
                   {hasBrain ? (
@@ -650,12 +674,12 @@ export default function CanvasExecutionDrawer({
                       <span>{modelDisplayName}</span>
                     </span>
                   ) : (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1 font-bold">
-                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 flex items-center gap-1 font-bold">
+                      <AlertTriangle className="w-3 h-3 text-amber-500" />
                       <span>NO BRAIN CONNECTED</span>
                     </span>
                   )}
-                  <span className="text-[10px] text-slate-500 hidden sm:inline">
+                  <span className={`text-[10px] hidden sm:inline ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                     ({connectedPillars.filter(p => p.type !== 'model').length} peripherals bound)
                   </span>
                 </div>
