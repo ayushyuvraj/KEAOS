@@ -612,7 +612,7 @@ export default function App() {
               {((isInspectorOpen && selectedNode) || isAddMenuOpen) && (
                 <aside 
                   className={`w-96 h-full border-l shrink-0 flex flex-col overflow-hidden select-none z-20 animate-in slide-in-from-right-3 duration-250 ease-out transition-all ${
-                    isDarkMode ? 'bg-[#16181F] border-slate-800/80 shadow-2xl' : 'bg-white border-slate-200/80 shadow-xl'
+                    isDarkMode ? 'bg-[#0D0F17] border-white/[0.08] shadow-2xl' : 'bg-white border-slate-200/80 shadow-xl'
                   }`}
                 >
                   <div className="relative w-full h-full overflow-hidden flex-1">

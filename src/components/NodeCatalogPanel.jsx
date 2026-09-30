@@ -515,7 +515,7 @@ export default function NodeCatalogPanel({
           : 'absolute top-0 right-0 w-96 h-full z-30 border-l shadow-2xl animate-in slide-in-from-right duration-200'
       } flex flex-col select-none overflow-hidden transition-all duration-200 ${
         isDarkMode 
-          ? 'bg-[#181A20] border-[#2D313D] text-[#E2E8F0]' 
+          ? 'bg-[#0D0F17] border-white/[0.08] text-slate-100' 
           : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19]'
       }`}
     >
@@ -523,7 +523,7 @@ export default function NodeCatalogPanel({
       {/* HEADER: Dynamic based on Tier 1 vs Tier 2                    */}
       {/* ============================================================ */}
       <div className={`p-4 border-b shrink-0 transition-colors duration-200 ${
-        isDarkMode ? 'border-white/10 bg-[#16181F]/90 backdrop-blur-md' : 'border-slate-200/80 bg-white/90 backdrop-blur-md'
+        isDarkMode ? 'border-white/[0.08] bg-[#141722]' : 'border-slate-200/80 bg-white/90 backdrop-blur-md'
       }`}>
         {activeCategory ? (
           /* Tier 2 Header: Back button + Category Title */

@@ -21,7 +21,8 @@ import {
   Eye,
   EyeOff,
   DollarSign,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { 
@@ -305,54 +306,87 @@ export default function Inspector({
     });
   };
 
+  // Theme-aware styles to ensure pure light theme on light mode and sleek dark slate on dark mode
+  const t = {
+    aside: isDarkMode 
+      ? 'bg-[#0D0F17] text-slate-100 border-white/[0.08]' 
+      : 'bg-[#FFFFFF] text-slate-900 border-slate-200',
+    header: isDarkMode 
+      ? 'bg-[#141722] border-white/[0.08]' 
+      : 'bg-white border-slate-200/80',
+    content: isDarkMode 
+      ? 'bg-[#0D0F17] text-slate-100' 
+      : 'bg-[#F8FAFC] text-slate-900',
+    card: isDarkMode 
+      ? 'bg-[#141722] border-white/[0.08] shadow-sm' 
+      : 'bg-white border-slate-200/90 shadow-xs',
+    subCard: isDarkMode 
+      ? 'bg-[#1A1E2B] border-white/[0.06]' 
+      : 'bg-slate-50 border-slate-200/70',
+    input: isDarkMode 
+      ? 'bg-[#1A1E2B] border-white/[0.1] hover:border-white/[0.2] text-white focus:border-blue-500' 
+      : 'bg-white border-slate-300 hover:border-slate-400 text-slate-900 focus:border-[#00338D]',
+    select: isDarkMode 
+      ? 'bg-[#141722] border-white/[0.1] hover:border-white/[0.2] text-white' 
+      : 'bg-white border-slate-300 hover:border-slate-400 text-slate-900',
+    title: isDarkMode ? 'text-white' : 'text-slate-900',
+    label: isDarkMode ? 'text-slate-300' : 'text-slate-700',
+    subText: isDarkMode ? 'text-slate-400' : 'text-slate-500',
+    border: isDarkMode ? 'border-white/[0.08]' : 'border-slate-200/80',
+    btnGhost: isDarkMode 
+      ? 'hover:bg-white/[0.08] text-slate-400 hover:text-slate-200' 
+      : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800',
+    btnPill: isDarkMode 
+      ? 'bg-white/[0.06] hover:bg-white/[0.12] border-white/[0.1] text-slate-200' 
+      : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700',
+  };
+
   return (
     <aside className={`${
-      isEmbedded ? 'w-full h-full' : 'w-96 h-full border-l border-[#E0E0E0] shadow-sm'
-    } bg-[#FFFFFF] flex flex-col shrink-0 overflow-hidden select-none`}>
+      isEmbedded ? 'w-full h-full' : `w-96 h-full border-l shadow-2xl`
+    } ${t.aside} flex flex-col shrink-0 overflow-hidden select-none`}>
       {/* Header */}
-      <div className={`p-3.5 border-b shrink-0 flex items-center justify-between backdrop-blur-md ${
-        isDarkMode ? 'border-slate-800/80 bg-[#16181F]/90 text-white' : 'border-slate-200/80 bg-white/90 text-slate-900'
-      }`}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#00338D] to-[#005EB8] text-white flex items-center justify-center shadow-xs shrink-0">
+      <div className={`p-4 border-b ${t.header} shrink-0 flex items-center justify-between`}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
             {isAgent ? (
-              <Bot className="w-4 h-4 text-white" />
+              <Bot className="w-4 h-4 text-blue-300" />
             ) : isModel ? (
-              <Cpu className="w-4 h-4 text-white" />
+              <Cpu className="w-4 h-4 text-blue-300" />
             ) : (
-              <Settings2 className="w-4 h-4 text-white" />
+              <Settings2 className="w-4 h-4 text-blue-300" />
             )}
           </div>
           <div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#00338D] dark:text-blue-400 block font-mono">
-              {isAgent ? 'Core Agent Inspector' : isModel ? 'Foundation Model Spec' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400 block font-mono">
+              {isAgent ? 'Core Agent Inspector' : isModel ? 'Foundation Model' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
             </span>
-            <h4 className="text-xs font-semibold truncate max-w-[190px] tracking-tight text-slate-900 dark:text-white">
+            <h4 className={`text-sm font-semibold truncate max-w-[190px] tracking-tight ${t.title}`}>
               {nodeData.name}
             </h4>
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {!isAgent && (
             <button
               onClick={() => onDeleteNode(selectedNode.id)}
-              className="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 flex items-center justify-center transition-all card-pressable"
+              className="w-8 h-8 rounded-lg hover:bg-red-500/15 text-slate-400 hover:text-red-500 flex items-center justify-center transition-all card-pressable"
               title="Delete block"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-4 h-4" />
             </button>
           )}
           <button
             onClick={handleCollapse}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all card-pressable"
+            className={`w-8 h-8 rounded-lg ${t.btnGhost} flex items-center justify-center transition-all card-pressable`}
             title="Collapse Panel"
           >
-            <PanelRightClose className="w-3.5 h-3.5" />
+            <PanelRightClose className="w-4 h-4" />
           </button>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all card-pressable"
+            className={`w-8 h-8 rounded-lg ${t.btnGhost} flex items-center justify-center transition-all card-pressable`}
             title="Close node inspector"
           >
             <X className="w-4 h-4" />
@@ -361,69 +395,74 @@ export default function Inspector({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-[#16181F]">
+      <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${t.content}`}>
         {isAgent ? (
           <>
             {/* Target Multi-Agent Framework Selector */}
-            <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-2">
+            <div className={`p-4 ${t.card} rounded-2xl space-y-2.5`}>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#00338D] dark:text-blue-400 flex items-center">
-                  Target Multi-Agent Framework
+                <span className={`text-xs font-semibold uppercase tracking-wider ${t.label} font-sans flex items-center`}>
+                  Target Framework
                   <InfoTooltip text="Select the framework (like Google ADK, LangGraph, AutoGen, CrewAI, or OpenAI) you want to export Python code for." align="right" />
                 </span>
-                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#00338D]/10 text-[#00338D] dark:text-blue-400 font-semibold">
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-500 dark:text-blue-300 font-medium">
                   {activeUseCase?.framework?.category || 'SDK'}
                 </span>
               </div>
-              <select
-                value={activeUseCase?.framework?.id || 'google-adk'}
-                onChange={(e) => {
-                  const fw = FRAMEWORKS.find(f => f.id === e.target.value);
-                  if (fw && onSelectFramework) onSelectFramework(fw);
-                }}
-                className="w-full p-2 text-xs font-mono font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] cursor-pointer"
-              >
-                {FRAMEWORKS.map(fw => (
-                  <option key={fw.id} value={fw.id}>
-                    {fw.name} — {fw.subtitle}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+              <div className="relative">
+                <select
+                  value={activeUseCase?.framework?.id || 'google-adk'}
+                  onChange={(e) => {
+                    const fw = FRAMEWORKS.find(f => f.id === e.target.value);
+                    if (fw && onSelectFramework) onSelectFramework(fw);
+                  }}
+                  className={`w-full px-3.5 py-2.5 text-xs font-medium ${t.select} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer appearance-none pr-8 transition-all`}
+                >
+                  {FRAMEWORKS.map(fw => (
+                    <option key={fw.id} value={fw.id} className={`${isDarkMode ? 'bg-[#141722] text-white' : 'bg-white text-slate-900'} py-1`}>
+                      {fw.name} — {fw.subtitle}
+                    </option>
+                  ))}
+                </select>
+                <div className={`absolute right-3 top-3 pointer-events-none ${t.subText}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+              <p className={`text-xs ${t.subText} mt-1 leading-relaxed`}>
                 {activeUseCase?.framework?.description || 'Export idiomatic Python code matching your visual graph.'}
               </p>
             </div>
 
             {/* System Prompt Customizer */}
-            <div className="space-y-1.5">
+            <div className={`p-4 ${t.card} rounded-2xl space-y-2.5`}>
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white font-mono flex items-center">
+                <label className={`text-xs font-semibold uppercase tracking-wider ${t.label} font-sans flex items-center`}>
                   System Instruction Prompt
                   <InfoTooltip text="The main instructions and behavioral rules given to the AI agent to tell it how to act, think, and format its response." align="right" />
                 </label>
-                <span className="text-[10px] font-mono text-[#00338D] dark:text-blue-400 font-semibold">Persona</span>
+                <span className="text-[10px] font-mono text-blue-500 dark:text-blue-400 font-semibold px-2 py-0.5 rounded-full bg-blue-500/10">Persona</span>
               </div>
               <textarea
                 rows={5}
                 value={agentConfig.prompt}
                 onChange={(e) => onUpdateAgentConfig({ prompt: e.target.value })}
                 placeholder="Provide authoritative prompt as to what we want the agent to do..."
-                className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl resize-none font-mono transition-colors"
+                className={`w-full p-3 ${t.input} text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/30 rounded-xl resize-none font-mono transition-colors`}
               />
-              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+              <p className={`text-xs ${t.subText} leading-relaxed`}>
                 Authoritative instructions governing output schema, analytical rigor, and task assignments.
               </p>
             </div>
 
             {/* Save Agent Specification Button */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setSavedNotification(true);
                   setTimeout(() => setSavedNotification(false), 2500);
                 }}
-                className="card-pressable w-full flex items-center justify-center gap-2 py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-semibold font-mono rounded-xl transition-all shadow-sm cursor-pointer"
+                className="card-pressable w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {savedNotification ? (
                   <>
@@ -442,26 +481,29 @@ export default function Inspector({
         ) : isModel ? (
           /* Specialized Multi-LLM Foundation Model Inspector */
           <div className="space-y-4">
-            {/* Top: Current Provider Card with Change Provider button */}
-            <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs">
+            {/* Top: Current Provider Card with Switch Provider button */}
+            <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  {(() => {
-                    const CurrentLogo = PROVIDER_LOGOS[currentProvider] || Cpu;
-                    return <CurrentLogo className="w-8 h-8 shrink-0" />;
-                  })()}
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-xl ${isDarkMode ? 'bg-white/[0.06] border border-white/[0.1]' : 'bg-slate-100 border border-slate-200'} flex items-center justify-center shrink-0 shadow-xs`}>
+                    {(() => {
+                      const CurrentLogo = PROVIDER_LOGOS[currentProvider] || Cpu;
+                      return <CurrentLogo className="w-6 h-6 shrink-0" />;
+                    })()}
+                  </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">{providerDef.name}</span>
-                      <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 ${
+                      <span className={`text-sm font-bold tracking-tight ${t.title}`}>{providerDef.name}</span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 ${
                         hasCredential || currentProvider === 'ollama'
-                          ? 'bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30'
-                          : 'bg-[#FEF6E6] text-[#EAAA00] border border-[#EAAA00]/30'
+                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                          : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
                       }`}>
-                        {hasCredential || currentProvider === 'ollama' ? '● Key Ready' : '○ Key Missing'}
+                        <span className={`w-1.5 h-1.5 rounded-full ${hasCredential || currentProvider === 'ollama' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                        {hasCredential || currentProvider === 'ollama' ? 'Key Ready' : 'Key Missing'}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-mono">Active Foundation Model Provider</span>
+                    <span className={`text-xs ${t.subText}`}>Foundation Provider</span>
                   </div>
                 </div>
 
@@ -472,18 +514,37 @@ export default function Inspector({
                     setEnteringKeyProvider(null);
                     setDiscoveryError(null);
                   }}
-                  className="card-pressable text-[11px] font-semibold font-mono px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#00338D] text-[#00338D] dark:text-blue-400 hover:bg-[#E6EDF7] dark:hover:bg-slate-700/50 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  className={`card-pressable text-xs font-medium px-3.5 py-1.5 ${t.btnPill} rounded-full flex items-center gap-1.5 transition-all cursor-pointer shadow-xs`}
                   title="Switch to another LLM provider"
                 >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>{isChangingProvider ? 'Cancel' : 'Change Provider'}</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+                  <span>{isChangingProvider ? 'Cancel' : 'Switch'}</span>
+                </button>
+              </div>
+
+              {/* Subtle API Credential Status Bar */}
+              <div className={`pt-2.5 border-t ${t.border} flex items-center justify-between text-xs`}>
+                <span className={`${t.subText} flex items-center gap-1.5`}>
+                  <Key className="w-3.5 h-3.5 text-slate-400" />
+                  <span>API Authentication:</span>
+                  <strong className={hasCredential || currentProvider === 'ollama' ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-amber-600 dark:text-amber-400 font-medium'}>
+                    {hasCredential || currentProvider === 'ollama' ? 'Active' : 'Unconfigured'}
+                  </strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenApiSettings && onOpenApiSettings(currentProvider)}
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span>{hasCredential ? 'Manage Key' : 'Enter Key'}</span>
+                  <ExternalLink className="w-3 h-3" />
                 </button>
               </div>
 
               {/* Provider Switcher Drawer: Remaining 4 providers */}
               {isChangingProvider && (
-                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-500 block">
+                <div className={`mt-3 pt-3 border-t ${t.border} space-y-2 animate-in fade-in duration-150`}>
+                  <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider ${t.subText} block`}>
                     Select Alternate Provider (Remaining 4)
                   </span>
 
@@ -494,7 +555,7 @@ export default function Inspector({
                       const isEnteringKey = enteringKeyProvider === pDef.id;
 
                       return (
-                        <div key={pDef.id} className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 rounded-xl overflow-hidden shadow-2xs">
+                        <div key={pDef.id} className={`border ${t.border} ${t.subCard} rounded-xl overflow-hidden shadow-xs`}>
                           <div
                             onClick={() => {
                               if (hasKey || pDef.id === 'ollama') {
@@ -505,30 +566,32 @@ export default function Inspector({
                                 setDiscoveryError(null);
                               }
                             }}
-                            className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
-                              isEnteringKey ? 'bg-blue-50/70 dark:bg-slate-700/60' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                            className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
+                              isEnteringKey ? 'bg-blue-600/15' : isDarkMode ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-100/80'
                             }`}
                           >
-                            <div className="flex items-center gap-2.5">
-                              <PLogo className="w-7 h-7 shrink-0" />
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg ${isDarkMode ? 'bg-white/[0.06]' : 'bg-white border border-slate-200'} flex items-center justify-center shrink-0`}>
+                                <PLogo className="w-5 h-5 shrink-0" />
+                              </div>
                               <div>
-                                <div className="text-xs font-bold text-slate-900 dark:text-white">{pDef.name}</div>
-                                <span className="text-[10px] font-mono text-slate-500">
+                                <div className={`text-xs font-semibold ${t.title}`}>{pDef.name}</div>
+                                <span className={`text-[10px] ${t.subText}`}>
                                   {hasKey ? '● API Key Ready' : pDef.id === 'ollama' ? '● Local / Cloud' : '○ API Key Required'}
                                 </span>
                               </div>
                             </div>
 
-                            <span className="text-[10px] font-mono font-semibold text-[#00338D] dark:text-blue-400 flex items-center gap-1">
+                            <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
                               {hasKey || pDef.id === 'ollama' ? 'Select →' : isEnteringKey ? 'Close' : '+ Enter API'}
                             </span>
                           </div>
 
                           {/* Inline API key entry if not yet provided */}
                           {isEnteringKey && (
-                            <div className="p-3 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in duration-150">
+                            <div className={`p-3 ${isDarkMode ? 'bg-[#141722]' : 'bg-white'} border-t ${t.border} space-y-2 animate-in fade-in duration-150`}>
                               <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                                <label className={`text-[10px] font-mono font-semibold uppercase tracking-wider ${t.label}`}>
                                   Paste {pDef.name} API Key
                                 </label>
                                 {pDef.docsUrl && (
@@ -536,7 +599,7 @@ export default function Inspector({
                                     href={pDef.docsUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-[10px] text-[#00338D] dark:text-blue-400 hover:underline font-mono font-semibold flex items-center gap-0.5"
+                                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-mono font-semibold flex items-center gap-0.5"
                                   >
                                     <span>Get Key</span>
                                     <ExternalLink className="w-2.5 h-2.5" />
@@ -555,19 +618,19 @@ export default function Inspector({
                                     }
                                   }}
                                   placeholder={pDef.placeholder || 'Paste API Key...'}
-                                  className="w-full px-3 py-1.5 pr-8 text-xs font-mono border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D]"
+                                  className={`w-full px-3 py-1.5 pr-8 text-xs font-mono rounded-lg ${t.input}`}
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowKeySecret(!showKeySecret)}
-                                  className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                  className={`absolute right-2 top-2 ${t.subText} hover:text-slate-800 dark:hover:text-white`}
                                 >
                                   {showKeySecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                 </button>
                               </div>
 
                               {discoveryError && (
-                                <div className="p-2 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 text-[10px] font-mono rounded-lg">
+                                <div className="p-2 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 text-[10px] font-mono rounded-lg">
                                   {discoveryError}
                                 </div>
                               )}
@@ -576,7 +639,7 @@ export default function Inspector({
                                 type="button"
                                 disabled={isDiscoveringNewProvider || (!providerKeyInput.trim() && pDef.id !== 'ollama')}
                                 onClick={() => handleSaveNewProviderKey(pDef.id, providerKeyInput)}
-                                className="card-pressable w-full py-1.5 bg-[#00338D] hover:bg-[#005EB8] disabled:bg-slate-400 text-white text-xs font-mono font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                                className="card-pressable w-full py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-medium rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                               >
                                 {isDiscoveringNewProvider ? (
                                   <>
@@ -586,7 +649,7 @@ export default function Inspector({
                                 ) : (
                                   <>
                                     <Save className="w-3 h-3" />
-                                    <span>Save Globally & Switch to {pDef.name}</span>
+                                    <span>Save & Switch to {pDef.name}</span>
                                   </>
                                 )}
                               </button>
@@ -600,16 +663,16 @@ export default function Inspector({
               )}
             </div>
 
-            {/* Model Identifier Dropdown with all compatible models */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white font-mono flex items-center">
-                  Model Identifier
+            {/* Model Architecture Selection */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className={`text-xs font-semibold uppercase tracking-wider ${t.label} font-sans flex items-center gap-1`}>
+                  Model Architecture
                   <InfoTooltip text="Compatible models detected live via your API credentials." align="left" />
                 </label>
                 <div className="flex items-center gap-2">
                   {isLoadingModels && (
-                    <span className="text-[10px] text-[#0091DA] font-mono flex items-center gap-1">
+                    <span className="text-[10px] text-blue-500 dark:text-blue-400 font-mono flex items-center gap-1">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       <span>Detecting...</span>
                     </span>
@@ -617,9 +680,9 @@ export default function Inspector({
                   <button
                     type="button"
                     onClick={() => setCustomModelMode(!customModelMode)}
-                    className="text-[10px] font-mono text-[#00338D] dark:text-blue-400 hover:underline font-semibold"
+                    className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium transition-colors cursor-pointer"
                   >
-                    {customModelMode ? 'Compatible List' : 'Custom Model ID'}
+                    {customModelMode ? 'Preset List' : 'Custom Model ID'}
                   </button>
                 </div>
               </div>
@@ -630,43 +693,48 @@ export default function Inspector({
                   value={currentModelId}
                   onChange={(e) => handleModelIdSelect(e.target.value)}
                   placeholder="e.g. gpt-4o, claude-3-5-sonnet, gemini-2.0-flash"
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl transition-all"
+                  className={`w-full px-3.5 py-2.5 text-xs font-mono rounded-xl transition-all ${t.input}`}
                 />
               ) : (
-                <select
-                  value={currentModelId}
-                  onChange={(e) => handleModelIdSelect(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl transition-all cursor-pointer"
-                >
-                  {availableModels.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name || m.id}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={currentModelId}
+                    onChange={(e) => handleModelIdSelect(e.target.value)}
+                    className={`w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer appearance-none pr-8 ${t.select}`}
+                  >
+                    {availableModels.map((m) => (
+                      <option key={m.id} value={m.id} className={`${isDarkMode ? 'bg-[#141722] text-white' : 'bg-white text-slate-900'} py-1`}>
+                        {m.name || m.id}
+                      </option>
+                    ))}
+                  </select>
+                  <div className={`absolute right-3 top-3 pointer-events-none ${t.subText}`}>
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
               )}
-              <span className="text-[10px] text-slate-500 font-mono mt-1.5 block">
+              <span className={`text-[11px] ${t.subText} font-sans block`}>
                 {availableModels.length > 1
-                  ? `${availableModels.length} compatible models accessible via your ${providerDef.name} API.`
+                  ? `${availableModels.length} models verified and accessible via your ${providerDef.name} API.`
                   : `Select any compatible model supported by ${providerDef.name}.`}
               </span>
             </div>
 
             {/* Ollama Endpoint & API Token Settings */}
             {currentProvider === 'ollama' && (
-              <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl space-y-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#00338D] dark:text-blue-400">
+              <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
                   <Server className="w-3.5 h-3.5" />
                   <span className="flex items-center">
                     Ollama Host & API Settings
                     <InfoTooltip text="Supports local daemon (http://localhost:11434) and authenticated remote cloud instances." align="left" />
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p className={`text-xs ${t.subText} leading-relaxed`}>
                   Connect to local on-device hardware or remote authenticated Ollama cloud endpoints.
                 </p>
                 <div>
-                  <label className="text-[10px] font-mono text-slate-600 dark:text-slate-400 block mb-1 flex items-center">
+                  <label className={`text-[10px] font-mono ${t.subText} block mb-1 flex items-center`}>
                     Endpoint URL
                     <InfoTooltip text="Local host address or remote cloud Ollama instance." align="left" />
                   </label>
@@ -679,11 +747,11 @@ export default function Inspector({
                       });
                     }}
                     placeholder="http://localhost:11434 or https://..."
-                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D]"
+                    className={`w-full px-3 py-1.5 text-xs font-mono rounded-lg ${t.input}`}
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono text-slate-600 dark:text-slate-400 block mb-1 flex items-center">
+                  <label className={`text-[10px] font-mono ${t.subText} block mb-1 flex items-center`}>
                     API Key / Bearer Token
                     <InfoTooltip text="Optional token for authenticated remote Ollama servers." align="left" />
                   </label>
@@ -696,67 +764,50 @@ export default function Inspector({
                       });
                     }}
                     placeholder="ollama_... or Bearer token (optional for local)"
-                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D]"
+                    className={`w-full px-3 py-1.5 text-xs font-mono rounded-lg ${t.input}`}
                   />
                 </div>
               </div>
             )}
 
-            {/* Credential Action & Live Status */}
-            <div>
-              <button
-                type="button"
-                onClick={() => onOpenApiSettings && onOpenApiSettings(currentProvider)}
-                className="card-pressable w-full flex items-center justify-center gap-2 py-2.5 text-xs font-semibold bg-[#00338D] text-white hover:bg-[#005EB8] rounded-xl transition-all shadow-sm cursor-pointer"
-              >
-                <Key className="w-3.5 h-3.5" />
-                <span>Configure {providerDef.name} Credentials</span>
-              </button>
-            </div>
-
             {/* Hyperparameters */}
-            <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className={`p-4 ${t.card} rounded-2xl space-y-4`}>
               {(() => {
                 const isReasoning = isFixedTemperatureModel(currentModelId);
                 return (
                   <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-900 dark:text-white block font-mono flex items-center">
-                        Model Hyperparameters
+                    <div className={`flex items-center justify-between pb-1 border-b ${t.border}`}>
+                      <span className={`text-xs font-semibold uppercase tracking-wider ${t.label} font-sans flex items-center gap-1`}>
+                        Sampling Hyperparameters
                         <InfoTooltip text="Fine-tune how the AI model balances factual precision versus creative output." align="right" />
                       </span>
                       {isReasoning ? (
-                        <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 font-semibold rounded-full">
-                          Fixed Params (Reasoning)
+                        <span className="text-[10px] font-mono uppercase bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30 px-2 py-0.5 font-medium rounded-full">
+                          Fixed by Model
                         </span>
                       ) : (
-                        <span className="text-[9px] font-mono uppercase bg-emerald-50 text-[#009A44] border border-[#009A44]/30 px-2 py-0.5 font-semibold rounded-full">
-                          Configurable
+                        <span className="text-[10px] font-mono uppercase bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30 px-2 py-0.5 font-medium rounded-full">
+                          Dynamic
                         </span>
                       )}
                     </div>
 
                     {/* Temperature Slider */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <span className={isReasoning ? 'text-slate-400 font-normal' : 'text-slate-900 dark:text-white'}>Temperature</span>
-                          {isReasoning && (
-                            <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 font-semibold rounded-full">
-                              Default (1.0)
-                            </span>
-                          )}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-medium ${t.title} flex items-center gap-1.5`}>
+                          <span className={isReasoning ? t.subText : t.title}>Temperature</span>
                           <InfoTooltip 
                             text={isReasoning 
-                              ? "This reasoning model only supports the default (1.0) temperature. Custom values are restricted by the provider." 
-                              : "Controls randomness: 0.0 is exact and deterministic, 1.0 is creative and diverse."} 
+                              ? "This reasoning model only supports default (1.0) temperature. Custom values are restricted by provider." 
+                              : "Controls randomness: 0.0 is deterministic and exact, 1.0 is creative and diverse."} 
                             align="left" 
                           />
                         </span>
-                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
+                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md ${
                           isReasoning 
-                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' 
-                            : 'bg-[#00338D]/10 text-[#00338D] dark:text-blue-400'
+                            ? isDarkMode ? 'bg-white/[0.05] text-slate-400' : 'bg-slate-100 text-slate-500' 
+                            : 'bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-300'
                         }`}>
                           {isReasoning ? '1.00 (Fixed)' : Number(nodeData.config?.temperature ?? 0.2).toFixed(2)}
                         </span>
@@ -773,36 +824,31 @@ export default function Inspector({
                             config: { ...nodeData.config, temperature: parseFloat(parseFloat(e.target.value).toFixed(2)) }
                           });
                         }}
-                        className={`modern-slider w-full accent-[#00338D] transition-opacity ${isReasoning ? 'opacity-35 cursor-not-allowed grayscale' : 'opacity-100 cursor-pointer'}`}
+                        className={`modern-slider w-full transition-opacity ${isReasoning ? 'opacity-30 cursor-not-allowed' : 'opacity-100 cursor-pointer'}`}
                       />
-                      {isReasoning && (
-                        <p className="text-[10px] text-amber-800 dark:text-amber-400 mt-1 font-sans italic leading-tight">
-                          Reasoning & frontier models only permit default temperature (1.0).
-                        </p>
-                      )}
+                      <div className={`flex justify-between text-[10px] ${t.subText} font-sans`}>
+                        <span>Precise (0.0)</span>
+                        <span>Balanced (0.5)</span>
+                        <span>Creative (1.0)</span>
+                      </div>
                     </div>
 
                     {/* Top-P Slider */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <span className={isReasoning ? 'text-slate-400 font-normal' : 'text-slate-900 dark:text-white'}>Top-P</span>
-                          {isReasoning && (
-                            <span className="text-[9px] font-mono uppercase bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 font-semibold rounded-full">
-                              Default (1.0)
-                            </span>
-                          )}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-medium ${t.title} flex items-center gap-1.5`}>
+                          <span className={isReasoning ? t.subText : t.title}>Nucleus Sampling (Top-P)</span>
                           <InfoTooltip 
                             text={isReasoning
-                              ? "Reasoning models enforce fixed nucleus sampling. Custom Top-P is restricted by the provider."
-                              : "Nucleus sampling threshold: Controls how many likely tokens are considered during generation."} 
+                              ? "Reasoning models enforce fixed nucleus sampling."
+                              : "Controls the cumulative probability of candidate tokens considered during generation."} 
                             align="left" 
                           />
                         </span>
-                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
+                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md ${
                           isReasoning 
-                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' 
-                            : 'bg-[#00338D]/10 text-[#00338D] dark:text-blue-400'
+                            ? isDarkMode ? 'bg-white/[0.05] text-slate-400' : 'bg-slate-100 text-slate-500'
+                            : 'bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-300'
                         }`}>
                           {isReasoning ? '1.00 (Fixed)' : Number(nodeData.config?.topP ?? 0.95).toFixed(2)}
                         </span>
@@ -819,13 +865,8 @@ export default function Inspector({
                             config: { ...nodeData.config, topP: parseFloat(parseFloat(e.target.value).toFixed(2)) }
                           });
                         }}
-                        className={`modern-slider w-full accent-[#00338D] transition-opacity ${isReasoning ? 'opacity-35 cursor-not-allowed grayscale' : 'opacity-100 cursor-pointer'}`}
+                        className={`modern-slider w-full transition-opacity ${isReasoning ? 'opacity-30 cursor-not-allowed' : 'opacity-100 cursor-pointer'}`}
                       />
-                      {isReasoning && (
-                        <p className="text-[10px] text-amber-800 dark:text-amber-400 mt-1 font-sans italic leading-tight">
-                          Nucleus sampling (Top-P) is restricted on reasoning models.
-                        </p>
-                      )}
                     </div>
                   </>
                 );
@@ -836,55 +877,55 @@ export default function Inspector({
             {(() => {
               const profile = getLiveModelProfile(currentProvider, currentModelId);
               return (
-                <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-3 shadow-xs">
+                <div className={`p-4 ${t.card} rounded-2xl space-y-3.5`}>
                   {/* Top: Model Header & Context Limit */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <Sparkles className="w-3.5 h-3.5 text-[#00338D] dark:text-blue-400 shrink-0" />
-                      <span className="text-xs font-bold text-slate-900 dark:text-white truncate font-mono">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Sparkles className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
+                      <span className={`text-xs font-bold ${t.title} truncate font-sans`}>
                         {profile.displayName}
                       </span>
                     </div>
-                    <span className="text-[9px] font-mono font-semibold bg-[#E6EDF7] dark:bg-blue-900/40 text-[#00338D] dark:text-blue-300 px-2 py-0.5 rounded-full border border-[#00338D]/20 shrink-0">
+                    <span className="text-[10px] font-mono font-medium bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-full shrink-0">
                       {Math.round(profile.contextLength / 1000)}K Context
                     </span>
                   </div>
 
-                  {/* Real-time Pricing Rate Card */}
-                  <div className="p-3 bg-white dark:bg-[#14151B] border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-2 shadow-xs">
-                    <div className="flex items-center justify-between text-[10px] font-mono">
-                      <span className="text-slate-500 font-semibold uppercase tracking-wider flex items-center gap-1">
-                        <DollarSign className="w-3 h-3 text-[#EAAA00]" />
-                        Live Token Rate Card
+                  {/* Clean Real-time Pricing Rate Card */}
+                  <div className={`p-3 ${t.subCard} rounded-xl space-y-2.5`}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={`${t.subText} font-medium flex items-center gap-1.5`}>
+                        <DollarSign className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                        Live Pricing
                       </span>
-                      <span className="text-[9px] font-mono text-slate-400">USD / 1M Tokens</span>
+                      <span className={`text-[10px] font-mono ${t.subText}`}>USD / 1M Tokens</span>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                      <div className="bg-slate-50/80 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-700/60">
-                        <span className="text-[9px] text-slate-500 font-mono block">Input (Prompt)</span>
-                        <span className="text-xs font-mono font-bold text-[#00338D] dark:text-blue-400">
-                          {profile.isFree ? '$0.00 (Free)' : `$${profile.promptPricePerMillion.toFixed(2)} / 1M`}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className={`${isDarkMode ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-white border-slate-200'} p-2.5 rounded-lg border`}>
+                        <span className={`text-[10px] ${t.subText} block mb-0.5`}>Input</span>
+                        <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-300">
+                          {profile.isFree ? 'Free' : `$${profile.promptPricePerMillion.toFixed(2)}`}
                         </span>
                       </div>
-                      <div className="bg-slate-50/80 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-700/60">
-                        <span className="text-[9px] text-slate-500 font-mono block">Output (Completion)</span>
-                        <span className="text-xs font-mono font-bold text-[#009A44]">
-                          {profile.isFree ? '$0.00 (Free)' : `$${profile.completionPricePerMillion.toFixed(2)} / 1M`}
+                      <div className={`${isDarkMode ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-white border-slate-200'} p-2.5 rounded-lg border`}>
+                        <span className={`text-[10px] ${t.subText} block mb-0.5`}>Output</span>
+                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-300">
+                          {profile.isFree ? 'Free' : `$${profile.completionPricePerMillion.toFixed(2)}`}
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-[10px] font-mono text-slate-500 pt-1 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
+                    <div className={`text-xs ${t.subText} pt-1.5 flex justify-between items-center border-t ${t.border}`}>
                       <span>Est. Run Cost (1.2k tokens):</span>
-                      <strong className="text-slate-900 dark:text-white font-bold font-mono">
+                      <strong className={`${t.title} font-mono font-bold`}>
                         {profile.isFree ? '$0.0000' : `$${((350 * profile.promptPricePerToken) + (850 * profile.completionPricePerToken)).toFixed(4)}`}
                       </strong>
                     </div>
                   </div>
 
                   {/* Live Model Description with cleaned markdown links */}
-                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                  <p className={`text-xs ${t.label} leading-relaxed font-sans`}>
                     {cleanDescription(profile.description)}
                   </p>
 
@@ -893,7 +934,7 @@ export default function Inspector({
                     {profile.capabilities.map((cap, i) => (
                       <span
                         key={i}
-                        className="text-[9px] font-mono px-2 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-full font-medium shadow-2xs"
+                        className={`text-[10px] font-sans px-2.5 py-1 ${isDarkMode ? 'bg-white/[0.04] border-white/[0.08] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'} border rounded-full font-medium`}
                       >
                         ✓ {cap}
                       </span>
@@ -904,14 +945,14 @@ export default function Inspector({
             })()}
 
             {/* Save Model Specification Button */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setSavedNotification(true);
                   setTimeout(() => setSavedNotification(false), 2500);
                 }}
-                className="card-pressable w-full flex items-center justify-center gap-2 py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-semibold font-mono rounded-xl transition-all shadow-sm cursor-pointer"
+                className="card-pressable w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {savedNotification ? (
                   <>
@@ -930,21 +971,24 @@ export default function Inspector({
         ) : (
           /* Generic Inspector for other Pillars */
           <div className="space-y-4">
-            <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5 font-mono flex items-center">
-                Pillar Category
-                <InfoTooltip text="Which of the 10 core AI pillars (Skills, MCP, Tools, Gateway, Memory, Guardrails, etc.) this component belongs to." align="left" />
-              </span>
-              <div className="p-3 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl flex items-center justify-between shadow-2xs">
-                <span className="text-xs font-bold text-slate-900 dark:text-white capitalize">{nodeData.pillarType}</span>
-                <span className="text-[10px] font-mono px-2.5 py-0.5 bg-white dark:bg-slate-800 text-[#00338D] dark:text-blue-400 border border-[#00338D]/20 rounded-full font-semibold shadow-2xs">
+            <div className={`p-4 ${t.card} rounded-2xl space-y-2`}>
+              <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.subText} block font-mono flex items-center justify-between`}>
+                <span className="flex items-center gap-1.5">
+                  Pillar Category
+                  <InfoTooltip text="Which of the 10 core AI pillars (Skills, MCP, Tools, Gateway, Memory, Guardrails, etc.) this component belongs to." align="left" />
+                </span>
+                <span className="text-[10px] font-mono px-2.5 py-0.5 bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30 rounded-full font-semibold">
                   Socket: {pillarDef?.socketId}
                 </span>
+              </span>
+              <div className={`p-3 ${t.subCard} rounded-xl flex items-center justify-between`}>
+                <span className={`text-xs font-bold ${t.title} capitalize`}>{nodeData.pillarType}</span>
+                <span className={`text-[10px] font-mono ${t.subText}`}>Pillar Block</span>
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white block mb-1.5 font-mono flex items-center">
+            <div className={`p-4 ${t.card} rounded-2xl space-y-2`}>
+              <label className={`text-xs font-semibold uppercase tracking-wider ${t.label} block font-mono flex items-center`}>
                 Block Display Name
                 <InfoTooltip text="The name assigned to this block on your canvas workspace." align="left" />
               </label>
@@ -952,12 +996,12 @@ export default function Inspector({
                 type="text"
                 value={nodeData.name}
                 onChange={(e) => onUpdateNodeData(selectedNode.id, { name: e.target.value })}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl transition-all"
+                className={`w-full px-3.5 py-2.5 text-xs rounded-xl transition-all ${t.input}`}
               />
             </div>
 
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white block mb-1.5 font-mono flex items-center">
+            <div className={`p-4 ${t.card} rounded-2xl space-y-2`}>
+              <label className={`text-xs font-semibold uppercase tracking-wider ${t.label} block font-mono flex items-center`}>
                 Description
                 <InfoTooltip text="A simple description explaining what this component does when your agent executes." align="left" />
               </label>
@@ -965,14 +1009,14 @@ export default function Inspector({
                 rows={3}
                 value={nodeData.description}
                 onChange={(e) => onUpdateNodeData(selectedNode.id, { description: e.target.value })}
-                className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-xl resize-none transition-all"
+                className={`w-full p-3 text-xs leading-relaxed rounded-xl resize-none transition-all ${t.input}`}
               />
             </div>
 
             {nodeData.pillarType === 'skills' && (
-              <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className={`p-4 ${t.card} rounded-2xl space-y-3.5`}>
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#009A44] block mb-1.5 font-mono flex items-center">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1.5 font-mono flex items-center">
                     Skill Directives & Output Rules
                     <InfoTooltip text="Custom instructions and formatting commands injected directly into the LLM when executing this skill." align="right" />
                   </label>
@@ -981,18 +1025,18 @@ export default function Inspector({
                     value={nodeData.customDirective || ''}
                     onChange={(e) => onUpdateNodeData(selectedNode.id, { customDirective: e.target.value })}
                     placeholder="e.g. Format output as numbered bullet points with exact dollar figures and assignees..."
-                    className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#009A44]/20 focus:border-[#009A44] rounded-xl resize-none transition-all font-mono"
+                    className={`w-full p-3 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500/30 rounded-xl resize-none transition-all font-mono ${t.input}`}
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-[#009A44] font-mono flex items-center">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono flex items-center">
                       Reference Spec Document
                       <InfoTooltip text="Attach a Word (.docx), TXT, Markdown, or JSON file containing sample outputs and exact specifications for the AI to follow." align="right" />
                     </label>
                     {nodeData.referenceDoc && (
-                      <span className="text-[10px] font-mono text-[#009A44] font-semibold">✓ Attached</span>
+                      <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">✓ Attached</span>
                     )}
                   </div>
 
@@ -1028,10 +1072,10 @@ export default function Inspector({
                     />
                     <label
                       htmlFor={`inspector-skill-file-${selectedNode.id}`}
-                      className={`card-pressable flex-1 py-2 px-3 border rounded-xl text-xs font-mono font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs ${
+                      className={`card-pressable flex-1 py-2.5 px-3 border rounded-xl text-xs font-mono font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
                         nodeData.referenceDoc
-                          ? 'bg-[#E6F5EC] border-[#009A44] text-[#009A44]'
-                          : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[#00338D]'
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-300'
+                          : `${t.subCard} ${t.subText} hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-white`
                       }`}
                     >
                       <Upload className="w-3.5 h-3.5" />
@@ -1044,7 +1088,7 @@ export default function Inspector({
                       <button
                         type="button"
                         onClick={() => onUpdateNodeData(selectedNode.id, { referenceDoc: null })}
-                        className="card-pressable p-2 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                        className={`card-pressable p-2.5 border ${t.border} rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors`}
                         title="Remove attached file"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -1053,9 +1097,9 @@ export default function Inspector({
                   </div>
 
                   {nodeData.referenceDoc?.text && (
-                    <div className="mt-2 p-3 bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl text-[10px] font-mono text-slate-600 dark:text-slate-400 space-y-1">
-                      <span className="font-semibold text-[#009A44] block">Extracted Spec Preview:</span>
-                      <p className="line-clamp-3 leading-relaxed text-slate-900 dark:text-white">
+                    <div className={`mt-2.5 p-3 ${t.subCard} rounded-xl text-[10px] font-mono ${t.subText} space-y-1`}>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400 block">Extracted Spec Preview:</span>
+                      <p className={`line-clamp-3 leading-relaxed ${t.title}`}>
                         {nodeData.referenceDoc.text}
                       </p>
                     </div>
@@ -1065,14 +1109,14 @@ export default function Inspector({
             )}
 
             {nodeData.config && Object.keys(nodeData.config).length > 0 && (
-              <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-900 dark:text-white block font-mono flex items-center">
+              <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono flex items-center`}>
                   Configuration Properties
                   <InfoTooltip text="Custom key-value parameters passed directly to this component during runtime execution." align="right" />
                 </span>
                 {Object.entries(nodeData.config).map(([key, val]) => (
                   <div key={key}>
-                    <label className="text-[10px] font-mono text-slate-500 block mb-1">
+                    <label className={`text-[10px] font-mono ${t.subText} block mb-1`}>
                       {key}
                     </label>
                     <input
@@ -1082,7 +1126,7 @@ export default function Inspector({
                         const newConfig = { ...nodeData.config, [key]: e.target.value };
                         onUpdateNodeData(selectedNode.id, { config: newConfig });
                       }}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00338D]/20 focus:border-[#00338D] rounded-lg transition-all"
+                      className={`w-full px-3 py-2 text-xs font-mono rounded-lg transition-all ${t.input}`}
                     />
                   </div>
                 ))}
