@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Play, 
   Square, 
@@ -6,17 +6,11 @@ import {
   ChevronDown, 
   Copy, 
   Check, 
-  Upload, 
   FileText, 
   Music, 
   Terminal, 
   Clock, 
   Activity, 
-  DollarSign, 
-  ShieldCheck, 
-  Fingerprint, 
-  TrendingUp, 
-  CheckCircle2, 
   Sparkles, 
   Code,
   MessageSquare,
@@ -25,7 +19,6 @@ import {
   User,
   Trash2,
   RefreshCw,
-  Cpu,
   Maximize2,
   Minimize2,
   Minus,
@@ -214,16 +207,70 @@ export default function CanvasExecutionDrawer({
       }));
   }, [nodes]);
 
+  // Handle Batch Agent Runner
+  const handleRunAgent = useCallback(async () => {
+    if (isRunning) return;
+
+    if (!transcriptText || !transcriptText.trim()) {
+      alert('⚠️ No input transcript provided.\n\nPlease paste transcript text or upload a document/audio file before running execution.');
+      if (setIsExpanded) setIsExpanded(true);
+      setDrawerMode('batch');
+      return;
+    }
+
+    setIsRunning(true);
+    setExecutionSteps([]);
+    setSimulationResult(null);
+    if (setIsExpanded) setIsExpanded(true);
+    setDrawerMode('batch');
+
+    if (onExecutionStateChange) {
+      onExecutionStateChange({ isExecuting: true, step: 'Starting' });
+    }
+
+    try {
+      const result = await runMeetingSimulation({
+        transcript: transcriptText,
+        frameworkId: activeUseCase?.framework?.id || 'google-adk',
+        agentConfig: activeUseCase?.agent || {},
+        attachedPillars: globalAttachedPillars,
+        onStepProgress: (currentStep, allSteps) => {
+          setExecutionSteps([...allSteps]);
+          if (onExecutionStateChange) {
+            onExecutionStateChange({ isExecuting: true, step: currentStep.step });
+          }
+        }
+      });
+
+      setSimulationResult(result);
+    } catch (err) {
+      console.error('Execution failed:', err);
+      alert(`Agent execution failed: ${err.message}`);
+    } finally {
+      setIsRunning(false);
+      if (onExecutionStateChange) {
+        onExecutionStateChange({ isExecuting: false, step: 'Complete' });
+      }
+    }
+  }, [
+    isRunning, 
+    transcriptText, 
+    activeUseCase, 
+    globalAttachedPillars, 
+    onExecutionStateChange, 
+    setIsExpanded
+  ]);
+
   // Listen for canvas "Execute Workflow" button trigger
   useEffect(() => {
     const handleExecuteTrigger = () => {
-      setIsExpanded(true);
+      if (setIsExpanded) setIsExpanded(true);
       setDrawerMode('batch');
       handleRunAgent();
     };
     window.addEventListener('keaos:execute-workflow', handleExecuteTrigger);
     return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
-  }, [isRunning, transcriptText, activeUseCase, globalAttachedPillars]);
+  }, [handleRunAgent, setIsExpanded]);
 
   // Handle Interactive Chat Submission
   const handleSendChat = async (e) => {
@@ -297,7 +344,7 @@ export default function CanvasExecutionDrawer({
 
       setChatHistories(prev => ({
         ...prev,
-        [activeAgentId]: [...(prev[activeAgentId] || currentThread), newUserMsg, assistantMsg]
+        [activeAgentId]: [...(prev[activeAgentId] || [...currentThread, newUserMsg]), assistantMsg]
       }));
     } catch (err) {
       console.error('Chat execution failed:', err);
@@ -310,7 +357,7 @@ export default function CanvasExecutionDrawer({
       };
       setChatHistories(prev => ({
         ...prev,
-        [activeAgentId]: [...(prev[activeAgentId] || currentThread), newUserMsg, errorMsg]
+        [activeAgentId]: [...(prev[activeAgentId] || [...currentThread, newUserMsg]), errorMsg]
       }));
     } finally {
       setIsChatRunning(false);
@@ -328,51 +375,6 @@ export default function CanvasExecutionDrawer({
     }));
   };
 
-  const handleRunAgent = async () => {
-    if (isRunning) return;
-
-    if (!transcriptText || !transcriptText.trim()) {
-      alert('⚠️ No input transcript provided.\n\nPlease paste transcript text, select a preset sample, or upload a document/audio file before running execution.');
-      setIsExpanded(true);
-      setDrawerMode('batch');
-      return;
-    }
-
-    setIsRunning(true);
-    setExecutionSteps([]);
-    setSimulationResult(null);
-    setIsExpanded(true);
-    setDrawerMode('batch');
-
-    if (onExecutionStateChange) {
-      onExecutionStateChange({ isExecuting: true, step: 'Starting' });
-    }
-
-    try {
-      const result = await runMeetingSimulation({
-        transcript: transcriptText,
-        frameworkId: activeUseCase?.framework?.id || 'google-adk',
-        agentConfig: activeUseCase?.agent || {},
-        attachedPillars,
-        onStepProgress: (currentStep, allSteps) => {
-          setExecutionSteps([...allSteps]);
-          if (onExecutionStateChange) {
-            onExecutionStateChange({ isExecuting: true, step: currentStep.step });
-          }
-        }
-      });
-
-      setSimulationResult(result);
-    } catch (err) {
-      console.error('Execution failed:', err);
-      alert(`Agent execution failed: ${err.message}`);
-    } finally {
-      setIsRunning(false);
-      if (onExecutionStateChange) {
-        onExecutionStateChange({ isExecuting: false, step: 'Complete' });
-      }
-    }
-  };
 
   const handleAudioUpload = async (e) => {
     const file = e.target.files[0];

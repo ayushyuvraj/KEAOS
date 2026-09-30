@@ -114,7 +114,7 @@ export default function Inspector({
   const [discoveredModels, setDiscoveredModels] = useState({});
 
   useEffect(() => {
-    if (selectedNode) {
+    if (selectedNode?.id) {
       setIsCollapsed(false);
       setIsChangingProvider(false);
       setEnteringKeyProvider(null);
@@ -130,28 +130,10 @@ export default function Inspector({
     }
   };
 
-  if (!selectedNode) {
-    return null;
-  }
-
-  if (isCollapsed) {
-    return (
-      <button
-        onClick={() => setIsCollapsed(false)}
-        className="btn-tactile absolute top-4 right-5 z-20 flex items-center gap-2 px-3 py-2 bg-[#FFFFFF] hover:bg-[#F8F9FB] text-[#00338D] border border-[#CBD5E1] hover:border-[#00338D] shadow-[0_4px_16px_rgba(0,30,80,0.1)] transition-all font-mono text-xs font-bold rounded-none select-none"
-        title="Open Inspector Panel"
-      >
-        <PanelRightOpen className="w-4 h-4 text-[#00338D]" />
-        <span>Inspect Block</span>
-        <span className="w-1.5 h-1.5 rounded-full bg-[#009A44] beacon-live" />
-      </button>
-    );
-  }
-
-  const isAgent = selectedNode.type === 'agentCore';
-  const nodeData = selectedNode.data || {};
-  const pillarDef = PILLARS[nodeData.pillarType];
-  const isModel = nodeData.pillarType === 'model';
+  const isAgent = selectedNode?.type === 'agentCore';
+  const nodeData = selectedNode?.data || {};
+  const pillarDef = PILLARS[nodeData?.pillarType];
+  const isModel = nodeData?.pillarType === 'model';
 
   // Multi-LLM provider detection for model nodes
   const currentProvider = nodeData.config?.provider || 
@@ -175,7 +157,7 @@ export default function Inspector({
 
   // Fetch or retrieve cached models for active provider
   useEffect(() => {
-    if (!isModel) return;
+    if (!isModel || !selectedNode?.id) return;
     const cached = getCachedDiscoveredModels(currentProvider);
     if (cached && cached.length > 0) {
       setDiscoveredModels(prev => ({ ...prev, [currentProvider]: cached }));
@@ -209,6 +191,24 @@ export default function Inspector({
     }
     return list;
   }, [discoveredModels, currentProvider, providerDef.models, currentModelId]);
+
+  if (!selectedNode) {
+    return null;
+  }
+
+  if (isCollapsed) {
+    return (
+      <button
+        onClick={() => setIsCollapsed(false)}
+        className="btn-tactile absolute top-4 right-5 z-20 flex items-center gap-2 px-3 py-2 bg-[#FFFFFF] hover:bg-[#F8F9FB] text-[#00338D] border border-[#CBD5E1] hover:border-[#00338D] shadow-[0_4px_16px_rgba(0,30,80,0.1)] transition-all font-mono text-xs font-bold rounded-none select-none"
+        title="Open Inspector Panel"
+      >
+        <PanelRightOpen className="w-4 h-4 text-[#00338D]" />
+        <span>Inspect Block</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#009A44] beacon-live" />
+      </button>
+    );
+  }
 
   // Switch to an alternate provider where credentials are already configured
   const handleSwitchProvider = async (targetProviderId) => {
