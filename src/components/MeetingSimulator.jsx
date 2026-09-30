@@ -31,7 +31,6 @@ import {
   ChevronUp
 } from 'lucide-react';
 import MarkdownViewer from './common/MarkdownViewer';
-import { SAMPLE_MEETINGS } from '../constants/sampleMeetings';
 import { 
   runMeetingSimulation, 
   getEpisodicMemoryStore, 
@@ -412,20 +411,7 @@ export default function MeetingSimulator({
           <div className="flex-1 flex flex-col space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#0B0F19] tracking-tight">Meeting Transcript Buffer</span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setTranscriptText(SAMPLE_MEETINGS[0].transcript)}
-                  className="btn-tactile text-[10px] font-mono font-bold px-2 py-0.5 bg-[#F8F9FB] border border-[#CBD5E1] text-[#00338D] hover:bg-[#E6EDF7]"
-                >
-                  Preset 1 (Strategy)
-                </button>
-                <button
-                  onClick={() => setTranscriptText(SAMPLE_MEETINGS[1].transcript)}
-                  className="btn-tactile text-[10px] font-mono font-bold px-2 py-0.5 bg-[#F8F9FB] border border-[#CBD5E1] text-[#00338D] hover:bg-[#E6EDF7]"
-                >
-                  Preset 2 (Postmortem)
-                </button>
-              </div>
+              <span className="text-[10px] font-mono text-slate-400">Direct input stream</span>
             </div>
             <textarea
               value={transcriptText}
