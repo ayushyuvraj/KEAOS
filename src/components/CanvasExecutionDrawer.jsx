@@ -25,7 +25,11 @@ import {
   User,
   Trash2,
   RefreshCw,
-  Cpu
+  Cpu,
+  Maximize2,
+  Minimize2,
+  Minus,
+  RotateCcw
 } from 'lucide-react';
 import MarkdownViewer from './common/MarkdownViewer';
 import { runMeetingSimulation } from '../utils/meetingSimulatorEngine';
@@ -57,6 +61,18 @@ export default function CanvasExecutionDrawer({
   const [copiedOutput, setCopiedOutput] = useState(false);
   const [audioFile, setAudioFile] = useState(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+
+  // Batch Test Bench Resizing, Minimizing & Maximizing state
+  const [colWidths, setColWidths] = useState([33.33, 33.33, 33.34]); // Percentage width for [input, traces, output]
+  const [minimizedCols, setMinimizedCols] = useState({
+    input: false,
+    traces: false,
+    output: false
+  });
+  const [maximizedCol, setMaximizedCol] = useState(null); // null | 'input' | 'traces' | 'output'
+
+  const containerRef = useRef(null);
+  const draggingDividerRef = useRef(null);
 
   // Interactive Live Chat State
   const [chatInput, setChatInput] = useState('');
@@ -273,6 +289,95 @@ export default function CanvasExecutionDrawer({
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     setCopiedJson(true);
     setTimeout(() => setCopiedJson(false), 2000);
+  };
+
+  // Divider dragging handlers
+  const handleMouseDown = (dividerIdx) => (e) => {
+    e.preventDefault();
+    draggingDividerRef.current = {
+      dividerIdx,
+      startX: e.clientX,
+      startWidths: [...colWidths]
+    };
+
+    const handleMouseMove = (moveEvent) => {
+      if (!draggingDividerRef.current || !containerRef.current) return;
+      const { dividerIdx, startX, startWidths } = draggingDividerRef.current;
+      const rect = containerRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
+
+      const deltaPercent = ((moveEvent.clientX - startX) / rect.width) * 100;
+      setColWidths(prev => {
+        const next = [...prev];
+        const minPercent = 14;
+
+        if (dividerIdx === 0) {
+          let w0 = startWidths[0] + deltaPercent;
+          let w1 = startWidths[1] - deltaPercent;
+          if (w0 < minPercent) {
+            w1 -= (minPercent - w0);
+            w0 = minPercent;
+          }
+          if (w1 < minPercent) {
+            w0 -= (minPercent - w1);
+            w1 = minPercent;
+          }
+          next[0] = Math.max(minPercent, w0);
+          next[1] = Math.max(minPercent, w1);
+        } else if (dividerIdx === 1) {
+          let w1 = startWidths[1] + deltaPercent;
+          let w2 = startWidths[2] - deltaPercent;
+          if (w1 < minPercent) {
+            w2 -= (minPercent - w1);
+            w1 = minPercent;
+          }
+          if (w2 < minPercent) {
+            w1 -= (minPercent - w2);
+            w2 = minPercent;
+          }
+          next[1] = Math.max(minPercent, w1);
+          next[2] = Math.max(minPercent, w2);
+        }
+        return next;
+      });
+    };
+
+    const handleMouseUp = () => {
+      draggingDividerRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const toggleMaximize = (colKey) => {
+    if (maximizedCol === colKey) {
+      setMaximizedCol(null);
+    } else {
+      setMaximizedCol(colKey);
+      setMinimizedCols(prev => ({ ...prev, [colKey]: false }));
+    }
+  };
+
+  const toggleMinimize = (colKey) => {
+    if (maximizedCol === colKey) {
+      setMaximizedCol(null);
+    }
+    setMinimizedCols(prev => {
+      const next = { ...prev, [colKey]: !prev[colKey] };
+      if (next.input && next.traces && next.output) {
+        return prev;
+      }
+      return next;
+    });
+  };
+
+  const resetLayout = () => {
+    setColWidths([33.33, 33.33, 33.34]);
+    setMinimizedCols({ input: false, traces: false, output: false });
+    setMaximizedCol(null);
   };
 
   return (
@@ -531,199 +636,404 @@ export default function CanvasExecutionDrawer({
           {/* ========================================================= */}
           {drawerMode === 'batch' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
-              <div className="flex-1 grid grid-cols-12 divide-x divide-inherit overflow-hidden">
-                {/* COLUMN 1: TEST INPUT & PAYLOAD */}
-                <div className="col-span-4 flex flex-col h-full overflow-hidden">
-                  <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
-                    isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-[#0091DA]" />
-                      <span>Input Transcript</span>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setInputTab('raw')}
-                        className={`px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer ${
-                          inputTab === 'raw' ? 'bg-[#0091DA] text-white font-bold' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Raw
-                      </button>
-                      <button
-                        onClick={() => setInputTab('audio')}
-                        className={`px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer ${
-                          inputTab === 'audio' ? 'bg-[#0091DA] text-white font-bold' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Audio
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-auto p-3 text-xs font-mono">
-                    {inputTab === 'raw' && (
-                      <textarea
-                        value={transcriptText}
-                        onChange={(e) => setTranscriptText(e.target.value)}
-                        className={`w-full h-full bg-transparent resize-none focus:outline-none leading-relaxed ${
-                          isDarkMode ? 'text-slate-200' : 'text-[#0B0F19]'
-                        }`}
-                        placeholder="Paste script, meeting transcript, or task prompt..."
-                      />
-                    )}
-
-                    {inputTab === 'audio' && (
-                      <div className="h-full flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-none text-center">
-                        <Music className="w-8 h-8 text-[#0091DA] mb-2" />
-                        <label className="px-3 py-1.5 bg-[#0091DA] hover:bg-[#0077B6] text-white cursor-pointer text-xs font-bold transition-colors">
-                          Upload MP3 Recording
-                          <input type="file" accept="audio/*" className="hidden" onChange={handleAudioUpload} />
-                        </label>
-                        {audioFile && (
-                          <div className="text-[10px] text-slate-400 mt-2">
-                            {audioFile.name} ({audioFile.size})
-                          </div>
+              <div ref={containerRef} className="flex-1 flex w-full h-full overflow-hidden relative select-none">
+                {/* ========================================================= */}
+                {/* 1. COLUMN 1: TEST INPUT & PAYLOAD */}
+                {/* ========================================================= */}
+                {maximizedCol === 'input' || (maximizedCol === null && !minimizedCols.input) ? (
+                  <div 
+                    style={maximizedCol ? { width: '100%' } : { flex: `${colWidths[0]} 1 0%` }}
+                    className={`min-w-[160px] flex flex-col h-full overflow-hidden border-r ${
+                      isDarkMode ? 'border-[#2E313B]' : 'border-[#E5E7EB]'
+                    }`}
+                  >
+                    <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
+                      isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5 text-[#0091DA]" />
+                        <span className="font-bold">Input Buffer</span>
+                        {maximizedCol === 'input' && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#0091DA]/20 text-[#0091DA] font-bold">
+                            MAXIMIZED
+                          </span>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Run Button in Column 1 */}
-                  <div className={`p-3 border-t flex items-center justify-between ${
-                    isDarkMode ? 'bg-[#18191E] border-[#2E313B]' : 'bg-gray-50 border-gray-200'
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setInputTab('raw')}
+                            className={`px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer ${
+                              inputTab === 'raw' ? 'bg-[#0091DA] text-white font-bold' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            Raw
+                          </button>
+                          <button
+                            onClick={() => setInputTab('audio')}
+                            className={`px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer ${
+                              inputTab === 'audio' ? 'bg-[#0091DA] text-white font-bold' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            Audio
+                          </button>
+                        </div>
+
+                        {/* Window Controls */}
+                        <div className="flex items-center gap-0.5 border-l border-white/10 pl-1.5 ml-1">
+                          <button
+                            onClick={() => toggleMinimize('input')}
+                            title="Minimize section"
+                            className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => toggleMaximize('input')}
+                            title={maximizedCol === 'input' ? 'Restore size' : 'Maximize section'}
+                            className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            {maximizedCol === 'input' ? <Minimize2 className="w-3 h-3 text-[#0091DA]" /> : <Maximize2 className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-auto p-3 text-xs font-mono">
+                      {inputTab === 'raw' && (
+                        <textarea
+                          value={transcriptText}
+                          onChange={(e) => setTranscriptText(e.target.value)}
+                          className={`w-full h-full bg-transparent resize-none focus:outline-none leading-relaxed ${
+                            isDarkMode ? 'text-slate-200' : 'text-[#0B0F19]'
+                          }`}
+                          placeholder="Paste script, meeting transcript, or task prompt..."
+                        />
+                      )}
+
+                      {inputTab === 'audio' && (
+                        <div className="h-full flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-none text-center">
+                          <Music className="w-8 h-8 text-[#0091DA] mb-2" />
+                          <label className="px-3 py-1.5 bg-[#0091DA] hover:bg-[#0077B6] text-white cursor-pointer text-xs font-bold transition-colors">
+                            Upload MP3 Recording
+                            <input type="file" accept="audio/*" className="hidden" onChange={handleAudioUpload} />
+                          </label>
+                          {audioFile && (
+                            <div className="text-[10px] text-slate-400 mt-2">
+                              {audioFile.name} ({audioFile.size})
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Run Button in Column 1 */}
+                    <div className={`p-3 border-t flex items-center justify-between ${
+                      isDarkMode ? 'bg-[#18191E] border-[#2E313B]' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                      <span className="text-[10px] text-slate-500 font-mono">Press Ctrl+Enter to test</span>
+                      <button
+                        onClick={handleRunAgent}
+                        disabled={isRunning}
+                        className="px-4 py-1.5 bg-[#FF6D5A] hover:bg-[#FF5A45] text-white text-xs font-bold rounded flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        {isRunning ? <Square className="w-3 h-3 fill-current animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
+                        <span>{isRunning ? 'Simulating...' : 'Run Simulation'}</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : maximizedCol === null && minimizedCols.input ? (
+                  /* Column 1 Minimized Rail */
+                  <div className={`w-[44px] shrink-0 flex-none h-full border-r flex flex-col items-center justify-between py-3 select-none transition-colors ${
+                    isDarkMode ? 'bg-[#16181D] border-[#2E313B]' : 'bg-[#E5E7EB] border-[#CBD5E1]'
                   }`}>
-                    <span className="text-[10px] text-slate-500 font-mono">Press Ctrl+Enter to test</span>
+                    <div className="flex flex-col items-center gap-2">
+                      <button
+                        onClick={() => toggleMinimize('input')}
+                        title="Expand Input Buffer"
+                        className="p-1.5 hover:bg-white/10 rounded transition-colors text-[#0091DA] cursor-pointer"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-mono font-bold tracking-widest uppercase text-slate-400">
+                      Input Buffer
+                    </div>
                     <button
-                      onClick={handleRunAgent}
-                      disabled={isRunning}
-                      className="px-4 py-1.5 bg-[#FF6D5A] hover:bg-[#FF5A45] text-white text-xs font-bold rounded flex items-center gap-1.5 transition-colors cursor-pointer"
+                      onClick={() => toggleMinimize('input')}
+                      title="Expand Input Buffer"
+                      className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white cursor-pointer"
                     >
-                      {isRunning ? <Square className="w-3 h-3 fill-current animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
-                      <span>{isRunning ? 'Simulating...' : 'Run Simulation'}</span>
+                      <Maximize2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                </div>
+                ) : null}
 
-                {/* COLUMN 2: EXECUTION STEP TRACE */}
-                <div className="col-span-4 flex flex-col h-full overflow-hidden">
-                  <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
-                    isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-3.5 h-3.5 text-[#009A44]" />
-                      <span>Pipeline Step Traces</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      {executionSteps.length} Steps Logged
-                    </span>
+                {/* Divider 1: between Col 1 & Col 2 */}
+                {maximizedCol === null && !minimizedCols.input && !minimizedCols.traces && (
+                  <div
+                    onMouseDown={handleMouseDown(0)}
+                    className={`w-2 shrink-0 h-full cursor-col-resize flex items-center justify-center transition-all select-none group z-10 ${
+                      isDarkMode ? 'bg-[#1C1E24] hover:bg-[#0091DA]' : 'bg-[#E5E7EB] hover:bg-[#00338D]'
+                    }`}
+                    title="Drag to resize Input & Traces"
+                  >
+                    <div className="w-0.5 h-7 bg-slate-500 group-hover:bg-white rounded-full transition-colors" />
                   </div>
+                )}
 
-                  <div className="flex-1 overflow-auto p-3 space-y-2 text-xs font-mono">
-                    {executionSteps.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                        <Clock className="w-6 h-6 mb-1 text-slate-600" />
-                        <span>Ready for batch run</span>
+                {/* ========================================================= */}
+                {/* 2. COLUMN 2: EXECUTION STEP TRACE (TELEMETRY) */}
+                {/* ========================================================= */}
+                {maximizedCol === 'traces' || (maximizedCol === null && !minimizedCols.traces) ? (
+                  <div 
+                    style={maximizedCol ? { width: '100%' } : { flex: `${colWidths[1]} 1 0%` }}
+                    className={`min-w-[160px] flex flex-col h-full overflow-hidden border-r ${
+                      isDarkMode ? 'border-[#2E313B]' : 'border-[#E5E7EB]'
+                    }`}
+                  >
+                    <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
+                      isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-3.5 h-3.5 text-[#009A44]" />
+                        <span className="font-bold">Pipeline Step Traces</span>
+                        {maximizedCol === 'traces' && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#009A44]/20 text-[#009A44] font-bold">
+                            MAXIMIZED
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      executionSteps.map((s, i) => (
-                        <div key={i} className={`p-2 rounded border transition-colors ${
-                          isDarkMode ? 'bg-[#191B22] border-[#2E313B]' : 'bg-white border-gray-200'
-                        }`}>
-                          <div className="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
-                            <span className="text-[#0091DA]">{s.step}</span>
-                            <span className="text-slate-500 font-mono text-[9px]">{s.latencyMs}ms</span>
-                          </div>
-                          <div className="text-[10px] text-slate-400 leading-snug">{s.detail}</div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {executionSteps.length} Steps
+                        </span>
+
+                        {/* Window Controls */}
+                        <div className="flex items-center gap-0.5 border-l border-white/10 pl-1.5">
+                          <button
+                            onClick={() => toggleMinimize('traces')}
+                            title="Minimize section"
+                            className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => toggleMaximize('traces')}
+                            title={maximizedCol === 'traces' ? 'Restore size' : 'Maximize section'}
+                            className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            {maximizedCol === 'traces' ? <Minimize2 className="w-3 h-3 text-[#009A44]" /> : <Maximize2 className="w-3 h-3" />}
+                          </button>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* COLUMN 3: STRUCTURED OUTPUT & JSON */}
-                <div className="col-span-4 flex flex-col h-full overflow-hidden">
-                  <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
-                    isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-[#009A44]" />
-                      <span className="font-bold">Agent Output</span>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-[10px]">
-                      <button
-                        onClick={() => setOutputTab('output')}
-                        className={`px-2.5 py-0.5 rounded font-mono font-bold uppercase transition-colors cursor-pointer ${
-                          outputTab === 'output' ? 'bg-[#00338D] text-white' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Output
-                      </button>
-                      <button
-                        onClick={() => setOutputTab('json')}
-                        className={`px-2.5 py-0.5 rounded font-mono font-bold uppercase transition-colors cursor-pointer ${
-                          outputTab === 'json' ? 'bg-[#00338D] text-white' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        JSON
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-auto p-4 text-xs select-text">
-                    {!simulationResult ? (
-                      <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                        <Code className="w-6 h-6 mb-1 text-slate-600" />
-                        <span>Run simulation to inspect natural agent output</span>
                       </div>
-                    ) : (
-                      <>
-                        {outputTab === 'output' && (
-                          <div className="relative h-full flex flex-col">
-                            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/50">
-                              <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                Natural Output ({simulationResult.rawOutput ? `${simulationResult.rawOutput.length} chars` : 'Complete'})
-                              </span>
-                              <button
-                                onClick={() => {
-                                  const text = simulationResult.rawOutput || (typeof simulationResult === 'string' ? simulationResult : JSON.stringify(simulationResult, null, 2));
-                                  navigator.clipboard.writeText(text);
-                                  setCopiedOutput(true);
-                                  setTimeout(() => setCopiedOutput(false), 2000);
-                                }}
-                                className="px-2 py-1 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-[10px] font-mono rounded flex items-center gap-1 cursor-pointer transition-colors"
-                              >
-                                {copiedOutput ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
-                                <span>{copiedOutput ? 'Copied' : 'Copy Output'}</span>
-                              </button>
-                            </div>
-                            <div className="flex-1 overflow-auto leading-relaxed select-text">
-                              <MarkdownViewer content={simulationResult.rawOutput || (typeof simulationResult === 'string' ? simulationResult : '')} />
-                            </div>
-                          </div>
-                        )}
+                    </div>
 
-                        {outputTab === 'json' && (
-                          <div className="relative h-full">
-                            <button
-                              onClick={() => copyJsonOutput(simulationResult)}
-                              className="absolute top-2 right-2 px-2 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] rounded font-mono flex items-center gap-1 cursor-pointer"
-                            >
-                              {copiedJson ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
-                              <span>{copiedJson ? 'Copied' : 'Copy'}</span>
-                            </button>
-                            <pre className="h-full overflow-auto text-[10px] font-mono p-2 bg-black/30 rounded text-emerald-400">
-                              {JSON.stringify(simulationResult, null, 2)}
-                            </pre>
+                    <div className="flex-1 overflow-auto p-3 space-y-2 text-xs font-mono">
+                      {executionSteps.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                          <Clock className="w-6 h-6 mb-1 text-slate-600" />
+                          <span>Ready for batch run</span>
+                        </div>
+                      ) : (
+                        executionSteps.map((s, i) => (
+                          <div key={i} className={`p-2 rounded border transition-colors ${
+                            isDarkMode ? 'bg-[#191B22] border-[#2E313B]' : 'bg-white border-gray-200'
+                          }`}>
+                            <div className="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+                              <span className="text-[#0091DA]">{s.step}</span>
+                              <span className="text-slate-500 font-mono text-[9px]">{s.latencyMs}ms</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 leading-snug">{s.detail}</div>
                           </div>
-                        )}
-                      </>
-                    )}
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : maximizedCol === null && minimizedCols.traces ? (
+                  /* Column 2 Minimized Rail */
+                  <div className={`w-[44px] shrink-0 flex-none h-full border-r flex flex-col items-center justify-between py-3 select-none transition-colors ${
+                    isDarkMode ? 'bg-[#16181D] border-[#2E313B]' : 'bg-[#E5E7EB] border-[#CBD5E1]'
+                  }`}>
+                    <div className="flex flex-col items-center gap-2">
+                      <button
+                        onClick={() => toggleMinimize('traces')}
+                        title="Expand Pipeline Traces"
+                        className="p-1.5 hover:bg-white/10 rounded transition-colors text-[#009A44] cursor-pointer"
+                      >
+                        <Activity className="w-4 h-4" />
+                      </button>
+                      <span className="text-[9px] font-mono font-bold px-1 py-0.5 rounded bg-[#009A44]/20 text-[#009A44]">
+                        {executionSteps.length}
+                      </span>
+                    </div>
+                    <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-mono font-bold tracking-widest uppercase text-slate-400">
+                      Pipeline Traces
+                    </div>
+                    <button
+                      onClick={() => toggleMinimize('traces')}
+                      title="Expand Pipeline Traces"
+                      className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : null}
+
+                {/* Divider 2: between Col 2 & Col 3 */}
+                {maximizedCol === null && !minimizedCols.traces && !minimizedCols.output && (
+                  <div
+                    onMouseDown={handleMouseDown(1)}
+                    className={`w-2 shrink-0 h-full cursor-col-resize flex items-center justify-center transition-all select-none group z-10 ${
+                      isDarkMode ? 'bg-[#1C1E24] hover:bg-[#0091DA]' : 'bg-[#E5E7EB] hover:bg-[#00338D]'
+                    }`}
+                    title="Drag to resize Traces & Output"
+                  >
+                    <div className="w-0.5 h-7 bg-slate-500 group-hover:bg-white rounded-full transition-colors" />
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* 3. COLUMN 3: AGENT OUTPUT (NATURAL INTELLIGENCE) & JSON */}
+                {/* ========================================================= */}
+                {maximizedCol === 'output' || (maximizedCol === null && !minimizedCols.output) ? (
+                  <div 
+                    style={maximizedCol ? { width: '100%' } : { flex: `${colWidths[2]} 1 0%` }}
+                    className="min-w-[160px] flex flex-col h-full overflow-hidden"
+                  >
+                    <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
+                      isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-[#009A44]" />
+                        <span className="font-bold">Agent Output</span>
+                        {maximizedCol === 'output' && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#009A44]/20 text-[#009A44] font-bold">
+                            MAXIMIZED
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <button
+                            onClick={() => setOutputTab('output')}
+                            className={`px-2.5 py-0.5 rounded font-mono font-bold uppercase transition-colors cursor-pointer ${
+                              outputTab === 'output' ? 'bg-[#00338D] text-white' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            Output
+                          </button>
+                          <button
+                            onClick={() => setOutputTab('json')}
+                            className={`px-2.5 py-0.5 rounded font-mono font-bold uppercase transition-colors cursor-pointer ${
+                              outputTab === 'json' ? 'bg-[#00338D] text-white' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            JSON
+                          </button>
+                        </div>
+
+                        {/* Window Controls */}
+                        <div className="flex items-center gap-0.5 border-l border-white/10 pl-1.5 ml-1">
+                          <button
+                            onClick={() => toggleMinimize('output')}
+                            title="Minimize section"
+                            className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => toggleMaximize('output')}
+                            title={maximizedCol === 'output' ? 'Restore size' : 'Maximize section'}
+                            className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            {maximizedCol === 'output' ? <Minimize2 className="w-3 h-3 text-[#009A44]" /> : <Maximize2 className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-auto p-4 text-xs select-text">
+                      {!simulationResult ? (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                          <Code className="w-6 h-6 mb-1 text-slate-600" />
+                          <span>Run simulation to inspect natural agent output</span>
+                        </div>
+                      ) : (
+                        <>
+                          {outputTab === 'output' && (
+                            <div className="relative h-full flex flex-col">
+                              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/50">
+                                <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                  Natural Output ({simulationResult.rawOutput ? `${simulationResult.rawOutput.length} chars` : 'Complete'})
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    const text = simulationResult.rawOutput || (typeof simulationResult === 'string' ? simulationResult : JSON.stringify(simulationResult, null, 2));
+                                    navigator.clipboard.writeText(text);
+                                    setCopiedOutput(true);
+                                    setTimeout(() => setCopiedOutput(false), 2000);
+                                  }}
+                                  className="px-2 py-1 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-[10px] font-mono rounded flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  {copiedOutput ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
+                                  <span>{copiedOutput ? 'Copied' : 'Copy Output'}</span>
+                                </button>
+                              </div>
+                              <div className="flex-1 overflow-auto leading-relaxed select-text">
+                                <MarkdownViewer content={simulationResult.rawOutput || (typeof simulationResult === 'string' ? simulationResult : '')} />
+                              </div>
+                            </div>
+                          )}
+
+                          {outputTab === 'json' && (
+                            <div className="relative h-full">
+                              <button
+                                onClick={() => copyJsonOutput(simulationResult)}
+                                className="absolute top-2 right-2 px-2 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] rounded font-mono flex items-center gap-1 cursor-pointer"
+                              >
+                                {copiedJson ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
+                                <span>{copiedJson ? 'Copied' : 'Copy'}</span>
+                              </button>
+                              <pre className="h-full overflow-auto text-[10px] font-mono p-2 bg-black/30 rounded text-emerald-400">
+                                {JSON.stringify(simulationResult, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ) : maximizedCol === null && minimizedCols.output ? (
+                  /* Column 3 Minimized Rail */
+                  <div className={`w-[44px] shrink-0 flex-none h-full border-l flex flex-col items-center justify-between py-3 select-none transition-colors ${
+                    isDarkMode ? 'bg-[#16181D] border-[#2E313B]' : 'bg-[#E5E7EB] border-[#CBD5E1]'
+                  }`}>
+                    <div className="flex flex-col items-center gap-2">
+                      <button
+                        onClick={() => toggleMinimize('output')}
+                        title="Expand Agent Output"
+                        className="p-1.5 hover:bg-white/10 rounded transition-colors text-[#009A44] cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-mono font-bold tracking-widest uppercase text-slate-400">
+                      Agent Output
+                    </div>
+                    <button
+                      onClick={() => toggleMinimize('output')}
+                      title="Expand Agent Output"
+                      className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               {/* Batch Telemetry Footer */}
@@ -735,15 +1045,26 @@ export default function CanvasExecutionDrawer({
                   <span>Tokens: <strong className="text-white">{simulationResult?.observability?.totalTokens || 0}</strong></span>
                   <span>Cost: <strong className="text-amber-400">${simulationResult?.economics?.costUsd?.toFixed(4) || '0.0000'}</strong></span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span>SHA-256:</span>
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={() => simulationResult?.auditHash && copyHash(simulationResult.auditHash)}
-                    disabled={!simulationResult?.auditHash}
-                    className="text-[10px] text-cyan-400 font-mono hover:underline"
+                    onClick={resetLayout}
+                    title="Reset sections to default equal split"
+                    className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
                   >
-                    {simulationResult?.auditHash ? `${simulationResult.auditHash.substring(0, 16)}...` : 'Pending'}
+                    <RotateCcw className="w-3 h-3 text-[#0091DA]" />
+                    <span>Reset Layout</span>
                   </button>
+                  <span className="text-slate-600">|</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>SHA-256:</span>
+                    <button
+                      onClick={() => simulationResult?.auditHash && copyHash(simulationResult.auditHash)}
+                      disabled={!simulationResult?.auditHash}
+                      className="text-[10px] text-cyan-400 font-mono hover:underline"
+                    >
+                      {simulationResult?.auditHash ? `${simulationResult.auditHash.substring(0, 16)}...` : 'Pending'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
