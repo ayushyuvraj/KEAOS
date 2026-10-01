@@ -23,7 +23,8 @@ import {
   DollarSign,
   Sparkles,
   ChevronDown,
-  UploadCloud
+  UploadCloud,
+  Brain
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { 
@@ -80,6 +81,7 @@ function InfoTooltip({ text, align = 'left' }) {
 export default function Inspector({
   selectedNode: selectedNodeProp,
   nodes = [],
+  edges = [],
   activeUseCase,
   onSelectFramework,
   agentConfig,
@@ -97,6 +99,29 @@ export default function Inspector({
     if (!selectedNodeProp) return null;
     return nodes.find((n) => n.id === selectedNodeProp.id) || selectedNodeProp;
   }, [nodes, selectedNodeProp]);
+
+  // Compute A2A connections for selected agent
+  const incomingAgentEdges = useMemo(() => {
+    if (!selectedNode?.id) return [];
+    return (edges || []).filter(e => e.target === selectedNode.id && (e.targetHandle === 'agent-in' || !e.targetHandle));
+  }, [edges, selectedNode?.id]);
+
+  const upstreamAgents = useMemo(() => {
+    return incomingAgentEdges
+      .map(e => nodes.find(n => n.id === e.source && n.type === 'agentCore'))
+      .filter(Boolean);
+  }, [incomingAgentEdges, nodes]);
+
+  const outgoingEdges = useMemo(() => {
+    if (!selectedNode?.id) return [];
+    return (edges || []).filter(e => e.source === selectedNode.id && e.sourceHandle === 'out');
+  }, [edges, selectedNode?.id]);
+
+  const downstreamReceivers = useMemo(() => {
+    return outgoingEdges
+      .map(e => nodes.find(n => n.id === e.target))
+      .filter(Boolean);
+  }, [outgoingEdges, nodes]);
 
   const [customModelMode, setCustomModelMode] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -405,25 +430,65 @@ export default function Inspector({
       <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${t.content}`}>
         {isAgent ? (
           <>
+            {/* Agent Name & Strategic Role */}
+            <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold uppercase tracking-wider ${t.label} font-sans flex items-center`}>
+                  Agent Designation
+                  <InfoTooltip text="Unique name and operational role of this specific agent within the multi-agent graph." align="right" />
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-500 dark:text-blue-300 font-medium">
+                  {nodeData.role ? nodeData.role.toUpperCase() : 'AGENT CORE'}
+                </span>
+              </div>
+              <input
+                type="text"
+                value={nodeData.name || ''}
+                onChange={(e) => onUpdateNodeData(selectedNode.id, { name: e.target.value })}
+                placeholder="Agent Name..."
+                className={`w-full px-3.5 py-2 text-xs font-semibold ${t.input} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all`}
+              />
+              <div className="space-y-1">
+                <label className={`text-[10px] font-mono uppercase tracking-wider ${t.subText}`}>Architectural Role</label>
+                <select
+                  value={nodeData.role || 'specialist'}
+                  onChange={(e) => onUpdateNodeData(selectedNode.id, { role: e.target.value })}
+                  className={`w-full px-3 py-2 text-xs ${t.select} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer`}
+                >
+                  <option value="specialist">Specialist Agent (Domain Task Executor)</option>
+                  <option value="orchestrator">Orchestrator Agent (Workflow Dispatcher)</option>
+                  <option value="scribe">Note-Taking & Ingestion Scribe</option>
+                  <option value="auditor">Compliance & Policy Auditor</option>
+                  <option value="synthesizer">Executive Synthesizer & Deliverer</option>
+                </select>
+              </div>
+            </div>
+
             {/* Target Multi-Agent Framework Selector */}
             <div className={`p-4 ${t.card} rounded-2xl space-y-2.5`}>
               <div className="flex items-center justify-between">
                 <span className={`text-xs font-semibold uppercase tracking-wider ${t.label} font-sans flex items-center`}>
                   Target Framework
-                  <InfoTooltip text="Select the framework (like Google ADK, LangGraph, AutoGen, CrewAI, or OpenAI) you want to export Python code for." align="right" />
+                  <InfoTooltip text="Select the framework (Google ADK, Microsoft ADK, OpenAI, LangChain, LangGraph) for this specific agent." align="right" />
                 </span>
-                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-500 dark:text-blue-300 font-medium">
-                  {activeUseCase?.framework?.category || 'SDK'}
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 font-medium">
+                  {(nodeData.framework || activeUseCase?.framework)?.category || 'SDK'}
                 </span>
               </div>
               <div className="relative">
                 <select
-                  value={activeUseCase?.framework?.id || 'google-adk'}
+                  value={(nodeData.framework || activeUseCase?.framework)?.id || 'google-adk'}
                   onChange={(e) => {
                     const fw = FRAMEWORKS.find(f => f.id === e.target.value);
-                    if (fw && onSelectFramework) onSelectFramework(fw);
+                    if (fw) {
+                      onUpdateNodeData(selectedNode.id, { framework: fw });
+                      const allAgents = nodes.filter(n => n.type === 'agentCore');
+                      if (allAgents.length <= 1 && onSelectFramework) {
+                        onSelectFramework(fw);
+                      }
+                    }
                   }}
-                  className={`w-full px-3.5 py-2.5 text-xs font-medium ${t.select} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer appearance-none pr-8 transition-all`}
+                  className={`w-full px-3.5 py-2.5 text-xs font-medium ${t.select} rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer appearance-none pr-8 transition-all`}
                 >
                   {FRAMEWORKS.map(fw => (
                     <option key={fw.id} value={fw.id} className={`${isDarkMode ? 'bg-[#141722] text-white' : 'bg-white text-slate-900'} py-1`}>
@@ -436,28 +501,136 @@ export default function Inspector({
                 </div>
               </div>
               <p className={`text-xs ${t.subText} mt-1 leading-relaxed`}>
-                {activeUseCase?.framework?.description || 'Export idiomatic Python code matching your visual graph.'}
+                {(nodeData.framework || activeUseCase?.framework)?.description || 'Export idiomatic Python code matching your visual graph.'}
               </p>
+            </div>
+
+            {/* Foundation Model & Brain Linkage */}
+            <div className={`p-4 ${t.card} rounded-2xl space-y-2 border ${nodeData.connectedModelName ? 'border-blue-500/30' : 'border-indigo-500/20'}`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold uppercase tracking-wider ${nodeData.connectedModelName ? 'text-blue-400' : 'text-indigo-400'} font-sans flex items-center gap-1.5`}>
+                  <Brain className="w-3.5 h-3.5" />
+                  Foundation Model Brain
+                </span>
+                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
+                  nodeData.connectedModelName
+                    ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                    : 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                }`}>
+                  {nodeData.connectedModelName ? 'DEDICATED' : 'SHARED INHERITANCE'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/40 border border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${nodeData.connectedModelName ? 'bg-emerald-400' : 'bg-indigo-400'}`} />
+                  <span className="text-xs font-bold text-white">
+                    {nodeData.connectedModelName || nodeData.inheritedModelName || 'Gemini 2.0 Flash'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {nodeData.connectedModelName ? 'Directly Bound' : 'Auto-Shared'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {nodeData.connectedModelName
+                  ? 'This agent uses its own dedicated model node attached via the model-in socket.'
+                  : 'Accessing the senior agent brain by default. You can drag a wire to share the same model node or connect a new model node to override.'}
+              </p>
+            </div>
+
+            {/* Inter-Agent A2A Topologies */}
+            <div className={`p-4 ${t.card} rounded-2xl space-y-3 border border-indigo-500/20`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold uppercase tracking-wider text-indigo-400 font-sans flex items-center gap-1.5`}>
+                  <Bot className="w-3.5 h-3.5" />
+                  A2A Topology Channels
+                </span>
+                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+                  {upstreamAgents.length} In / {downstreamReceivers.length} Out
+                </span>
+              </div>
+
+              {/* Upstream Ingress */}
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Upstream Feeds (Incoming A2A)</div>
+                {upstreamAgents.length > 0 ? (
+                  <div className="space-y-1">
+                    {upstreamAgents.map(up => (
+                      <div key={up.id} className="flex items-center justify-between p-2 rounded-lg bg-indigo-950/30 border border-indigo-500/20 text-xs">
+                        <span className="font-semibold text-slate-200">{up.data?.name || 'Agent'}</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
+                          {up.data?.framework?.name || 'Google ADK'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-slate-500 italic px-1">
+                    Root Agent (Ingests raw transcripts or direct user chat)
+                  </div>
+                )}
+              </div>
+
+              {/* Downstream Egress */}
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Downstream Receivers (Outgoing A2A)</div>
+                {downstreamReceivers.length > 0 ? (
+                  <div className="space-y-1">
+                    {downstreamReceivers.map(down => (
+                      <div key={down.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 text-xs">
+                        <span className="font-semibold text-slate-200">{down.data?.name || down.data?.title || 'Component'}</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-300">
+                          {down.type === 'agentCore' ? (down.data?.framework?.name || 'Agent') : 'Canvas Output'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-slate-500 italic px-1">
+                    Terminal Agent (No downstream connections yet)
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Spawn Downstream Agent Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('keaos:spawn-downstream-agent', {
+                    detail: { sourceAgentId: selectedNode.id }
+                  }));
+                }}
+                className="w-full mt-2 py-2 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer card-pressable"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                <span>+ Connect Downstream Agent (A2A)</span>
+              </button>
             </div>
 
             {/* System Prompt Customizer */}
             <div className={`p-4 ${t.card} rounded-2xl space-y-2.5`}>
               <div className="flex items-center justify-between">
                 <label className={`text-xs font-semibold uppercase tracking-wider ${t.label} font-sans flex items-center`}>
-                  System Instruction Prompt
-                  <InfoTooltip text="The main instructions and behavioral rules given to the AI agent to tell it how to act, think, and format its response." align="right" />
+                  Agent Persona & Instructions
+                  <InfoTooltip text="The main instructions and behavioral rules given to this AI agent." align="right" />
                 </label>
-                <span className="text-[10px] font-mono text-blue-500 dark:text-blue-400 font-semibold px-2 py-0.5 rounded-full bg-blue-500/10">Persona</span>
+                <span className="text-[10px] font-mono text-blue-500 dark:text-blue-400 font-semibold px-2 py-0.5 rounded-full bg-blue-500/10">Directive</span>
               </div>
               <textarea
                 rows={5}
-                value={agentConfig.prompt}
-                onChange={(e) => onUpdateAgentConfig({ prompt: e.target.value })}
-                placeholder="Provide authoritative prompt as to what we want the agent to do..."
+                value={nodeData.prompt !== undefined ? nodeData.prompt : (agentConfig?.prompt || '')}
+                onChange={(e) => {
+                  onUpdateNodeData(selectedNode.id, { prompt: e.target.value });
+                  const allAgents = nodes.filter(n => n.type === 'agentCore');
+                  if (allAgents.length <= 1 && onUpdateAgentConfig) {
+                    onUpdateAgentConfig({ prompt: e.target.value });
+                  }
+                }}
+                placeholder="Provide authoritative prompt as to what we want this agent to do..."
                 className={`w-full p-3 ${t.input} text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/30 rounded-xl resize-none font-mono transition-colors`}
               />
               <p className={`text-xs ${t.subText} leading-relaxed`}>
-                Authoritative instructions governing output schema, analytical rigor, and task assignments.
+                Authoritative instructions governing output schema, analytical rigor, and task assignments for this agent.
               </p>
             </div>
 
@@ -1180,6 +1353,198 @@ export default function Inspector({
                 className={`w-full p-3 text-xs leading-relaxed rounded-xl resize-none transition-all ${t.input}`}
               />
             </div>
+
+            {/* Exposed MCP Tools & Capabilities (Strictly All Visible) */}
+            {nodeData.pillarType === 'mcp' && (() => {
+              const mcpItemDef = PILLARS.mcp?.items?.find(it => it.id === nodeData.itemId || it.id === nodeData.toolId || it.name === nodeData.name);
+              const exposedTools = nodeData.tools || mcpItemDef?.tools || [];
+
+              return (
+                <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Server className="w-4 h-4 text-[#00A3A6]" />
+                      <span className={`text-xs font-bold ${t.title} uppercase tracking-wider font-mono`}>
+                        Exposed MCP Capabilities
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30 font-bold">
+                      {exposedTools.length} Tools Visible
+                    </span>
+                  </div>
+
+                  <p className={`text-[11px] ${t.subText} leading-relaxed`}>
+                    Zero-trust mediated external tools exposed by this MCP server. All tools are discoverable and fully visible.
+                  </p>
+
+                  <div className="space-y-2 pt-1">
+                    {exposedTools.map((tool, idx) => {
+                      const isRead = tool.type === 'read';
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-3 ${t.subCard} rounded-xl border ${t.border} space-y-1.5 transition-all hover:border-[#00A3A6]/50`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-mono font-bold text-[#0B0F19] dark:text-white truncate">
+                              {tool.name}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                                isRead
+                                  ? 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40'
+                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+                              }`}>
+                                {tool.type?.toUpperCase()}
+                              </span>
+                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                ACTIVE
+                              </span>
+                            </div>
+                          </div>
+                          <p className={`text-[11px] ${t.subText} leading-relaxed`}>
+                            {tool.description}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* MCP Egress Gateway Controller & Tool Route Table */}
+            {nodeData.pillarType === 'gateway' && (() => {
+              // Find connected incoming MCP server nodes
+              const incomingMcpEdges = (edges || []).filter(e => e.target === selectedNode.id);
+              const connectedMcpNodes = incomingMcpEdges
+                .map(e => nodes.find(n => n.id === e.source && n.data?.pillarType === 'mcp'))
+                .filter(Boolean);
+
+              // Collect all tools from all connected MCP nodes
+              const routedTools = [];
+              connectedMcpNodes.forEach(mcpNode => {
+                const itemDef = PILLARS.mcp?.items?.find(it => it.id === mcpNode.data?.itemId || it.id === mcpNode.data?.toolId || it.name === mcpNode.data?.name);
+                const tools = mcpNode.data?.tools || itemDef?.tools || [];
+                tools.forEach(tool => routedTools.push({ ...tool, serverName: mcpNode.data?.name || 'MCP Server' }));
+              });
+
+              return (
+                <div className={`p-4 ${t.card} rounded-2xl space-y-3.5`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#EAAA00] shadow-[0_0_8px_#EAAA00]" />
+                      <span className={`text-xs font-bold ${t.title} uppercase tracking-wider font-mono`}>
+                        MCP Egress Gateway Controller
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#EAAA00]/15 text-[#EAAA00] border border-[#EAAA00]/40 font-bold">
+                      {connectedMcpNodes.length} MCP Connected
+                    </span>
+                  </div>
+
+                  {connectedMcpNodes.length > 0 ? (
+                    <>
+                      <div className={`p-3 ${t.subCard} rounded-xl border ${t.border} space-y-2`}>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={`${t.subText} font-mono text-[10px] uppercase tracking-wider font-semibold`}>
+                            Connected MCP Ingress
+                          </span>
+                          <span className="text-[10px] font-mono text-emerald-500 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Zero-Trust Mediated
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {connectedMcpNodes.map(mcp => (
+                            <span
+                              key={mcp.id}
+                              className="text-[11px] font-mono px-2.5 py-1 bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/40 rounded-lg font-bold flex items-center gap-1.5"
+                            >
+                              <Server className="w-3 h-3" />
+                              {mcp.data?.name || 'MCP Server'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Routed Tools Table */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold ${t.subText}`}>
+                            Routed MCP Tool Catalog ({routedTools.length} Visible)
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-400">
+                            All capabilities visible
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          {routedTools.map((tool, idx) => {
+                            const isRead = tool.type === 'read';
+                            return (
+                              <div
+                                key={idx}
+                                className={`p-3 ${t.subCard} rounded-xl border ${t.border} space-y-1.5 hover:border-[#EAAA00]/50 transition-all`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-xs font-mono font-bold text-[#0B0F19] dark:text-white truncate">
+                                      {tool.name}
+                                    </span>
+                                    <span className="text-[9px] font-mono text-slate-400 truncate">
+                                      ({tool.serverName})
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                                      isRead
+                                        ? 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40'
+                                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+                                    }`}>
+                                      {tool.type?.toUpperCase()}
+                                    </span>
+                                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                      ACTIVE
+                                    </span>
+                                  </div>
+                                </div>
+                                <p className={`text-[11px] ${t.subText} leading-relaxed`}>
+                                  {tool.description}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* When no MCP Server is connected yet */
+                    <div className={`p-4 ${t.subCard} rounded-xl border border-dashed border-[#EAAA00]/50 text-center space-y-2.5`}>
+                      <div className="w-8 h-8 rounded-full bg-[#EAAA00]/15 text-[#EAAA00] flex items-center justify-center mx-auto">
+                        <Server className="w-4 h-4" />
+                      </div>
+                      <h6 className={`text-xs font-bold ${t.title}`}>
+                        Awaiting MCP Server Connection
+                      </h6>
+                      <p className={`text-[11px] ${t.subText} leading-relaxed`}>
+                        Connect a verified live MCP Server (via Universal Link, Slack, Jira, or GitHub) into the circular teal socket on the right of this Gateway node to inspect and route its tools.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp'));
+                        }}
+                        className="card-pressable w-full py-2 px-3 bg-[#00A3A6] hover:bg-[#008A8C] text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Server className="w-3.5 h-3.5" />
+                        <span>+ Connect Real MCP Server</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {(nodeData.pillarType === 'skills' || nodeData.pillarType === 'policies') && (
               <div className={`p-4 ${t.card} rounded-2xl space-y-3.5`}>

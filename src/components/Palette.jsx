@@ -22,6 +22,7 @@ import {
   UploadCloud
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
+import { getRegisteredMcpServers } from '../services/mcpClientService';
 
 const PILLAR_ICONS = {
   model: Cpu,
@@ -38,12 +39,21 @@ const PILLAR_ICONS = {
 
 export default function Palette({ onAddNode }) {
   const [search, setSearch] = useState('');
+  const [registeredMcps, setRegisteredMcps] = useState(() => getRegisteredMcpServers());
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setRegisteredMcps(getRegisteredMcpServers());
+    };
+    window.addEventListener('keaos:mcp-registry-updated', handleUpdate);
+    return () => window.removeEventListener('keaos:mcp-registry-updated', handleUpdate);
+  }, []);
   const [openCategories, setOpenCategories] = useState({
     model: true,
     skills: true,
     tools: true,
     mcp: true,
-    gateway: false,
+    gateway: true,
     memory: false,
     policies: false,
     audit: false,
@@ -219,7 +229,7 @@ export default function Palette({ onAddNode }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-[#F8F9FB] border border-[#CBD5E1] text-slate-600">
-                    {pillar.items.length}
+                    {pillarKey === 'mcp' ? registeredMcps.length : pillar.items.length}
                   </span>
                   {isOpen ? (
                     <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
@@ -232,46 +242,100 @@ export default function Palette({ onAddNode }) {
               {/* Items List */}
               {isOpen && (
                 <div className="p-2 space-y-2 border-t border-[#E0E0E0] bg-[#FAFAFC]">
-                  {filteredItems.map((item) => {
-                    let ItemIcon = Icon;
-                    if (item.id === 'tool-audio-transcribe') ItemIcon = Mic;
-                    if (item.id === 'tool-doc-parser') ItemIcon = FileText;
-                    if (item.id === 'tool-text-box-ingest') ItemIcon = Type;
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="group p-2.5 border border-[#E0E0E0] bg-[#FFFFFF] hover:border-[#00338D] hover:translate-x-1 transition-all duration-150 flex items-start justify-between gap-2 shadow-[0_2px_4px_rgba(0,30,80,0.02)] hover:shadow-[0_4px_12px_rgba(0,30,80,0.08)]"
+                  {pillarKey === 'mcp' ? (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp'))}
+                        className="btn-tactile w-full py-2 px-2.5 bg-[#00A3A6] hover:bg-[#008D90] text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
                       >
-                        <div className="flex-1 overflow-hidden">
-                          <div className="flex items-center gap-1.5">
-                            <ItemIcon className="w-3.5 h-3.5 shrink-0" style={{ color: pillar.color }} />
-                            <h5 className="text-xs font-bold text-[#0B0F19] truncate tracking-tight">{item.name}</h5>
-                          </div>
-                          <p className="text-[11px] text-[#475569] mt-1 line-clamp-2 leading-relaxed">
-                            {item.description}
-                          </p>
-                          <div className="mt-2 flex items-center gap-1.5">
-                            <span
-                              className="text-[9px] font-mono px-1.5 py-0.5 uppercase font-bold border flex items-center gap-1"
-                              style={{ backgroundColor: pillar.bgColor, color: pillar.color, borderColor: `${pillar.color}40` }}
-                            >
-                              <Plug className="w-2.5 h-2.5" />
-                              {pillar.socketId}
-                            </span>
-                          </div>
-                        </div>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Connect Live MCP Server</span>
+                      </button>
 
-                        <button
-                          onClick={() => onAddNode(pillarKey, item)}
-                          className="btn-tactile w-7 h-7 bg-[#00338D] hover:bg-[#005EB8] text-white flex items-center justify-center transition-all shrink-0 mt-0.5 border border-[#001E50] shadow-sm"
-                          title="Add block to visual canvas"
+                      {registeredMcps.length === 0 ? (
+                        <div className="p-3 bg-white border border-dashed border-[#00A3A6]/40 text-center space-y-1">
+                          <span className="text-[10px] font-mono font-bold text-[#00A3A6] block uppercase tracking-wider">
+                            Zero Simulation Policy
+                          </span>
+                          <p className="text-[11px] text-slate-500 font-sans leading-relaxed">
+                            No hardcoded mocks. Click above to connect a real external MCP URL, Slack, Jira, or GitHub.
+                          </p>
+                        </div>
+                      ) : (
+                        registeredMcps.map((mcp) => (
+                          <div
+                            key={mcp.id}
+                            className="p-2.5 border border-[#E0E0E0] bg-[#FFFFFF] hover:border-[#00A3A6] transition-all flex items-start justify-between gap-2 shadow-xs"
+                          >
+                            <div className="flex-1 overflow-hidden">
+                              <div className="flex items-center gap-1.5">
+                                <Layers className="w-3.5 h-3.5 shrink-0 text-[#00A3A6]" />
+                                <h5 className="text-xs font-bold text-[#0B0F19] truncate tracking-tight">{mcp.name}</h5>
+                              </div>
+                              <p className="text-[11px] text-[#475569] mt-0.5 line-clamp-1">
+                                {mcp.tools?.length || 0} live tools discovered ({mcp.transport})
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => onAddNode('mcp', {
+                                id: mcp.id,
+                                name: mcp.name,
+                                description: mcp.description,
+                                config: mcp.config || {},
+                                tools: mcp.tools || []
+                              })}
+                              className="btn-tactile w-7 h-7 bg-[#00A3A6] hover:bg-[#008D90] text-white flex items-center justify-center shrink-0 border border-[#007D80] shadow-xs cursor-pointer"
+                              title="Add to visual canvas"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ) : (
+                    filteredItems.map((item) => {
+                      let ItemIcon = Icon;
+                      if (item.id === 'tool-audio-transcribe') ItemIcon = Mic;
+                      if (item.id === 'tool-doc-parser') ItemIcon = FileText;
+                      if (item.id === 'tool-text-box-ingest') ItemIcon = Type;
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="group p-2.5 border border-[#E0E0E0] bg-[#FFFFFF] hover:border-[#00338D] hover:translate-x-1 transition-all duration-150 flex items-start justify-between gap-2 shadow-[0_2px_4px_rgba(0,30,80,0.02)] hover:shadow-[0_4px_12px_rgba(0,30,80,0.08)]"
                         >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                          <div className="flex-1 overflow-hidden">
+                            <div className="flex items-center gap-1.5">
+                              <ItemIcon className="w-3.5 h-3.5 shrink-0" style={{ color: pillar.color }} />
+                              <h5 className="text-xs font-bold text-[#0B0F19] truncate tracking-tight">{item.name}</h5>
+                            </div>
+                            <p className="text-[11px] text-[#475569] mt-1 line-clamp-2 leading-relaxed">
+                              {item.description}
+                            </p>
+                            <div className="mt-2 flex items-center gap-1.5">
+                              <span
+                                className="text-[9px] font-mono px-1.5 py-0.5 uppercase font-bold border flex items-center gap-1"
+                                style={{ backgroundColor: pillar.bgColor, color: pillar.color, borderColor: `${pillar.color}40` }}
+                              >
+                                <Plug className="w-2.5 h-2.5" />
+                                {pillar.socketId}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => onAddNode(pillarKey, item)}
+                            className="btn-tactile w-7 h-7 bg-[#00338D] hover:bg-[#005EB8] text-white flex items-center justify-center transition-all shrink-0 mt-0.5 border border-[#001E50] shadow-sm"
+                            title="Add block to visual canvas"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>

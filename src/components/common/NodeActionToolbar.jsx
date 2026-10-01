@@ -9,7 +9,8 @@ import {
   Files, 
   CornerDownLeft,
   Edit3,
-  MessageSquare
+  MessageSquare,
+  Bot
 } from 'lucide-react';
 
 export default function NodeActionToolbar({
@@ -24,6 +25,7 @@ export default function NodeActionToolbar({
   onDuplicate,
   onCopy,
   onRename,
+  onAddDownstreamAgent,
   isDarkMode = true,
   className = '',
   dropdownPlacement = 'auto' // 'auto' | 'top' | 'bottom' | 'right' | 'left' | 'top-left'
@@ -236,6 +238,28 @@ export default function NodeActionToolbar({
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
                     isDarkMode ? 'bg-[#292D38] text-slate-400' : 'bg-slate-100 text-slate-500'
                   }`}>F2</span>
+                </button>
+              )}
+
+              {/* Add Downstream Agent (A2A) */}
+              {onAddDownstreamAgent && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMenuOpen(false);
+                    onAddDownstreamAgent(nodeId);
+                  }}
+                  className={`w-full px-3 py-1.5 flex items-center justify-between text-left transition-colors ${
+                    isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Add Downstream Agent</span>
+                  </div>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                    isDarkMode ? 'bg-[#292D38] text-indigo-300' : 'bg-indigo-50 text-indigo-600'
+                  }`}>A2A</span>
                 </button>
               )}
 

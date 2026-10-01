@@ -25,3 +25,8 @@ Read `AGENTS.md` and `src/design.md` for full specifications.
 ## 4. Socket Enforcement on Visual Canvas
 - Sockets are strictly typed: `model-in`, `skill-in`, `mcp-in`, `tools-in`, `gateway-in`, `memory-in`, `policies-in`, `audit-in`, `observability-in`, `cost-benefit-in`.
 - Never allow cross-socket connections (e.g. Memory to Model).
+
+## 5. Strict Variable Scoping & Zero-ReferenceError Mandate
+- In any node mapping (`nodesWithTheme`, `nodes.map`), ALWAYS initialize all returned data fields (`let connectedModelName = null; let inheritedModelName = null;`) at the top of the outer map iteration scope. Never introduce variables inside an `if (n.type === ...)` block that are referenced in the return object.
+- Declare helper callbacks/refs (`takeSnapshot`, `undo`, `redo`) BEFORE any `useEffect` that calls them or lists them in dependencies (No Temporal Dead Zone).
+

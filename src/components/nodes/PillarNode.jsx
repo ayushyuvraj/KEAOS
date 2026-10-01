@@ -90,7 +90,7 @@ export default function PillarNode({ id, data, selected }) {
       borderWidth: '2px',
       bottom: '-4px'
     };
-  } else if (pillarType === 'tools' || pillarType === 'gateway') {
+  } else if (pillarType === 'tools') {
     handlePosition = Position.Right;
     handleStyle = {
       top: '50%',
@@ -116,6 +116,9 @@ export default function PillarNode({ id, data, selected }) {
       borderWidth: '2px',
       left: '-4px'
     };
+  } else if (pillarType === 'gateway') {
+    // Gateway uses dual handles rendered conditionally below
+    handlePosition = Position.Left;
   }
 
   // Strategic zero-overlap placement based on handle orientation and text position:
@@ -200,17 +203,62 @@ export default function PillarNode({ id, data, selected }) {
           </>
         )}
 
-        {/* Diamond Output Handle positioned anatomically */}
-        <Handle
-          type="source"
-          position={handlePosition}
-          id="out"
-          style={{
-            ...handleStyle,
-            opacity: isDeactivated ? 0.3 : 1
-          }}
-          title={`Connect ${pillarDef.label}`}
-        />
+        {/* Handle Positioning: Dual handles for Gateway; single handle for other pillars */}
+        {pillarType === 'gateway' ? (
+          <>
+            {/* Output to Agent Core (Left handle) */}
+            <Handle
+              type="source"
+              position={Position.Left}
+              id="out"
+              style={{
+                top: '50%',
+                transform: 'translateY(-50%) rotate(45deg)',
+                width: '9px',
+                height: '9px',
+                borderRadius: '1.5px',
+                backgroundColor: handleBgColor,
+                borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+                borderWidth: '2px',
+                left: '-4px',
+                opacity: isDeactivated ? 0.3 : 1
+              }}
+              title="Gateway Egress: Connect to Agent Core"
+            />
+            {/* Circular Ingress Socket for MCP Server (Right handle) */}
+            <Handle
+              type="target"
+              position={Position.Right}
+              id="mcp-in"
+              style={{
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: '#00A3A6',
+                borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+                borderWidth: '2px',
+                right: '-5px',
+                boxShadow: '0 0 8px rgba(0,163,166,0.7)',
+                opacity: isDeactivated ? 0.3 : 1
+              }}
+              title="MCP Server Ingress Socket: Connect verified live MCP Server (Universal Link, Slack, Jira, GitHub)"
+            />
+          </>
+        ) : (
+          /* Diamond Output Handle positioned anatomically */
+          <Handle
+            type="source"
+            position={handlePosition}
+            id="out"
+            style={{
+              ...handleStyle,
+              opacity: isDeactivated ? 0.3 : 1
+            }}
+            title={`Connect ${pillarDef.label}`}
+          />
+        )}
         {/* Pillar Category/Brand Icon */}
         <IconComponent 
           className={`w-7 h-7 transition-transform group-hover:scale-110 ${isExecuting ? 'scale-115' : ''}`} 

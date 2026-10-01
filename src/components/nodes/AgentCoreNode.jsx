@@ -10,7 +10,9 @@ import {
   Plus,
   MessageSquare,
   X,
-  Square
+  Square,
+  GitFork,
+  Bot
 } from 'lucide-react';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
@@ -34,11 +36,19 @@ export default function AgentCoreNode({ id, data, selected }) {
   } = data;
 
   const hasModel = (attachedCounts?.model || 0) > 0;
+  const inheritedModelName = data?.inheritedModelName;
+  const isSharedBrain = !hasModel && Boolean(inheritedModelName);
   const hasTools = (attachedCounts?.tools || 0) > 0;
   const hasMcp = (attachedCounts?.mcp || 0) > 0;
   const hasMemory = (attachedCounts?.memory || 0) > 0;
   const hasPolicies = (attachedCounts?.policies || 0) > 0;
   const hasSkills = (attachedCounts?.skills || 0) > 0;
+  const hasUpstreamA2A = (attachedCounts?.agent || 0) > 0 || (data?.upstreamAgentCount || 0) > 0;
+
+  const handleSpawnDownstream = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('keaos:spawn-downstream-agent', { detail: { sourceAgentId: id } }));
+  };
 
   return (
     <div className="relative group select-none flex flex-col items-center">
@@ -57,11 +67,21 @@ export default function AgentCoreNode({ id, data, selected }) {
                 : isDarkMode
                   ? 'bg-[#0091DA]/15 border-[#0091DA]/60 text-[#38BDF8]'
                   : 'bg-[#0091DA]/10 border-[#0091DA]/50 text-[#005EB8]'
-              : isDarkMode
-                ? 'bg-[#222530] border-[#444856] text-slate-400'
-                : 'bg-white border-[#CBD5E1] text-slate-500'
+              : isSharedBrain
+                ? isDarkMode
+                  ? 'bg-[#6366F1]/20 border-[#6366F1]/60 text-[#A5B4FC] border-dashed ring-1 ring-[#6366F1]/30'
+                  : 'bg-indigo-50 border-indigo-400 text-indigo-600 border-dashed ring-1 ring-indigo-200'
+                : isDarkMode
+                  ? 'bg-[#222530] border-[#444856] text-slate-400'
+                  : 'bg-white border-[#CBD5E1] text-slate-500'
           }`}
-          title={hasModel ? `Model Connected: ${connectedModelName || 'Active Brain'} (Hover to disconnect)` : "Model Socket: Connect Foundation Model (Gemini, Claude, GPT, Ollama)"}
+          title={
+            hasModel
+              ? `Model Connected: ${connectedModelName || 'Active Brain'} (Hover to disconnect)`
+              : isSharedBrain
+                ? `Shared Brain: Auto-accessing "${inheritedModelName}" from Senior Agent. (Attach a Model node to override)`
+                : "Model Socket: Connect Foundation Model (Gemini, Claude, GPT, Ollama)"
+          }
         >
           {/* Target Handle for Model at Top */}
           <Handle
@@ -74,7 +94,7 @@ export default function AgentCoreNode({ id, data, selected }) {
               width: '9px',
               height: '9px',
               borderRadius: '2px',
-              backgroundColor: hasModel ? '#0091DA' : isDarkMode ? '#4B5563' : '#9CA3AF',
+              backgroundColor: hasModel ? '#0091DA' : isSharedBrain ? '#6366F1' : (isDarkMode ? '#4B5563' : '#9CA3AF'),
               borderColor: isDarkMode ? '#1E2028' : '#FFFFFF',
               borderWidth: '2px',
               top: '-5px'
@@ -82,14 +102,16 @@ export default function AgentCoreNode({ id, data, selected }) {
             title="Foundation Model"
           />
 
-          <Brain className={`w-3.5 h-3.5 transition-transform ${hasModel ? 'scale-110' : ''}`} />
+          <Brain className={`w-3.5 h-3.5 transition-transform ${hasModel || isSharedBrain ? 'scale-110' : ''}`} />
 
           {/* Model Status Dot: Solid calm indicator when idle; animate-ping ONLY when actively executing */}
-          {hasModel && !isDeactivated && (
+          {(hasModel || isSharedBrain) && !isDeactivated && (
             <span className={`absolute -top-1 -right-1 rounded-full ${
               isExecuting
                 ? 'w-2.5 h-2.5 bg-[#0091DA] animate-ping'
-                : 'w-1.5 h-1.5 bg-emerald-500 shadow-[0_0_6px_#10B981]'
+                : isSharedBrain
+                  ? 'w-1.5 h-1.5 bg-indigo-500 shadow-[0_0_6px_#6366F1]'
+                  : 'w-1.5 h-1.5 bg-emerald-500 shadow-[0_0_6px_#10B981]'
             }`} />
           )}
 
@@ -113,17 +135,21 @@ export default function AgentCoreNode({ id, data, selected }) {
               ? isDarkMode
                 ? 'bg-[#0091DA]/15 text-[#38BDF8] border-[#0091DA]/40'
                 : 'bg-[#0091DA]/15 text-[#005EB8] border-[#0091DA]/50'
-              : isDarkMode
-                ? 'bg-[#222530] text-slate-400 border-[#444856]'
-                : 'bg-white text-slate-600 border-[#CBD5E1]'
+              : isSharedBrain
+                ? isDarkMode
+                  ? 'bg-[#6366F1]/15 text-[#A5B4FC] border-[#6366F1]/40'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                : isDarkMode
+                  ? 'bg-[#222530] text-slate-400 border-[#444856]'
+                  : 'bg-white text-slate-600 border-[#CBD5E1]'
           }`}>
-            Model
+            {hasModel ? 'Model' : isSharedBrain ? 'Shared Brain' : 'Model'}
           </div>
         </div>
 
         {/* Antenna Stem */}
         <div className={`w-1 h-3 ${
-          hasModel ? 'bg-[#0091DA]' : isDarkMode ? 'bg-[#444856]' : 'bg-[#94A3B8]'
+          hasModel ? 'bg-[#0091DA]' : isSharedBrain ? 'bg-[#6366F1]' : (isDarkMode ? 'bg-[#444856]' : 'bg-[#94A3B8]')
         } transition-colors`} />
       </div>
 
@@ -159,6 +185,7 @@ export default function AgentCoreNode({ id, data, selected }) {
           onDuplicate={onDuplicate}
           onCopy={onCopy}
           onRename={onRename}
+          onAddDownstreamAgent={handleSpawnDownstream}
           isDarkMode={isDarkMode}
           className="-top-7 right-2"
           dropdownPlacement="bottom"
@@ -169,6 +196,41 @@ export default function AgentCoreNode({ id, data, selected }) {
         <div className={`absolute top-2 right-2.5 w-1 h-1 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
         <div className={`absolute bottom-2 left-2.5 w-1 h-1 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
         <div className={`absolute bottom-2 right-2.5 w-1 h-1 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
+
+        {/* ------------------------------------------------------------ */}
+        {/* A2A INGRESS PORT (Inter-Agent Upstream Channel - Position.Left) */}
+        {/* ------------------------------------------------------------ */}
+        <div
+          className={`absolute -left-[12px] top-[24px] -translate-y-1/2 w-3.5 h-6 rounded-l-md border-y border-l flex flex-col items-center justify-center transition-colors shadow-md ${
+            hasUpstreamA2A
+              ? isDarkMode
+                ? 'bg-[#6366F1]/25 border-[#6366F1] text-[#A5B4FC]'
+                : 'bg-indigo-100 border-indigo-500 text-indigo-700'
+              : isDarkMode
+                ? 'bg-[#252833] border-[#383C4A] text-slate-400'
+                : 'bg-[#F1F5F9] border-[#CBD5E1] text-slate-600'
+          }`}
+          title="A2A Socket: Connect upstream agent output stream"
+        >
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="agent-in"
+            style={{
+              top: '50%',
+              transform: 'translateY(-50%) rotate(45deg)',
+              width: '8px',
+              height: '8px',
+              borderRadius: '2px',
+              backgroundColor: hasUpstreamA2A ? '#6366F1' : isDarkMode ? '#4B5563' : '#9CA3AF',
+              borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+              borderWidth: '2px',
+              left: '-4px'
+            }}
+            title="A2A Ingress: Connect upstream agent stream"
+          />
+          <GitFork className="w-2.5 h-2.5 rotate-90" />
+        </div>
 
         {/* ------------------------------------------------------------ */}
         {/* LEFT ARM / EAR BOLT (Tools Socket - Position.Left)           */}
@@ -253,7 +315,7 @@ export default function AgentCoreNode({ id, data, selected }) {
         </div>
 
         {/* ------------------------------------------------------------ */}
-        {/* OUTPUT STREAM PORT (Workflow Out - Position.Right with [+])  */}
+        {/* OUTPUT STREAM PORT (Workflow Out / A2A Out - Position.Right) */}
         {/* ------------------------------------------------------------ */}
         <div className="absolute -right-2.5 top-[96px] flex items-center">
           <Handle
@@ -261,21 +323,36 @@ export default function AgentCoreNode({ id, data, selected }) {
             position={Position.Right}
             id="out"
             className={`!w-2.5 !h-2.5 !rounded-full !bg-[#0091DA] !border-2 ${isDarkMode ? '!border-[#1D2028]' : '!border-white'}`}
-            title="Agent output stream"
+            title="Agent output & A2A dispatch stream"
           />
-          <div 
-            onClick={(e) => {
-              e.stopPropagation();
-              window.dispatchEvent(new CustomEvent('keaos:spawn-output-node', { detail: { sourceAgentId: id } }));
-            }}
-            className={`absolute left-2.5 w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95 ${
-              isDarkMode
-                ? 'border-[#444856] bg-[#222530] text-slate-400 hover:text-white hover:border-[#10B981]'
-                : 'border-[#CBD5E1] bg-white text-slate-600 hover:text-black hover:border-[#10B981]'
-            }`}
-            title="Attach Canvas Output Component to this agent"
-          >
-            <Plus className="w-2.5 h-2.5" />
+          <div className="absolute left-2.5 flex items-center gap-1">
+            {/* Quick Add Downstream Connected Agent */}
+            <div 
+              onClick={handleSpawnDownstream}
+              className={`w-4 h-4 rounded border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
+                isDarkMode
+                  ? 'border-[#4F46E5]/60 bg-[#1E1B4B] text-[#A5B4FC] hover:text-white hover:border-[#6366F1] hover:bg-[#4F46E5]'
+                  : 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:text-white hover:bg-indigo-600 hover:border-indigo-600'
+              }`}
+              title="Add connected downstream Agent (A2A)"
+            >
+              <Bot className="w-2.5 h-2.5" />
+            </div>
+            {/* Quick Add Output Component */}
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                window.dispatchEvent(new CustomEvent('keaos:spawn-output-node', { detail: { sourceAgentId: id } }));
+              }}
+              className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95 ${
+                isDarkMode
+                  ? 'border-[#444856] bg-[#222530] text-slate-400 hover:text-white hover:border-[#10B981]'
+                  : 'border-[#CBD5E1] bg-white text-slate-600 hover:text-black hover:border-[#10B981]'
+              }`}
+              title="Attach Canvas Output Component to this agent"
+            >
+              <Plus className="w-2.5 h-2.5" />
+            </div>
           </div>
         </div>
 
@@ -358,6 +435,14 @@ export default function AgentCoreNode({ id, data, selected }) {
             }`}>
               {isDeactivated ? 'Deactivated' : (framework?.name || 'Workflow Orchestrator')}
             </span>
+
+            {hasUpstreamA2A && !isDeactivated && (
+              <span className={`text-[7px] font-mono font-bold px-1 py-0.2 rounded border ${
+                isDarkMode ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              }`} title="Receives input stream from upstream agent">
+                A2A IN
+              </span>
+            )}
 
             {/* Compact Chat Symbol */}
             <button

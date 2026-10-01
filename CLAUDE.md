@@ -23,6 +23,9 @@ For complete architectural specifications, see **`AGENTS.md`** and **`src/design
    - Reusable screens MUST use `ScreenScaffold` (`src/components/common/ScreenScaffold.jsx`) and `DESIGN_CLASSES` (`src/constants/designTokens.js`).
 3. **Strict Anonymity Rule**: Absolutely ZERO mention of any specific corporate consulting firm or company name anywhere in code, comments, UI, or artifacts. Brand is strictly *KEAOS | Enterprise Agent Studio*.
 4. **Pillar Segregation**: The 10 pillars (Model, Skills, MCP, Tools, Gateway, Memory, Policies, Audit, Observability, Cost & Benefit) must remain strictly segregated with typed socket enforcement on the visual canvas.
+5. **Strict Variable Scoping & Zero-ReferenceError Mandate**:
+   - In all mapping functions (`nodesWithTheme`, `nodes.map`), ALWAYS initialize all returned data fields (`let connectedModelName = null; let inheritedModelName = null;`) at the top of the outer map iteration scope. Never introduce variables inside an `if (n.type === ...)` block that are referenced in the return object.
+   - Declare helper callbacks/refs (`takeSnapshot`, `undo`, `redo`) BEFORE any `useEffect` that calls them or lists them in dependencies.
 
 ---
 

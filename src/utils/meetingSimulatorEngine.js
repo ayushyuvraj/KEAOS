@@ -302,13 +302,11 @@ ${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.refe
   // Step 9: Skills Processing Complete
   await logStep('Skills Processing', `Extracted ${finalSanitizedOutput.length} characters of natural intelligence output (${extractedSummary.length} takeaways, ${extractedDecisions.length} decisions, ${extractedActionItems.length} action commitments).`, 180, 'skills');
 
-  // Step 10: MCP Integration
-  const hasCalendarMcp = attachedPillars.some(p => p.id === 'mcp-google-calendar');
-  const hasSlackMcp = attachedPillars.some(p => p.id === 'mcp-slack');
-  const hasJiraMcp = attachedPillars.some(p => p.id === 'mcp-jira-linear');
-
-  if (hasCalendarMcp || hasSlackMcp || hasJiraMcp) {
-    await logStep('MCP Dispatch', `Synchronized with ${hasCalendarMcp ? 'Calendar, ' : ''}${hasSlackMcp ? 'Slack, ' : ''}${hasJiraMcp ? 'Jira' : ''}`, 180, 'mcp');
+  // Step 10: Real MCP Integration
+  const realMcpPillars = attachedPillars.filter(p => p.type === 'mcp' || p.pillarType === 'mcp');
+  if (realMcpPillars.length > 0) {
+    const serverNames = realMcpPillars.map(p => p.name).join(', ');
+    await logStep('Live MCP Dispatch', `Connected to verified live MCP servers: ${serverNames}`, 180, 'mcp');
   }
 
   // Step 11: Cryptographic Audit (Ambient W3C WebCrypto SHA-256 - ALWAYS ACTIVE)

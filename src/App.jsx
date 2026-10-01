@@ -1,3 +1,4 @@
+// KEAOS Studio Main Orchestrator
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import Header from './components/Header';
@@ -11,6 +12,7 @@ import EvaluationView from './components/EvaluationView';
 import CodeExportView from './components/CodeExportView';
 import ApiSettingsModal from './components/ApiSettingsModal';
 import ClusterDiagnosticsModal from './components/ClusterDiagnosticsModal';
+import ConnectMcpModal from './components/ConnectMcpModal';
 import AuditExplorerView from './components/screens/AuditExplorerView';
 import ObservabilityView from './components/screens/ObservabilityView';
 import PillarCatalogView from './components/screens/PillarCatalogView';
@@ -44,9 +46,9 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         attachedCounts: {
           model: 1,
           skills: 1,
-          mcp: 1,
+          mcp: 0,
           tools: 1,
-          gateway: 0,
+          gateway: 1,
           memory: 1,
           policies: 1
         }
@@ -77,16 +79,17 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { format: 'mp3', diarization: true }
       }
     },
-    // 4. Reach / MCP Protocol Node (Positioned to the right of the Right Arm Bolt)
+    // 4. Reach / MCP Egress Gateway Node (Positioned between Agent Core and live MCPs)
     {
-      id: 'node-mcp-1',
+      id: 'node-mcp-gw-1',
       type: 'pillar',
-      position: { x: 880, y: 220 },
+      position: { x: 790, y: 220 },
       data: {
-        pillarType: 'mcp',
-        name: 'Calendar MCP',
-        description: 'Fetches meeting metadata, attendees, scheduled start/end, and invites.',
-        config: { endpoint: 'mcp://calendar.google.internal' }
+        pillarType: 'gateway',
+        itemId: 'gw-mcp-controller',
+        name: 'MCP Egress Gateway',
+        description: 'Enforces zero-trust mediation between Agent Core and external MCP servers. Awaiting live MCP server connection.',
+        config: { gatewayType: 'mcp-egress', auditAllActions: true }
       }
     },
     // 5. Left Stance / Guardrails Policy Node (Positioned below the Left Foot)
@@ -125,11 +128,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { length: 'concise', focus: 'decisions' }
       }
     },
-    // 8. Output Component Node (Positioned to the right of Agent Core output stream socket)
+    // 8. Output Component Node (Positioned to the upper right of Agent Core with zero-overlap clearance)
     {
       id: 'node-output-1',
       type: 'outputNode',
-      position: { x: 890, y: 190 },
+      position: { x: 800, y: 50 },
       data: {
         title: 'Agent Intelligence Output',
         content: '',
@@ -183,15 +186,16 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       animated: false,
       style: { stroke: '#005EB8', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
+    // MCP Egress Gateway -> Agent Core
     {
-      id: 'edge-mcp',
-      source: 'node-mcp-1',
+      id: 'edge-mcp-gw',
+      source: 'node-mcp-gw-1',
       sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'mcp-in',
       type: 'deletable',
       animated: false,
-      style: { stroke: '#06B6D4', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#EAAA00', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-policy',
@@ -232,6 +236,283 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       type: 'deletable',
       animated: false,
       style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    }
+  ];
+
+  return { initialNodes, initialEdges };
+}
+
+// Pre-configured Triad Multi-Agent Fleet template
+function getMultiAgentTriadNodesAndEdges() {
+  const fwGoogle = FRAMEWORKS.find(f => f.id === 'google-adk') || FRAMEWORKS[0];
+  const fwMicrosoft = FRAMEWORKS.find(f => f.id === 'microsoft-adk') || FRAMEWORKS[6] || FRAMEWORKS[0];
+  const fwLangGraph = FRAMEWORKS.find(f => f.id === 'langgraph') || FRAMEWORKS[1] || FRAMEWORKS[0];
+
+  const initialNodes = [
+    // -------------------------------------------------------------
+    // STAGE 1: Scribe Agent (Google ADK)
+    // -------------------------------------------------------------
+    {
+      id: 'agent-scribe',
+      type: 'agentCore',
+      position: { x: 220, y: 190 },
+      data: {
+        name: 'Meeting Scribe',
+        agentRole: 'Scribe',
+        framework: fwGoogle,
+        prompt: 'You are an institutional Meeting Scribe. Ingest raw multi-speaker transcripts, sanitize noise, extract verbatim discussion points, agenda topics, and initial draft notes.',
+        temperature: 0.2,
+        topP: 0.95,
+        attachedCounts: { model: 1, tools: 1, policies: 1 }
+      }
+    },
+    {
+      id: 'node-model-scribe',
+      type: 'pillar',
+      position: { x: 295, y: 15 },
+      data: {
+        pillarType: 'model',
+        name: 'Gemini 2.0 Flash',
+        description: 'Fast, multimodal, 1M+ context window for long transcripts.',
+        config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
+      }
+    },
+    {
+      id: 'node-tool-scribe',
+      type: 'pillar',
+      position: { x: 40, y: 245 },
+      data: {
+        pillarType: 'tools',
+        toolId: 'tool-audio-transcribe',
+        name: 'Audio Transcriber',
+        description: 'Accepts MP3 audio, runs Whisper/Speech-to-Text with speaker diarization.',
+        config: { format: 'mp3', diarization: true }
+      }
+    },
+    {
+      id: 'node-policy-scribe',
+      type: 'pillar',
+      position: { x: 220, y: 465 },
+      data: {
+        pillarType: 'policies',
+        name: 'PII Redactor',
+        description: 'Detects and redacts confidential credentials, personal emails, and salary figures.',
+        config: { redactSalaries: true, maskEmails: true }
+      }
+    },
+
+    // -------------------------------------------------------------
+    // STAGE 2: Executive Task Orchestrator (Microsoft ADK)
+    // -------------------------------------------------------------
+    {
+      id: 'agent-orchestrator',
+      type: 'agentCore',
+      position: { x: 740, y: 190 },
+      data: {
+        name: 'Task Orchestrator',
+        agentRole: 'Orchestrator',
+        framework: fwMicrosoft,
+        prompt: 'You are an Executive Task Orchestrator. Ingest structured notes from upstream Scribes, resolve ownership of all deliverables, compute project timelines, and synthesize executive summaries.',
+        temperature: 0.2,
+        topP: 0.95,
+        attachedCounts: { model: 1, skills: 1 }
+      }
+    },
+    {
+      id: 'node-model-orchestrator',
+      type: 'pillar',
+      position: { x: 815, y: 15 },
+      data: {
+        pillarType: 'model',
+        name: 'Claude 3.5 Sonnet',
+        description: 'Deep reasoning, institutional judgment, and complex instruction following.',
+        config: { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.2, topP: 0.95 }
+      }
+    },
+    {
+      id: 'node-skill-orchestrator',
+      type: 'pillar',
+      position: { x: 830, y: 465 },
+      data: {
+        pillarType: 'skills',
+        name: 'Action Extractor',
+        description: 'Extracts clear tasks, assignees, deadlines, and urgency ratings.',
+        config: { strictAssignee: true }
+      }
+    },
+
+    // -------------------------------------------------------------
+    // STAGE 3: Governance & Risk Auditor (LangGraph)
+    // -------------------------------------------------------------
+    {
+      id: 'agent-auditor',
+      type: 'agentCore',
+      position: { x: 1280, y: 190 },
+      data: {
+        name: 'Risk & Audit Specialist',
+        agentRole: 'Auditor',
+        framework: fwLangGraph,
+        prompt: 'You are an Institutional Governance & Risk Specialist. Validate upstream decisions against enterprise risk guardrails, audit regulatory compliance, and compute cryptographic audit manifests.',
+        temperature: 0.2,
+        topP: 0.95,
+        attachedCounts: { model: 1, memory: 1, skills: 1 }
+      }
+    },
+    {
+      id: 'node-model-auditor',
+      type: 'pillar',
+      position: { x: 1355, y: 15 },
+      data: {
+        pillarType: 'model',
+        name: 'GPT-4o',
+        description: 'Versatile multimodal intelligence with native structured JSON guarantees.',
+        config: { provider: 'openai', modelId: 'gpt-4o', temperature: 0.2, topP: 0.95 }
+      }
+    },
+    {
+      id: 'node-memory-auditor',
+      type: 'pillar',
+      position: { x: 1260, y: 465 },
+      data: {
+        pillarType: 'memory',
+        name: 'Episodic Sync Memory',
+        description: 'Remembers past meeting action items to verify resolution across weeks.',
+        config: { ttlDays: 90, store: 'vector-sqlite' }
+      }
+    },
+    {
+      id: 'node-skill-auditor',
+      type: 'pillar',
+      position: { x: 1450, y: 465 },
+      data: {
+        pillarType: 'skills',
+        name: 'Decision Extractor',
+        description: 'Captures architectural and budget decisions along with rationales and dissenting opinions.',
+        config: { includeRationale: true }
+      }
+    },
+    {
+      id: 'node-output-triad',
+      type: 'outputDisplayNode',
+      position: { x: 1540, y: 210 },
+      data: {
+        title: 'Fleet Deliverable',
+        result: null,
+        isRunning: false
+      }
+    }
+  ];
+
+  const initialEdges = [
+    // Agent 1 Pillar Wires
+    {
+      id: 'edge-scribe-model',
+      source: 'node-model-scribe',
+      sourceHandle: 'out',
+      target: 'agent-scribe',
+      targetHandle: 'model-in',
+      type: 'deletable',
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-scribe-tool',
+      source: 'node-tool-scribe',
+      sourceHandle: 'out',
+      target: 'agent-scribe',
+      targetHandle: 'tools-in',
+      type: 'deletable',
+      style: { stroke: '#005EB8', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-scribe-policy',
+      source: 'node-policy-scribe',
+      sourceHandle: 'out',
+      target: 'agent-scribe',
+      targetHandle: 'policy-in',
+      type: 'deletable',
+      style: { stroke: '#EC4899', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+
+    // Agent 2 Pillar Wires
+    {
+      id: 'edge-orchestrator-model',
+      source: 'node-model-orchestrator',
+      sourceHandle: 'out',
+      target: 'agent-orchestrator',
+      targetHandle: 'model-in',
+      type: 'deletable',
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-orchestrator-skill',
+      source: 'node-skill-orchestrator',
+      sourceHandle: 'out',
+      target: 'agent-orchestrator',
+      targetHandle: 'skill-in',
+      type: 'deletable',
+      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+
+    // Agent 3 Pillar Wires
+    {
+      id: 'edge-auditor-model',
+      source: 'node-model-auditor',
+      sourceHandle: 'out',
+      target: 'agent-auditor',
+      targetHandle: 'model-in',
+      type: 'deletable',
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-auditor-memory',
+      source: 'node-memory-auditor',
+      sourceHandle: 'out',
+      target: 'agent-auditor',
+      targetHandle: 'memory-in',
+      type: 'deletable',
+      style: { stroke: '#8B5CF6', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-auditor-skill',
+      source: 'node-skill-auditor',
+      sourceHandle: 'out',
+      target: 'agent-auditor',
+      targetHandle: 'skill-in',
+      type: 'deletable',
+      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-auditor-output',
+      source: 'agent-auditor',
+      sourceHandle: 'output-stream',
+      target: 'node-output-triad',
+      targetHandle: 'data-in',
+      type: 'deletable',
+      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+
+    // =============================================================
+    // Typed A2A Inter-Agent DAG Channels
+    // =============================================================
+    {
+      id: 'a2a-scribe-to-orchestrator',
+      source: 'agent-scribe',
+      target: 'agent-orchestrator',
+      sourceHandle: 'output-stream',
+      targetHandle: 'agent-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#6366F1', strokeWidth: 2.2, strokeDasharray: '6 4' }
+    },
+    {
+      id: 'a2a-orchestrator-to-auditor',
+      source: 'agent-orchestrator',
+      target: 'agent-auditor',
+      sourceHandle: 'output-stream',
+      targetHandle: 'agent-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#6366F1', strokeWidth: 2.2, strokeDasharray: '6 4' }
     }
   ];
 
@@ -403,10 +684,26 @@ export default function App() {
   const [isMakeModalOpen, setIsMakeModalOpen] = useState(false);
   const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
+  const [isConnectMcpModalOpen, setIsConnectMcpModalOpen] = useState(false);
+  const [connectMcpInitialTab, setConnectMcpInitialTab] = useState('url');
   const [apiSettingsTab, setApiSettingsTab] = useState('google');
   const [configuredCount, setConfiguredCount] = useState(getAllConfiguredProviders().length);
   const [hasApiKey, setHasApiKey] = useState(getAllConfiguredProviders().length > 0 || Boolean(getActiveApiKey()));
   const [invalidConnectionAlert, setInvalidConnectionAlert] = useState(null);
+
+  // Global event listener for opening the Universal MCP connector modal
+  useEffect(() => {
+    const handleOpenConnectMcp = (e) => {
+      if (e?.detail?.tab) {
+        setConnectMcpInitialTab(e.detail.tab);
+      } else {
+        setConnectMcpInitialTab('url');
+      }
+      setIsConnectMcpModalOpen(true);
+    };
+    window.addEventListener('keaos:open-connect-mcp', handleOpenConnectMcp);
+    return () => window.removeEventListener('keaos:open-connect-mcp', handleOpenConnectMcp);
+  }, []);
 
   // Evaluation & Gatekeeper
   const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
@@ -419,8 +716,73 @@ export default function App() {
     setSelectedNode((curr) => (curr?.id === nodeId ? null : curr));
   }, [setNodes, setEdges]);
 
+  // Deploy a verified real MCP server to the Canvas and auto-wire to Gateway
+  const handleAddRealMcpToCanvas = useCallback((mcpData) => {
+    const mcpId = `node-mcp-${Date.now().toString().slice(-4)}`;
+    setNodes((nds) => {
+      // Find the gateway node if present
+      const gwNode = nds.find(n => n.type === 'pillar' && n.data?.pillarType === 'gateway');
+      const xPos = gwNode ? gwNode.position.x + 280 : 1060;
+      const yPos = gwNode ? gwNode.position.y : 165;
+
+      const newNode = {
+        id: mcpId,
+        type: 'pillar',
+        position: { x: xPos, y: yPos },
+        data: {
+          pillarType: 'mcp',
+          title: mcpData.name || 'Model Context Protocol',
+          name: mcpData.name || 'MCP Server',
+          subtitle: mcpData.transport?.toUpperCase() || 'HTTP/SSE',
+          description: mcpData.description || `Exposes ${mcpData.tools?.length || 0} real verified MCP tools to the gateway.`,
+          config: mcpData.config || {},
+          tools: mcpData.tools || [],
+          transport: mcpData.transport || 'sse',
+          serverUrl: mcpData.url || '',
+          isRealMcp: true,
+          isDarkMode,
+          onDelete: handleDeleteNode
+        }
+      };
+
+      // Auto-wire to gateway if present
+      if (gwNode) {
+        setEdges((eds) => {
+          const already = eds.some(e => e.source === mcpId && e.target === gwNode.id);
+          if (!already) {
+            return [
+              ...eds,
+              {
+                id: `edge-${mcpId}-to-${gwNode.id}`,
+                source: mcpId,
+                sourceHandle: 'out',
+                target: gwNode.id,
+                targetHandle: 'mcp-in',
+                animated: true,
+                style: { stroke: '#00A3A6', strokeWidth: 2 }
+              }
+            ];
+          }
+          return eds;
+        });
+      }
+
+      return [...nds, newNode];
+    });
+
+    window.dispatchEvent(new CustomEvent('keaos:toast', {
+      detail: { message: `🔌 Deployed ${mcpData.name} (${mcpData.tools?.length || 0} tools) to Gateway` }
+    }));
+  }, [isDarkMode, handleDeleteNode, setNodes, setEdges]);
+
   // Add node from Palette / Catalog
   const handleAddNode = useCallback((pillarKey, item) => {
+    if (pillarKey === 'mcp') {
+      handleAddRealMcpToCanvas(item);
+      setIsAddMenuOpen(false);
+      return;
+    }
+
     if (pillarKey === 'agentCore') {
       const newNodeId = `agent-core-${Date.now().toString().slice(-4)}`;
       let agentCount = 1;
@@ -574,6 +936,8 @@ export default function App() {
         customDirective: item.customDirective || null,
         referenceDoc: item.referenceDoc || null,
         config: item.config || {},
+        tools: item.tools || null,
+        itemId: item.id,
         onDelete: handleDeleteNode
       }
     };
@@ -664,6 +1028,10 @@ export default function App() {
 
     if (template === 'meeting-pilot') {
       const { initialNodes: newNodes, initialEdges: newEdges } = getInitialNodesAndEdges(framework);
+      setNodes(newNodes);
+      setEdges(newEdges);
+    } else if (template === 'multi-agent-triad') {
+      const { initialNodes: newNodes, initialEdges: newEdges } = getMultiAgentTriadNodesAndEdges();
       setNodes(newNodes);
       setEdges(newEdges);
     } else {
@@ -836,6 +1204,7 @@ export default function App() {
                         <Inspector
                           selectedNode={selectedNode}
                           nodes={nodes}
+                          edges={edges}
                           activeUseCase={activeUseCase}
                           onSelectFramework={handleSelectFramework}
                           agentConfig={activeUseCase.agent}
@@ -886,6 +1255,7 @@ export default function App() {
             <CodeExportView
               activeUseCase={activeUseCase}
               nodes={nodes}
+              edges={edges}
             />
           )}
 
@@ -933,6 +1303,15 @@ export default function App() {
       <ClusterDiagnosticsModal
         isOpen={isClusterModalOpen}
         onClose={() => setIsClusterModalOpen(false)}
+      />
+
+      {/* Claude Code-style Universal MCP Connection Engine */}
+      <ConnectMcpModal
+        isOpen={isConnectMcpModalOpen}
+        initialTab={connectMcpInitialTab}
+        onClose={() => setIsConnectMcpModalOpen(false)}
+        onAddMcpNodeToCanvas={handleAddRealMcpToCanvas}
+        isDarkMode={isDarkMode}
       />
     </div>
   );

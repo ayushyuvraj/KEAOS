@@ -478,6 +478,81 @@ function CanvasInner({
     return () => window.removeEventListener('keaos:disconnect-model', handleDisconnectModel);
   }, [takeSnapshot, setEdges]);
 
+  // Listen for quick-spawn downstream connected Agent (A2A) from Agent Core output port [+]
+  useEffect(() => {
+    const handleSpawnDownstreamAgent = (e) => {
+      const sourceAgentId = e.detail?.sourceAgentId;
+      if (!sourceAgentId) return;
+
+      const sourceNode = (nodes || []).find((n) => n.id === sourceAgentId);
+      const newAgentId = `agent-core-${Date.now().toString().slice(-4)}`;
+      const xPos = sourceNode ? sourceNode.position.x + 360 : 700;
+      const yPos = sourceNode ? sourceNode.position.y : 220;
+
+      const existingAgents = (nodes || []).filter(n => n.type === 'agentCore');
+      const agentCount = existingAgents.length + 1;
+
+      // Smart framework rotation for heterogeneous demonstration: MS ADK -> OpenAI Swarm -> LangGraph -> LangChain
+      const frameworkOptions = [
+        { id: 'microsoft-adk', name: 'Microsoft ADK' },
+        { id: 'openai-swarm', name: 'OpenAI Swarm' },
+        { id: 'langgraph', name: 'LangGraph' },
+        { id: 'langchain', name: 'LangChain' },
+        { id: 'crewai', name: 'CrewAI' },
+        { id: 'autogen', name: 'AutoGen' }
+      ];
+      const selectedFw = frameworkOptions[(agentCount - 2) % frameworkOptions.length] || frameworkOptions[0];
+
+      const newAgentNode = {
+        id: newAgentId,
+        type: 'agentCore',
+        position: { x: xPos, y: yPos },
+        data: {
+          name: `Specialist Agent #${agentCount}`,
+          role: 'specialist',
+          framework: selectedFw,
+          prompt: 'You are a specialized enterprise sub-agent. Process upstream inputs and execute domain tasks with precision.',
+          temperature: 0.2,
+          topP: 0.95,
+          attachedCounts: {
+            model: 0,
+            skills: 0,
+            mcp: 0,
+            tools: 0,
+            gateway: 0,
+            memory: 0,
+            policies: 0,
+            agent: 1
+          }
+        }
+      };
+
+      const newEdge = {
+        id: `edge-a2a-${Date.now().toString().slice(-4)}`,
+        source: sourceAgentId,
+        sourceHandle: 'out',
+        target: newAgentId,
+        targetHandle: 'agent-in',
+        type: 'deletable',
+        animated: true,
+        style: { stroke: '#6366F1', strokeWidth: 2.2, strokeDasharray: '6 4' }
+      };
+
+      takeSnapshot();
+      setNodes((nds) => [...nds, newAgentNode]);
+      setEdges((eds) => [...eds, newEdge]);
+      if (onSelectNode) onSelectNode(newAgentNode);
+      window.dispatchEvent(
+        new CustomEvent('keaos:toast', {
+          detail: { message: `🤖 Deployed & Connected ${newAgentNode.data.name} (${selectedFw.name}) via A2A Channel` }
+        })
+      );
+    };
+
+    window.addEventListener('keaos:spawn-downstream-agent', handleSpawnDownstreamAgent);
+    return () => window.removeEventListener('keaos:spawn-downstream-agent', handleSpawnDownstreamAgent);
+  }, [nodes, setNodes, setEdges, onSelectNode, takeSnapshot]);
+
   // Listener to delete node via event
   useEffect(() => {
     const handleDeleteEvent = (e) => {
@@ -821,7 +896,52 @@ function CanvasInner({
         }
       }
 
+      // Connection into an MCP Egress Gateway (target is a gateway pillar)
+      if (targetNode.type === 'pillar' && targetNode.data?.pillarType === 'gateway') {
+        if (sourceNode.data?.pillarType === 'mcp') {
+          return true;
+        } else {
+          setInvalidConnectionAlert({
+            sourceName: sourceNode.data?.name || 'Block',
+            sourceType: sourceNode.data?.pillarType || sourceNode.type,
+            targetHandle: targetHandle || 'mcp-in',
+            requiredType: 'mcp (MCP Egress Gateway only accepts MCP Server nodes)'
+          });
+          return false;
+        }
+      }
+
       if (targetNode.type === 'agentCore') {
+        // Direct MCP connection to Agent Core is STRICTLY FORBIDDEN!
+        if (sourceNode.data?.pillarType === 'mcp') {
+          setInvalidConnectionAlert({
+            sourceName: sourceNode.data?.name || 'MCP Server',
+            sourceType: 'mcp',
+            targetHandle: targetHandle || 'mcp-in',
+            requiredType: 'Zero-Trust Policy: Direct MCP connections are forbidden. Connect an MCP Egress Gateway first, then route MCP through it.'
+          });
+          return false;
+        }
+
+        // Gateway connection into Agent Core mcp-in or gateway-in is ALLOWED
+        if (sourceNode.data?.pillarType === 'gateway' && (targetHandle === 'mcp-in' || targetHandle === 'gateway-in')) {
+          return true;
+        }
+
+        // Allow Agent-to-Agent (A2A) connections into agent-in
+        if (sourceNode.type === 'agentCore') {
+          if (targetHandle === 'agent-in' || !targetHandle) {
+            return true;
+          }
+          setInvalidConnectionAlert({
+            sourceName: sourceNode.data?.name || 'Agent',
+            sourceType: 'agentCore',
+            targetHandle,
+            requiredType: 'agent-in (A2A Stream)'
+          });
+          return false;
+        }
+
         const requiredPillar = SOCKET_RULES[targetHandle];
         const sourcePillar = sourceNode.data?.pillarType;
 
@@ -849,11 +969,25 @@ function CanvasInner({
       const targetNode = nodes.find(n => n.id === params.target);
       const pillarDef = sourceNode ? PILLARS[sourceNode.data?.pillarType] : null;
       let strokeColor = pillarDef?.color || '#0091DA';
+      let strokeWidth = 1.8;
+      let strokeDasharray = '4 4';
 
       if (targetNode?.type === 'outputNode' || sourceNode?.type === 'outputNode') {
         strokeColor = '#10B981'; // Emerald accent for data/output pipelines
       } else if (sourceNode?.type === 'ingestionNode') {
         strokeColor = '#0091DA'; // Pacific Blue for data ingestion stream
+      } else if (sourceNode?.type === 'agentCore' && targetNode?.type === 'agentCore') {
+        strokeColor = '#6366F1'; // Electric Indigo for A2A Inter-Agent channel
+        strokeWidth = 2.2;
+        strokeDasharray = '6 4';
+      } else if (sourceNode?.data?.pillarType === 'mcp' && targetNode?.data?.pillarType === 'gateway') {
+        strokeColor = '#00A3A6'; // Cyber Teal for MCP to Gateway
+        strokeWidth = 2.0;
+        strokeDasharray = '4 4';
+      } else if (sourceNode?.data?.pillarType === 'gateway' && targetNode?.type === 'agentCore') {
+        strokeColor = '#EAAA00'; // Amber for Gateway to Agent Core
+        strokeWidth = 2.0;
+        strokeDasharray = '4 4';
       }
 
       takeSnapshot();
@@ -864,7 +998,7 @@ function CanvasInner({
             ...params,
             type: 'deletable',
             animated: true,
-            style: { stroke: strokeColor, strokeWidth: 1.8, strokeDasharray: '4 4' },
+            style: { stroke: strokeColor, strokeWidth, strokeDasharray },
             data: { onDelete: handleDeleteEdge }
           },
           eds
@@ -902,7 +1036,8 @@ function CanvasInner({
     return (nodes || []).map(n => {
       const isThisNodeActive = executionState.isExecuting && (
         n.id === executionState.nodeId || 
-        (n.type === 'agentCore' && !executionState.nodeId) ||
+        n.id === executionState.activeAgentId ||
+        (n.type === 'agentCore' && !executionState.nodeId && !executionState.activeAgentId) ||
         (n.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
         (n.data?.pillarType && n.data.pillarType === executionState.pillarType)
       );
@@ -910,6 +1045,8 @@ function CanvasInner({
       // Dynamically calculate attachedCounts and connectedModelName specifically for THIS agent node
       let agentCounts = n.data?.attachedCounts;
       let connectedModelName = null;
+      let inheritedModelName = null;
+      let upstreamAgentNames = [];
 
       if (n.type === 'agentCore') {
         agentCounts = {
@@ -919,22 +1056,56 @@ function CanvasInner({
           tools: 0,
           gateway: 0,
           memory: 0,
-          policies: 0
+          policies: 0,
+          agent: 0
         };
 
         (edges || []).forEach((edge) => {
-          if (edge.target === n.id && edge.targetHandle) {
-            const pillar = SOCKET_RULES[edge.targetHandle];
+          if (edge.target === n.id) {
             const sourceNode = nodeLookup[edge.source];
             const isSourceDeactivated = !!sourceNode?.data?.isDeactivated;
-            if (pillar && agentCounts[pillar] !== undefined && !isSourceDeactivated) {
-              agentCounts[pillar] += 1;
-              if (pillar === 'model' && sourceNode) {
-                connectedModelName = sourceNode.data?.name || sourceNode.data?.config?.modelId || 'Foundation Model';
+            if (sourceNode?.type === 'agentCore' && !isSourceDeactivated) {
+              agentCounts.agent += 1;
+              if (sourceNode.data?.name) {
+                upstreamAgentNames.push(sourceNode.data.name);
+              }
+            } else if (edge.targetHandle) {
+              const pillar = SOCKET_RULES[edge.targetHandle];
+              if (pillar && agentCounts[pillar] !== undefined && !isSourceDeactivated) {
+                agentCounts[pillar] += 1;
+                if (pillar === 'model' && sourceNode) {
+                  connectedModelName = sourceNode.data?.name || sourceNode.data?.config?.modelId || 'Foundation Model';
+                }
+              }
+              if (edge.targetHandle === 'mcp-in' && sourceNode?.data?.pillarType === 'gateway' && !isSourceDeactivated) {
+                agentCounts.gateway = (agentCounts.gateway || 0) + 1;
               }
             }
           }
         });
+
+        // Automatically detect inherited model from upstream agents or primary canvas model
+        if (agentCounts.model === 0) {
+          // Check upstream connected agents first
+          const incomingA2AEdges = (edges || []).filter(e => e.target === n.id && (e.targetHandle === 'agent-in' || !e.targetHandle));
+          for (const a2aEdge of incomingA2AEdges) {
+            const upAgent = nodeLookup[a2aEdge.source];
+            if (upAgent) {
+              const modelEdge = (edges || []).find(e => e.target === upAgent.id && e.targetHandle === 'model-in');
+              if (modelEdge && nodeLookup[modelEdge.source]) {
+                inheritedModelName = nodeLookup[modelEdge.source].data?.name || 'Upstream Model';
+                break;
+              }
+            }
+          }
+          // If no upstream model found, fallback to root canvas model
+          if (!inheritedModelName) {
+            const rootModel = (nodes || []).find(sn => sn.type === 'pillar' && sn.data?.pillarType === 'model' && !sn.data?.isDeactivated);
+            if (rootModel) {
+              inheritedModelName = rootModel.data?.name || 'Shared Senior Brain';
+            }
+          }
+        }
       }
 
       return {
@@ -942,10 +1113,13 @@ function CanvasInner({
         data: {
           ...n.data,
           isDarkMode,
-          isExecuting: isThisNodeActive || (n.type === 'agentCore' && executionState.isExecuting),
+          isExecuting: isThisNodeActive || (n.type === 'agentCore' && executionState.isExecuting && !executionState.activeAgentId),
           executionStep: executionState.step,
           attachedCounts: agentCounts,
           connectedModelName: connectedModelName,
+          inheritedModelName: inheritedModelName,
+          upstreamAgentCount: agentCounts?.agent || 0,
+          upstreamAgentNames: upstreamAgentNames || [],
           onOpenAgentChat: handleOpenAgentChat,
           onDelete: handleDeleteNode,
           onDuplicate: handleDuplicateNode,

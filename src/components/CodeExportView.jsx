@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { Terminal, Copy, Check, Download, FileCode } from 'lucide-react';
+import { Terminal, Copy, Check, Download, FileCode, GitFork, Users } from 'lucide-react';
 import { FRAMEWORKS } from '../constants/frameworks';
-import { generateFrameworkCode } from '../utils/codeGenerators';
+import { generateFrameworkCode, generateMultiAgentPipelineCode } from '../utils/codeGenerators';
 
-export default function CodeExportView({ activeUseCase, nodes }) {
-  const [selectedFwId, setSelectedFwId] = useState(activeUseCase.framework.id);
+export default function CodeExportView({ activeUseCase, nodes, edges = [] }) {
+  const agentNodes = (nodes || []).filter(n => n.type === 'agentCore');
+  const isMultiAgent = agentNodes.length > 1;
+
+  const [selectedFwId, setSelectedFwId] = useState(
+    isMultiAgent ? 'multi-agent-fleet' : (activeUseCase?.framework?.id || 'google-adk')
+  );
   const [copied, setCopied] = useState(false);
 
   const attachedPillars = {
@@ -17,7 +22,13 @@ export default function CodeExportView({ activeUseCase, nodes }) {
     policies: nodes.filter(n => n.data?.pillarType === 'policies').map(n => n.data)
   };
 
-  const code = generateFrameworkCode(selectedFwId, activeUseCase.agent, attachedPillars);
+  const code = selectedFwId === 'multi-agent-fleet'
+    ? generateMultiAgentPipelineCode(nodes, edges, activeUseCase)
+    : generateFrameworkCode(selectedFwId, activeUseCase.agent, attachedPillars);
+
+  const fileName = selectedFwId === 'multi-agent-fleet'
+    ? 'keaos_multi_agent_pipeline.py'
+    : `keaos_agent_${selectedFwId}.py`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -29,7 +40,7 @@ export default function CodeExportView({ activeUseCase, nodes }) {
     const element = document.createElement('a');
     const file = new Blob([code], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `keaos_agent_${selectedFwId}.py`;
+    element.download = fileName;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -45,17 +56,31 @@ export default function CodeExportView({ activeUseCase, nodes }) {
             SDK Code Exporter
           </span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E6EDF7] text-[#00338D] border border-[#00338D]/20 font-bold">
-            PRODUCTION SYNTHESIS
+            {isMultiAgent ? `HETEROGENEOUS DAG (${agentNodes.length} AGENTS)` : 'PRODUCTION SYNTHESIS'}
           </span>
         </div>
 
         {/* Framework Selector Tabs */}
-        <div className="flex items-center gap-1 bg-[#F8F9FB] p-1 border border-[#CBD5E1]">
+        <div className="flex items-center gap-1 bg-[#F8F9FB] p-1 border border-[#CBD5E1] overflow-x-auto">
+          {isMultiAgent && (
+            <button
+              onClick={() => setSelectedFwId('multi-agent-fleet')}
+              className={`btn-tactile flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all rounded-none font-mono ${
+                selectedFwId === 'multi-agent-fleet'
+                  ? 'bg-[#6366F1] text-white shadow-sm border-b-2 border-[#4338CA]'
+                  : 'text-[#6366F1] hover:bg-[#EEF2FF] bg-[#F5F3FF]'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Multi-Agent Fleet ({agentNodes.length})</span>
+            </button>
+          )}
+
           {FRAMEWORKS.map((fw) => (
             <button
               key={fw.id}
               onClick={() => setSelectedFwId(fw.id)}
-              className={`btn-tactile px-3 py-1.5 text-xs font-bold transition-all rounded-none font-mono ${
+              className={`btn-tactile px-3 py-1.5 text-xs font-bold transition-all rounded-none font-mono whitespace-nowrap ${
                 selectedFwId === fw.id
                   ? 'bg-[#00338D] text-white shadow-sm border-b-2 border-[#001E50]'
                   : 'text-slate-600 hover:text-[#0B0F19]'
@@ -92,9 +117,13 @@ export default function CodeExportView({ activeUseCase, nodes }) {
           <div className="px-4 py-2 bg-[#001E50] border-t border-l border-r border-[#00338D] flex items-center justify-between text-xs text-slate-300 font-mono">
             <span className="flex items-center gap-2 font-bold text-white">
               <FileCode className="w-3.5 h-3.5 text-[#0091DA]" />
-              keaos_agent_{selectedFwId}.py
+              {fileName}
             </span>
-            <span className="text-[10px] text-slate-400">Python 3.10+ / Strict Asyncio</span>
+            <span className="text-[10px] text-slate-400">
+              {selectedFwId === 'multi-agent-fleet'
+                ? 'Python 3.10+ / Heterogeneous Multi-SDK DAG Orchestrator'
+                : 'Python 3.10+ / Strict Asyncio'}
+            </span>
           </div>
           <pre className="p-6 bg-[#001438] border border-[#00338D] text-xs text-slate-100 font-mono leading-relaxed overflow-x-auto selection:bg-[#005EB8]">
             <code>{code}</code>

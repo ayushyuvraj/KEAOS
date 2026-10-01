@@ -26,7 +26,7 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#001E50]/50 backdrop-blur-sm select-none">
-      <div className="w-full max-w-xl bg-[#FFFFFF] border border-[#CBD5E1] shadow-[0_16px_48px_rgba(0,30,80,0.3)] overflow-hidden">
+      <div className="w-full max-w-2xl bg-[#FFFFFF] border border-[#CBD5E1] shadow-[0_16px_48px_rgba(0,30,80,0.3)] overflow-hidden">
         {/* Modal Header */}
         <div className="px-6 py-4 bg-[#001E50] border-b border-[#00338D] flex items-center justify-between text-white">
           <div>
@@ -115,29 +115,50 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
             <label className="block text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] mb-2 font-mono">
               Initial Workspace Template
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <button
                 type="button"
                 onClick={() => setTemplate('meeting-pilot')}
-                className={`btn-tactile p-3.5 text-left border rounded-none transition-all ${
+                className={`btn-tactile p-3 text-left border rounded-none transition-all ${
                   template === 'meeting-pilot'
                     ? 'border-[#00338D] bg-[#E6EDF7] text-[#0B0F19] shadow-sm'
                     : 'border-[#E0E0E0] bg-[#FFFFFF] text-[#666666] hover:border-[#00338D]'
                 }`}
               >
                 <div className="font-bold text-xs text-[#0B0F19] flex items-center justify-between">
-                  <span>Meeting Intelligence</span>
+                  <span>Single Agent Pilot</span>
                   {template === 'meeting-pilot' && <Check className="w-3.5 h-3.5 text-[#00338D]" />}
                 </div>
-                <p className="text-[11px] text-[#475569] mt-1 leading-snug">
-                  Pre-configured with Foundation Model, Summarizer, Action Items, Calendar MCP, PII policy & evaluation suite.
+                <p className="text-[10px] text-[#475569] mt-1 leading-snug">
+                  Foundation Model, Summarizer, Action Items, Calendar MCP, PII policy & evaluation suite.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTemplate('multi-agent-triad')}
+                className={`btn-tactile p-3 text-left border rounded-none transition-all ${
+                  template === 'multi-agent-triad'
+                    ? 'border-[#6366F1] bg-[#EEF2FF] text-[#0B0F19] shadow-sm'
+                    : 'border-[#E0E0E0] bg-[#FFFFFF] text-[#666666] hover:border-[#6366F1]'
+                }`}
+              >
+                <div className="font-bold text-xs text-[#1E1B4B] flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#6366F1]" />
+                    Triad Multi-Agent
+                  </span>
+                  {template === 'multi-agent-triad' && <Check className="w-3.5 h-3.5 text-[#6366F1]" />}
+                </div>
+                <p className="text-[10px] text-[#475569] mt-1 leading-snug">
+                  3 Connected Agents: Google Scribe ➔ MS Orchestrator ➔ LangGraph Risk Auditor with A2A DAG channels.
                 </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => setTemplate('blank')}
-                className={`btn-tactile p-3.5 text-left border rounded-none transition-all ${
+                className={`btn-tactile p-3 text-left border rounded-none transition-all ${
                   template === 'blank'
                     ? 'border-[#00338D] bg-[#E6EDF7] text-[#0B0F19] shadow-sm'
                     : 'border-[#E0E0E0] bg-[#FFFFFF] text-[#666666] hover:border-[#00338D]'
@@ -147,7 +168,7 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
                   <span>Blank Canvas</span>
                   {template === 'blank' && <Check className="w-3.5 h-3.5 text-[#00338D]" />}
                 </div>
-                <p className="text-[11px] text-[#475569] mt-1 leading-snug">
+                <p className="text-[10px] text-[#475569] mt-1 leading-snug">
                   Starts with an empty Core Agent node for custom modular assembly from scratch.
                 </p>
               </button>

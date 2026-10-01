@@ -21,14 +21,18 @@ import {
   RefreshCw,
   Maximize2,
   Minimize2,
-  Minus,
   RotateCcw,
   AlertTriangle,
-  Brain
+  Brain,
+  GitFork,
+  Layers,
+  CheckCircle2,
+  ChevronRight
 } from 'lucide-react';
 import MarkdownViewer from './common/MarkdownViewer';
 import { runMeetingSimulation } from '../utils/meetingSimulatorEngine';
 import { executeUniversalAgentChat } from '../utils/universalAgentEngine';
+import { executeMultiAgentWorkflow, buildMultiAgentDAG } from '../utils/multiAgentOrchestratorEngine';
 import { transcribeAudioUniversal, getProviderCredential } from '../services/llmService';
 import { getActiveApiKey } from '../services/geminiService';
 
@@ -124,6 +128,18 @@ export default function CanvasExecutionDrawer({
     output: false
   });
   const [maximizedCol, setMaximizedCol] = useState(null);
+
+  // Multi-Agent Fleet Execution State
+  const [fleetResult, setFleetResult] = useState(null);
+  const [fleetSteps, setFleetSteps] = useState([]);
+  const [isFleetRunning, setIsFleetRunning] = useState(false);
+  const [currentFleetStage, setCurrentFleetStage] = useState(null);
+  const [copiedFleetOutput, setCopiedFleetOutput] = useState(false);
+  const [fleetOutputTab, setFleetOutputTab] = useState('output'); // 'output' | 'json'
+
+  const fleetStages = useMemo(() => {
+    return buildMultiAgentDAG(nodes, edges);
+  }, [nodes, edges]);
 
   const containerRef = useRef(null);
   const draggingDividerRef = useRef(null);
@@ -291,14 +307,77 @@ export default function CanvasExecutionDrawer({
     setIsExpanded
   ]);
 
+  // Execute full multi-agent distributed fleet pipeline
+  const handleRunFleetPipeline = useCallback(async () => {
+    if (isFleetRunning) return;
+    setIsFleetRunning(true);
+    setIsExpanded(true);
+    setFleetSteps([]);
+    setFleetResult(null);
+
+    if (onExecutionStateChange) {
+      onExecutionStateChange({ isExecuting: true, step: 'Starting Multi-Agent Fleet Pipeline...' });
+    }
+
+    try {
+      const result = await executeMultiAgentWorkflow({
+        nodes,
+        edges,
+        initialInput: transcriptText,
+        onStageStart: ({ stageIndex, totalStages, agents }) => {
+          setCurrentFleetStage({ stageIndex, totalStages, agents });
+          if (onExecutionStateChange) {
+            onExecutionStateChange({
+              isExecuting: true,
+              step: `Stage ${stageIndex + 1}/${totalStages}: Running ${agents.map(a => a.name).join(', ')}...`
+            });
+          }
+        },
+        onAgentComplete: (agentOutput) => {
+          setFleetSteps(prev => [...prev, agentOutput]);
+        }
+      });
+
+      setFleetResult(result);
+
+      // Real-time Canvas Output Node broadcast
+      try {
+        window.dispatchEvent(new CustomEvent('keaos:agent-output', {
+          detail: {
+            title: `Fleet Deliverable (${result.completedStages} Stages • ${result.totalAgents} Agents)`,
+            markdown: result.synthesizedDeliverable,
+            result: result
+          }
+        }));
+      } catch (e) {
+        console.warn('Canvas output broadcast failed:', e);
+      }
+    } catch (err) {
+      console.error('Fleet execution failed:', err);
+      alert(`Multi-Agent Fleet execution error: ${err.message}`);
+    } finally {
+      setIsFleetRunning(false);
+      setCurrentFleetStage(null);
+      if (onExecutionStateChange) {
+        onExecutionStateChange({ isExecuting: false, step: 'Complete' });
+      }
+    }
+  }, [isFleetRunning, nodes, edges, transcriptText, onExecutionStateChange, setIsExpanded]);
+
   // Listen for canvas "Execute Workflow" button trigger
   useEffect(() => {
-    const handleExecuteTrigger = () => {
-      handleRunAgent();
+    const handleExecuteTrigger = (e) => {
+      const specificAgentId = e?.detail?.agentId;
+      if (!specificAgentId && allAgentNodes.length > 1) {
+        setDrawerMode('fleet');
+        handleRunFleetPipeline();
+      } else {
+        handleRunAgent();
+      }
     };
     window.addEventListener('keaos:execute-workflow', handleExecuteTrigger);
     return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
-  }, [handleRunAgent]);
+  }, [handleRunAgent, handleRunFleetPipeline, allAgentNodes.length]);
 
   // Listen for cancel execution / stop stream trigger
   useEffect(() => {
@@ -600,6 +679,20 @@ export default function CanvasExecutionDrawer({
               <MessageSquare className="w-3.5 h-3.5" />
               <span>Live Agent Chat</span>
             </button>
+            {allAgentNodes.length > 1 && (
+              <button
+                onClick={() => { setDrawerMode('fleet'); setIsExpanded(true); }}
+                className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                  drawerMode === 'fleet'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-indigo-400 hover:text-indigo-200'
+                }`}
+              >
+                <Bot className="w-3.5 h-3.5" />
+                <span>Fleet Pipeline ({allAgentNodes.length})</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              </button>
+            )}
             <button
               onClick={() => { setDrawerMode('batch'); setIsExpanded(true); }}
               className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 ${
@@ -928,7 +1021,236 @@ export default function CanvasExecutionDrawer({
           )}
 
           {/* ========================================================= */}
-          {/* MODE 2: BATCH DATASET TEST BENCH (Existing 3-Pane Runner) */}
+          {/* MODE 2: MULTI-AGENT DISTRIBUTED FLEET PIPELINE (A2A DAG)  */}
+          {/* ========================================================= */}
+          {drawerMode === 'fleet' && (
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+              {/* Fleet Pipeline Control & Visual Breadcrumb Sub-Header */}
+              <div className={`px-5 py-2.5 border-b flex flex-wrap items-center justify-between gap-3 text-xs font-mono transition-colors ${
+                isDarkMode ? 'bg-[#18191E] border-[#2A2D36] text-slate-300' : 'bg-white border-gray-200 text-slate-700'
+              }`}>
+                {/* Visual Stage Breadcrumbs */}
+                <div className="flex items-center gap-2 overflow-x-auto py-0.5 max-w-full">
+                  <div className="flex items-center gap-1.5 font-bold text-indigo-400 shrink-0">
+                    <Bot className="w-4 h-4" />
+                    <span className="uppercase tracking-wider text-[11px]">Fleet DAG:</span>
+                  </div>
+                  {fleetStages.map((stageAgents, sIdx) => (
+                    <React.Fragment key={sIdx}>
+                      {sIdx > 0 && <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-[10px] text-slate-500 font-mono">Stage {sIdx + 1}:</span>
+                        {stageAgents.map(ag => {
+                          const isDone = fleetSteps.some(s => s.agentId === ag.id);
+                          const isActive = currentFleetStage && currentFleetStage.agents.some(a => a.id === ag.id);
+                          return (
+                            <span
+                              key={ag.id}
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold flex items-center gap-1 border transition-all ${
+                                isActive
+                                  ? 'bg-indigo-600 text-white border-indigo-400 animate-pulse ring-2 ring-indigo-500/30'
+                                  : isDone
+                                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                    : isDarkMode
+                                      ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                      : 'bg-slate-100 border-slate-300 text-slate-600'
+                              }`}
+                            >
+                              {isDone && <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />}
+                              {ag.data?.name || 'Agent'}
+                              <span className="opacity-60 text-[8px]">({ag.data?.framework?.name || 'ADK'})</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Fleet Run / Stop Buttons & Clear */}
+                <div className="flex items-center gap-2">
+                  {isFleetRunning ? (
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('keaos:cancel-execution'))}
+                      className="px-3.5 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-sans text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                      <span>Stop Pipeline</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleRunFleetPipeline}
+                      className="px-3.5 py-1 rounded bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-sans text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Run Multi-Agent Pipeline</span>
+                    </button>
+                  )}
+                  {fleetSteps.length > 0 && (
+                    <button
+                      onClick={() => { setFleetSteps([]); setFleetResult(null); }}
+                      className="p-1 text-slate-400 hover:text-white rounded hover:bg-white/5 transition-colors cursor-pointer"
+                      title="Clear fleet logs"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 3-Column Split Fleet Dashboard */}
+              <div className="flex-1 flex w-full h-full overflow-hidden select-none">
+                {/* Col 1: Ingress Input Context */}
+                <div className={`w-1/3 flex flex-col h-full border-r ${
+                  isDarkMode ? 'border-[#2E313B]' : 'border-[#E5E7EB]'
+                }`}>
+                  <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
+                    isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
+                  }`}>
+                    <div className="flex items-center gap-2 font-bold">
+                      <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Fleet Ingress Context</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">{transcriptText.length} chars</span>
+                  </div>
+                  <div className="flex-1 p-3 overflow-y-auto">
+                    <textarea
+                      value={transcriptText}
+                      onChange={(e) => setTranscriptText(e.target.value)}
+                      placeholder="Paste meeting transcript or prompt here. This context feeds directly into the root agent(s)..."
+                      className={`w-full h-full p-2.5 text-xs font-mono resize-none rounded border focus:outline-none ${
+                        isDarkMode
+                          ? 'bg-[#121316] border-[#2E313B] text-slate-200 focus:border-indigo-500'
+                          : 'bg-white border-gray-300 text-slate-800 focus:border-indigo-600'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Col 2: A2A Inter-Agent Stage Dispatches */}
+                <div className={`w-1/3 flex flex-col h-full border-r ${
+                  isDarkMode ? 'border-[#2E313B]' : 'border-[#E5E7EB]'
+                }`}>
+                  <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
+                    isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
+                  }`}>
+                    <div className="flex items-center gap-2 font-bold">
+                      <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>A2A Stage Logs ({fleetSteps.length}/{allAgentNodes.length})</span>
+                    </div>
+                    {isFleetRunning && (
+                      <span className="flex items-center gap-1 text-[10px] font-mono text-indigo-400 animate-pulse">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        Running...
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 p-3 overflow-y-auto space-y-2.5">
+                    {fleetSteps.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs font-mono">
+                        <Bot className="w-8 h-8 text-slate-600 mb-2 opacity-60" />
+                        <p>No multi-agent steps executed yet.</p>
+                        <p className="text-[10px] text-slate-600 mt-1">Click "Run Multi-Agent Pipeline" to begin.</p>
+                      </div>
+                    ) : (
+                      fleetSteps.map((step, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-lg border text-xs transition-all ${
+                            isDarkMode ? 'bg-[#18191E] border-[#2A2D36]' : 'bg-white border-gray-200 shadow-sm'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-[10px]">
+                                {idx + 1}
+                              </span>
+                              <span className="font-bold text-slate-200">{step.agentName}</span>
+                            </div>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                              {step.frameworkName}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px] font-mono text-slate-400 mb-2">
+                            <span>⏱ {step.latencyMs}ms</span>
+                            <span>⚡ {step.tokens} tokens</span>
+                            <span>💰 ${step.costUsd?.toFixed(4)}</span>
+                          </div>
+                          <div className={`p-2 rounded text-[11px] font-mono line-clamp-3 overflow-hidden ${
+                            isDarkMode ? 'bg-[#121316] text-slate-300' : 'bg-slate-50 text-slate-700'
+                          }`}>
+                            {step.output}
+                          </div>
+                          <div className="mt-1.5 flex items-center justify-between text-[9px] font-mono text-slate-500">
+                            <span>SHA-256: {step.auditHash?.slice(0, 14)}...</span>
+                            <span className="text-emerald-400 font-bold">✓ Signed</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Col 3: Final Synthesized Multi-Agent Output */}
+                <div className="w-1/3 flex flex-col h-full overflow-hidden">
+                  <div className={`px-4 py-2 border-b flex items-center justify-between text-xs font-medium ${
+                    isDarkMode ? 'bg-[#1C1E24] border-[#2E313B]' : 'bg-[#F3F4F6] border-[#E5E7EB]'
+                  }`}>
+                    <div className="flex items-center gap-2 font-bold">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Synthesized Fleet Deliverable</span>
+                    </div>
+                    {fleetResult?.finalOutput && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(fleetResult.finalOutput);
+                          setCopiedFleetOutput(true);
+                          setTimeout(() => setCopiedFleetOutput(false), 2000);
+                        }}
+                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedFleetOutput ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedFleetOutput ? 'Copied' : 'Copy'}</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 p-4 overflow-y-auto">
+                    {fleetResult?.finalOutput ? (
+                      <MarkdownViewer content={fleetResult.finalOutput} isDarkMode={isDarkMode} />
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs font-mono">
+                        <Sparkles className="w-8 h-8 text-slate-600 mb-2 opacity-60" />
+                        <p>Awaiting pipeline completion.</p>
+                        <p className="text-[10px] text-slate-600 mt-1">Output of terminal agent(s) will render here.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Fleet Telemetry Footer */}
+              <div className={`px-6 py-2 border-t flex items-center justify-between text-xs font-mono ${
+                isDarkMode ? 'bg-[#121316] border-[#2E313B] text-slate-400' : 'bg-gray-100 border-gray-200 text-gray-700'
+              }`}>
+                <div className="flex items-center gap-4">
+                  <span>Fleet Latency: <strong className="text-white">{fleetResult?.fleetObservability?.totalLatencyMs || 0}ms</strong></span>
+                  <span>Fleet Tokens: <strong className="text-white">{fleetResult?.fleetObservability?.totalTokens || 0}</strong></span>
+                  <span>Fleet Cost: <strong className="text-amber-400">${fleetResult?.fleetObservability?.totalCostUsd?.toFixed(4) || '0.0000'}</strong></span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span>Fleet SHA-256 Digest:</span>
+                    <span className="text-[10px] text-cyan-400 font-mono">
+                      {fleetResult?.fleetObservability?.fleetAuditDigest ? `${fleetResult.fleetObservability.fleetAuditDigest.slice(0, 16)}...` : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* MODE 3: BATCH DATASET TEST BENCH (Existing 3-Pane Runner) */}
           {/* ========================================================= */}
           {drawerMode === 'batch' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">

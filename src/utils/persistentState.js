@@ -49,7 +49,7 @@ export function saveUIState(updates) {
   }
 }
 
-const CANVAS_VERSION = 'v5_canvas_ingestion';
+const CANVAS_VERSION = 'v7_real_mcp_engine';
 
 /**
  * Loads Canvas topology state (nodes, edges, active use case) if saved.

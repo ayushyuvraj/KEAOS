@@ -161,34 +161,9 @@ export const PILLARS = {
     bgColor: '#E6F6F6',
     borderColor: '#00A3A6',
     badge: 'MCP SERVER',
-    description: 'Standardized client/server external resources',
+    description: 'Real-time JSON-RPC & SSE client/server external resources',
     maxConnections: 10,
-    items: [
-      {
-        id: 'mcp-google-calendar',
-        name: 'Google Calendar MCP',
-        description: 'Fetches meeting metadata, attendees, scheduled start/end, and invites.',
-        config: { endpoint: 'mcp://calendar.google.internal', auth: 'oauth2' }
-      },
-      {
-        id: 'mcp-slack',
-        name: 'Slack Notification MCP',
-        description: 'Publishes formatted recap thread and tags action item owners.',
-        config: { channel: '#leadership-syncs', notifyAssignees: true }
-      },
-      {
-        id: 'mcp-jira-linear',
-        name: 'Jira / Linear Tasks MCP',
-        description: 'Automatically creates sprint tickets for confirmed action items.',
-        config: { projectKey: 'ENG', autoAssign: true }
-      },
-      {
-        id: 'mcp-filesystem',
-        name: 'Corporate Drive Filesystem MCP',
-        description: 'Saves markdown meeting minutes to knowledge repository.',
-        config: { basePath: '/Drive/Company/Minutes', format: 'markdown' }
-      }
-    ]
+    items: []
   },
   gateway: {
     id: 'gateway',
@@ -199,8 +174,14 @@ export const PILLARS = {
     borderColor: '#EAAA00',
     badge: 'GATEWAY',
     description: 'Traffic ingress, rate limiting, and fallbacks',
-    maxConnections: 2,
+    maxConnections: 5,
     items: [
+      {
+        id: 'gw-mcp-controller',
+        name: 'MCP Egress Gateway',
+        description: 'Enforces zero-trust mediation between Agent Core and external MCP servers. Discovers all tools, manages execution scope, and routes actions.',
+        config: { gatewayType: 'mcp-egress', auditAllActions: true }
+      },
       {
         id: 'gw-rate-limiter',
         name: 'Ingress Rate Limiter',
@@ -391,7 +372,8 @@ export const SOCKET_RULES = {
   'policy-in': 'policies',
   'policies-in': 'policies',
   'tool-in': 'tools',
-  'tools-in': 'tools'
+  'tools-in': 'tools',
+  'agent-in': 'agentCore'
 };
 
 

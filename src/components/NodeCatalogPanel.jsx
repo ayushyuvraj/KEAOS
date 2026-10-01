@@ -28,9 +28,32 @@ import {
   ExternalLink,
   RefreshCw,
   Key,
-  UploadCloud
+  UploadCloud,
+  Globe,
+  MessageSquare,
+  Server,
+  GitBranch,
+  Code
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
+
+// Official GitHub Brand Icon SVG (since lucide-react deprecated brand icons)
+function GithubIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className={className}
+    >
+      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+      <path d="M9 18c-4.51 2-5-2-7-2" />
+    </svg>
+  );
+}
 import {
   GoogleLogo,
   AnthropicLogo,
@@ -45,6 +68,10 @@ import {
   getOllamaConfig,
   saveOllamaConfig
 } from '../services/llmService';
+import {
+  getRegisteredMcpServers,
+  removeRegisteredMcpServer
+} from '../services/mcpClientService';
 
 // The 5 Authorized Model Providers with Official Logos
 export const MODEL_PROVIDERS = [
@@ -171,13 +198,13 @@ const NODE_CATEGORIES = [
   {
     id: 'mcp',
     label: 'MCP (Model Context Protocol)',
-    subtitle: 'Standardized client/server resources (Google Calendar, Slack, Jira, Filesystem)',
+    subtitle: 'Live Universal Connectors (Claude Code-style URL, Slack, Jira, GitHub)',
     icon: Layers,
     color: '#00A3A6', // Teal
     bgColor: '#E6F6F6',
     badge: 'MCP SERVER',
     socketId: 'mcp-in',
-    items: PILLARS.mcp?.items || []
+    items: []
   },
   {
     id: 'tools',
@@ -321,6 +348,21 @@ export default function NodeCatalogPanel({
     }
   });
 
+  // Registered real MCP servers (persisted in localStorage)
+  const [registeredMcpServers, setRegisteredMcpServers] = useState(() => getRegisteredMcpServers());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setRegisteredMcpServers(getRegisteredMcpServers());
+    };
+    window.addEventListener('keaos:mcp-registry-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('keaos:mcp-registry-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
   // Custom Skill Creation Form State
   const [isCreatingSkill, setIsCreatingSkill] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
@@ -401,9 +443,24 @@ export default function NodeCatalogPanel({
           items: [...customSkills, ...(PILLARS.skills?.items || [])]
         };
       }
+      if (cat.id === 'mcp') {
+        return {
+          ...cat,
+          items: registeredMcpServers.map(s => ({
+            id: s.id,
+            name: s.name,
+            description: s.description || `Exposes ${s.tools?.length || 0} live verified tools (${s.transport?.toUpperCase()}).`,
+            tools: s.tools || [],
+            config: s.config || {},
+            transport: s.transport,
+            url: s.url,
+            isRealMcp: true
+          }))
+        };
+      }
       return cat;
     });
-  }, [customSkills]);
+  }, [customSkills, registeredMcpServers]);
 
   const activeCategory = useMemo(() => {
     return categoriesWithCustomSkills.find(c => c.id === activeCategoryId) || null;
@@ -660,6 +717,10 @@ export default function NodeCatalogPanel({
                         ? 'Connecting & detecting compatible models...'
                         : `${currentProviderModels.length} models detected via API`
                       : '5 foundation providers available'
+                    : activeCategory.id === 'mcp'
+                      ? registeredMcpServers.length > 0
+                        ? `${registeredMcpServers.length} ${registeredMcpServers.length === 1 ? 'server' : 'servers'} connected • 4 direct connectors`
+                        : '0 connected • 4 live connectors available'
                     : `${activeCategory.items.length} ${activeCategory.items.length === 1 ? 'component' : 'components'} available`}
                 </span>
               </div>
@@ -1175,6 +1236,318 @@ export default function NodeCatalogPanel({
                 })()}
               </div>
             )
+          ) : activeCategory.id === 'mcp' ? (
+            /* ======================================================== */
+            /* REAL MCP INTEGRATIONS & UNIVERSAL CONNECTOR VIEW        */
+            /* ======================================================== */
+            <div className="p-3 space-y-3.5">
+              {/* Primary Action Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                    detail: { tab: 'url' }
+                  }));
+                }}
+                className="card-pressable w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#00A3A6] to-[#008A8C] hover:opacity-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-[#00A3A6]/20 transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Connect Live MCP Server</span>
+              </button>
+
+              {/* Direct Integration Connectors */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-0.5">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                    Direct Connectors
+                  </span>
+                  <span className="text-[10px] font-mono text-[#00A3A6] font-semibold">
+                    Zero Simulation
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {/* Connector 1: Universal Link (Claude Code style) */}
+                  {(!searchQuery.trim() || 'universal mcp link http sse json-rpc'.includes(searchQuery.toLowerCase())) && (
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                          detail: { tab: 'url' }
+                        }));
+                      }}
+                      className={`p-3 border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-3 group ${
+                        isDarkMode 
+                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#00A3A6] hover:bg-[#252833]' 
+                          : 'bg-white border-[#E2E8F0] hover:border-[#00A3A6] hover:bg-[#F0FAF9]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center shrink-0 border border-[#00A3A6]/30">
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                              Universal MCP Link
+                            </h5>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
+                              HTTP / SSE
+                            </span>
+                          </div>
+                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            Connect any JSON-RPC 2.0 or SSE endpoint with live ping and automatic tool discovery (Claude Code style).
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-[#00A3A6] font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                        Connect →
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Connector 2: Slack MCP */}
+                  {(!searchQuery.trim() || 'slack mcp webhook bot messages'.includes(searchQuery.toLowerCase())) && (
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                          detail: { tab: 'slack' }
+                        }));
+                      }}
+                      className={`p-3 border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-3 group ${
+                        isDarkMode 
+                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#009A44] hover:bg-[#252833]' 
+                          : 'bg-white border-[#E2E8F0] hover:border-[#009A44] hover:bg-[#F2FAF5]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-[#009A44]/15 text-[#009A44] flex items-center justify-center shrink-0 border border-[#009A44]/30">
+                          <MessageSquare className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                              Slack MCP Server
+                            </h5>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30">
+                              WEBHOOK / BOT
+                            </span>
+                          </div>
+                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            Dispatch meeting summaries, follow-up alerts, and task commitments directly into Slack channels.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-[#009A44] font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                        Connect →
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Connector 3: Atlassian Jira MCP */}
+                  {(!searchQuery.trim() || 'jira atlassian cloud rest sprint issues tickets'.includes(searchQuery.toLowerCase())) && (
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                          detail: { tab: 'jira' }
+                        }));
+                      }}
+                      className={`p-3 border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-3 group ${
+                        isDarkMode 
+                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#EAAA00] hover:bg-[#252833]' 
+                          : 'bg-white border-[#E2E8F0] hover:border-[#EAAA00] hover:bg-[#FAF6EC]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-[#EAAA00]/15 text-[#EAAA00] flex items-center justify-center shrink-0 border border-[#EAAA00]/30">
+                          <GitFork className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                              Atlassian Jira Cloud MCP
+                            </h5>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#EAAA00]/15 text-[#EAAA00] border border-[#EAAA00]/30">
+                              REST API
+                            </span>
+                          </div>
+                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            Create action item tickets, query project backlog, and update issue statuses on your Jira workspace.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-[#EAAA00] font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                        Connect →
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Connector 4: GitHub MCP */}
+                  {(!searchQuery.trim() || 'github pat git repo issues pr pull request'.includes(searchQuery.toLowerCase())) && (
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                          detail: { tab: 'github' }
+                        }));
+                      }}
+                      className={`p-3 border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-3 group ${
+                        isDarkMode 
+                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#483698] hover:bg-[#252833]' 
+                          : 'bg-white border-[#E2E8F0] hover:border-[#483698] hover:bg-[#F5F2FA]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-[#483698]/15 text-[#483698] flex items-center justify-center shrink-0 border border-[#483698]/30">
+                          <GithubIcon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                              GitHub MCP Server
+                            </h5>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#483698]/15 text-[#483698] border border-[#483698]/30">
+                              PAT TOKEN
+                            </span>
+                          </div>
+                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            Inspect repositories, create tracking issues, search commits, and automate pull requests.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-[#483698] font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                        Connect →
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Connected Live MCP Servers List */}
+              <div className="space-y-2 pt-2 border-t border-inherit">
+                <div className="flex items-center justify-between px-0.5">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                    Connected Live Servers ({registeredMcpServers.length})
+                  </span>
+                  {registeredMcpServers.length > 0 && (
+                    <span className="text-[10px] font-mono text-emerald-500 font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Live Verified
+                    </span>
+                  )}
+                </div>
+
+                {registeredMcpServers.length > 0 ? (
+                  <div className="space-y-2">
+                    {registeredMcpServers
+                      .filter(s => !searchQuery.trim() || s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map(server => (
+                        <div
+                          key={server.id}
+                          className={`p-3 border rounded-xl space-y-2 transition-all ${
+                            isDarkMode ? 'bg-[#1E2028] border-[#00A3A6]/40' : 'bg-white border-[#00A3A6]/30'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                                  {server.name}
+                                </h5>
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
+                                  {server.transport?.toUpperCase() || 'SSE'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-400 block truncate mt-0.5">
+                                {server.url || server.config?.domain || 'Direct API Bridge'}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  removeRegisteredMcpServer(server.id);
+                                  setRegisteredMcpServers(getRegisteredMcpServers());
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                title="Disconnect MCP Server"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleItemAdd('mcp', {
+                                    id: server.id,
+                                    name: server.name,
+                                    description: server.description,
+                                    tools: server.tools,
+                                    config: server.config,
+                                    transport: server.transport,
+                                    url: server.url,
+                                    isRealMcp: true
+                                  });
+                                }}
+                                className={`btn-tactile px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 text-white shadow-xs cursor-pointer ${
+                                  addedItemId === server.id
+                                    ? 'bg-[#009A44]'
+                                    : 'bg-[#00A3A6] hover:bg-[#008A8C]'
+                                }`}
+                              >
+                                {addedItemId === server.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Added ✓</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>Add to Canvas</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Tools chips */}
+                          {server.tools && server.tools.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-700/20 dark:border-slate-800">
+                              {server.tools.slice(0, 4).map((tool, tIdx) => (
+                                <span
+                                  key={tIdx}
+                                  className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                                >
+                                  {tool.name}
+                                </span>
+                              ))}
+                              {server.tools.length > 4 && (
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                                  +{server.tools.length - 4} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  /* Institutional Zero-Simulation Notice */
+                  <div className={`p-4 border border-dashed rounded-xl text-center space-y-2 ${
+                    isDarkMode ? 'bg-[#14151B] border-[#00A3A6]/30' : 'bg-[#F0FAF9] border-[#00A3A6]/40'
+                  }`}>
+                    <div className="w-8 h-8 rounded-full bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center mx-auto">
+                      <Server className="w-4 h-4" />
+                    </div>
+                    <h6 className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                      Zero Simulated Mocks
+                    </h6>
+                    <p className={`text-[11px] leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                      All simulated MCPs have been removed. Connect a live MCP server via Claude Code-style URL or connect Slack, Jira, or GitHub to expose and route real tools.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
             /* Other categories (Skills, MCP, Tools, etc.) */
             <div className="p-3 space-y-2.5">

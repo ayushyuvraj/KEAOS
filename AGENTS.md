@@ -195,3 +195,44 @@ Before committing or deploying:
 - `npm run dev`: Check that Vite runs with 0 compile or runtime warnings.
 - `npm run build`: Verify that production bundling succeeds with 0 JSX/TypeScript errors.
 - Run the **Golden Dataset Alignment Gate** in the Evaluation view to verify that agent faithfulness is ≥ 90% and action item extraction F1 is ≥ 85%.
+
+---
+
+## 8. Strict Runtime Safety & Scoping Rules (Zero-ReferenceError Mandate)
+
+All agents and developers writing code in KEAOS MUST enforce these three invariant runtime safety rules:
+
+1. **Outer Scope Declaration Invariant in Node Mappings (`nodesWithTheme`, `nodes.map`)**:
+   - In any mapping or transformation callback, EVERY property returned in the resulting node or object MUST be explicitly declared and initialized at the very top of the iteration scope (e.g. `let connectedModelName = null; let inheritedModelName = null;`).
+   - **FORBIDDEN**: Never introduce or assign a variable inside an `if (n.type === 'agentCore')` block if that variable is referenced in the return object, because other node types (`pillar`, `ingestionNode`, `outputDisplayNode`) will skip the block and trigger a fatal `ReferenceError: [variable] is not defined`.
+   - **REQUIRED PATTERN**:
+     ```javascript
+     return (nodes || []).map(n => {
+       // 1. Explicitly initialize all prospective return fields in outer iteration scope
+       let agentCounts = n.data?.attachedCounts;
+       let connectedModelName = null;
+       let inheritedModelName = null;
+       let upstreamAgentNames = [];
+
+       if (n.type === 'agentCore') {
+         // 2. Populate conditionally
+         if (agentCounts.model === 0) {
+           inheritedModelName = ...;
+         }
+       }
+
+       // 3. Safe to return for all node types
+       return { ...n, data: { ...n.data, inheritedModelName, connectedModelName } };
+     });
+     ```
+
+2. **Hook Order & Temporal Dead Zone (TDZ) Invariant**:
+   - Fundamental state refs and core callbacks (`pastRef`, `futureRef`, `takeSnapshot`, `undo`, `redo`) MUST ALWAYS be declared BEFORE any `useEffect` or dependent handler that invokes them or includes them in dependency arrays.
+   - **FORBIDDEN**: Never write a `useEffect(..., [takeSnapshot])` above the `const takeSnapshot = useCallback(...)` definition line.
+
+3. **Mandatory 3-Point Pre-Flight Verification on Every Code Change**:
+   - Before completing any task, check:
+     1. Is every newly introduced variable declared in its immediate enclosing scope?
+     2. Does every alternate branch (`else`, non-agent nodes, uninitialized state) safely evaluate without throwing?
+     3. Are all hook dependencies declared above the hook invocation?
+
