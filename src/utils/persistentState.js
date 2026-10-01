@@ -60,6 +60,27 @@ export function loadCanvasState() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.version === CANVAS_VERSION && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {
+        // Sanitize on startup: ensure no zombie executing or generating states persist across reloads
+        parsed.nodes = parsed.nodes.map(n => {
+          let updatedData = { ...n.data };
+          if (n.type === 'outputNode' && updatedData.status === 'generating') {
+            updatedData.status = updatedData.outputContent ? 'ready' : 'idle';
+          }
+          if (updatedData.isExecuting) {
+            updatedData.isExecuting = false;
+          }
+          return {
+            ...n,
+            data: updatedData
+          };
+        });
+
+        // Ensure edges are not stuck in animated streaming state upon cold start
+        parsed.edges = parsed.edges.map(e => ({
+          ...e,
+          animated: false
+        }));
+
         return parsed;
       }
     }

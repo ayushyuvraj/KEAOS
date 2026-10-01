@@ -160,7 +160,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'model-in',
       type: 'deletable',
-      animated: true,
+      animated: false,
       style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
@@ -170,7 +170,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'tools-in',
       type: 'deletable',
-      animated: true,
+      animated: false,
       style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
@@ -180,7 +180,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'tools-in',
       type: 'deletable',
-      animated: true,
+      animated: false,
       style: { stroke: '#005EB8', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
@@ -190,7 +190,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'mcp-in',
       type: 'deletable',
-      animated: true,
+      animated: false,
       style: { stroke: '#06B6D4', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
@@ -200,7 +200,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'policy-in',
       type: 'deletable',
-      animated: true,
+      animated: false,
       style: { stroke: '#EC4899', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
@@ -210,7 +210,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'memory-in',
       type: 'deletable',
-      animated: true,
+      animated: false,
       style: { stroke: '#8B5CF6', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
@@ -220,7 +220,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'agent-core',
       targetHandle: 'skill-in',
       type: 'deletable',
-      animated: true,
+      animated: false,
       style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
@@ -230,7 +230,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       target: 'node-output-1',
       targetHandle: 'data-in',
       type: 'deletable',
-      animated: true,
+      animated: false,
       style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
     }
   ];
@@ -356,6 +356,34 @@ export default function App() {
     saveCanvasState({ nodes, edges, activeUseCase });
   }, [nodes, edges, activeUseCase]);
 
+  // Synchronize document dark class & propagate isDarkMode to node datasets
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+    setNodes((prevNodes) => {
+      let changed = false;
+      const updated = prevNodes.map((n) => {
+        if (n.data?.isDarkMode !== isDarkMode) {
+          changed = true;
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              isDarkMode
+            }
+          };
+        }
+        return n;
+      });
+      return changed ? updated : prevNodes;
+    });
+  }, [isDarkMode, setNodes]);
+
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const selectedNode = useMemo(() => {
     return nodes.find((n) => n.id === selectedNodeId) || null;
@@ -463,7 +491,7 @@ export default function App() {
               target: newNodeId,
               targetHandle: 'data-in',
               type: 'deletable',
-              animated: true,
+              animated: false,
               style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
             }
           ];
@@ -513,7 +541,7 @@ export default function App() {
               target: 'agent-core',
               targetHandle: 'tools-in',
               type: 'deletable',
-              animated: true,
+              animated: false,
               style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
             }
           ];

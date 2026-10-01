@@ -850,7 +850,7 @@ export default function Inspector({
                     onClick={() => setCustomModelMode(!customModelMode)}
                     className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium transition-colors cursor-pointer"
                   >
-                    {customModelMode ? 'Preset List' : 'Custom Model ID'}
+                    {customModelMode ? 'Standard Models' : 'Custom Model ID'}
                   </button>
                 </div>
               </div>
@@ -1181,30 +1181,42 @@ export default function Inspector({
               />
             </div>
 
-            {nodeData.pillarType === 'skills' && (
+            {(nodeData.pillarType === 'skills' || nodeData.pillarType === 'policies') && (
               <div className={`p-4 ${t.card} rounded-2xl space-y-3.5`}>
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1.5 font-mono flex items-center">
-                    Skill Directives & Output Rules
-                    <InfoTooltip text="Custom instructions and formatting commands injected directly into the LLM when executing this skill." align="right" />
+                  <label className={`text-xs font-semibold uppercase tracking-wider ${nodeData.pillarType === 'policies' ? 'text-purple-600 dark:text-purple-400' : 'text-emerald-600 dark:text-emerald-400'} block mb-1.5 font-mono flex items-center`}>
+                    {nodeData.pillarType === 'policies' ? 'Policy & Guardrail Directives' : 'Skill Directives & Output Rules'}
+                    <InfoTooltip 
+                      text={nodeData.pillarType === 'policies' 
+                        ? 'Custom compliance rules, privacy constraints, and safety guardrails enforced directly by the AI model during execution.'
+                        : 'Custom instructions and formatting commands injected directly into the LLM when executing this skill.'} 
+                      align="right" 
+                    />
                   </label>
                   <textarea
                     rows={3}
                     value={nodeData.customDirective || ''}
                     onChange={(e) => onUpdateNodeData(selectedNode.id, { customDirective: e.target.value })}
-                    placeholder="e.g. Format output as numbered bullet points with exact dollar figures and assignees..."
-                    className={`w-full p-3 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500/30 rounded-xl resize-none transition-all font-mono ${t.input}`}
+                    placeholder={nodeData.pillarType === 'policies'
+                      ? 'e.g. Strictly redact all customer identifiers, enforce NDA restrictions, and verify SOC2 compliance...'
+                      : 'e.g. Format output as numbered bullet points with exact dollar figures and assignees...'}
+                    className={`w-full p-3 text-xs leading-relaxed focus:outline-none focus:ring-2 ${nodeData.pillarType === 'policies' ? 'focus:ring-purple-500/30' : 'focus:ring-emerald-500/30'} rounded-xl resize-none transition-all font-mono ${t.input}`}
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono flex items-center">
-                      Reference Spec Document
-                      <InfoTooltip text="Attach a Word (.docx), TXT, Markdown, or JSON file containing sample outputs and exact specifications for the AI to follow." align="right" />
+                    <label className={`text-xs font-semibold uppercase tracking-wider ${nodeData.pillarType === 'policies' ? 'text-purple-600 dark:text-purple-400' : 'text-emerald-600 dark:text-emerald-400'} font-mono flex items-center`}>
+                      {nodeData.pillarType === 'policies' ? 'Governance / Policy Document' : 'Reference Spec Document'}
+                      <InfoTooltip 
+                        text={nodeData.pillarType === 'policies'
+                          ? 'Attach a Word (.docx), TXT, Markdown, or JSON file containing institutional compliance rules and security policies.'
+                          : 'Attach a Word (.docx), TXT, Markdown, or JSON file containing sample outputs and exact specifications for the AI to follow.'} 
+                        align="right" 
+                      />
                     </label>
                     {nodeData.referenceDoc && (
-                      <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">✓ Attached</span>
+                      <span className={`text-[10px] font-mono ${nodeData.pillarType === 'policies' ? 'text-purple-600 dark:text-purple-400' : 'text-emerald-600 dark:text-emerald-400'} font-semibold`}>✓ Attached</span>
                     )}
                   </div>
 
@@ -1242,13 +1254,17 @@ export default function Inspector({
                       htmlFor={`inspector-skill-file-${selectedNode.id}`}
                       className={`card-pressable flex-1 py-2.5 px-3 border rounded-xl text-xs font-mono font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
                         nodeData.referenceDoc
-                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-300'
+                          ? nodeData.pillarType === 'policies'
+                            ? 'bg-purple-500/15 border-purple-500/40 text-purple-600 dark:text-purple-300'
+                            : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-300'
                           : `${t.subCard} ${t.subText} hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-white`
                       }`}
                     >
                       <Upload className="w-3.5 h-3.5" />
                       <span className="truncate">
-                        {nodeData.referenceDoc ? nodeData.referenceDoc.name : 'Upload Word / Spec File'}
+                        {nodeData.referenceDoc 
+                          ? nodeData.referenceDoc.name 
+                          : (nodeData.pillarType === 'policies' ? 'Upload Policy / Governance File' : 'Upload Word / Spec File')}
                       </span>
                     </label>
 
@@ -1266,7 +1282,9 @@ export default function Inspector({
 
                   {nodeData.referenceDoc?.text && (
                     <div className={`mt-2.5 p-3 ${t.subCard} rounded-xl text-[10px] font-mono ${t.subText} space-y-1`}>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400 block">Extracted Spec Preview:</span>
+                      <span className={`font-semibold ${nodeData.pillarType === 'policies' ? 'text-purple-600 dark:text-purple-400' : 'text-emerald-600 dark:text-emerald-400'} block`}>
+                        {nodeData.pillarType === 'policies' ? 'Extracted Governance Preview:' : 'Extracted Spec Preview:'}
+                      </span>
                       <p className={`line-clamp-3 leading-relaxed ${t.title}`}>
                         {nodeData.referenceDoc.text}
                       </p>

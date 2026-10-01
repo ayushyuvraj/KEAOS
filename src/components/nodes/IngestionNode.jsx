@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { 
   UploadCloud, 
   FileAudio, 
@@ -24,7 +24,6 @@ import {
   FolderOpen
 } from 'lucide-react';
 import { transcribeAudioUniversal, getProviderCredential } from '../../services/llmService';
-import { INITIAL_GOLDEN_DATASET } from '../../constants/goldenDataset';
 
 // Map file extension to human label and icon
 function getFileFormatMeta(fileName = '', mimeType = '') {
@@ -99,9 +98,45 @@ export default function IngestionNode({ id, data = {}, selected }) {
   const [audioUrl, setAudioUrl] = useState(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [customSize, setCustomSize] = useState({
+    width: data.width || 440,
+    height: data.height || 420
+  });
 
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const startManualResize = (e, direction = 'both') => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = customSize.width || 440;
+    const startHeight = customSize.height || 420;
+
+    const onPointerMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+
+      setCustomSize({
+        width: direction === 'vertical' 
+          ? startWidth 
+          : Math.max(340, Math.min(1200, startWidth + deltaX)),
+        height: direction === 'horizontal' 
+          ? startHeight 
+          : Math.max(220, Math.min(900, startHeight + deltaY))
+      });
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
 
   // Sync external content update if provided
   useEffect(() => {
@@ -231,19 +266,6 @@ export default function IngestionNode({ id, data = {}, selected }) {
     setStatusMessage(`Manual text applied (${textInput.length} chars)`);
   };
 
-  // Handle preset sample selection
-  const handleSelectSample = (sample) => {
-    setCurrentFile({
-      name: `${sample.caseName.replace(/\s+/g, '_').toLowerCase()}.txt`,
-      size: `${(sample.inputTranscript.length / 1024).toFixed(1)} KB`
-    });
-    setTextInput(sample.inputTranscript);
-    broadcastUpdate(sample.inputTranscript, {
-      name: `${sample.caseName.replace(/\s+/g, '_').toLowerCase()}.txt`,
-      size: `${(sample.inputTranscript.length / 1024).toFixed(1)} KB`
-    }, 'ready');
-    setStatusMessage(`Loaded "${sample.caseName}" preset`);
-  };
 
   // Clear ingested data
   const handleClear = () => {
@@ -395,12 +417,64 @@ export default function IngestionNode({ id, data = {}, selected }) {
   // 2. EXPANDED VIEWPORT CARD (Rich File Upload & Audio Ingestion)
   // -------------------------------------------------------------
   return (
-    <div className={`relative w-[420px] rounded-2xl border-2 transition-all duration-200 shadow-2xl select-none morph-apple-motion ${
-      isDarkMode 
-        ? 'bg-[#14161F] border-[#2C3142] text-white shadow-[0_20px_50px_rgba(0,0,0,0.7)]' 
-        : 'bg-white border-[#CBD5E1] text-[#0B0F19] shadow-[0_16px_36px_rgba(0,30,80,0.12)]'
-    } ${selected ? 'ring-2 ring-[#0091DA]' : ''}`}>
+    <div 
+      onWheel={(e) => e.stopPropagation()}
+      style={{
+        width: `${customSize.width}px`,
+        height: `${customSize.height}px`,
+        minWidth: '340px',
+        minHeight: '240px'
+      }}
+      className={`nowheel relative flex flex-col rounded-2xl border-2 transition-colors duration-200 shadow-2xl select-none morph-apple-motion ${
+        isDarkMode 
+          ? 'bg-[#14161F] border-[#2C3142] text-white shadow-[0_20px_50px_rgba(0,0,0,0.7)]' 
+          : 'bg-white border-[#CBD5E1] text-[#0B0F19] shadow-[0_16px_36px_rgba(0,30,80,0.12)]'
+      } ${selected ? 'ring-2 ring-[#0091DA]' : ''}`}>
       
+      {/* Dynamic Boundary Resizer Controls */}
+      <NodeResizer 
+        minWidth={340}
+        minHeight={240}
+        maxWidth={1200}
+        maxHeight={950}
+        isVisible={true}
+        lineClassName="!border-[#0091DA] hover:!border-2 !opacity-40 hover:!opacity-100 transition-opacity"
+        handleClassName="!w-2.5 !h-2.5 !bg-[#0091DA] !border-2 !border-white !rounded-none hover:!scale-125 transition-transform"
+        onResize={(_, params) => {
+          setCustomSize({
+            width: params.width,
+            height: params.height
+          });
+        }}
+      />
+
+      {/* Interactive Drag Handles on Boundaries */}
+      <div
+        onPointerDown={(e) => startManualResize(e, 'horizontal')}
+        className="absolute top-0 right-0 w-2.5 h-full cursor-ew-resize z-20 group flex items-center justify-center"
+        title="Drag boundary horizontally"
+      >
+        <div className="w-0.5 h-8 bg-transparent group-hover:bg-[#0091DA] rounded-full transition-colors" />
+      </div>
+
+      <div
+        onPointerDown={(e) => startManualResize(e, 'vertical')}
+        className="absolute bottom-0 left-0 w-full h-2.5 cursor-ns-resize z-20 group flex items-center justify-center"
+        title="Drag boundary vertically"
+      >
+        <div className="h-0.5 w-8 bg-transparent group-hover:bg-[#0091DA] rounded-full transition-colors" />
+      </div>
+
+      <div
+        onPointerDown={(e) => startManualResize(e, 'both')}
+        className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-30 flex items-center justify-center text-slate-400 hover:text-[#0091DA] transition-colors"
+        title="Drag corner to resize boundary"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" className="fill-current">
+          <path d="M8 2L2 8M8 5L5 8M8 8L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </div>
+
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -491,7 +565,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
         </div>
       </div>
 
-      {/* Tab Switcher: Upload File / Direct Text / Enterprise Presets */}
+      {/* Tab Switcher: Upload File / Direct Text */}
       <div className={`px-3 pt-2.5 flex items-center gap-1.5 border-b text-[11px] font-mono ${
         isDarkMode ? 'border-[#2C3142] bg-[#14161F]' : 'border-slate-200 bg-white'
       }`}>
@@ -515,20 +589,13 @@ export default function IngestionNode({ id, data = {}, selected }) {
         >
           Raw Text
         </button>
-        <button
-          onClick={() => setActiveTab('samples')}
-          className={`px-3 py-1.5 rounded-t-lg font-bold transition-all border-b-2 ${
-            activeTab === 'samples'
-              ? 'border-[#0091DA] text-[#0091DA] bg-[#0091DA]/10'
-              : 'border-transparent text-slate-400 hover:text-white'
-          }`}
-        >
-          Enterprise Presets
-        </button>
       </div>
 
       {/* Main Body */}
-      <div className="p-3.5 space-y-3">
+      <div 
+        onWheel={(e) => e.stopPropagation()}
+        className="nowheel nodrag p-3.5 space-y-3 flex-1 overflow-y-auto"
+      >
         {/* Tab 1: Upload Source (Drag-and-Drop or File Picker) */}
         {activeTab === 'upload' && (
           <div className="space-y-3">
@@ -543,10 +610,10 @@ export default function IngestionNode({ id, data = {}, selected }) {
               <div className="w-10 h-10 rounded-full bg-[#0091DA]/15 text-[#0091DA] mx-auto flex items-center justify-center mb-2">
                 <UploadCloud className="w-5 h-5" />
               </div>
-              <p className="text-xs font-bold mb-1">
+              <p className={`text-xs font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                 Drop audio, doc, or data file here
               </p>
-              <p className="text-[10px] text-slate-400">
+              <p className={`text-[10px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 Supports <strong className="text-[#0091DA]">MP3, WAV, M4A</strong>, PDF, DOCX, CSV, TXT, JSON
               </p>
             </div>
@@ -554,7 +621,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
             {/* If Audio File is active: Audio Waveform Preview Bar */}
             {meta.type === 'audio' && (
               <div className={`p-3 rounded-xl border flex items-center justify-between ${
-                isDarkMode ? 'bg-[#181B26] border-[#2C3142]' : 'bg-slate-50 border-slate-200'
+                isDarkMode ? 'bg-[#181B26] border-[#2C3142]' : 'bg-slate-50 border-slate-300'
               }`}>
                 <div className="flex items-center gap-2">
                   <button
@@ -564,10 +631,10 @@ export default function IngestionNode({ id, data = {}, selected }) {
                     {isPlayingAudio ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
                   </button>
                   <div>
-                    <div className="text-xs font-bold text-white truncate max-w-[200px]">
+                    <div className={`text-xs font-bold truncate max-w-[200px] ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                       {currentFile?.name}
                     </div>
-                    <div className="text-[10px] font-mono text-slate-400">
+                    <div className={`text-[10px] font-mono ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                       {currentFile?.size} • Audio Track
                     </div>
                   </div>
@@ -575,7 +642,11 @@ export default function IngestionNode({ id, data = {}, selected }) {
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-2.5 py-1 text-[10px] font-mono font-bold bg-white/10 hover:bg-white/20 rounded text-slate-300 hover:text-white transition-colors"
+                  className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded transition-colors ${
+                    isDarkMode 
+                      ? 'bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white' 
+                      : 'bg-slate-200 hover:bg-slate-300 text-slate-700 hover:text-black'
+                  }`}
                 >
                   Change Audio
                 </button>
@@ -590,12 +661,13 @@ export default function IngestionNode({ id, data = {}, selected }) {
             <textarea
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
+              onWheel={(e) => e.stopPropagation()}
               placeholder="Paste raw transcript, meeting notes, customer email, or policy directives here..."
               rows={6}
-              className={`w-full p-2.5 text-xs font-mono rounded-xl border resize-none focus:outline-none transition-colors ${
+              className={`nowheel nodrag w-full p-2.5 text-xs font-mono rounded-xl border resize-none focus:outline-none transition-colors ${
                 isDarkMode 
                   ? 'bg-[#181B26] border-[#2C3142] text-white focus:border-[#0091DA]' 
-                  : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#00338D]'
+                  : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#00338D]'
               }`}
             />
             <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
@@ -611,34 +683,6 @@ export default function IngestionNode({ id, data = {}, selected }) {
           </div>
         )}
 
-        {/* Tab 3: Enterprise Presets */}
-        {activeTab === 'samples' && (
-          <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
-            {INITIAL_GOLDEN_DATASET.map((sample) => (
-              <div
-                key={sample.id}
-                onClick={() => handleSelectSample(sample)}
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                  isDarkMode 
-                    ? 'bg-[#181B26] border-[#2C3142] hover:border-[#0091DA] hover:bg-[#1E2230]' 
-                    : 'bg-slate-50 border-slate-200 hover:border-[#00338D] hover:bg-white'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-white tracking-tight">
-                    {sample.caseName}
-                  </span>
-                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#0091DA]/20 text-[#0091DA] font-bold">
-                    {sample.category}
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">
-                  {sample.inputTranscript.slice(0, 140)}...
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Active Content Preview Ribbon */}
         {fileContent && (

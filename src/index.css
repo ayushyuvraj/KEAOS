@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "@xyflow/react/dist/style.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Institutional Brand Primary Colors */
   --brand-blue: #00338D;

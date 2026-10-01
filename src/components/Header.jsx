@@ -31,8 +31,8 @@ export default function Header({
 }) {
   const tabs = [
     { id: 'canvas', label: 'Editor' },
-    { id: 'simulator', label: 'Executions' },
     { id: 'evaluation', label: 'Evaluations' },
+    { id: 'simulator', label: 'Executions' },
     { id: 'code', label: 'Export Code' }
   ];
 

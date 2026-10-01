@@ -300,6 +300,20 @@ export default function CanvasExecutionDrawer({
     return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
   }, [handleRunAgent]);
 
+  // Listen for cancel execution / stop stream trigger
+  useEffect(() => {
+    const handleCancel = () => {
+      setIsRunning(false);
+      setIsChatRunning(false);
+      setCurrentChatStep(null);
+      if (onExecutionStateChange) {
+        onExecutionStateChange({ isExecuting: false, step: '' });
+      }
+    };
+    window.addEventListener('keaos:cancel-execution', handleCancel);
+    return () => window.removeEventListener('keaos:cancel-execution', handleCancel);
+  }, [onExecutionStateChange]);
+
   // Keep transcriptText in sync when user uploads or pastes in Ingestion Node on canvas
   useEffect(() => {
     const handleIngestionUpdated = (e) => {

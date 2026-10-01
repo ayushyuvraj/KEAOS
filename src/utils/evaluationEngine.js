@@ -39,9 +39,27 @@ export async function runEvaluationSuite({
     }
   }
 
-  const hasPiiPolicy = attachedPillars.some(p => p.type === 'policies' || (p.name && p.name.toLowerCase().includes('pii')));
-  const hasActionSkills = attachedPillars.some(p => (p.id && p.id.includes('action')) || (p.name && p.name.toLowerCase().includes('action')));
-  const hasSummarizer = attachedPillars.some(p => (p.id && p.id.includes('summarizer')) || (p.name && p.name.toLowerCase().includes('summarizer')));
+  const policyNodes = attachedPillars.filter(p => p.type === 'policies');
+  const skillNodes = attachedPillars.filter(p => p.type === 'skills');
+  const hasPiiPolicy = policyNodes.length > 0 || attachedPillars.some(p => (p.name && p.name.toLowerCase().includes('pii')));
+
+  const policiesDirectiveText = policyNodes.length > 0
+    ? `\n[MANDATORY ENTERPRISE GUARDRAILS & POLICIES (${policyNodes.length} active policies connected)]:
+CRITICAL COMPLIANCE DIRECTIVE: You MUST strictly enforce the following institutional policies and safety guardrails:
+${policyNodes.map((p, idx) => `Policy ${idx + 1}: "${p.name}" (${p.description || 'Enterprise Policy'})
+- Guardrail Enforcement Rules: ${JSON.stringify(p.config || {})}
+${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.referenceDoc?.text ? `- Reference Governance Document (${p.referenceDoc.name}):\n"""\n${p.referenceDoc.text}\n"""\n` : ''}`).join('\n')}`
+    : '';
+
+  const skillsDirectiveText = skillNodes.length > 0
+    ? `\n[ATTACHED SKILL DIRECTIVES & CAPABILITIES (${skillNodes.length} active skills connected)]:
+The following skills are bound to this agent on the visual canvas. You MUST execute all of these skills:
+${skillNodes.map((s, idx) => `Skill ${idx + 1}: "${s.name}" (${s.description || 'Custom Skill'})
+- Config & Rules: ${JSON.stringify(s.config || {})}
+${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.referenceDoc?.text ? `- Reference Specification Document (${s.referenceDoc.name}):\n"""\n${s.referenceDoc.text}\n"""` : ''}`).join('\n')}`
+    : '';
+
+  const evaluationSystemPrompt = `${agentPrompt || 'You are an institutional executive meeting intelligence assistant.'}\n${policiesDirectiveText}\n${skillsDirectiveText}`;
 
   for (let i = 0; i < dataset.length; i++) {
     const testCase = dataset[i];
@@ -63,7 +81,7 @@ export async function runEvaluationSuite({
           provider,
           modelId,
           transcript: testCase.inputTranscript,
-          systemPrompt: agentPrompt,
+          systemPrompt: evaluationSystemPrompt,
           temperature: 0.2,
           forceJsonSchema: true
         });

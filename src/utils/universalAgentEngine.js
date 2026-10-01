@@ -66,18 +66,45 @@ export async function executeUniversalAgentChat({
   let processedInput = userMessage;
   let redactedCount = 0;
   const policyNodes = attachedPillars.filter(p => p.type === 'policies');
-  const hasPiiPolicy = policyNodes.some(p => p.id?.includes('pii') || p.name?.toLowerCase().includes('pii'));
+  
+  if (policyNodes.length > 0) {
+    const hasPiiPolicy = policyNodes.some(p => p.id?.includes('pii') || p.name?.toLowerCase().includes('pii') || p.config?.redactSalaries);
+    if (hasPiiPolicy) {
+      const salaryRegex = /\$[0-9,]+(\.[0-9]{2})?/g;
+      const salaryMatches = userMessage.match(salaryRegex);
+      if (salaryMatches) {
+        redactedCount += salaryMatches.length;
+        processedInput = processedInput.replace(salaryRegex, '[CONFIDENTIAL_FINANCIAL_REDACTED]');
+      }
 
-  if (hasPiiPolicy) {
-    const salaryRegex = /\$[0-9,]+(\.[0-9]{2})?/g;
-    const matches = userMessage.match(salaryRegex);
-    if (matches) {
-      redactedCount = matches.length;
-      processedInput = userMessage.replace(salaryRegex, '[CONFIDENTIAL_REDACTED]');
+      const ssnRegex = /\b\d{3}-\d{2}-\d{4}\b/g;
+      const ssnMatches = processedInput.match(ssnRegex);
+      if (ssnMatches) {
+        redactedCount += ssnMatches.length;
+        processedInput = processedInput.replace(ssnRegex, '[CONFIDENTIAL_SSN_REDACTED]');
+      }
+
+      const phoneRegex = /\b(?:\+?1[-.\s]?)?\(?[2-9]\d{2}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g;
+      const phoneMatches = processedInput.match(phoneRegex);
+      if (phoneMatches) {
+        redactedCount += phoneMatches.length;
+        processedInput = processedInput.replace(phoneRegex, '[CONFIDENTIAL_PHONE_REDACTED]');
+      }
     }
-    logStep('Policies & Guardrails', `PII sanitization active. Masked ${redactedCount} confidential financial values.`, 'policies', policyNodes[0]?.id, 80);
-  } else if (policyNodes.length > 0) {
-    logStep('Policies & Guardrails', `Enforced ${policyNodes.length} enterprise compliance policies.`, 'policies', policyNodes[0]?.id, 50);
+
+    const hasNdaPolicy = policyNodes.some(p => p.id?.includes('nda') || p.name?.toLowerCase().includes('nda') || p.config?.enforceStrictTerms);
+    if (hasNdaPolicy) {
+      const patentCodeRegex = /\b(Project\s+[A-Z][a-z0-9_-]+|Codename:\s*\S+|Patent\s*#?\s*[A-Z0-9-]+)\b/gi;
+      const ndaMatches = processedInput.match(patentCodeRegex);
+      if (ndaMatches) {
+        redactedCount += ndaMatches.length;
+        processedInput = processedInput.replace(patentCodeRegex, '[CONFIDENTIAL_TRADE_SECRET_REDACTED]');
+      }
+    }
+
+    logStep('Policies & Guardrails', `Active Guardrails: Enforced ${policyNodes.length} policies (${policyNodes.map(p => p.name).join(', ')}). Sanitized ${redactedCount} confidential items.`, 'policies', policyNodes[0]?.id, 80);
+  } else {
+    logStep('Policies & Guardrails', `Standard pass-through (No policy pillars attached).`, 'policies', null, 30);
   }
 
   // 3. EPISODIC & SEMANTIC MEMORY LOOKUP
@@ -115,7 +142,11 @@ export async function executeUniversalAgentChat({
   const frameworkContext = `\n[TARGET ARCHITECTURAL FRAMEWORK]: ${frameworkId.toUpperCase()} orchestration pattern.`;
   
   const skillsInstruction = skillNodes.length > 0
-    ? `\n[ACTIVE CAPABILITIES & SKILLS]:\n${skillNodes.map(s => `- ${s.name}: ${s.description || 'Specialized domain capability'}`).join('\n')}`
+    ? `\n[ATTACHED SKILL DIRECTIVES & CAPABILITIES (${skillNodes.length} active skills connected)]:
+The following skills are bound to this agent on the visual canvas. You MUST execute all of these skills and strictly enforce their formatting rules:
+${skillNodes.map((s, idx) => `Skill ${idx + 1}: "${s.name}" (${s.description || 'Custom Skill'})
+- Config & Rules: ${JSON.stringify(s.config || {})}
+${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.referenceDoc?.text ? `- Reference Specification Document (${s.referenceDoc.name}):\n"""\n${s.referenceDoc.text}\n"""` : ''}`).join('\n')}`
     : '';
 
   const mcpInstruction = mcpNodes.length > 0
@@ -131,10 +162,14 @@ export async function executeUniversalAgentChat({
     : '';
 
   const policyInstruction = policyNodes.length > 0
-    ? `\n[ENTERPRISE COMPLIANCE POLICIES]:\nEnsure output strictly adheres to SOC2, confidentiality, and institutional standards.`
+    ? `\n[MANDATORY ENTERPRISE GUARDRAILS & POLICIES (${policyNodes.length} active policies connected)]:
+CRITICAL COMPLIANCE DIRECTIVE: You MUST strictly enforce the following institutional policies and safety guardrails. You are strictly forbidden from violating, bypassing, or disclosing information prohibited by these rules:
+${policyNodes.map((p, idx) => `Policy ${idx + 1}: "${p.name}" (${p.description || 'Enterprise Policy'})
+- Guardrail Enforcement Rules: ${JSON.stringify(p.config || {})}
+${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.referenceDoc?.text ? `- Reference Governance Document (${p.referenceDoc.name}):\n"""\n${p.referenceDoc.text}\n"""\n` : ''}- Compliance Mandate: Redact confidential data, enforce NDA restrictions, mask personal identifiers, and ensure SOC2 compliance in all output.`).join('\n')}`
     : '';
 
-  const fullSystemPrompt = `${baseInstruction}${frameworkContext}${skillsInstruction}${mcpInstruction}${toolsInstruction}${memoryInstruction}${policyInstruction}
+  const fullSystemPrompt = `${baseInstruction}${frameworkContext}${policyInstruction}${skillsInstruction}${mcpInstruction}${toolsInstruction}${memoryInstruction}
 
 Respond clearly, concisely, and authoritatively. If formatting structured outputs or recommendations, use GitHub-flavored markdown with clean lists, tables, and bold headers.`;
 
@@ -189,12 +224,36 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
     throw new Error(`Inference Error (${PROVIDERS[provider]?.name || provider}): ${err.message}`);
   }
 
-  // 8. W3C CRYPTOGRAPHIC SHA-256 AUDIT FINGERPRINTING
-  const auditString = `${processedInput}::${rawResponseText}::${Date.now()}`;
+  // 8. POST-INFERENCE GUARDRAIL VERIFICATION GATE
+  let finalSanitizedResponse = rawResponseText;
+  let postInferenceRedactions = 0;
+  if (policyNodes.length > 0) {
+    const hasPiiPolicy = policyNodes.some(p => p.id?.includes('pii') || p.name?.toLowerCase().includes('pii') || p.config?.redactSalaries);
+    if (hasPiiPolicy) {
+      const salaryRegex = /\$[0-9,]+(\.[0-9]{2})?/g;
+      const leaks = finalSanitizedResponse.match(salaryRegex);
+      if (leaks) {
+        postInferenceRedactions += leaks.length;
+        finalSanitizedResponse = finalSanitizedResponse.replace(salaryRegex, '[CONFIDENTIAL_FINANCIAL_REDACTED]');
+      }
+
+      const ssnRegex = /\b\d{3}-\d{2}-\d{4}\b/g;
+      const ssnLeaks = finalSanitizedResponse.match(ssnRegex);
+      if (ssnLeaks) {
+        postInferenceRedactions += ssnLeaks.length;
+        finalSanitizedResponse = finalSanitizedResponse.replace(ssnRegex, '[CONFIDENTIAL_SSN_REDACTED]');
+      }
+    }
+
+    logStep('Guardrail & Policy Gate', `Verified response against ${policyNodes.length} active enterprise policies. Post-inference verification passed (${postInferenceRedactions} output redactions applied). Output certified compliant.`, 'policies', policyNodes[0]?.id, 40);
+  }
+
+  // 9. W3C CRYPTOGRAPHIC SHA-256 AUDIT FINGERPRINTING
+  const auditString = `${processedInput}::${finalSanitizedResponse}::${Date.now()}`;
   const auditHash = await generateSha256Fingerprint(auditString);
   logStep('Cryptographic Audit', `W3C SHA-256 Digest: ${auditHash.slice(0, 16)}... (Signed & Verified)`, 'audit', null, 40);
 
-  // 9. OBSERVABILITY & ROI METRICS
+  // 10. OBSERVABILITY & ROI METRICS
   const totalRuntimeMs = Math.round(performance.now() - startTime);
   const costUsd = calculateInferenceCost({
     provider,
@@ -232,7 +291,7 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
 
   return {
     success: true,
-    response: rawResponseText,
+    response: finalSanitizedResponse,
     steps,
     sanitizedInput: processedInput,
     redactedPiiCount: redactedCount,

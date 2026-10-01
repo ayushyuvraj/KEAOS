@@ -39,7 +39,8 @@ import {
   PanelRight,
   Map as MapIcon,
   GripVertical,
-  Play
+  Play,
+  Square
 } from 'lucide-react';
 
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
@@ -286,7 +287,7 @@ function CanvasInner({
     return () => window.removeEventListener('keaos:spawn-ingest-node', handleSpawnIngest);
   }, [nodes, setNodes, setEdges, onSelectNode]);
 
-  // Update output nodes to 'generating' state during execution
+  // Update output nodes state during execution and auto-reset when idle
   useEffect(() => {
     if (executionState.isExecuting) {
       setNodes((nds) =>
@@ -303,8 +304,48 @@ function CanvasInner({
           return n;
         })
       );
+    } else {
+      // When execution is false, reset any output node that was left in generating state
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.type === 'outputNode' && n.data?.status === 'generating') {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                status: n.data?.outputContent ? 'ready' : 'idle'
+              }
+            };
+          }
+          return n;
+        })
+      );
     }
   }, [executionState.isExecuting, setNodes]);
+
+  // Global listener to stop streaming and cancel active execution
+  useEffect(() => {
+    const handleCancelExecution = () => {
+      setExecutionState({ isExecuting: false, step: '' });
+      setNodes((nds) =>
+        nds.map((n) => {
+          let updated = { ...n.data };
+          if (n.type === 'outputNode' && updated.status === 'generating') {
+            updated.status = updated.outputContent ? 'ready' : 'idle';
+          }
+          if (updated.isExecuting) {
+            updated.isExecuting = false;
+          }
+          return { ...n, data: updated };
+        })
+      );
+      setToastNotification('⏹ Stream & Execution Stopped');
+      setTimeout(() => setToastNotification(null), 2000);
+    };
+
+    window.addEventListener('keaos:cancel-execution', handleCancelExecution);
+    return () => window.removeEventListener('keaos:cancel-execution', handleCancelExecution);
+  }, [setNodes]);
 
   // Drag handler for summary map
   const handleMouseDownMiniMap = (e) => {
@@ -421,6 +462,32 @@ function CanvasInner({
       onSelectNode(null);
     }
   }, [takeSnapshot, setNodes, setEdges, onSelectNode]);
+
+  // Listener to disconnect Foundation Model from Agent
+  useEffect(() => {
+    const handleDisconnectModel = (e) => {
+      const agentId = e.detail?.agentId;
+      if (!agentId) return;
+      takeSnapshot();
+      setEdges((eds) => eds.filter((ed) => !(ed.target === agentId && ed.targetHandle === 'model-in')));
+      setToastNotification('🔌 Disconnected Model from Agent');
+      setTimeout(() => setToastNotification(null), 2000);
+    };
+
+    window.addEventListener('keaos:disconnect-model', handleDisconnectModel);
+    return () => window.removeEventListener('keaos:disconnect-model', handleDisconnectModel);
+  }, [takeSnapshot, setEdges]);
+
+  // Listener to delete node via event
+  useEffect(() => {
+    const handleDeleteEvent = (e) => {
+      const nodeId = e.detail?.nodeId;
+      if (nodeId) handleDeleteNode(nodeId);
+    };
+
+    window.addEventListener('keaos:delete-node', handleDeleteEvent);
+    return () => window.removeEventListener('keaos:delete-node', handleDeleteEvent);
+  }, [handleDeleteNode]);
 
   // Global keyboard listener for Delete / Backspace node deletion
   useEffect(() => {
@@ -929,6 +996,13 @@ function CanvasInner({
         (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode' && (executionState.step === 'Complete' || executionState.step === 'Starting'))
       );
 
+      // Only animate edges when there is active execution or streaming in progress
+      const isEdgeStreaming = executionState.isExecuting && (
+        isSourceActive ||
+        (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode') ||
+        (sourceNode?.data?.pillarType === 'model' && targetNode?.type === 'agentCore')
+      );
+
       const activeColor = sourceNode?.data?.pillarType 
         ? (PILLARS[sourceNode.data.pillarType]?.color || '#0091DA') 
         : (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') 
@@ -937,7 +1011,7 @@ function CanvasInner({
 
       return {
         ...edge,
-        animated: isDeactivated ? false : true,
+        animated: isDeactivated ? false : Boolean(isEdgeStreaming),
         style: {
           ...edge.style,
           stroke: isSourceActive ? activeColor : (isDeactivated ? deactivatedStroke : originalStroke),
@@ -969,7 +1043,7 @@ function CanvasInner({
         </div>
       )}
 
-      {/* Top-Left Prominent Canvas Action Overlay: Execute Workflow */}
+      {/* Top-Left Prominent Canvas Action Overlay: Execute Workflow & Cancel */}
       <div className="absolute top-4 left-6 z-20 flex items-center gap-3">
         <button
           onClick={() => {
@@ -1008,6 +1082,18 @@ function CanvasInner({
             </>
           )}
         </button>
+
+        {/* If executing or any output node is generating, display STOP / CLOSE STREAM button */}
+        {(executionState.isExecuting || (nodes || []).some(n => n.type === 'outputNode' && n.data?.status === 'generating')) && (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('keaos:cancel-execution'))}
+            className="btn-tactile px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2 shadow-2xl bg-red-600 hover:bg-red-700 text-white border border-red-400 cursor-pointer animate-in fade-in duration-150 active:scale-95"
+            title="Stop stream and cancel active execution"
+          >
+            <Square className="w-3.5 h-3.5 fill-white" />
+            <span>Stop / Close Stream</span>
+          </button>
+        )}
       </div>
 
       {/* Top-Right Minimal Vertical Action Stack (Matching Reference) */}

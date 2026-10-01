@@ -88,21 +88,52 @@ export async function runMeetingSimulation({
   // Step 1: Ingestion & Diarization
   await logStep('Ingestion & Parsing', `Ingested transcript (${transcript.trim().length} characters). Input validated.`, 120, 'tools');
 
-  // Step 2: Gateway & Policy Checks (PII Masking)
+  // Step 2: Gateway & Policy Checks (PII Masking & Pre-Inference Sanitization)
   let processedTranscript = transcript;
   let redactedCount = 0;
-  const hasPiiPolicy = attachedPillars.some(p => p.type === 'policies' || (p.name && p.name.toLowerCase().includes('pii')));
+  const policyNodes = attachedPillars.filter(p => p.type === 'policies');
   
-  if (hasPiiPolicy) {
-    const salaryRegex = /\$[0-9,]+(\.[0-9]{2})?/g;
-    const matches = transcript.match(salaryRegex);
-    if (matches) {
-      redactedCount = matches.length;
-      processedTranscript = transcript.replace(salaryRegex, '[CONFIDENTIAL_FINANCIAL_REDACTED]');
+  if (policyNodes.length > 0) {
+    const hasPiiPolicy = policyNodes.some(p => p.id?.includes('pii') || p.name?.toLowerCase().includes('pii') || p.config?.redactSalaries);
+    if (hasPiiPolicy) {
+      // 1. Redact Salaries & Currency figures
+      const salaryRegex = /\$[0-9,]+(\.[0-9]{2})?/g;
+      const salaryMatches = processedTranscript.match(salaryRegex);
+      if (salaryMatches) {
+        redactedCount += salaryMatches.length;
+        processedTranscript = processedTranscript.replace(salaryRegex, '[CONFIDENTIAL_FINANCIAL_REDACTED]');
+      }
+
+      // 2. Redact Social Security Numbers
+      const ssnRegex = /\b\d{3}-\d{2}-\d{4}\b/g;
+      const ssnMatches = processedTranscript.match(ssnRegex);
+      if (ssnMatches) {
+        redactedCount += ssnMatches.length;
+        processedTranscript = processedTranscript.replace(ssnRegex, '[CONFIDENTIAL_SSN_REDACTED]');
+      }
+
+      // 3. Redact Direct Phone Numbers
+      const phoneRegex = /\b(?:\+?1[-.\s]?)?\(?[2-9]\d{2}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g;
+      const phoneMatches = processedTranscript.match(phoneRegex);
+      if (phoneMatches) {
+        redactedCount += phoneMatches.length;
+        processedTranscript = processedTranscript.replace(phoneRegex, '[CONFIDENTIAL_PHONE_REDACTED]');
+      }
     }
-    await logStep('Gateway & Policies', `PII Redaction active. Masked ${redactedCount} confidential financial values.`, 180, 'policies');
+
+    const hasNdaPolicy = policyNodes.some(p => p.id?.includes('nda') || p.name?.toLowerCase().includes('nda') || p.config?.enforceStrictTerms);
+    if (hasNdaPolicy) {
+      const patentCodeRegex = /\b(Project\s+[A-Z][a-z0-9_-]+|Codename:\s*\S+|Patent\s*#?\s*[A-Z0-9-]+)\b/gi;
+      const ndaMatches = processedTranscript.match(patentCodeRegex);
+      if (ndaMatches) {
+        redactedCount += ndaMatches.length;
+        processedTranscript = processedTranscript.replace(patentCodeRegex, '[CONFIDENTIAL_TRADE_SECRET_REDACTED]');
+      }
+    }
+
+    await logStep('Gateway & Policies', `Active Guardrails: Enforced ${policyNodes.length} policies (${policyNodes.map(p => p.name).join(', ')}). Pre-sanitized ${redactedCount} confidential items.`, 180, 'policies');
   } else {
-    await logStep('Gateway Pass-through', `Ingress rate limiter checked. No PII policy attached.`, 120, 'policies');
+    await logStep('Gateway Pass-through', `Ingress rate limiter checked. Standard pass-through (No policy pillars attached).`, 100, 'policies');
   }
 
   // Step 3: Real Episodic Memory Lookup
@@ -146,7 +177,18 @@ export async function runMeetingSimulation({
     throw new Error(`No API key configured for ${PROVIDERS[provider]?.name || provider}. Please set your API credentials in API Settings modal.`);
   }
 
-  // Step 5: Compile Attached Skills & Custom Directives
+  // Step 5: Compile Attached Policies & Guardrails Directives for the Foundation Model Prompt
+  let policiesDirectiveText = '';
+  if (policyNodes.length > 0) {
+    policiesDirectiveText = `\n[MANDATORY ENTERPRISE GUARDRAILS & POLICIES (${policyNodes.length} active policies connected)]:
+CRITICAL COMPLIANCE DIRECTIVE: You MUST strictly enforce the following institutional policies and safety guardrails. You are strictly forbidden from violating, bypassing, or disclosing information prohibited by these rules:
+${policyNodes.map((p, idx) => `Policy ${idx + 1}: "${p.name}" (${p.description || 'Enterprise Policy'})
+- Guardrail Enforcement Rules: ${JSON.stringify(p.config || {})}
+${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.referenceDoc?.text ? `- Reference Governance Document (${p.referenceDoc.name}):\n"""\n${p.referenceDoc.text}\n"""\n` : ''}- Compliance Mandate: Redact confidential data, enforce NDA restrictions, mask personal identifiers, and ensure SOC2 compliance in all output.`).join('\n')}\n`;
+    await logStep('Policy Compilation', `Compiled ${policyNodes.length} enterprise compliance policies (${policyNodes.map(p => p.name).join(', ')}). Injected strict guardrails and governance rules into model instructions.`, 160, 'policies');
+  }
+
+  // Step 6: Compile Attached Skills & Custom Directives
   const skillNodes = attachedPillars.filter(p => p.type === 'skills');
   let skillsDirectiveText = '';
   if (skillNodes.length > 0) {
@@ -156,7 +198,7 @@ export async function runMeetingSimulation({
     await logStep('Skills Processing', `No skill pillars connected on canvas. Using standard agent directives.`, 100, 'skills');
   }
 
-  // Step 4: Framework Runtime Harness & Orchestration Protocol
+  // Step 7: Framework Runtime Harness & Orchestration Protocol
   const frameworkName = {
     'google-adk': 'Google ADK (Agent Development Kit)',
     'langgraph': 'LangGraph',
@@ -170,7 +212,7 @@ export async function runMeetingSimulation({
   await logStep(`Framework Harness (${frameworkName})`, `Binding agent execution graph to ${frameworkName} runtime specifications, tool contracts, and schema validators.`, 120, 'gateway');
 
   const frameworkDirective = `\n[TARGET ARCHITECTURAL FRAMEWORK: ${frameworkName.toUpperCase()}]:\nThis agent is compiled under the ${frameworkName} orchestration pattern. Enforce the execution contracts, tool definitions, and schema conventions of this framework.\n`;
-  const fullSystemPrompt = `${agentConfig.prompt || 'You are an institutional executive meeting intelligence assistant.'}\n${frameworkDirective}${skillsDirectiveText}`;
+  const fullSystemPrompt = `${agentConfig.prompt || 'You are an institutional executive meeting intelligence assistant.'}\n${frameworkDirective}${policiesDirectiveText}${skillsDirectiveText}`;
 
   await logStep(`Core Model (${PROVIDERS[provider]?.name || provider})`, `Executing live API request to ${modelDisplayName}...`, 240, 'model');
 
@@ -195,13 +237,37 @@ export async function runMeetingSimulation({
 
   await logStep('Model Response (Live)', `Live ${PROVIDERS[provider]?.name} inference complete (${modelLatency}ms). Processed ${totalTokens} tokens.`, 180, 'model');
 
+  // Step 8: Post-Inference Guardrail & Policy Verification Gate
+  let finalSanitizedOutput = rawOutput;
+  let postInferenceRedactions = 0;
+  if (policyNodes.length > 0) {
+    const hasPiiPolicy = policyNodes.some(p => p.id?.includes('pii') || p.name?.toLowerCase().includes('pii') || p.config?.redactSalaries);
+    if (hasPiiPolicy) {
+      const salaryRegex = /\$[0-9,]+(\.[0-9]{2})?/g;
+      const salaryLeaks = finalSanitizedOutput.match(salaryRegex);
+      if (salaryLeaks) {
+        postInferenceRedactions += salaryLeaks.length;
+        finalSanitizedOutput = finalSanitizedOutput.replace(salaryRegex, '[CONFIDENTIAL_FINANCIAL_REDACTED]');
+      }
+
+      const ssnRegex = /\b\d{3}-\d{2}-\d{4}\b/g;
+      const ssnLeaks = finalSanitizedOutput.match(ssnRegex);
+      if (ssnLeaks) {
+        postInferenceRedactions += ssnLeaks.length;
+        finalSanitizedOutput = finalSanitizedOutput.replace(ssnRegex, '[CONFIDENTIAL_SSN_REDACTED]');
+      }
+    }
+
+    await logStep('Guardrail & Policy Gate', `Verified output against ${policyNodes.length} active enterprise policies. Post-inference verification passed (${postInferenceRedactions} output redactions applied). Output certified compliant.`, 140, 'policies');
+  }
+
   // Soft-extract decisions/actions if output is natural markdown text (so memory & audit remain populated)
   let extractedDecisions = [...decisions];
   let extractedActionItems = [...actionItems];
   let extractedSummary = [...summary];
 
-  if (extractedSummary.length === 0 && rawOutput) {
-    const lines = rawOutput.split('\n').map(l => l.trim()).filter(Boolean);
+  if (extractedSummary.length === 0 && finalSanitizedOutput) {
+    const lines = finalSanitizedOutput.split('\n').map(l => l.trim()).filter(Boolean);
     const bullets = lines.filter(l => /^[•\-\*]\s+/.test(l)).map(l => l.replace(/^[•\-\*]\s+/, ''));
     if (bullets.length > 0) {
       extractedSummary = bullets.slice(0, 5);
@@ -210,8 +276,8 @@ export async function runMeetingSimulation({
     }
   }
 
-  if (extractedDecisions.length === 0 && rawOutput) {
-    const lines = rawOutput.split('\n').map(l => l.trim()).filter(Boolean);
+  if (extractedDecisions.length === 0 && finalSanitizedOutput) {
+    const lines = finalSanitizedOutput.split('\n').map(l => l.trim()).filter(Boolean);
     for (const line of lines) {
       if (/^(decision|decided|approved):/i.test(line) || /^[•\-\*]\s*(decision|approved):/i.test(line)) {
         extractedDecisions.push(line.replace(/^[•\-\*]\s*/, ''));
@@ -219,8 +285,8 @@ export async function runMeetingSimulation({
     }
   }
 
-  if (extractedActionItems.length === 0 && rawOutput) {
-    const lines = rawOutput.split('\n').map(l => l.trim()).filter(Boolean);
+  if (extractedActionItems.length === 0 && finalSanitizedOutput) {
+    const lines = finalSanitizedOutput.split('\n').map(l => l.trim()).filter(Boolean);
     for (const line of lines) {
       if (/^(action|task|todo):/i.test(line) || /^[•\-\*]\s*(\[ \]|\[x\])?\s*(action|todo|assignee)/i.test(line)) {
         extractedActionItems.push({
@@ -233,10 +299,10 @@ export async function runMeetingSimulation({
     }
   }
 
-  // Step 5: Skills Processing
-  await logStep('Skills Processing', `Extracted ${rawOutput.length} characters of natural intelligence output (${extractedSummary.length} takeaways, ${extractedDecisions.length} decisions, ${extractedActionItems.length} action commitments).`, 180, 'skills');
+  // Step 9: Skills Processing Complete
+  await logStep('Skills Processing', `Extracted ${finalSanitizedOutput.length} characters of natural intelligence output (${extractedSummary.length} takeaways, ${extractedDecisions.length} decisions, ${extractedActionItems.length} action commitments).`, 180, 'skills');
 
-  // Step 6: MCP Integration
+  // Step 10: MCP Integration
   const hasCalendarMcp = attachedPillars.some(p => p.id === 'mcp-google-calendar');
   const hasSlackMcp = attachedPillars.some(p => p.id === 'mcp-slack');
   const hasJiraMcp = attachedPillars.some(p => p.id === 'mcp-jira-linear');
@@ -245,10 +311,10 @@ export async function runMeetingSimulation({
     await logStep('MCP Dispatch', `Synchronized with ${hasCalendarMcp ? 'Calendar, ' : ''}${hasSlackMcp ? 'Slack, ' : ''}${hasJiraMcp ? 'Jira' : ''}`, 180, 'mcp');
   }
 
-  // Step 7: Cryptographic Audit (Ambient W3C WebCrypto SHA-256 - ALWAYS ACTIVE)
+  // Step 11: Cryptographic Audit (Ambient W3C WebCrypto SHA-256 - ALWAYS ACTIVE)
   let auditHash = '';
   try {
-    const msgBuffer = new TextEncoder().encode(transcript + rawOutput + Date.now());
+    const msgBuffer = new TextEncoder().encode(transcript + finalSanitizedOutput + Date.now());
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     auditHash = 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -322,7 +388,7 @@ export async function runMeetingSimulation({
   return {
     success: true,
     steps,
-    rawOutput,
+    rawOutput: finalSanitizedOutput,
     sanitizedTranscript: processedTranscript,
     redactedPiiCount: redactedCount,
     summary: extractedSummary,

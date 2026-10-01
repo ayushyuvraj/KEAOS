@@ -8,7 +8,9 @@ import {
   ShieldCheck, 
   Sparkles, 
   Plus,
-  MessageSquare 
+  MessageSquare,
+  X,
+  Square
 } from 'lucide-react';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
@@ -48,14 +50,18 @@ export default function AgentCoreNode({ id, data, selected }) {
         <div
           className={`relative group w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md ${
             hasModel
-              ? isDarkMode
-                ? 'bg-[#0091DA]/20 border-[#0091DA] text-[#38BDF8] brain-glow-breath'
-                : 'bg-[#0091DA]/15 border-[#0091DA] text-[#005EB8] brain-glow-breath'
+              ? isExecuting
+                ? isDarkMode
+                  ? 'bg-[#0091DA]/25 border-[#0091DA] text-[#38BDF8] brain-glow-breath ring-2 ring-[#0091DA]/30'
+                  : 'bg-[#0091DA]/20 border-[#0091DA] text-[#005EB8] brain-glow-breath ring-2 ring-[#0091DA]/30'
+                : isDarkMode
+                  ? 'bg-[#0091DA]/15 border-[#0091DA]/60 text-[#38BDF8]'
+                  : 'bg-[#0091DA]/10 border-[#0091DA]/50 text-[#005EB8]'
               : isDarkMode
                 ? 'bg-[#222530] border-[#444856] text-slate-400'
                 : 'bg-white border-[#CBD5E1] text-slate-500'
           }`}
-          title={hasModel ? `Model Connected: ${connectedModelName || 'Active Brain'}` : "Model Socket: Connect Foundation Model (Gemini, Claude, GPT, Ollama)"}
+          title={hasModel ? `Model Connected: ${connectedModelName || 'Active Brain'} (Hover to disconnect)` : "Model Socket: Connect Foundation Model (Gemini, Claude, GPT, Ollama)"}
         >
           {/* Target Handle for Model at Top */}
           <Handle
@@ -78,9 +84,27 @@ export default function AgentCoreNode({ id, data, selected }) {
 
           <Brain className={`w-3.5 h-3.5 transition-transform ${hasModel ? 'scale-110' : ''}`} />
 
-          {/* Model Beacon Pulse when connected */}
+          {/* Model Status Dot: Solid calm indicator when idle; animate-ping ONLY when actively executing */}
           {hasModel && !isDeactivated && (
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#0091DA] animate-ping" />
+            <span className={`absolute -top-1 -right-1 rounded-full ${
+              isExecuting
+                ? 'w-2.5 h-2.5 bg-[#0091DA] animate-ping'
+                : 'w-1.5 h-1.5 bg-emerald-500 shadow-[0_0_6px_#10B981]'
+            }`} />
+          )}
+
+          {/* Quick Disconnect / Close Model Button on Hover */}
+          {hasModel && !isDeactivated && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.dispatchEvent(new CustomEvent('keaos:disconnect-model', { detail: { agentId: id } }));
+              }}
+              className="absolute -left-6 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-800 border border-slate-600 hover:bg-red-600 hover:border-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer shadow-md z-30"
+              title={`Disconnect / Close ${connectedModelName || 'Model'}`}
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
           )}
 
           {/* Socket Label Pill */}
