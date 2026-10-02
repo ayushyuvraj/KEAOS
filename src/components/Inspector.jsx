@@ -24,9 +24,14 @@ import {
   Sparkles,
   ChevronDown,
   UploadCloud,
-  Brain
+  Brain,
+  Ban,
+  GitFork,
+  Check,
+  Search
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
+import { groupToolsByCategory } from '../constants/mcpOfficialCatalogs';
 import { 
   PROVIDERS, 
   getProviderCredential, 
@@ -99,6 +104,8 @@ export default function Inspector({
     if (!selectedNodeProp) return null;
     return nodes.find((n) => n.id === selectedNodeProp.id) || selectedNodeProp;
   }, [nodes, selectedNodeProp]);
+
+  const [gatewayToolSearch, setGatewayToolSearch] = useState('');
 
   // Compute A2A connections for selected agent
   const incomingAgentEdges = useMemo(() => {
@@ -1354,60 +1361,118 @@ export default function Inspector({
               />
             </div>
 
-            {/* Exposed MCP Tools & Capabilities (Strictly All Visible) */}
+            {/* Exposed MCP Tools & Capabilities with Full Connection Basis */}
             {nodeData.pillarType === 'mcp' && (() => {
               const mcpItemDef = PILLARS.mcp?.items?.find(it => it.id === nodeData.itemId || it.id === nodeData.toolId || it.name === nodeData.name);
               const exposedTools = nodeData.tools || mcpItemDef?.tools || [];
+              const basis = nodeData.basis || null;
 
               return (
-                <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Server className="w-4 h-4 text-[#00A3A6]" />
-                      <span className={`text-xs font-bold ${t.title} uppercase tracking-wider font-mono`}>
-                        Exposed MCP Capabilities
+                <div className={`p-4 ${t.card} rounded-2xl space-y-3.5`}>
+                  {/* Connection Basis Card */}
+                  <div className={`p-3.5 ${t.subCard} rounded-xl border ${t.border} space-y-2`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Server className="w-4 h-4 text-[#00A3A6]" />
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#00A3A6]">
+                          Connection Basis & Auth
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live & Verified
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30 font-bold">
-                      {exposedTools.length} Tools Visible
-                    </span>
+
+                    <div className="space-y-1.5 pt-1 text-xs font-mono">
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className={t.subText}>API Provider:</span>
+                        <span className="font-bold text-white">{basis?.provider || nodeData.transport?.toUpperCase() || 'Direct API'}</span>
+                      </div>
+                      {basis?.authenticatedAs && (
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className={t.subText}>Authenticated Identity:</span>
+                          <span className="font-bold text-[#00A3A6]">@{basis.username || basis.authenticatedAs}</span>
+                        </div>
+                      )}
+                      {basis?.repository && (
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className={t.subText}>Target Repository:</span>
+                          <span className="font-bold text-slate-200 truncate max-w-[180px]">{basis.repository}</span>
+                        </div>
+                      )}
+                      {basis?.domain && (
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className={t.subText}>Workspace Domain:</span>
+                          <span className="font-bold text-slate-200">{basis.domain}</span>
+                        </div>
+                      )}
+                      {basis?.tokenMasked && (
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className={t.subText}>Credential Token:</span>
+                          <span className="text-slate-400 font-mono">{basis.tokenMasked}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className={t.subText}>Endpoint URL:</span>
+                        <span className="text-slate-400 font-mono truncate max-w-[180px]">{basis?.apiEndpoint || nodeData.serverUrl || 'https://api.github.com'}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <p className={`text-[11px] ${t.subText} leading-relaxed`}>
-                    Zero-trust mediated external tools exposed by this MCP server. All tools are discoverable and fully visible.
-                  </p>
+                  {/* Exposed Capabilities List */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold ${t.subText}`}>
+                        Exposed Capabilities ({exposedTools.length} Total)
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-400">
+                        Discovered live
+                      </span>
+                    </div>
 
-                  <div className="space-y-2 pt-1">
-                    {exposedTools.map((tool, idx) => {
-                      const isRead = tool.type === 'read';
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-3 ${t.subCard} rounded-xl border ${t.border} space-y-1.5 transition-all hover:border-[#00A3A6]/50`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-mono font-bold text-[#0B0F19] dark:text-white truncate">
-                              {tool.name}
-                            </span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
-                                isRead
-                                  ? 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40'
-                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
-                              }`}>
-                                {tool.type?.toUpperCase()}
+                    <div className="space-y-2">
+                      {exposedTools.map((tool, idx) => {
+                        const isRead = tool.type === 'read';
+                        const isDestructive = tool.type === 'destructive';
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-3 ${t.subCard} rounded-xl border ${t.border} space-y-1.5 transition-all hover:border-[#00A3A6]/50`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-mono font-bold text-[#0B0F19] dark:text-white truncate">
+                                {tool.name}
                               </span>
-                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                ACTIVE
-                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                                  isDestructive
+                                    ? 'bg-rose-500/15 text-rose-500 border-rose-500/40'
+                                    : isRead
+                                      ? 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40'
+                                      : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+                                }`}>
+                                  {tool.type?.toUpperCase()}
+                                </span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                  EXPOSED
+                                </span>
+                              </div>
                             </div>
+                            <p className={`text-[11px] ${t.subText} leading-relaxed`}>
+                              {tool.description}
+                            </p>
                           </div>
-                          <p className={`text-[11px] ${t.subText} leading-relaxed`}>
-                            {tool.description}
-                          </p>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className={`p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-2 text-xs font-mono text-amber-500`}>
+                    <GitFork className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed text-[10.5px]">
+                      Policy Control Note: Capabilities are routed through the connected Gateway. To toggle or disable specific capabilities (such as file deletion), manage the rules in the Gateway controller.
+                    </p>
                   </div>
                 </div>
               );
@@ -1426,8 +1491,31 @@ export default function Inspector({
               connectedMcpNodes.forEach(mcpNode => {
                 const itemDef = PILLARS.mcp?.items?.find(it => it.id === mcpNode.data?.itemId || it.id === mcpNode.data?.toolId || it.name === mcpNode.data?.name);
                 const tools = mcpNode.data?.tools || itemDef?.tools || [];
-                tools.forEach(tool => routedTools.push({ ...tool, serverName: mcpNode.data?.name || 'MCP Server' }));
+                tools.forEach(tool => routedTools.push({ ...tool, serverName: mcpNode.data?.name || 'MCP Server', serverId: mcpNode.id }));
               });
+
+              const disabledTools = Array.isArray(nodeData.disabledTools) ? nodeData.disabledTools : [];
+              const allowedCount = routedTools.filter(t => !disabledTools.includes(t.name)).length;
+
+              const handleToggle = (toolName) => {
+                const isBlocked = disabledTools.includes(toolName);
+                const next = isBlocked
+                  ? disabledTools.filter(t => t !== toolName)
+                  : [...disabledTools, toolName];
+                onUpdateNodeData(selectedNode.id, { disabledTools: next });
+              };
+
+              const handleBlockDestructive = () => {
+                const destructiveNames = routedTools
+                  .filter(t => t.type === 'destructive' || t.name.startsWith('delete_') || t.name.startsWith('drop_'))
+                  .map(t => t.name);
+                const next = Array.from(new Set([...disabledTools, ...destructiveNames]));
+                onUpdateNodeData(selectedNode.id, { disabledTools: next });
+              };
+
+              const handlePermitAll = () => {
+                onUpdateNodeData(selectedNode.id, { disabledTools: [] });
+              };
 
               return (
                 <div className={`p-4 ${t.card} rounded-2xl space-y-3.5`}>
@@ -1468,55 +1556,162 @@ export default function Inspector({
                         </div>
                       </div>
 
-                      {/* Routed Tools Table */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold ${t.subText}`}>
-                            Routed MCP Tool Catalog ({routedTools.length} Visible)
-                          </span>
-                          <span className="text-[9px] font-mono text-slate-400">
-                            All capabilities visible
-                          </span>
-                        </div>
-
-                        <div className="space-y-2">
-                          {routedTools.map((tool, idx) => {
-                            const isRead = tool.type === 'read';
-                            return (
-                              <div
-                                key={idx}
-                                className={`p-3 ${t.subCard} rounded-xl border ${t.border} space-y-1.5 hover:border-[#EAAA00]/50 transition-all`}
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-xs font-mono font-bold text-[#0B0F19] dark:text-white truncate">
-                                      {tool.name}
-                                    </span>
-                                    <span className="text-[9px] font-mono text-slate-400 truncate">
-                                      ({tool.serverName})
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
-                                      isRead
-                                        ? 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40'
-                                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
-                                    }`}>
-                                      {tool.type?.toUpperCase()}
-                                    </span>
-                                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                      ACTIVE
-                                    </span>
-                                  </div>
-                                </div>
-                                <p className={`text-[11px] ${t.subText} leading-relaxed`}>
-                                  {tool.description}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
+                      {/* Quick Bulk Policy Actions */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handlePermitAll}
+                          className="flex-1 py-1 px-2 text-[10px] font-mono font-bold border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 transition-colors rounded-lg cursor-pointer"
+                        >
+                          ✓ Permit All Tools
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleBlockDestructive}
+                          className="flex-1 py-1 px-2 text-[10px] font-mono font-bold border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition-colors rounded-lg cursor-pointer"
+                        >
+                          🛡️ Block Destructive
+                        </button>
                       </div>
+
+                      {/* Search Bar for Gateway Tools */}
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search Actions / Capabilities..."
+                          value={gatewayToolSearch}
+                          onChange={(e) => setGatewayToolSearch(e.target.value)}
+                          className={`w-full pl-9 pr-7 py-1.5 text-xs font-mono rounded-lg border ${t.border} ${t.input} placeholder:text-slate-500 focus:outline-none focus:border-[#EAAA00]`}
+                        />
+                        {gatewayToolSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setGatewayToolSearch('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Routed Tools Table with Individual Toggles */}
+                      {(() => {
+                        const filtered = routedTools.filter(t => {
+                          if (!gatewayToolSearch.trim()) return true;
+                          const q = gatewayToolSearch.toLowerCase();
+                          return t.name.toLowerCase().includes(q) || 
+                                 (t.displayName && t.displayName.toLowerCase().includes(q)) || 
+                                 (t.category && t.category.toLowerCase().includes(q)) ||
+                                 (t.description && t.description.toLowerCase().includes(q));
+                        });
+                        const categorized = groupToolsByCategory(filtered);
+
+                        return (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold ${t.subText}`}>
+                                Gateway Feature Rules ({allowedCount}/{routedTools.length} Permitted)
+                              </span>
+                              <span className="text-[9px] font-mono text-slate-400">
+                                Drop before transit
+                              </span>
+                            </div>
+
+                            {Object.keys(categorized).length === 0 ? (
+                              <div className="text-center py-4 text-xs font-mono text-slate-500 border border-dashed border-slate-700/40 rounded-xl">
+                                No actions match "{gatewayToolSearch}"
+                              </div>
+                            ) : (
+                              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                                {Object.entries(categorized).map(([category, catTools]) => (
+                                  <div key={category} className="space-y-1.5">
+                                    <div className="flex items-center justify-between px-2 py-1 bg-slate-800/40 dark:bg-slate-900/60 rounded border border-slate-700/40 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                                      <span>{category}</span>
+                                      <span className="text-[9px] px-1.5 py-0.2 bg-slate-700/50 text-slate-300 rounded-full font-normal">
+                                        {catTools.length}
+                                      </span>
+                                    </div>
+
+                                    {catTools.map((tool, idx) => {
+                                      const isBlocked = disabledTools.includes(tool.name);
+                                      const isRead = tool.type === 'read';
+                                      const isDestructive = tool.type === 'destructive';
+
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className={`p-3 ${t.subCard} rounded-xl border transition-all ${
+                                            isBlocked 
+                                              ? 'border-rose-500/40 bg-rose-500/5' 
+                                              : `${t.border} hover:border-[#EAAA00]/50`
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex items-center gap-1.5">
+                                                <span className={`text-xs font-sans font-semibold truncate ${
+                                                  isBlocked ? 'line-through text-rose-400' : 'text-[#0B0F19] dark:text-white'
+                                                }`}>
+                                                  {tool.displayName || tool.name}
+                                                </span>
+                                                <span className="text-[9px] font-mono text-slate-400 truncate">
+                                                  ({tool.serverName})
+                                                </span>
+                                              </div>
+                                              <span className="text-[9.5px] font-mono text-slate-400 block truncate">
+                                                {tool.name}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                                                isDestructive
+                                                  ? 'bg-rose-500/15 text-rose-400 border-rose-500/40'
+                                                  : isRead
+                                                    ? 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40'
+                                                    : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+                                              }`}>
+                                                {tool.type?.toUpperCase()}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleToggle(tool.name)}
+                                                className={`px-2 py-0.5 rounded font-mono text-[9px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer border ${
+                                                  isBlocked
+                                                    ? 'bg-rose-500 text-white border-rose-600 hover:bg-rose-600 shadow-xs'
+                                                    : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/40'
+                                                }`}
+                                                title={isBlocked ? 'Click to permit capability' : 'Click to block capability'}
+                                              >
+                                                {isBlocked ? (
+                                                  <>
+                                                    <Ban className="w-2.5 h-2.5" />
+                                                    <span>BLOCKED</span>
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Check className="w-2.5 h-2.5" />
+                                                    <span>PERMITTED</span>
+                                                  </>
+                                                )}
+                                              </button>
+                                            </div>
+                                          </div>
+                                          {tool.description && (
+                                            <p className={`text-[11px] ${t.subText} leading-relaxed mt-1`}>
+                                              {tool.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </>
                   ) : (
                     /* When no MCP Server is connected yet */

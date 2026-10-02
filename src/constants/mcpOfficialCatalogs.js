@@ -1,0 +1,580 @@
+/**
+ * KEAOS Official Model Context Protocol (MCP) Tool Catalogs
+ * 
+ * Sourced directly from official OpenAPI / Swagger specifications and official
+ * @modelcontextprotocol reference implementations (GitHub, Slack, Jira).
+ * 
+ * Provides comprehensive, categorized tool suites for enterprise agent workflows.
+ */
+
+export const GITHUB_OFFICIAL_ACTIONS = [
+  // --- FILE ACTIONS (5) ---
+  {
+    name: 'create_file',
+    displayName: 'Create a file',
+    category: 'File Actions',
+    type: 'write',
+    description: 'Creates a new file in repository (PUT /repos/{owner}/{repo}/contents/{path}).'
+  },
+  {
+    name: 'delete_file',
+    displayName: 'Delete a file',
+    category: 'File Actions',
+    type: 'destructive',
+    description: 'Deletes a file permanently from repository (DELETE /repos/{owner}/{repo}/contents/{path}).'
+  },
+  {
+    name: 'update_file',
+    displayName: 'Edit a file',
+    category: 'File Actions',
+    type: 'write',
+    description: 'Updates and commits revisions to an existing file in the target repository.'
+  },
+  {
+    name: 'read_file',
+    displayName: 'Get a file',
+    category: 'File Actions',
+    type: 'read',
+    description: 'Reads source file content directly from GitHub repository.'
+  },
+  {
+    name: 'list_files',
+    displayName: 'List files',
+    category: 'File Actions',
+    type: 'read',
+    description: 'Lists all files and subdirectories in a repository path.'
+  },
+
+  // --- ISSUE ACTIONS (7) ---
+  {
+    name: 'create_issue',
+    displayName: 'Create an issue',
+    category: 'Issue Actions',
+    type: 'write',
+    description: 'Creates an issue in the target repository (POST /repos/{owner}/{repo}/issues).'
+  },
+  {
+    name: 'create_issue_comment',
+    displayName: 'Create a comment on an issue',
+    category: 'Issue Actions',
+    type: 'write',
+    description: 'Adds a new discussion comment to an existing issue ticket.'
+  },
+  {
+    name: 'edit_issue',
+    displayName: 'Edit an issue',
+    category: 'Issue Actions',
+    type: 'write',
+    description: 'Updates an issue title, description, state (open/closed), or labels.'
+  },
+  {
+    name: 'get_issue',
+    displayName: 'Get an issue',
+    category: 'Issue Actions',
+    type: 'read',
+    description: 'Retrieves complete issue metadata, comments count, and labels.'
+  },
+  {
+    name: 'list_issues',
+    displayName: 'List issues',
+    category: 'Issue Actions',
+    type: 'read',
+    description: 'Queries active, closed, or assigned issues in the repository.'
+  },
+  {
+    name: 'lock_issue',
+    displayName: 'Lock an issue',
+    category: 'Issue Actions',
+    type: 'write',
+    description: 'Locks issue conversation to prevent further comments.'
+  },
+  {
+    name: 'list_issue_comments',
+    displayName: 'List comments on an issue',
+    category: 'Issue Actions',
+    type: 'read',
+    description: 'Lists all comments posted to a specific issue.'
+  },
+
+  // --- ORGANIZATION & USER ACTIONS (6) ---
+  {
+    name: 'get_user_profile',
+    displayName: 'Get user profile',
+    category: 'Organization & User Actions',
+    type: 'read',
+    description: 'Retrieves authenticated user profile, avatar, followers, and public repo counts.'
+  },
+  {
+    name: 'get_org_repositories',
+    displayName: 'Get repositories for an organization',
+    category: 'Organization & User Actions',
+    type: 'read',
+    description: 'Lists all repositories belonging to a specified GitHub organization.'
+  },
+  {
+    name: 'list_org_members',
+    displayName: 'List organization members',
+    category: 'Organization & User Actions',
+    type: 'read',
+    description: 'Lists all public and private members in an organization.'
+  },
+  {
+    name: 'list_collaborators',
+    displayName: 'List repository collaborators',
+    category: 'Organization & User Actions',
+    type: 'read',
+    description: 'Lists users with collaborator access permissions on the repository.'
+  },
+  {
+    name: 'get_rate_limit',
+    displayName: 'Get API rate limit status',
+    category: 'Organization & User Actions',
+    type: 'read',
+    description: 'Queries remaining GitHub REST API calls, reset timestamp, and quotas.'
+  },
+  {
+    name: 'list_user_organizations',
+    displayName: 'List user organizations',
+    category: 'Organization & User Actions',
+    type: 'read',
+    description: 'Lists all organizations the authenticated user belongs to.'
+  },
+
+  // --- REPOSITORY ACTIONS (8) ---
+  {
+    name: 'list_repositories',
+    displayName: 'List repositories',
+    category: 'Repository Actions',
+    type: 'read',
+    description: 'Lists all accessible GitHub repositories with visibility, branches, and URLs.'
+  },
+  {
+    name: 'get_repository',
+    displayName: 'Get repository details',
+    category: 'Repository Actions',
+    type: 'read',
+    description: 'Retrieves detailed repository metadata, star count, forks, and default branch.'
+  },
+  {
+    name: 'create_repository',
+    displayName: 'Create a repository',
+    category: 'Repository Actions',
+    type: 'write',
+    description: 'Creates a new repository for the authenticated user or organization.'
+  },
+  {
+    name: 'fork_repository',
+    displayName: 'Fork a repository',
+    category: 'Repository Actions',
+    type: 'write',
+    description: 'Forks a target repository to current user namespace.'
+  },
+  {
+    name: 'list_branches',
+    displayName: 'List branches',
+    category: 'Repository Actions',
+    type: 'read',
+    description: 'Lists all branches and protected status in the repository.'
+  },
+  {
+    name: 'get_branch',
+    displayName: 'Get branch details',
+    category: 'Repository Actions',
+    type: 'read',
+    description: 'Retrieves commit SHA and protection rules for a specific branch.'
+  },
+  {
+    name: 'list_commits',
+    displayName: 'List commits',
+    category: 'Repository Actions',
+    type: 'read',
+    description: 'Lists recent commit history, authors, commit messages, and SHAs.'
+  },
+  {
+    name: 'star_repository',
+    displayName: 'Star a repository',
+    category: 'Repository Actions',
+    type: 'write',
+    description: 'Stars a repository for the authenticated user.'
+  },
+
+  // --- PULL REQUEST ACTIONS (6) ---
+  {
+    name: 'create_pull_request',
+    displayName: 'Create a pull request',
+    category: 'Pull Request Actions',
+    type: 'write',
+    description: 'Opens a pull request between feature branch and base branch.'
+  },
+  {
+    name: 'get_pull_request',
+    displayName: 'Get pull request details',
+    category: 'Pull Request Actions',
+    type: 'read',
+    description: 'Retrieves pull request state, diff stats, mergeable status, and reviews.'
+  },
+  {
+    name: 'list_pull_requests',
+    displayName: 'List pull requests',
+    category: 'Pull Request Actions',
+    type: 'read',
+    description: 'Lists active, merged, or closed pull requests in the repository.'
+  },
+  {
+    name: 'merge_pull_request',
+    displayName: 'Merge a pull request',
+    category: 'Pull Request Actions',
+    type: 'destructive',
+    description: 'Merges an open pull request into base branch with commit message.'
+  },
+  {
+    name: 'list_pull_request_files',
+    displayName: 'List PR modified files',
+    category: 'Pull Request Actions',
+    type: 'read',
+    description: 'Lists files changed, added, or deleted in a pull request.'
+  },
+  {
+    name: 'create_pull_request_review',
+    displayName: 'Submit PR review',
+    category: 'Pull Request Actions',
+    type: 'write',
+    description: 'Submits approval, request-changes, or general comment on a pull request.'
+  },
+
+  // --- RELEASE & TAG ACTIONS (5) ---
+  {
+    name: 'list_releases',
+    displayName: 'List releases',
+    category: 'Release & Tag Actions',
+    type: 'read',
+    description: 'Lists published releases, tags, assets, and changelogs.'
+  },
+  {
+    name: 'get_release',
+    displayName: 'Get release details',
+    category: 'Release & Tag Actions',
+    type: 'read',
+    description: 'Retrieves release notes and downloadable assets for a specific release ID or tag.'
+  },
+  {
+    name: 'create_release',
+    displayName: 'Create a release',
+    category: 'Release & Tag Actions',
+    type: 'write',
+    description: 'Publishes a new version release with git tag and markdown release notes.'
+  },
+  {
+    name: 'list_tags',
+    displayName: 'List tags',
+    category: 'Release & Tag Actions',
+    type: 'read',
+    description: 'Lists all git tags and associated commit SHAs.'
+  },
+  {
+    name: 'get_tag',
+    displayName: 'Get tag details',
+    category: 'Release & Tag Actions',
+    type: 'read',
+    description: 'Retrieves commit and tagger info for a specific git tag.'
+  }
+];
+
+export const SLACK_OFFICIAL_ACTIONS = [
+  // --- MESSAGE ACTIONS (6) ---
+  {
+    name: 'post_slack_message',
+    displayName: 'Post a message',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Sends a formatted markdown or block kit message to a Slack channel.'
+  },
+  {
+    name: 'update_slack_message',
+    displayName: 'Update a message',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Edits the text of an existing message in a Slack channel.'
+  },
+  {
+    name: 'delete_slack_message',
+    displayName: 'Delete a message',
+    category: 'Message Actions',
+    type: 'destructive',
+    description: 'Permanently removes a message from a Slack channel.'
+  },
+  {
+    name: 'get_slack_message_permalink',
+    displayName: 'Get message permalink',
+    category: 'Message Actions',
+    type: 'read',
+    description: 'Generates a permanent browser URL link to a specific message.'
+  },
+  {
+    name: 'add_reaction',
+    displayName: 'Add emoji reaction',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Adds an emoji reaction to a message.'
+  },
+  {
+    name: 'remove_reaction',
+    displayName: 'Remove emoji reaction',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Removes an emoji reaction from a message.'
+  },
+
+  // --- CHANNEL ACTIONS (6) ---
+  {
+    name: 'list_slack_channels',
+    displayName: 'List channels',
+    category: 'Channel Actions',
+    type: 'read',
+    description: 'Lists all public and accessible private channels in the workspace.'
+  },
+  {
+    name: 'get_channel_info',
+    displayName: 'Get channel details',
+    category: 'Channel Actions',
+    type: 'read',
+    description: 'Retrieves topic, purpose, member count, and creation timestamp.'
+  },
+  {
+    name: 'create_slack_channel',
+    displayName: 'Create a channel',
+    category: 'Channel Actions',
+    type: 'write',
+    description: 'Creates a new public or private Slack channel.'
+  },
+  {
+    name: 'archive_slack_channel',
+    displayName: 'Archive a channel',
+    category: 'Channel Actions',
+    type: 'destructive',
+    description: 'Archives an existing Slack channel.'
+  },
+  {
+    name: 'invite_to_channel',
+    displayName: 'Invite user to channel',
+    category: 'Channel Actions',
+    type: 'write',
+    description: 'Adds workspace users to a specified channel.'
+  },
+  {
+    name: 'get_channel_history',
+    displayName: 'Get conversation history',
+    category: 'Channel Actions',
+    type: 'read',
+    description: 'Fetches recent conversation messages from a channel.'
+  },
+
+  // --- USER ACTIONS (3) ---
+  {
+    name: 'list_slack_users',
+    displayName: 'List workspace users',
+    category: 'User Actions',
+    type: 'read',
+    description: 'Lists all active members and bots in the Slack workspace.'
+  },
+  {
+    name: 'get_user_profile',
+    displayName: 'Get user profile',
+    category: 'User Actions',
+    type: 'read',
+    description: 'Retrieves user display name, email, avatar, and title.'
+  },
+  {
+    name: 'set_user_status',
+    displayName: 'Set user status',
+    category: 'User Actions',
+    type: 'write',
+    description: 'Updates custom status emoji and text.'
+  },
+
+  // --- FILE ACTIONS (2) ---
+  {
+    name: 'upload_slack_file',
+    displayName: 'Upload file / snippet',
+    category: 'File Actions',
+    type: 'write',
+    description: 'Uploads a document, image, or code snippet to a channel.'
+  },
+  {
+    name: 'list_slack_files',
+    displayName: 'List uploaded files',
+    category: 'File Actions',
+    type: 'read',
+    description: 'Lists files shared in the workspace or specific channels.'
+  }
+];
+
+export const JIRA_OFFICIAL_ACTIONS = [
+  // --- ISSUE ACTIONS (7) ---
+  {
+    name: 'create_jira_issue',
+    displayName: 'Create an issue',
+    category: 'Issue Actions',
+    type: 'write',
+    description: 'Creates a sprint ticket, task, story, or bug in Jira Cloud.'
+  },
+  {
+    name: 'get_jira_issue',
+    displayName: 'Get issue details',
+    category: 'Issue Actions',
+    type: 'read',
+    description: 'Retrieves issue summary, status, assignee, priority, and custom fields.'
+  },
+  {
+    name: 'update_jira_issue',
+    displayName: 'Update an issue',
+    category: 'Issue Actions',
+    type: 'write',
+    description: 'Modifies summary, description, priority, or field values.'
+  },
+  {
+    name: 'delete_jira_issue',
+    displayName: 'Delete an issue',
+    category: 'Issue Actions',
+    type: 'destructive',
+    description: 'Permanently deletes an issue from Jira.'
+  },
+  {
+    name: 'transition_jira_issue',
+    displayName: 'Transition issue status',
+    category: 'Issue Actions',
+    type: 'write',
+    description: 'Moves issue through workflow (e.g. In Progress, Review, Done).'
+  },
+  {
+    name: 'assign_jira_issue',
+    displayName: 'Assign issue',
+    category: 'Issue Actions',
+    type: 'write',
+    description: 'Assigns issue ticket to a team member by account ID.'
+  },
+  {
+    name: 'search_jira_issues',
+    displayName: 'Search issues via JQL',
+    category: 'Issue Actions',
+    type: 'read',
+    description: 'Performs flexible Jira Query Language (JQL) searches.'
+  },
+
+  // --- COMMENT ACTIONS (2) ---
+  {
+    name: 'add_issue_comment',
+    displayName: 'Add comment to issue',
+    category: 'Comment Actions',
+    type: 'write',
+    description: 'Posts a new comment on a Jira issue ticket.'
+  },
+  {
+    name: 'get_issue_comments',
+    displayName: 'Get issue comments',
+    category: 'Comment Actions',
+    type: 'read',
+    description: 'Lists all discussion comments on a Jira issue.'
+  },
+
+  // --- PROJECT & SPRINT ACTIONS (4) ---
+  {
+    name: 'list_jira_projects',
+    displayName: 'List projects',
+    category: 'Project & Sprint Actions',
+    type: 'read',
+    description: 'Lists all accessible projects, keys, and project leads.'
+  },
+  {
+    name: 'get_project_details',
+    displayName: 'Get project details',
+    category: 'Project & Sprint Actions',
+    type: 'read',
+    description: 'Retrieves project issue types, components, and versions.'
+  },
+  {
+    name: 'list_project_versions',
+    displayName: 'List release versions',
+    category: 'Project & Sprint Actions',
+    type: 'read',
+    description: 'Lists release versions, release dates, and archived status.'
+  },
+  {
+    name: 'list_active_sprints',
+    displayName: 'List active sprints',
+    category: 'Project & Sprint Actions',
+    type: 'read',
+    description: 'Lists currently active sprints on agile boards.'
+  },
+
+  // --- WORKLOG ACTIONS (2) ---
+  {
+    name: 'add_worklog',
+    displayName: 'Log work time',
+    category: 'Worklog Actions',
+    type: 'write',
+    description: 'Logs time spent (e.g., 2h 30m) on a Jira ticket.'
+  },
+  {
+    name: 'get_worklogs',
+    displayName: 'Get issue worklogs',
+    category: 'Worklog Actions',
+    type: 'read',
+    description: 'Retrieves logged time entries on a specific issue.'
+  }
+];
+
+/**
+ * Returns the standardized official action catalog for a named service.
+ */
+export function getOfficialMcpTools(serviceName = '') {
+  const norm = (serviceName || '').toLowerCase().trim();
+  if (norm.includes('github')) return GITHUB_OFFICIAL_ACTIONS;
+  if (norm.includes('slack')) return SLACK_OFFICIAL_ACTIONS;
+  if (norm.includes('jira')) return JIRA_OFFICIAL_ACTIONS;
+  return [];
+}
+
+/**
+ * Extracts and maps tools from an arbitrary OpenAPI 3.0 / Swagger JSON specification.
+ * Used when adding an external service via doc link or OpenAPI endpoint.
+ */
+export function extractToolsFromOpenApiSpec(spec) {
+  if (!spec || !spec.paths) return [];
+  const tools = [];
+
+  for (const [path, methods] of Object.entries(spec.paths)) {
+    for (const [method, op] of Object.entries(methods)) {
+      if (['get', 'post', 'put', 'patch', 'delete'].includes(method.toLowerCase())) {
+        const operationId = op.operationId || `${method}_${path.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const category = (op.tags && op.tags[0]) ? `${op.tags[0]} Actions` : 'General Actions';
+        const type = method.toLowerCase() === 'get' ? 'read' : (method.toLowerCase() === 'delete' ? 'destructive' : 'write');
+
+        tools.push({
+          name: operationId,
+          displayName: op.summary || operationId,
+          category,
+          type,
+          description: op.description || op.summary || `${method.toUpperCase()} ${path}`,
+          endpointPath: path,
+          httpMethod: method.toUpperCase()
+        });
+      }
+    }
+  }
+
+  return tools;
+}
+
+/**
+ * Groups an array of tools into categories.
+ */
+export function groupToolsByCategory(tools = []) {
+  const groups = {};
+  for (const tool of tools) {
+    const cat = tool.category || 'General Actions';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(tool);
+  }
+  return groups;
+}

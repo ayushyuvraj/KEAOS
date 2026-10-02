@@ -604,7 +604,7 @@ export default function ConnectMcpModal({
                     </span>
                   </div>
                   <p className="text-xs font-mono text-slate-300">
-                    Exposes tools: <code className="text-[#00A3A6]">create_github_issue</code>, <code className="text-[#00A3A6]">list_github_issues</code>, <code className="text-[#00A3A6]">get_file_contents</code>
+                    Discovered {verifiedGithubResult.tools?.length || 0} capabilities: <code className="text-[#00A3A6]">read_file</code>, <code className="text-[#00A3A6]">create_file</code>, <code className="text-rose-400">delete_file</code>, <code className="text-[#00A3A6]">create_github_issue</code>, etc.
                   </p>
                   <button
                     onClick={() => handleDeployToCanvas(verifiedGithubResult)}

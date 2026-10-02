@@ -11,6 +11,11 @@ import AgentCoreNode from './nodes/AgentCoreNode';
 import PillarNode from './nodes/PillarNode';
 import { SOCKET_RULES, PILLARS } from '../constants/pillars';
 import { 
+  GITHUB_OFFICIAL_ACTIONS,
+  SLACK_OFFICIAL_ACTIONS,
+  JIRA_OFFICIAL_ACTIONS
+} from '../constants/mcpOfficialCatalogs';
+import { 
   AlertTriangle,
   Brain, 
   Sparkles, 
@@ -109,7 +114,8 @@ function CanvasInner({
   miniMapPos = { x: 0, y: 0 },
   setMiniMapPos,
   isDrawerExpanded = false,
-  setIsDrawerExpanded
+  setIsDrawerExpanded,
+  onUpdateNodeData
 }) {
   const [internalAddMenuOpen, setInternalAddMenuOpen] = useState(false);
   const isAddMenuOpen = setIsAddMenuOpenProp !== undefined ? isAddMenuOpenProp : internalAddMenuOpen;
@@ -1027,6 +1033,42 @@ function CanvasInner({
     }, 3200);
   };
 
+  const handleToggleGatewayTool = useCallback((gatewayNodeId, toolName, enabled) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === gatewayNodeId) {
+          const currentDisabled = Array.isArray(n.data?.disabledTools) ? n.data.disabledTools : [];
+          const nextDisabled = enabled
+            ? currentDisabled.filter((t) => t !== toolName)
+            : Array.from(new Set([...currentDisabled, toolName]));
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              disabledTools: nextDisabled
+            }
+          };
+        }
+        return n;
+      })
+    );
+    if (onUpdateNodeData) {
+      const gw = (nodes || []).find((n) => n.id === gatewayNodeId);
+      const currentDisabled = Array.isArray(gw?.data?.disabledTools) ? gw.data.disabledTools : [];
+      const nextDisabled = enabled
+        ? currentDisabled.filter((t) => t !== toolName)
+        : Array.from(new Set([...currentDisabled, toolName]));
+      onUpdateNodeData(gatewayNodeId, { disabledTools: nextDisabled });
+    }
+    const statusMsg = enabled
+      ? `🔓 Gateway Permitted: "${toolName}"`
+      : `🛡️ Gateway Blocked: "${toolName}" (Traffic restricted)`;
+    setToastNotification(statusMsg);
+    setTimeout(() => {
+      setToastNotification((curr) => (curr === statusMsg ? null : curr));
+    }, 2500);
+  }, [setNodes, nodes, onUpdateNodeData]);
+
   const nodesWithTheme = React.useMemo(() => {
     const nodeLookup = {};
     (nodes || []).forEach(n => {
@@ -1043,10 +1085,79 @@ function CanvasInner({
       );
 
       // Dynamically calculate attachedCounts and connectedModelName specifically for THIS agent node
+      // Rule 1: Explicitly initialize all prospective return fields in outer iteration scope
       let agentCounts = n.data?.attachedCounts;
       let connectedModelName = null;
       let inheritedModelName = null;
       let upstreamAgentNames = [];
+      let routedTools = [];
+      let connectedMcpNodes = [];
+      let disabledTools = [];
+      let onToggleTool = null;
+
+      // Auto-upgrade MCP node tools to official catalog if outdated
+      if (n.type === 'pillar' && n.data?.pillarType === 'mcp') {
+        const serverName = (n.data?.serviceName || n.data?.name || '').toLowerCase();
+        let currentTools = n.data?.tools || [];
+        if (serverName.includes('github') && currentTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+          n = {
+            ...n,
+            data: {
+              ...n.data,
+              tools: GITHUB_OFFICIAL_ACTIONS
+            }
+          };
+        } else if (serverName.includes('slack') && currentTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+          n = {
+            ...n,
+            data: {
+              ...n.data,
+              tools: SLACK_OFFICIAL_ACTIONS
+            }
+          };
+        } else if (serverName.includes('jira') && currentTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+          n = {
+            ...n,
+            data: {
+              ...n.data,
+              tools: JIRA_OFFICIAL_ACTIONS
+            }
+          };
+        }
+      }
+
+      if (n.type === 'pillar' && n.data?.pillarType === 'gateway') {
+        disabledTools = Array.isArray(n.data?.disabledTools) ? n.data.disabledTools : [];
+        const incomingMcpEdges = (edges || []).filter(e => e.target === n.id);
+        connectedMcpNodes = incomingMcpEdges
+          .map(e => nodeLookup[e.source])
+          .filter(sn => sn && sn.data?.pillarType === 'mcp');
+
+        connectedMcpNodes.forEach(mcpNode => {
+          const serverName = (mcpNode.data?.serviceName || mcpNode.data?.name || '').toLowerCase();
+          const itemDef = PILLARS.mcp?.items?.find(it => it.id === mcpNode.data?.itemId || it.id === mcpNode.data?.toolId || it.name === mcpNode.data?.name);
+          let tools = mcpNode.data?.tools || itemDef?.tools || [];
+
+          if (serverName.includes('github') && tools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+            tools = GITHUB_OFFICIAL_ACTIONS;
+          } else if (serverName.includes('slack') && tools.length < SLACK_OFFICIAL_ACTIONS.length) {
+            tools = SLACK_OFFICIAL_ACTIONS;
+          } else if (serverName.includes('jira') && tools.length < JIRA_OFFICIAL_ACTIONS.length) {
+            tools = JIRA_OFFICIAL_ACTIONS;
+          }
+
+          tools.forEach(tool => {
+            routedTools.push({
+              ...tool,
+              serverName: mcpNode.data?.name || 'MCP Server',
+              serverId: mcpNode.id,
+              isBlocked: disabledTools.includes(tool.name)
+            });
+          });
+        });
+
+        onToggleTool = (toolName, enabled) => handleToggleGatewayTool(n.id, toolName, enabled);
+      }
 
       if (n.type === 'agentCore') {
         agentCounts = {
@@ -1120,6 +1231,10 @@ function CanvasInner({
           inheritedModelName: inheritedModelName,
           upstreamAgentCount: agentCounts?.agent || 0,
           upstreamAgentNames: upstreamAgentNames || [],
+          routedTools,
+          connectedMcpNodes,
+          disabledTools,
+          onToggleTool,
           onOpenAgentChat: handleOpenAgentChat,
           onDelete: handleDeleteNode,
           onDuplicate: handleDuplicateNode,
@@ -1136,6 +1251,7 @@ function CanvasInner({
     edges, 
     isDarkMode, 
     executionState, 
+    handleToggleGatewayTool,
     handleOpenAgentChat,
     handleDeleteNode, 
     handleDuplicateNode, 

@@ -35,6 +35,7 @@ import { executeUniversalAgentChat } from '../utils/universalAgentEngine';
 import { executeMultiAgentWorkflow, buildMultiAgentDAG } from '../utils/multiAgentOrchestratorEngine';
 import { transcribeAudioUniversal, getProviderCredential } from '../services/llmService';
 import { getActiveApiKey } from '../services/geminiService';
+import { getRegisteredMcpServers } from '../services/mcpClientService';
 
 export default function CanvasExecutionDrawer({
   activeUseCase,
@@ -83,20 +84,89 @@ export default function CanvasExecutionDrawer({
     if (!activeAgentNode) return [];
     const incomingEdges = (edges || []).filter(e => e.target === activeAgentNode.id);
     const nodeLookup = Object.fromEntries((nodes || []).map(n => [n.id, n]));
+    const registeredMcps = getRegisteredMcpServers();
+    const findMatchingMcp = (nodeData, nodeId) => {
+      return (registeredMcps || []).find(s => 
+        s.id === nodeData.toolId || 
+        s.id === nodeId || 
+        s.name === nodeData.name || 
+        s.displayName === nodeData.displayName ||
+        (s.basis?.username && s.basis.username === nodeData.basis?.username)
+      );
+    };
     
-    return incomingEdges.map(e => {
+    const directPillars = [];
+    const routedMcpPillars = [];
+
+    incomingEdges.forEach(e => {
       const src = nodeLookup[e.source];
-      if (!src || src.data?.isDeactivated) return null;
-      return {
+      if (!src || src.data?.isDeactivated) return;
+
+      const matched = findMatchingMcp(src.data, src.id);
+      const pillarItem = {
         id: src.data.toolId || src.id,
+        nodeId: src.id,
         name: src.data.name,
+        displayName: src.data.displayName || src.data.name,
         type: src.data.pillarType,
-        config: src.data.config || {},
+        transport: src.data.transport || matched?.transport || (src.data.basis?.provider?.toLowerCase().includes('github') ? 'github-api' : 'sse'),
+        serviceName: src.data.serviceName || matched?.serviceName || 'External MCP',
+        serverUrl: src.data.serverUrl || matched?.endpoint || '',
+        config: { ...(matched?.config || {}), ...(src.data.config || {}) },
         customDirective: src.data.customDirective || null,
         referenceDoc: src.data.referenceDoc || null,
+        tools: src.data.tools?.length ? src.data.tools : (matched?.tools || []),
+        basis: src.data.basis || matched?.basis || null,
+        disabledTools: src.data.disabledTools || [],
+        routedTools: src.data.routedTools || [],
         handle: e.targetHandle
       };
-    }).filter(Boolean);
+
+      directPillars.push(pillarItem);
+
+      // If this direct connection is a GATEWAY, trace upstream edges targeting this gateway
+      // to resolve any MCP servers or tools connected through the gateway perimeter
+      if (src.data?.pillarType === 'gateway') {
+        const gwDisabled = src.data.disabledTools || [];
+        const gatewayIncoming = (edges || []).filter(ge => ge.target === src.id);
+        gatewayIncoming.forEach(ge => {
+          const upSrc = nodeLookup[ge.source];
+          if (!upSrc || upSrc.data?.isDeactivated) return;
+          const matchedUp = findMatchingMcp(upSrc.data, upSrc.id);
+          routedMcpPillars.push({
+            id: upSrc.data.toolId || upSrc.id,
+            nodeId: upSrc.id,
+            name: upSrc.data.name,
+            displayName: upSrc.data.displayName || upSrc.data.name,
+            type: upSrc.data.pillarType || 'mcp',
+            transport: upSrc.data.transport || matchedUp?.transport || (upSrc.data.basis?.provider?.toLowerCase().includes('github') ? 'github-api' : 'github-api'),
+            serviceName: upSrc.data.serviceName || matchedUp?.serviceName || 'GitHub',
+            serverUrl: upSrc.data.serverUrl || matchedUp?.endpoint || '',
+            config: { ...(matchedUp?.config || {}), ...(upSrc.data.config || {}) },
+            customDirective: upSrc.data.customDirective || null,
+            referenceDoc: upSrc.data.referenceDoc || null,
+            tools: upSrc.data.tools?.length ? upSrc.data.tools : (matchedUp?.tools || []),
+            basis: upSrc.data.basis || matchedUp?.basis || null,
+            routedThroughGateway: src.id,
+            gatewayName: src.data.name || 'Zero-Trust Ingress Gateway',
+            disabledTools: gwDisabled,
+            handle: 'gateway-in'
+          });
+        });
+      }
+    });
+
+    // Merge and de-duplicate by id
+    const seen = new Set();
+    const result = [];
+    [...directPillars, ...routedMcpPillars].forEach(p => {
+      if (p && !seen.has(p.id)) {
+        seen.add(p.id);
+        result.push(p);
+      }
+    });
+
+    return result;
   }, [edges, nodes, activeAgentNode]);
 
   // Check whether this active agent has a connected Foundation Model brain
@@ -129,6 +199,20 @@ export default function CanvasExecutionDrawer({
   });
   const [maximizedCol, setMaximizedCol] = useState(null);
 
+  // Full-Screen Deck Maximization State
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // Listen for Escape key to exit full screen
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullScreen]);
+
   // Multi-Agent Fleet Execution State
   const [fleetResult, setFleetResult] = useState(null);
   const [fleetSteps, setFleetSteps] = useState([]);
@@ -154,8 +238,22 @@ export default function CanvasExecutionDrawer({
     const isBrainActive = Boolean(modelPillar);
     const agentName = agent?.data?.name || activeUseCase?.name || 'Autonomous Agent';
     const frameworkName = agent?.data?.framework?.name || activeUseCase?.framework?.name;
-    const promptMission = agent?.data?.prompt || activeUseCase?.agent?.prompt || 'Autonomous multi-pillar workflow orchestration.';
+    const rawPrompt = agent?.data?.prompt || activeUseCase?.agent?.prompt || '';
+    const promptMission = (rawPrompt && !rawPrompt.includes('Analyze meeting transcripts'))
+      ? rawPrompt
+      : 'Autonomous enterprise workflow reasoning, live MCP peripheral coordination, and policy enforcement.';
     const otherPillars = (pillars || []).filter(p => p.type !== 'model');
+    const mcpServers = (pillars || []).filter(p => p.type === 'mcp');
+    const gateway = (pillars || []).find(p => p.type === 'gateway');
+
+    let peripheralsText = `⚡ **Connected Peripherals** (${otherPillars.length}): ${otherPillars.map(p => p.displayName || p.name).join(', ') || 'Standard Core'}\n`;
+    if (mcpServers.length > 0) {
+      peripheralsText += `🌐 **Active MCP Peripherals**: ${mcpServers.map(m => `\`${m.displayName || m.name}\`${m.basis?.authenticatedAs ? ` (auth: @${m.basis.username || m.basis.authenticatedAs})` : ''}`).join(', ')}\n`;
+    }
+    if (gateway) {
+      const blockedCount = gateway.disabledTools?.length || 0;
+      peripheralsText += `🛡️ **Zero-Trust Gateway**: Enforcing perimeter security (${blockedCount > 0 ? `${blockedCount} tool(s) blocked` : 'all tools permitted'})\n`;
+    }
 
     if (isBrainActive) {
       return {
@@ -164,7 +262,7 @@ export default function CanvasExecutionDrawer({
         content: `Hello! I am **${agentName}**.\n\n` +
           `🧠 **Active Brain**: \`${modelPillar.name || modelPillar.config?.modelId || 'Foundation Model'}\`\n` +
           (frameworkName ? `⚙️ **SDK Architecture**: \`${frameworkName}\`\n` : '') +
-          `⚡ **Connected Peripherals** (${otherPillars.length}): ${otherPillars.map(p => p.name).join(', ') || 'Standard Core'}\n` +
+          peripheralsText +
           `📋 **Mission**: _${promptMission}_\n\n` +
           `My reasoning brain is active and all bound peripherals are compiled. How can I assist you right now?`,
         timestamp: 'Live',
@@ -224,7 +322,11 @@ export default function CanvasExecutionDrawer({
         type: n.data.pillarType,
         config: n.data.config || {},
         customDirective: n.data.customDirective || null,
-        referenceDoc: n.data.referenceDoc || null
+        referenceDoc: n.data.referenceDoc || null,
+        tools: n.data.tools || [],
+        basis: n.data.basis || null,
+        disabledTools: n.data.disabledTools || [],
+        routedTools: n.data.routedTools || []
       }));
   }, [nodes]);
 
@@ -443,7 +545,11 @@ export default function CanvasExecutionDrawer({
         conversationHistory: currentThread.slice(-6).map(m => ({ role: m.role, content: m.content })),
         frameworkId: activeAgentNode?.data?.framework?.id || activeUseCase?.framework?.id || 'google-adk',
         agentConfig: {
-          prompt: activeAgentNode?.data?.prompt || activeUseCase?.agent?.prompt || 'You are an autonomous enterprise agent...',
+          prompt: (activeAgentNode?.data?.prompt && !activeAgentNode?.data?.prompt.includes('Analyze meeting transcripts'))
+            ? activeAgentNode.data.prompt
+            : (activeUseCase?.agent?.prompt && !activeUseCase.agent.prompt.includes('Analyze meeting transcripts'))
+              ? activeUseCase.agent.prompt
+              : 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.',
           temperature: activeAgentNode?.data?.temperature ?? 0.2,
           topP: activeAgentNode?.data?.topP ?? 0.95
         },
@@ -653,15 +759,22 @@ export default function CanvasExecutionDrawer({
   };
 
   return (
-    <div className={`absolute bottom-0 left-0 right-0 z-30 drawer-apple-motion select-none border-t shadow-2xl ${
+    <div className={`${
+      isFullScreen 
+        ? 'fixed inset-0 z-50 flex flex-col' 
+        : 'absolute bottom-0 left-0 right-0 z-30'
+    } drawer-apple-motion select-none border-t shadow-2xl ${
       isDarkMode 
         ? 'bg-[#18191E] border-[#2E313B] text-white' 
         : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#111827]'
     }`}>
       {/* 1. MINIMAL COLLAPSIBLE DRAWER HEADER */}
       <div 
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="h-10 px-5 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors"
+        onClick={() => {
+          if (isFullScreen) setIsFullScreen(false);
+          setIsExpanded(!isExpanded);
+        }}
+        className="h-10 px-5 flex items-center justify-between shrink-0 cursor-pointer hover:bg-white/[0.02] transition-colors"
       >
         {/* Left: Mode Switcher Tabs & Multi-Agent Pills */}
         <div className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
@@ -783,10 +896,34 @@ export default function CanvasExecutionDrawer({
             </span>
           </div>
 
+          {/* Maximize to Full Screen Option (Extreme Right) */}
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`p-1 transition-colors ${
-              isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-black'
+            onClick={() => {
+              if (!isExpanded) setIsExpanded(true);
+              setIsFullScreen(!isFullScreen);
+            }}
+            className={`p-1.5 rounded-none transition-colors border ${
+              isFullScreen
+                ? isDarkMode
+                  ? 'bg-[#00338D]/30 text-[#0091DA] border-[#0091DA]/50 hover:bg-[#00338D]/40'
+                  : 'bg-blue-50 text-[#00338D] border-blue-200 hover:bg-blue-100'
+                : isDarkMode
+                  ? 'text-slate-400 border-transparent hover:text-white hover:border-[#2E313B]'
+                  : 'text-slate-500 border-transparent hover:text-black hover:border-slate-300'
+            }`}
+            title={isFullScreen ? 'Restore Default Height (Esc)' : 'Maximize to Full Screen'}
+          >
+            {isFullScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
+
+          {/* Expand / Collapse Drawer Button */}
+          <button
+            onClick={() => {
+              if (isFullScreen) setIsFullScreen(false);
+              setIsExpanded(!isExpanded);
+            }}
+            className={`p-1.5 rounded-none transition-colors border border-transparent ${
+              isDarkMode ? 'text-slate-400 hover:text-white hover:border-[#2E313B]' : 'text-slate-500 hover:text-black hover:border-slate-300'
             }`}
             title={isExpanded ? 'Collapse Drawer' : 'Expand Drawer'}
           >
@@ -797,7 +934,11 @@ export default function CanvasExecutionDrawer({
 
       {/* 2. EXPANDED DRAWER BODY */}
       {isExpanded && (
-        <div className={`h-[420px] flex flex-col border-t transition-colors ${
+        <div className={`${
+          isFullScreen 
+            ? 'flex-1 min-h-0' 
+            : 'h-[420px]'
+        } flex flex-col border-t transition-colors ${
           isDarkMode ? 'bg-[#121316] border-[#2E313B]' : 'bg-[#F9FAFB] border-[#E5E7EB]'
         }`}>
           {/* ========================================================= */}
@@ -916,18 +1057,36 @@ export default function CanvasExecutionDrawer({
                   );
                 })}
 
-                {/* Live Step Progress / Thinking Indicator */}
+                {/* Live Step Progress / Thinking & Tool Execution Indicator */}
                 {isChatRunning && (
                   <div className="flex gap-3 mr-auto max-w-[85%] animate-apple-in">
-                    <div className="w-7 h-7 rounded-full bg-[#0091DA]/20 border border-[#0091DA] text-[#0091DA] flex items-center justify-center shrink-0 animate-pulse">
-                      <Sparkles className="w-3.5 h-3.5" />
-                    </div>
-                    <div className={`p-3 border rounded-none text-xs font-mono flex items-center gap-2 ${
-                      isDarkMode ? 'bg-[#1C1E24] border-[#0091DA]/40 text-[#0091DA]' : 'bg-blue-50 border-[#0091DA]/40 text-[#00338D]'
+                    <div className={`w-8 h-8 rounded-none border flex items-center justify-center shrink-0 ${
+                      currentChatStep?.pillarType === 'mcp'
+                        ? 'bg-[#00A3A6]/20 border-[#00A3A6] text-[#00A3A6]'
+                        : 'bg-[#00338D]/20 border-[#0091DA] text-[#0091DA]'
                     }`}>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>{currentChatStep?.step || 'Reasoning through multi-pillar graph'}...</span>
-                      <span className="text-slate-400 text-[10px] hidden sm:inline">({currentChatStep?.detail || 'Synthesizing'})</span>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    </div>
+                    <div className={`p-3.5 border rounded-none text-xs font-mono space-y-1.5 shadow-sm ${
+                      isDarkMode 
+                        ? 'bg-[#18191E] border-[#2E313B] text-slate-200' 
+                        : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-none font-mono ${
+                          currentChatStep?.pillarType === 'mcp'
+                            ? 'bg-[#00A3A6] text-white'
+                            : 'bg-[#00338D] text-white'
+                        }`}>
+                          {currentChatStep?.pillarType === 'mcp' ? 'MCP TOOL EXECUTION' : 'SYSTEM REASONING'}
+                        </span>
+                        <span className="font-bold text-xs text-[#0091DA]">
+                          {currentChatStep?.step || 'The system is thinking...'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {currentChatStep?.detail || 'Executing connected peripheral tools and synthesizing response...'}
+                      </p>
                     </div>
                   </div>
                 )}

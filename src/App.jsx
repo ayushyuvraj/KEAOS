@@ -38,9 +38,9 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       type: 'agentCore',
       position: { x: 520, y: 165 },
       data: {
-        name: 'Meeting Intelligence Agent',
+        name: 'Enterprise Autonomous Agent',
         framework,
-        prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
+        prompt: 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.',
         temperature: 0.2,
         topP: 0.95,
         attachedCounts: {
@@ -526,12 +526,12 @@ export default function App() {
 
   const [activeUseCase, setActiveUseCase] = useState(
     initialCanvas?.activeUseCase || {
-      id: 'uc-meeting-intel',
-      name: 'Meeting Intelligence Agent',
-      description: 'Autonomous multi-speaker synthesis, action items, and task sync.',
+      id: 'uc-autonomous-agent',
+      name: 'Enterprise Autonomous Agent',
+      description: 'Adaptive multi-pillar workflow orchestration with live MCP tools, model reasoning, and zero-trust policies.',
       framework: FRAMEWORKS[0], // Google ADK
       agent: {
-        prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
+        prompt: 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.',
         temperature: 0.2,
         topP: 0.95
       }
@@ -543,8 +543,28 @@ export default function App() {
     []
   );
 
+  // Sanitize initial nodes to ensure legacy saved meeting prompts seamlessly upgrade
+  const sanitizedInitialNodes = useMemo(() => {
+    const rawNodes = initialCanvas?.nodes || initialNodes;
+    return (rawNodes || []).map(n => {
+      let nodeData = n.data || {};
+      let prompt = nodeData.prompt;
+      let name = nodeData.name;
+
+      if (n.type === 'agentCore' && prompt && prompt.includes('Analyze meeting transcripts')) {
+        prompt = 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.';
+        if (name === 'Meeting Intelligence Agent') {
+          name = 'Enterprise Autonomous Agent';
+        }
+        nodeData = { ...nodeData, prompt, name };
+      }
+
+      return { ...n, data: nodeData };
+    });
+  }, [initialCanvas, initialNodes]);
+
   // Nodes & Edges (restore from persistent storage if available)
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialCanvas?.nodes || initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState(sanitizedInitialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialCanvas?.edges || initialEdges);
 
   // Persistent UI States
@@ -733,10 +753,13 @@ export default function App() {
           pillarType: 'mcp',
           title: mcpData.name || 'Model Context Protocol',
           name: mcpData.name || 'MCP Server',
+          displayName: mcpData.displayName || mcpData.name || 'MCP Server',
           subtitle: mcpData.transport?.toUpperCase() || 'HTTP/SSE',
           description: mcpData.description || `Exposes ${mcpData.tools?.length || 0} real verified MCP tools to the gateway.`,
           config: mcpData.config || {},
           tools: mcpData.tools || [],
+          basis: mcpData.basis || null,
+          serviceName: mcpData.serviceName || 'External MCP',
           transport: mcpData.transport || 'sse',
           serverUrl: mcpData.url || '',
           isRealMcp: true,
@@ -1162,6 +1185,7 @@ export default function App() {
                   setMiniMapPos={setMiniMapPos}
                   isDrawerExpanded={isDrawerExpanded}
                   setIsDrawerExpanded={setIsDrawerExpanded}
+                  onUpdateNodeData={handleUpdateNodeData}
                 />
               </div>
 

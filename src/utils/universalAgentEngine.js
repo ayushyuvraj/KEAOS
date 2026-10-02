@@ -5,6 +5,7 @@ import {
 } from '../services/llmService';
 import { getEpisodicMemoryStore } from './meetingSimulatorEngine';
 import { calculateInferenceCost } from '../services/modelPricingService';
+import { executeRealMcpTool, getRegisteredMcpServers } from '../services/mcpClientService';
 
 /**
  * Universal SHA-256 Audit Fingerprint Generator (W3C WebCrypto)
@@ -54,10 +55,18 @@ export async function executeUniversalAgentChat({
 
   const startTime = performance.now();
 
-  // 1. INGRESS GATEWAY CHECK
+  // 1. INGRESS & EGRESS GATEWAY CHECK
   const gatewayNode = attachedPillars.find(p => p.type === 'gateway');
+  const disabledTools = Array.isArray(gatewayNode?.data?.disabledTools) 
+    ? gatewayNode.data.disabledTools 
+    : (Array.isArray(gatewayNode?.disabledTools) ? gatewayNode.disabledTools : []);
+
   if (gatewayNode) {
-    logStep('Ingress Gateway', `Rate limits verified. Ingress token quota intact for ${frameworkId}.`, 'gateway', gatewayNode.id, 60);
+    let msg = `Rate limits verified. Ingress token quota intact for ${frameworkId}.`;
+    if (disabledTools.length > 0) {
+      msg += ` Zero-Trust Policy: ${disabledTools.length} tool(s) [${disabledTools.join(', ')}] blocked at Gateway perimeter.`;
+    }
+    logStep('Ingress & Egress Gateway', msg, 'gateway', gatewayNode.id, 60);
   } else {
     logStep('Gateway Pass-through', `Ingress rate limiter checked. Standard pass-through active.`, 'gateway', null, 30);
   }
@@ -131,6 +140,62 @@ export async function executeUniversalAgentChat({
     logStep('Specialized Skills', `Bound ${skillNodes.length} skills: ${skillNodes.map(s => s.name).join(', ')}.`, 'skills', skillNodes[0]?.id, 70);
   }
   if (mcpNodes.length > 0) {
+    const allSavedMcps = getRegisteredMcpServers();
+
+    // Ensure every MCP node has valid transport and credentials merged from registry
+    for (const m of mcpNodes) {
+      if (!m.config?.token || !m.transport) {
+        const matching = (allSavedMcps || []).find(s => 
+          s.id === m.id || 
+          s.name === m.name || 
+          s.displayName === m.displayName || 
+          (s.basis?.username && s.basis.username === m.basis?.username)
+        );
+        if (matching) {
+          m.config = { ...(matching.config || {}), ...(m.config || {}) };
+          m.transport = m.transport || matching.transport || 'github-api';
+          m.serviceName = m.serviceName || matching.serviceName || 'GitHub';
+          if (!m.tools?.length && matching.tools?.length) m.tools = matching.tools;
+          if (!m.basis?.repositories && matching.basis?.repositories) {
+            m.basis = { ...(m.basis || {}), ...matching.basis };
+          }
+        }
+      }
+
+      // If this is a GitHub MCP, check if we need to execute list_repositories
+      const isGitHub = (m.name || '').toLowerCase().includes('github') || 
+                       m.transport === 'github-api' || 
+                       m.serviceName?.toLowerCase().includes('github') || 
+                       Boolean(m.config?.token);
+
+      const isRepoQuery = /(repo|repositor|github|project|codebase|commit|branch)/i.test(userMessage) || 
+                          conversationHistory.some(c => /(repo|repositor|github)/i.test(c.content));
+
+      if (isGitHub && m.config?.token && (isRepoQuery || !m.basis?.repositories || m.basis.repositories.length === 0)) {
+        try {
+          logStep('Live MCP Tool Execution', `Querying GitHub API (GET /user/repos) with token for @${m.basis?.username || 'user'}...`, 'mcp', m.id, 180);
+
+          const liveResult = await executeRealMcpTool({
+            toolName: 'list_repositories',
+            server: m,
+            args: {},
+            options: { disabledTools }
+          });
+
+          if (liveResult && Array.isArray(liveResult.repositories)) {
+            m.basis = {
+              ...(m.basis || {}),
+              accessibleReposCount: liveResult.totalCount,
+              repositories: liveResult.repositories
+            };
+            logStep('Live MCP Tool Complete', `Retrieved ${liveResult.totalCount} live repositories: ${liveResult.repositories.map(r => r.name).join(', ')}`, 'mcp', m.id, 140);
+          }
+        } catch (err) {
+          console.warn('Live MCP list_repositories auto-query warning:', err);
+        }
+      }
+    }
+
     logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} MCP tools: ${mcpNodes.map(m => m.name).join(', ')}.`, 'mcp', mcpNodes[0]?.id, 80);
   }
   if (toolNodes.length > 0) {
@@ -138,7 +203,10 @@ export async function executeUniversalAgentChat({
   }
 
   // 5. ASSEMBLE UNIVERSAL MULTI-PILLAR SYSTEM INSTRUCTION
-  const baseInstruction = agentConfig.prompt || 'You are an institutional-grade enterprise AI Agent.';
+  const rawPrompt = agentConfig.prompt;
+  const baseInstruction = (rawPrompt && !rawPrompt.includes('Analyze meeting transcripts'))
+    ? rawPrompt
+    : 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.';
   const frameworkContext = `\n[TARGET ARCHITECTURAL FRAMEWORK]: ${frameworkId.toUpperCase()} orchestration pattern.`;
   
   const skillsInstruction = skillNodes.length > 0
@@ -150,7 +218,32 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
     : '';
 
   const mcpInstruction = mcpNodes.length > 0
-    ? `\n[CONNECTED MCP PROTOCOL SERVERS]:\n${mcpNodes.map(m => `- ${m.name}: Model Context Protocol server active.`).join('\n')}`
+    ? `\n[CONNECTED MCP PROTOCOL SERVERS (Mediated by Zero-Trust Egress Gateway)]:
+The following Model Context Protocol (MCP) servers are wired to this agent on the visual canvas. You have DIRECT, AUTHENTICATED ACCESS to these external systems through their live exposed tools. You must NEVER claim you lack access to external systems, repositories, or databases.
+${mcpNodes.map((m, idx) => {
+  const allTools = m.tools || m.data?.tools || [];
+  const activeTools = allTools.filter(t => !disabledTools.includes(t.name));
+  const blockedTools = allTools.filter(t => disabledTools.includes(t.name));
+  const b = m.basis || m.data?.basis || {};
+
+  let text = `MCP Server ${idx + 1}: "${m.displayName || m.name}" (${m.transport || 'API Protocol'})\n`;
+  if (b.provider) text += `  - Provider: ${b.provider}\n`;
+  if (b.authenticatedAs || b.username) text += `  - Authenticated Identity: ${b.authenticatedAs || b.username}${b.username ? ` (@${b.username})` : ''}\n`;
+  if (b.repository) text += `  - Configured Target Scope: ${b.repository}\n`;
+  if (b.accessibleReposCount !== undefined) text += `  - Total Accessible Repositories: ${b.accessibleReposCount}\n`;
+  if (Array.isArray(b.repositories) && b.repositories.length > 0) {
+    text += `  - LIVE VERIFIED REPOSITORIES INVENTORY (${b.repositories.length}):\n${b.repositories.map((r, rIdx) => `    ${rIdx + 1}. [${r.fullName || r.name}](${r.htmlUrl}) — ${r.isPrivate ? 'Private' : 'Public'}, Default Branch: "${r.defaultBranch || 'main'}"${r.description ? ` — Description: "${r.description}"` : ''}`).join('\n')}\n`;
+  }
+  text += `  - Active Permitted Tools (${activeTools.length}): ${activeTools.map(t => `${t.name} (${t.description || t.type})`).join(', ') || 'None'}\n`;
+  if (blockedTools.length > 0) {
+    text += `  - ZERO-TRUST PERIMETER BLOCK: [${blockedTools.map(t => t.name).join(', ')}] are DISABLED by the operator at the Gateway. If the user asks for these actions, explain that they are restricted by policy.`;
+  }
+  return text;
+}).join('\n\n')}
+
+[CRITICAL OPERATIONAL MANDATE]:
+1. When asked to list, name, or inspect repositories, you MUST immediately list every repository from the inventory above with its exact name, visibility, and link.
+2. Under NO circumstance output future-tense promises or deferrals such as: "Executing the command...", "Retrieving the list now...", "Please hold on...", or "One moment...". The command has ALREADY run in the backend. Provide the full verified list directly to the user.`
     : '';
 
   const toolsInstruction = toolNodes.length > 0
@@ -219,6 +312,76 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
     modelLatency = chatResult.durationMs;
     totalTokens = chatResult.totalTokens;
     isLiveExecution = chatResult.isLive;
+
+    // 7.1 AUTONOMOUS SELF-CORRECTION INTERCEPTOR
+    // If the model produced a deferral statement (e.g. "Executing the command...") instead of the complete answer
+    const isDeferral = /(executing (the )?command|retriev(ing|e) the list|please hold on|one moment|fetching the repositories|let me retrieve)/i.test(rawResponseText);
+    
+    if (isDeferral) {
+      const gitHubMcp = mcpNodes.find(m => m.basis?.repositories?.length > 0 || m.config?.token);
+      let repoList = gitHubMcp?.basis?.repositories || [];
+
+      // If repositories weren't retrieved yet, fetch them live right now
+      if (repoList.length === 0 && gitHubMcp && gitHubMcp.config?.token) {
+        logStep('MCP Live Query', `Executing list_repositories via GitHub API...`, 'mcp', gitHubMcp.id, 200);
+        try {
+          const liveResult = await executeRealMcpTool({
+            toolName: 'list_repositories',
+            server: gitHubMcp,
+            args: {},
+            options: { disabledTools }
+          });
+          if (liveResult && Array.isArray(liveResult.repositories)) {
+            repoList = liveResult.repositories;
+            gitHubMcp.basis = {
+              ...(gitHubMcp.basis || {}),
+              accessibleReposCount: liveResult.totalCount,
+              repositories: liveResult.repositories
+            };
+          }
+        } catch (e) {
+          console.warn('Fallback tool execution failed:', e);
+        }
+      }
+
+      if (repoList.length > 0) {
+        logStep('Autonomous Tool Synthesis', `Intercepted deferral. Finalizing output with ${repoList.length} verified repositories...`, 'mcp', gitHubMcp?.id, 150);
+
+        const followUpUserPrompt = `The command 'list_repositories' has executed successfully. Here is the verified live inventory of all ${repoList.length} repositories from the GitHub API:\n` +
+          repoList.map((r, idx) => `${idx + 1}. **[${r.fullName || r.name}](${r.htmlUrl})** (${r.isPrivate ? '🔒 Private' : '🌐 Public'})\n   - Description: ${r.description || 'No description provided.'}\n   - Default Branch: \`${r.defaultBranch || 'main'}\``).join('\n') +
+          `\n\nNow respond directly to the user presenting this complete list with markdown links, visibility badges, and descriptions. Do NOT say you are executing the command; present the finished result.`;
+
+        try {
+          const correctedChatResult = await executeUniversalChat({
+            provider,
+            modelId,
+            systemPrompt: fullSystemPrompt,
+            messages: [
+              ...formattedMessages,
+              { role: 'assistant', content: rawResponseText },
+              { role: 'user', content: followUpUserPrompt }
+            ],
+            temperature: 0.1
+          });
+
+          if (correctedChatResult.text && !/(executing (the )?command)/i.test(correctedChatResult.text)) {
+            rawResponseText = correctedChatResult.text;
+            totalTokens += correctedChatResult.totalTokens;
+            modelLatency += correctedChatResult.durationMs;
+          } else {
+            // Direct guaranteed synthesis if model still stumbles
+            rawResponseText = `Here is the complete list of all **${repoList.length} repositories** accessible under your authenticated GitHub account (**@${gitHubMcp?.basis?.username || 'ayushyuvraj'}**):\n\n` +
+              repoList.map((r, idx) => `${idx + 1}. **[${r.fullName || r.name}](${r.htmlUrl})** — ${r.isPrivate ? '🔒 *Private*' : '🌐 *Public*'}\n   ${r.description ? `> ${r.description}\n` : ''}   *Default Branch: \`${r.defaultBranch || 'main'}\`*`).join('\n\n') +
+              `\n\nAll tools are active via the Zero-Trust Gateway. Would you like me to inspect file contents, read code, or create issues in any of these repositories?`;
+          }
+        } catch (correctionErr) {
+          console.warn('Correction inference warning:', correctionErr);
+          rawResponseText = `Here is the complete list of all **${repoList.length} repositories** accessible under your authenticated GitHub account (**@${gitHubMcp?.basis?.username || 'ayushyuvraj'}**):\n\n` +
+            repoList.map((r, idx) => `${idx + 1}. **[${r.fullName || r.name}](${r.htmlUrl})** — ${r.isPrivate ? '🔒 *Private*' : '🌐 *Public*'}\n   ${r.description ? `> ${r.description}\n` : ''}   *Default Branch: \`${r.defaultBranch || 'main'}\`*`).join('\n\n') +
+            `\n\nAll tools are active via the Zero-Trust Gateway. Would you like me to inspect file contents, read code, or create issues in any of these repositories?`;
+        }
+      }
+    }
   } catch (err) {
     console.error('LLM dispatch failed:', err);
     throw new Error(`Inference Error (${PROVIDERS[provider]?.name || provider}): ${err.message}`);

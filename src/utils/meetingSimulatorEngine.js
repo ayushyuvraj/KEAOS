@@ -302,11 +302,29 @@ ${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.refe
   // Step 9: Skills Processing Complete
   await logStep('Skills Processing', `Extracted ${finalSanitizedOutput.length} characters of natural intelligence output (${extractedSummary.length} takeaways, ${extractedDecisions.length} decisions, ${extractedActionItems.length} action commitments).`, 180, 'skills');
 
-  // Step 10: Real MCP Integration
+  // Step 10: Real MCP Integration with Gateway Policy Supervision
   const realMcpPillars = attachedPillars.filter(p => p.type === 'mcp' || p.pillarType === 'mcp');
+  const gatewayPillar = attachedPillars.find(p => p.type === 'gateway' || p.pillarType === 'gateway');
+  const disabledTools = Array.isArray(gatewayPillar?.data?.disabledTools) 
+    ? gatewayPillar.data.disabledTools 
+    : (Array.isArray(gatewayPillar?.disabledTools) ? gatewayPillar.disabledTools : []);
+
   if (realMcpPillars.length > 0) {
     const serverNames = realMcpPillars.map(p => p.name).join(', ');
-    await logStep('Live MCP Dispatch', `Connected to verified live MCP servers: ${serverNames}`, 180, 'mcp');
+    let mcpDetail = `Connected to verified live MCP servers: ${serverNames}`;
+    if (disabledTools.length > 0) {
+      mcpDetail += ` (${disabledTools.length} restricted by Gateway)`;
+    }
+    await logStep('Live MCP Dispatch', mcpDetail, 180, 'mcp');
+
+    if (disabledTools.length > 0) {
+      await logStep(
+        'Zero-Trust Perimeter Interceptor',
+        `Gateway Policy Active: Dropped transmission rights for [${disabledTools.join(', ')}]. Zero egress packets dispatched for disabled capabilities.`,
+        150,
+        'gateway'
+      );
+    }
   }
 
   // Step 11: Cryptographic Audit (Ambient W3C WebCrypto SHA-256 - ALWAYS ACTIVE)
