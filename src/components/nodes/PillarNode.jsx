@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { 
   Brain, 
@@ -62,6 +62,12 @@ export default function PillarNode({ id, data, selected }) {
   const [gatewaySearchQuery, setGatewaySearchQuery] = useState('');
   const [mcpSearchQuery, setMcpSearchQuery] = useState('');
 
+  // Refs for wheel and scroll isolation (ensures touchpad scroll never zooms canvas)
+  const gatewayFlyoutRef = useRef(null);
+  const gatewayScrollRef = useRef(null);
+  const mcpFlyoutRef = useRef(null);
+  const mcpScrollRef = useRef(null);
+
   const routedTools = data.routedTools || [];
   const disabledTools = data.disabledTools || [];
   const onToggleTool = data.onToggleTool;
@@ -100,6 +106,43 @@ export default function PillarNode({ id, data, selected }) {
     window.addEventListener('keaos:close-popups', handleClose);
     return () => window.removeEventListener('keaos:close-popups', handleClose);
   }, []);
+
+  // Wheel listeners to strictly isolate touchpad & mouse wheel from zooming the ReactFlow canvas
+  useEffect(() => {
+    if (!showGatewayFlyout) return;
+    const flyout = gatewayFlyoutRef.current;
+    const scrollList = gatewayScrollRef.current;
+
+    const stopWheelZoom = (e) => {
+      e.stopPropagation();
+    };
+
+    if (flyout) flyout.addEventListener('wheel', stopWheelZoom, { passive: true });
+    if (scrollList) scrollList.addEventListener('wheel', stopWheelZoom, { passive: true });
+
+    return () => {
+      if (flyout) flyout.removeEventListener('wheel', stopWheelZoom);
+      if (scrollList) scrollList.removeEventListener('wheel', stopWheelZoom);
+    };
+  }, [showGatewayFlyout]);
+
+  useEffect(() => {
+    if (!showMcpFlyout) return;
+    const flyout = mcpFlyoutRef.current;
+    const scrollList = mcpScrollRef.current;
+
+    const stopWheelZoom = (e) => {
+      e.stopPropagation();
+    };
+
+    if (flyout) flyout.addEventListener('wheel', stopWheelZoom, { passive: true });
+    if (scrollList) scrollList.addEventListener('wheel', stopWheelZoom, { passive: true });
+
+    return () => {
+      if (flyout) flyout.removeEventListener('wheel', stopWheelZoom);
+      if (scrollList) scrollList.removeEventListener('wheel', stopWheelZoom);
+    };
+  }, [showMcpFlyout]);
 
   let IconComponent = PILLAR_ICONS[pillarType] || Wrench;
   if (toolId === 'tool-audio-transcribe') IconComponent = Mic;
@@ -372,23 +415,34 @@ export default function PillarNode({ id, data, selected }) {
       {/* GATEWAY ON-CANVAS CAPABILITY & POLICY FLYOUT */}
       {pillarType === 'gateway' && showGatewayFlyout && routedTools.length > 0 && (
         <div 
-          className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-96 p-3.5 shadow-2xl border rounded-none text-left animate-in fade-in duration-150 ${
-            isDarkMode ? 'bg-[#0B0F19] border-[#EAAA00] text-white shadow-[0_16px_48px_rgba(0,0,0,0.9)]' : 'bg-white border-[#EAAA00] text-[#0B0F19] shadow-[0_16px_48px_rgba(0,30,80,0.25)]'
+          ref={gatewayFlyoutRef}
+          className={`nowheel nodrag nopan absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-96 p-3.5 shadow-2xl border rounded-none text-left animate-in fade-in duration-150 ${
+            isDarkMode 
+              ? 'bg-[#0B0F19] border-[#EAAA00] text-white shadow-[0_16px_48px_rgba(0,0,0,0.9)]' 
+              : 'bg-white border-[#EAAA00] text-[#0B0F19] shadow-[0_16px_48px_rgba(0,30,80,0.2)]'
           }`}
           style={{ borderTop: '4px solid #EAAA00' }}
           onClick={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+          <div className={`flex items-center justify-between pb-2 border-b ${
+            isDarkMode ? 'border-slate-800' : 'border-slate-200'
+          }`}>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 bg-[#EAAA00] text-slate-900 flex items-center justify-center font-bold text-xs">
                 <GitFork className="w-3 h-3" />
               </div>
               <div>
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#EAAA00] block">
+                <span className={`text-[11px] font-mono font-bold uppercase tracking-wider block ${
+                  isDarkMode ? 'text-[#EAAA00]' : 'text-amber-700'
+                }`}>
                   Gateway Control Plane
                 </span>
-                <span className="text-[9px] text-slate-400 font-sans block -mt-0.5">
+                <span className={`text-[9px] font-sans block -mt-0.5 ${
+                  isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                }`}>
                   Zero-Trust Policy & Feature Interceptor
                 </span>
               </div>
@@ -396,7 +450,9 @@ export default function PillarNode({ id, data, selected }) {
             <button
               type="button"
               onClick={() => setShowGatewayFlyout(false)}
-              className="text-slate-400 hover:text-white p-1"
+              className={`p-1 transition-colors ${
+                isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-800'
+              }`}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -404,19 +460,27 @@ export default function PillarNode({ id, data, selected }) {
 
           {/* Search Bar matching n8n / enterprise UX */}
           <div className="relative my-2">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-400'
+            }`} />
             <input
               type="text"
-              placeholder={`Search ${routedTools[0]?.serverName || 'GitHub'} Actions...`}
+              placeholder={`Search ${routedTools[0]?.serverName || 'MCP'} Actions...`}
               value={gatewaySearchQuery}
               onChange={(e) => setGatewaySearchQuery(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 text-xs font-sans bg-slate-900/80 dark:bg-black/60 border border-slate-700/70 rounded-none text-white placeholder:text-slate-500 focus:outline-none focus:border-[#EAAA00]"
+              className={`w-full pl-8 pr-7 py-1.5 text-xs font-sans rounded-none transition-colors focus:outline-none ${
+                isDarkMode 
+                  ? 'bg-black/60 border border-slate-700/70 text-white placeholder:text-slate-500 focus:border-[#EAAA00]' 
+                  : 'bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#EAAA00] focus:bg-white'
+              }`}
             />
             {gatewaySearchQuery && (
               <button
                 type="button"
                 onClick={() => setGatewaySearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-0.5 transition-colors ${
+                  isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'
+                }`}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -425,30 +489,47 @@ export default function PillarNode({ id, data, selected }) {
 
           {/* Status summary */}
           <div className="flex items-center justify-between mb-2 text-[10px] font-mono">
-            <span className="text-slate-400 font-bold">
+            <span className={`font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>
               Actions ({routedTools.length})
             </span>
-            <span className={`font-bold px-1.5 py-0.2 border ${
+            <span className={`font-bold px-1.5 py-0.5 border ${
               disabledTools.length > 0
-                ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                ? isDarkMode 
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' 
+                  : 'bg-amber-50 text-amber-800 border-amber-300'
+                : isDarkMode 
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-300'
             }`}>
               {allowedCount} Allowed • {disabledTools.length} Blocked
             </span>
           </div>
 
-          {/* Categorized Tools List */}
-          <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1 my-1">
+          {/* Categorized Tools List (Touchpad / Scroll isolated from canvas) */}
+          <div 
+            ref={gatewayScrollRef}
+            className="nowheel nodrag overscroll-contain space-y-2.5 max-h-64 overflow-y-auto pr-1 my-1"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             {Object.keys(categorizedRouted).length === 0 ? (
-              <div className="text-center py-4 text-xs font-mono text-slate-500">
+              <div className={`text-center py-4 text-xs font-mono ${
+                isDarkMode ? 'text-slate-500' : 'text-slate-400'
+              }`}>
                 No actions match "{gatewaySearchQuery}"
               </div>
             ) : (
               Object.entries(categorizedRouted).map(([category, catTools]) => (
                 <div key={category} className="space-y-1">
-                  <div className="flex items-center justify-between px-1.5 py-1 bg-slate-800/40 dark:bg-slate-900/60 border-y border-slate-700/40 text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                  <div className={`flex items-center justify-between px-1.5 py-1 border-y text-[9.5px] font-mono font-bold uppercase tracking-wider ${
+                    isDarkMode 
+                      ? 'bg-slate-800/60 border-slate-700/60 text-slate-300' 
+                      : 'bg-slate-100 border-slate-200 text-slate-700'
+                  }`}>
                     <span>{category}</span>
-                    <span className="text-[8.5px] px-1.5 py-0.2 bg-slate-700/60 text-slate-300 font-normal">
+                    <span className={`text-[8.5px] px-1.5 py-0.2 font-normal ${
+                      isDarkMode ? 'bg-slate-700/60 text-slate-300' : 'bg-slate-200 text-slate-700'
+                    }`}>
                       {catTools.length}
                     </span>
                   </div>
@@ -462,31 +543,43 @@ export default function PillarNode({ id, data, selected }) {
                         key={tool.name}
                         className={`p-2 border transition-all ${
                           isBlocked
-                            ? 'bg-rose-500/10 border-rose-500/30'
-                            : isDarkMode ? 'bg-[#141822] border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                            ? isDarkMode 
+                              ? 'bg-rose-950/20 border-rose-800/40' 
+                              : 'bg-rose-50/80 border-rose-200'
+                            : isDarkMode 
+                              ? 'bg-[#141822] border-slate-700/60 hover:border-slate-600' 
+                              : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
-                              <span className={`text-[11px] font-sans font-semibold truncate ${isBlocked ? 'line-through text-rose-400' : 'text-white'}`}>
+                              <span className={`text-[11px] font-sans font-semibold truncate ${
+                                isBlocked 
+                                  ? (isDarkMode ? 'line-through text-rose-400' : 'line-through text-rose-600') 
+                                  : (isDarkMode ? 'text-white' : 'text-slate-900')
+                              }`}>
                                 {tool.displayName || tool.name}
                               </span>
                               <span className={`text-[7px] font-mono font-bold px-1 py-0.2 rounded-none border ${
                                 isDestructive 
-                                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' 
+                                  ? isDarkMode ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'bg-rose-100 text-rose-700 border-rose-300'
                                   : isRead 
-                                    ? 'bg-teal-500/20 text-teal-400 border-teal-500/40' 
-                                    : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                                    ? isDarkMode ? 'bg-teal-500/20 text-teal-400 border-teal-500/40' : 'bg-teal-100 text-teal-700 border-teal-300'
+                                    : isDarkMode ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-amber-100 text-amber-800 border-amber-300'
                               }`}>
                                 {tool.type?.toUpperCase() || 'TOOL'}
                               </span>
                             </div>
-                            <span className="text-[9px] font-mono text-slate-400 block truncate">
+                            <span className={`text-[9px] font-mono block truncate ${
+                              isDarkMode ? 'text-slate-400' : 'text-slate-600 font-medium'
+                            }`}>
                               {tool.name}
                             </span>
                             {tool.description && (
-                              <p className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">
+                              <p className={`text-[9px] line-clamp-1 mt-0.5 ${
+                                isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                              }`}>
                                 {tool.description}
                               </p>
                             )}
@@ -528,9 +621,13 @@ export default function PillarNode({ id, data, selected }) {
             )}
           </div>
 
-          <div className="pt-2 border-t border-slate-700/50 flex items-center justify-between text-[9px] font-mono text-slate-400">
+          <div className={`pt-2 border-t flex items-center justify-between text-[9px] font-mono ${
+            isDarkMode ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-600'
+          }`}>
             <span>Server: {routedTools[0]?.serverName || 'MCP'}</span>
-            <span className="text-amber-400">Zero-Trust Perimeter Drop</span>
+            <span className={isDarkMode ? 'text-amber-400 font-semibold' : 'text-amber-700 font-bold'}>
+              Zero-Trust Perimeter Drop
+            </span>
           </div>
         </div>
       )}
@@ -538,22 +635,33 @@ export default function PillarNode({ id, data, selected }) {
       {/* MCP BASIS & EXPOSED CAPABILITIES FLYOUT */}
       {pillarType === 'mcp' && showMcpFlyout && (
         <div 
-          className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-96 p-3.5 shadow-2xl border rounded-none text-left animate-in fade-in duration-150 ${
-            isDarkMode ? 'bg-[#0B0F19] border-[#00A3A6] text-white shadow-[0_16px_48px_rgba(0,0,0,0.9)]' : 'bg-white border-[#00A3A6] text-[#0B0F19] shadow-[0_16px_48px_rgba(0,30,80,0.25)]'
+          ref={mcpFlyoutRef}
+          className={`nowheel nodrag nopan absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-96 p-3.5 shadow-2xl border rounded-none text-left animate-in fade-in duration-150 ${
+            isDarkMode 
+              ? 'bg-[#0B0F19] border-[#00A3A6] text-white shadow-[0_16px_48px_rgba(0,0,0,0.9)]' 
+              : 'bg-white border-[#00A3A6] text-[#0B0F19] shadow-[0_16px_48px_rgba(0,30,80,0.2)]'
           }`}
           style={{ borderTop: '4px solid #00A3A6' }}
           onClick={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+          <div className={`flex items-center justify-between pb-2 border-b ${
+            isDarkMode ? 'border-slate-800' : 'border-slate-200'
+          }`}>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 bg-[#00A3A6] text-white flex items-center justify-center font-bold text-xs">
                 <Server className="w-3 h-3" />
               </div>
               <div>
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#00A3A6] block truncate max-w-[200px]">
+                <span className={`text-[11px] font-mono font-bold uppercase tracking-wider block truncate max-w-[200px] ${
+                  isDarkMode ? 'text-[#00A3A6]' : 'text-teal-700'
+                }`}>
                   {name}
                 </span>
-                <span className="text-[9px] text-slate-400 font-sans block -mt-0.5">
+                <span className={`text-[9px] font-sans block -mt-0.5 ${
+                  isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                }`}>
                   Official MCP Catalog ({tools.length} Actions)
                 </span>
               </div>
@@ -561,34 +669,38 @@ export default function PillarNode({ id, data, selected }) {
             <button
               type="button"
               onClick={() => setShowMcpFlyout(false)}
-              className="text-slate-400 hover:text-white p-1"
+              className={`p-1 transition-colors ${
+                isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-800'
+              }`}
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {basis && (
-            <div className="my-2 p-2 bg-[#121620] dark:bg-[#121620] border border-slate-700/60 space-y-1 text-[10px] font-mono">
-              <div className="flex justify-between text-slate-400">
+            <div className={`my-2 p-2 border space-y-1 text-[10px] font-mono ${
+              isDarkMode ? 'bg-[#121620] border-slate-700/60' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className={`flex justify-between ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 <span>Provider:</span>
-                <span className="text-white font-bold">{basis.provider || 'Live API'}</span>
+                <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{basis.provider || 'Live API'}</span>
               </div>
               {basis.authenticatedAs && (
-                <div className="flex justify-between text-slate-400">
+                <div className={`flex justify-between ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                   <span>Identity:</span>
-                  <span className="text-[#00A3A6] font-bold">@{basis.username || basis.authenticatedAs}</span>
+                  <span className={`font-bold ${isDarkMode ? 'text-[#00A3A6]' : 'text-teal-700'}`}>@{basis.username || basis.authenticatedAs}</span>
                 </div>
               )}
               {basis.repository && (
-                <div className="flex justify-between text-slate-400">
+                <div className={`flex justify-between ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                   <span>Target:</span>
-                  <span className="text-white font-bold truncate max-w-[170px]">{basis.repository}</span>
+                  <span className={`font-bold truncate max-w-[170px] ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{basis.repository}</span>
                 </div>
               )}
               {basis.tokenMasked && (
-                <div className="flex justify-between text-slate-400">
+                <div className={`flex justify-between ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                   <span>Token:</span>
-                  <span className="text-slate-300">{basis.tokenMasked}</span>
+                  <span className={isDarkMode ? 'text-slate-300' : 'text-slate-700'}>{basis.tokenMasked}</span>
                 </div>
               )}
             </div>
@@ -596,58 +708,88 @@ export default function PillarNode({ id, data, selected }) {
 
           {/* Search Bar for MCP Tools */}
           <div className="relative my-2">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-400'
+            }`} />
             <input
               type="text"
               placeholder={`Search ${name || 'MCP'} Actions...`}
               value={mcpSearchQuery}
               onChange={(e) => setMcpSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 text-xs font-sans bg-slate-900/80 dark:bg-black/60 border border-slate-700/70 rounded-none text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00A3A6]"
+              className={`w-full pl-8 pr-7 py-1.5 text-xs font-sans rounded-none transition-colors focus:outline-none ${
+                isDarkMode 
+                  ? 'bg-black/60 border border-slate-700/70 text-white placeholder:text-slate-500 focus:border-[#00A3A6]' 
+                  : 'bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#00A3A6] focus:bg-white'
+              }`}
             />
             {mcpSearchQuery && (
               <button
                 type="button"
                 onClick={() => setMcpSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-0.5 transition-colors ${
+                  isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'
+                }`}
               >
                 <X className="w-3 h-3" />
               </button>
             )}
           </div>
 
-          {/* Categorized Tools List */}
-          <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+          {/* Categorized Tools List (Touchpad / Scroll isolated from canvas) */}
+          <div 
+            ref={mcpScrollRef}
+            className="nowheel nodrag overscroll-contain space-y-2 max-h-52 overflow-y-auto pr-1"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             {Object.keys(categorizedMcp).length === 0 ? (
-              <div className="text-center py-3 text-xs font-mono text-slate-500">
+              <div className={`text-center py-3 text-xs font-mono ${
+                isDarkMode ? 'text-slate-500' : 'text-slate-400'
+              }`}>
                 No tools match "{mcpSearchQuery}"
               </div>
             ) : (
               Object.entries(categorizedMcp).map(([category, catTools]) => (
                 <div key={category} className="space-y-1">
-                  <div className="flex items-center justify-between px-1.5 py-0.5 bg-slate-800/40 border-y border-slate-700/40 text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                  <div className={`flex items-center justify-between px-1.5 py-0.5 border-y text-[9px] font-mono font-bold uppercase tracking-wider ${
+                    isDarkMode 
+                      ? 'bg-slate-800/60 border-slate-700/60 text-slate-300' 
+                      : 'bg-slate-100 border-slate-200 text-slate-700'
+                  }`}>
                     <span>{category}</span>
-                    <span className="text-[8px] px-1.5 py-0.2 bg-slate-700/60 text-slate-300">
+                    <span className={`text-[8px] px-1.5 py-0.2 font-normal ${
+                      isDarkMode ? 'bg-slate-700/60 text-slate-300' : 'bg-slate-200 text-slate-700'
+                    }`}>
                       {catTools.length}
                     </span>
                   </div>
                   {catTools.map((t) => (
-                    <div key={t.name} className="p-1.5 bg-[#141822] border border-slate-700/50 flex items-center justify-between gap-2">
+                    <div 
+                      key={t.name} 
+                      className={`p-1.5 border flex items-center justify-between gap-2 ${
+                        isDarkMode ? 'bg-[#141822] border-slate-700/50' : 'bg-white border-slate-200 shadow-xs'
+                      }`}
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10.5px] font-sans font-medium text-white truncate">
+                          <span className={`text-[10.5px] font-sans font-medium truncate ${
+                            isDarkMode ? 'text-white' : 'text-slate-900'
+                          }`}>
                             {t.displayName || t.name}
                           </span>
-                          <span className={`text-[7.5px] font-mono font-bold px-1 py-0.2 rounded-none ${
+                          <span className={`text-[7.5px] font-mono font-bold px-1 py-0.2 rounded-none border ${
                             t.type === 'destructive' 
-                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' 
+                              ? isDarkMode ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-rose-100 text-rose-700 border-rose-300' 
                               : t.type === 'read'
-                                ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' 
-                                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                ? isDarkMode ? 'bg-teal-500/20 text-teal-400 border-teal-500/30' : 'bg-teal-100 text-teal-700 border-teal-300' 
+                                : isDarkMode ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-800 border-amber-300'
                           }`}>
                             {t.type?.toUpperCase()}
                           </span>
                         </div>
-                        <span className="text-[8.5px] font-mono text-slate-400 truncate block">
+                        <span className={`text-[8.5px] font-mono truncate block ${
+                          isDarkMode ? 'text-slate-400' : 'text-slate-600 font-medium'
+                        }`}>
                           {t.name}
                         </span>
                       </div>
@@ -658,7 +800,9 @@ export default function PillarNode({ id, data, selected }) {
             )}
           </div>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-700/50 flex items-center justify-between text-[9px] font-mono text-[#EAAA00]">
+          <div className={`mt-2.5 pt-2 border-t flex items-center justify-between text-[9px] font-mono ${
+            isDarkMode ? 'border-slate-800 text-[#EAAA00]' : 'border-slate-200 text-amber-700'
+          }`}>
             <div className="flex items-center gap-1">
               <GitFork className="w-3 h-3" />
               <span>Controlled at Gateway</span>
@@ -669,7 +813,7 @@ export default function PillarNode({ id, data, selected }) {
                 setShowMcpFlyout(false);
                 if (onOpenInspector) onOpenInspector(id);
               }}
-              className="text-[#00A3A6] hover:underline"
+              className={`hover:underline ${isDarkMode ? 'text-[#00A3A6]' : 'text-teal-700 font-semibold'}`}
             >
               Open Inspector →
             </button>
