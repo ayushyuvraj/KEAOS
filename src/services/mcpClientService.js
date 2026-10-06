@@ -1068,6 +1068,398 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
     return { success: true, message: 'Message successfully published to Slack channel.' };
   }
 
+  // 2b. Real Slack Web API Execution (Full 30-Action Official Suite)
+  if (transport === 'slack-api' && (config?.botToken || config?.token || config?.apiKey)) {
+    const token = config.botToken || config.token || config.apiKey;
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json; charset=utf-8'
+    };
+
+    const channelId = args.channel || args.channel_id || config.channelId;
+
+    // --- CHANNEL ACTIONS ---
+    if (toolName === 'join_slack_channel') {
+      const res = await fetch('https://slack.com/api/conversations.join', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel: channelId })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.join): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'leave_slack_channel') {
+      const res = await fetch('https://slack.com/api/conversations.leave', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel: channelId })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.leave): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'list_slack_channels') {
+      const res = await fetch('https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=100', {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.list): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'get_channel_info') {
+      const res = await fetch(`https://slack.com/api/conversations.info?channel=${encodeURIComponent(channelId)}`, {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.info): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'create_slack_channel') {
+      const res = await fetch('https://slack.com/api/conversations.create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name: args.name, is_private: Boolean(args.is_private) })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.create): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'archive_slack_channel') {
+      const res = await fetch('https://slack.com/api/conversations.archive', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel: channelId })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.archive): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'invite_to_channel') {
+      const res = await fetch('https://slack.com/api/conversations.invite', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel: channelId, users: args.users || args.user_id })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.invite): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'get_channel_history') {
+      const limit = args.limit || 20;
+      const res = await fetch(`https://slack.com/api/conversations.history?channel=${encodeURIComponent(channelId)}&limit=${limit}`, {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.history): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'set_channel_topic') {
+      const res = await fetch('https://slack.com/api/conversations.setTopic', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel: channelId, topic: args.topic })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.setTopic): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'set_channel_purpose') {
+      const res = await fetch('https://slack.com/api/conversations.setPurpose', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel: channelId, purpose: args.purpose })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.setPurpose): ${data.error}`);
+      return data;
+    }
+
+    // --- MESSAGE ACTIONS ---
+    if (toolName === 'post_slack_message') {
+      const res = await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel: channelId,
+          text: args.text || args.message || 'Notification from KEAOS Enterprise Agent'
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (chat.postMessage): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'reply_to_thread') {
+      const res = await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel: channelId,
+          text: args.text || args.message,
+          thread_ts: args.thread_ts || args.ts
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (chat.postMessage thread reply): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'get_thread_replies') {
+      const threadTs = args.thread_ts || args.ts;
+      const res = await fetch(`https://slack.com/api/conversations.replies?channel=${encodeURIComponent(channelId)}&ts=${encodeURIComponent(threadTs)}`, {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.replies): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'update_slack_message') {
+      const res = await fetch('https://slack.com/api/chat.update', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel: channelId,
+          ts: args.ts,
+          text: args.text || args.message
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (chat.update): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'delete_slack_message') {
+      const res = await fetch('https://slack.com/api/chat.delete', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel: channelId,
+          ts: args.ts
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (chat.delete): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'get_slack_message_permalink') {
+      const res = await fetch(`https://slack.com/api/chat.getPermalink?channel=${encodeURIComponent(channelId)}&message_ts=${encodeURIComponent(args.ts)}`, {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (chat.getPermalink): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'add_reaction') {
+      const res = await fetch('https://slack.com/api/reactions.add', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel: channelId,
+          timestamp: args.ts || args.timestamp,
+          name: args.name || args.reaction || 'thumbsup'
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (reactions.add): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'remove_reaction') {
+      const res = await fetch('https://slack.com/api/reactions.remove', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel: channelId,
+          timestamp: args.ts || args.timestamp,
+          name: args.name || args.reaction
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (reactions.remove): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'search_slack_messages') {
+      const res = await fetch(`https://slack.com/api/search.messages?query=${encodeURIComponent(args.query || '')}`, {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (search.messages): ${data.error}`);
+      return data;
+    }
+
+    // --- DIRECT MESSAGES ---
+    if (toolName === 'open_direct_message') {
+      const res = await fetch('https://slack.com/api/conversations.open', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ users: args.users || args.user_id })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (conversations.open): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'send_direct_message') {
+      let targetChannel = channelId;
+      if (args.user_id || args.users) {
+        const openRes = await fetch('https://slack.com/api/conversations.open', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ users: args.users || args.user_id })
+        });
+        const openData = await openRes.json();
+        if (openData.ok && openData.channel?.id) {
+          targetChannel = openData.channel.id;
+        }
+      }
+      const res = await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel: targetChannel,
+          text: args.text || args.message
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (send_direct_message): ${data.error}`);
+      return data;
+    }
+
+    // --- PINS & REMINDERS ---
+    if (toolName === 'pin_slack_message') {
+      const res = await fetch('https://slack.com/api/pins.add', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel: channelId, timestamp: args.ts || args.timestamp })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (pins.add): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'unpin_slack_message') {
+      const res = await fetch('https://slack.com/api/pins.remove', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel: channelId, timestamp: args.ts || args.timestamp })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (pins.remove): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'list_pinned_messages') {
+      const res = await fetch(`https://slack.com/api/pins.list?channel=${encodeURIComponent(channelId)}`, {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (pins.list): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'create_slack_reminder') {
+      const res = await fetch('https://slack.com/api/reminders.add', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          text: args.text || args.message,
+          time: args.time || 'in 1 hour',
+          user: args.user_id
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (reminders.add): ${data.error}`);
+      return data;
+    }
+
+    // --- USER ACTIONS ---
+    if (toolName === 'list_slack_users') {
+      const res = await fetch('https://slack.com/api/users.list?limit=100', {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (users.list): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'get_user_profile') {
+      const userId = args.user || args.user_id;
+      const res = await fetch(`https://slack.com/api/users.profile.get?user=${encodeURIComponent(userId || '')}`, {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (users.profile.get): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'set_user_status') {
+      const res = await fetch('https://slack.com/api/users.profile.set', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          profile: {
+            status_text: args.status_text || args.text || '',
+            status_emoji: args.status_emoji || args.emoji || ':robot_face:'
+          }
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (users.profile.set): ${data.error}`);
+      return data;
+    }
+
+    // --- FILE ACTIONS ---
+    if (toolName === 'list_slack_files') {
+      const res = await fetch(`https://slack.com/api/files.list?channel=${encodeURIComponent(channelId || '')}`, {
+        method: 'GET',
+        headers
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (files.list): ${data.error}`);
+      return data;
+    }
+
+    if (toolName === 'upload_slack_file') {
+      const formData = new FormData();
+      if (channelId) formData.append('channels', channelId);
+      if (args.content || args.text) formData.append('content', args.content || args.text);
+      if (args.title) formData.append('title', args.title);
+      if (args.filename) formData.append('filename', args.filename || 'report.txt');
+
+      const res = await fetch('https://slack.com/api/files.upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(`Slack API error (files.upload): ${data.error}`);
+      return data;
+    }
+  }
+
   // 3. Real Jira REST Execution
   if (transport === 'jira-rest' && config) {
     const authHeader = btoa(`${config.email}:${config.apiToken}`);

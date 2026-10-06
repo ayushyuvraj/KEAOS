@@ -281,51 +281,21 @@ export const GITHUB_OFFICIAL_ACTIONS = [
 ];
 
 export const SLACK_OFFICIAL_ACTIONS = [
-  // --- MESSAGE ACTIONS (6) ---
+  // --- CHANNEL ACTIONS (10) ---
   {
-    name: 'post_slack_message',
-    displayName: 'Post a message',
-    category: 'Message Actions',
+    name: 'join_slack_channel',
+    displayName: 'Join a channel',
+    category: 'Channel Actions',
     type: 'write',
-    description: 'Sends a formatted markdown or block kit message to a Slack channel.'
+    description: 'Joins an existing public Slack channel so the agent can post and receive updates.'
   },
   {
-    name: 'update_slack_message',
-    displayName: 'Update a message',
-    category: 'Message Actions',
+    name: 'leave_slack_channel',
+    displayName: 'Leave a channel',
+    category: 'Channel Actions',
     type: 'write',
-    description: 'Edits the text of an existing message in a Slack channel.'
+    description: 'Leaves a specified Slack channel when conversation completes.'
   },
-  {
-    name: 'delete_slack_message',
-    displayName: 'Delete a message',
-    category: 'Message Actions',
-    type: 'destructive',
-    description: 'Permanently removes a message from a Slack channel.'
-  },
-  {
-    name: 'get_slack_message_permalink',
-    displayName: 'Get message permalink',
-    category: 'Message Actions',
-    type: 'read',
-    description: 'Generates a permanent browser URL link to a specific message.'
-  },
-  {
-    name: 'add_reaction',
-    displayName: 'Add emoji reaction',
-    category: 'Message Actions',
-    type: 'write',
-    description: 'Adds an emoji reaction to a message.'
-  },
-  {
-    name: 'remove_reaction',
-    displayName: 'Remove emoji reaction',
-    category: 'Message Actions',
-    type: 'write',
-    description: 'Removes an emoji reaction from a message.'
-  },
-
-  // --- CHANNEL ACTIONS (6) ---
   {
     name: 'list_slack_channels',
     displayName: 'List channels',
@@ -367,6 +337,131 @@ export const SLACK_OFFICIAL_ACTIONS = [
     category: 'Channel Actions',
     type: 'read',
     description: 'Fetches recent conversation messages from a channel.'
+  },
+  {
+    name: 'set_channel_topic',
+    displayName: 'Set channel topic',
+    category: 'Channel Actions',
+    type: 'write',
+    description: 'Updates the topic of a channel (e.g. current status, meeting summary, sprint goal).'
+  },
+  {
+    name: 'set_channel_purpose',
+    displayName: 'Set channel purpose',
+    category: 'Channel Actions',
+    type: 'write',
+    description: 'Sets or updates the stated purpose/description of a Slack channel.'
+  },
+
+  // --- MESSAGE ACTIONS (9) ---
+  {
+    name: 'post_slack_message',
+    displayName: 'Post a message',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Sends a formatted markdown or block kit message to a Slack channel.'
+  },
+  {
+    name: 'reply_to_thread',
+    displayName: 'Reply to thread',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Posts a response directly into an existing message thread without notifying the entire channel.'
+  },
+  {
+    name: 'get_thread_replies',
+    displayName: 'Get thread replies',
+    category: 'Message Actions',
+    type: 'read',
+    description: 'Retrieves all conversation messages and replies from a specific thread.'
+  },
+  {
+    name: 'update_slack_message',
+    displayName: 'Update a message',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Edits the text of an existing message in a Slack channel.'
+  },
+  {
+    name: 'delete_slack_message',
+    displayName: 'Delete a message',
+    category: 'Message Actions',
+    type: 'destructive',
+    description: 'Permanently removes a message from a Slack channel.'
+  },
+  {
+    name: 'get_slack_message_permalink',
+    displayName: 'Get message permalink',
+    category: 'Message Actions',
+    type: 'read',
+    description: 'Generates a permanent browser URL link to a specific message.'
+  },
+  {
+    name: 'add_reaction',
+    displayName: 'Add emoji reaction',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Adds an emoji reaction to a message.'
+  },
+  {
+    name: 'remove_reaction',
+    displayName: 'Remove emoji reaction',
+    category: 'Message Actions',
+    type: 'write',
+    description: 'Removes an emoji reaction from a message.'
+  },
+  {
+    name: 'search_slack_messages',
+    displayName: 'Search messages',
+    category: 'Message Actions',
+    type: 'read',
+    description: 'Searches across channels and public history for messages matching a query.'
+  },
+
+  // --- DIRECT MESSAGES (2) ---
+  {
+    name: 'open_direct_message',
+    displayName: 'Open direct message',
+    category: 'Direct Messages',
+    type: 'write',
+    description: 'Opens or retrieves a 1-on-1 or multi-person DM conversation with target user IDs.'
+  },
+  {
+    name: 'send_direct_message',
+    displayName: 'Send direct message',
+    category: 'Direct Messages',
+    type: 'write',
+    description: 'Sends a private DM alert or action item notification directly to a user.'
+  },
+
+  // --- PINS & REMINDERS (4) ---
+  {
+    name: 'pin_slack_message',
+    displayName: 'Pin message to channel',
+    category: 'Pins & Reminders',
+    type: 'write',
+    description: 'Pins an important announcement or meeting decision to the channel.'
+  },
+  {
+    name: 'unpin_slack_message',
+    displayName: 'Unpin message from channel',
+    category: 'Pins & Reminders',
+    type: 'write',
+    description: 'Unpins a message from a Slack channel.'
+  },
+  {
+    name: 'list_pinned_messages',
+    displayName: 'List pinned messages',
+    category: 'Pins & Reminders',
+    type: 'read',
+    description: 'Retrieves all messages currently pinned in a Slack channel.'
+  },
+  {
+    name: 'create_slack_reminder',
+    displayName: 'Create reminder',
+    category: 'Pins & Reminders',
+    type: 'write',
+    description: 'Schedules a Slack reminder for a user or channel regarding task deadlines.'
   },
 
   // --- USER ACTIONS (3) ---
