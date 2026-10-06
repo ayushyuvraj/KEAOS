@@ -63,6 +63,16 @@ export default function ConnectMcpModal({
   const [isConnectingOAuth, setIsConnectingOAuth] = useState(false);
   const [oauthError, setOauthError] = useState(null);
 
+  // Real OAuth App Credentials
+  const [githubClientId, setGithubClientId] = useState(import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID || '');
+  const [githubClientSecret, setGithubClientSecret] = useState(import.meta.env.VITE_GITHUB_OAUTH_CLIENT_SECRET || '');
+  const [slackClientId, setSlackClientId] = useState(import.meta.env.VITE_SLACK_OAUTH_CLIENT_ID || '');
+  const [slackClientSecret, setSlackClientSecret] = useState(import.meta.env.VITE_SLACK_OAUTH_CLIENT_SECRET || '');
+  const [jiraClientId, setJiraClientId] = useState(import.meta.env.VITE_JIRA_OAUTH_CLIENT_ID || '');
+  const [jiraClientSecret, setJiraClientSecret] = useState(import.meta.env.VITE_JIRA_OAUTH_CLIENT_SECRET || '');
+  const [googleClientId, setGoogleClientId] = useState(import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '');
+  const [googleClientSecret, setGoogleClientSecret] = useState(import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_SECRET || '');
+
   // URL Tab State (Claude Code style)
   const [mcpUrl, setMcpUrl] = useState('');
   const [isVerifyingUrl, setIsVerifyingUrl] = useState(false);
@@ -179,7 +189,14 @@ export default function ConnectMcpModal({
     setIsConnectingOAuth(true);
     setOauthError(null);
     try {
-      const result = await connectMcpViaOAuth({ provider });
+      let clientId = '';
+      let clientSecret = '';
+      if (provider === 'github') { clientId = githubClientId; clientSecret = githubClientSecret; }
+      if (provider === 'slack') { clientId = slackClientId; clientSecret = slackClientSecret; }
+      if (provider === 'jira') { clientId = jiraClientId; clientSecret = jiraClientSecret; }
+      if (provider === 'google') { clientId = googleClientId; clientSecret = googleClientSecret; }
+
+      const result = await connectMcpViaOAuth({ provider, clientId, clientSecret });
       if (provider === 'github') setVerifiedGithubResult(result);
       if (provider === 'slack') setVerifiedSlackResult(result);
       if (provider === 'jira') setVerifiedJiraResult(result);
@@ -192,16 +209,7 @@ export default function ConnectMcpModal({
   };
 
   const handleVerifyGoogle = async () => {
-    setIsVerifyingGoogle(true);
-    setGoogleError(null);
-    try {
-      const result = await connectMcpViaOAuth({ provider: 'google', accountHint: googleEmail });
-      setVerifiedGoogleResult(result);
-    } catch (err) {
-      setGoogleError(err.message);
-    } finally {
-      setIsVerifyingGoogle(false);
-    }
+    return handleConnectOAuth('google');
   };
 
   const handleDeployToCanvas = (mcpResult) => {
@@ -487,6 +495,29 @@ export default function ConnectMcpModal({
                     <span>Perimeter Governance: You can selectively toggle individual tools ON or OFF in the Gateway Controller.</span>
                   </div>
 
+                  <div>
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Slack App Client ID</span>
+                      <a href="https://api.slack.com/apps" target="_blank" rel="noreferrer" className="text-[10px] text-[#00A3A6] hover:underline flex items-center gap-1 font-normal normal-case">
+                        register at api.slack.com/apps <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 123456789.987654321"
+                      value={slackClientId}
+                      onChange={(e) => setSlackClientId(e.target.value)}
+                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
+                        isDarkMode
+                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
+                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
+                      }`}
+                    />
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
+                      <span>Authorization Callback URL: <code className="text-[#00A3A6]">{typeof window !== 'undefined' ? `${window.location.origin}/oauth-callback.html` : '/oauth-callback.html'}</code></span>
+                    </div>
+                  </div>
+
                   {slackError && (
                     <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -500,7 +531,7 @@ export default function ConnectMcpModal({
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Slack Authorized ({verifiedSlackResult.account || 'Connected Workspace'}) ✓
+                            Slack Authorized ({verifiedSlackResult.basis?.workspace || verifiedSlackResult.account || 'Connected Workspace'}) ✓
                           </span>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
@@ -525,7 +556,7 @@ export default function ConnectMcpModal({
                       className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
                       {isConnectingOAuth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                      <span>Authorize Slack Workspace (OAuth 2.0 — 22 Tools)</span>
+                      <span>Authorize Slack Workspace (Opens slack.com consent window)</span>
                     </button>
                   )}
                 </div>
@@ -670,6 +701,29 @@ export default function ConnectMcpModal({
                     <span>Perimeter Governance: You can selectively toggle individual tools ON or OFF in the Gateway Controller.</span>
                   </div>
 
+                  <div>
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Atlassian App Client ID</span>
+                      <a href="https://developer.atlassian.com/console" target="_blank" rel="noreferrer" className="text-[10px] text-[#00A3A6] hover:underline flex items-center gap-1 font-normal normal-case">
+                        register at developer.atlassian.com <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. atlassian_oauth_client_id"
+                      value={jiraClientId}
+                      onChange={(e) => setJiraClientId(e.target.value)}
+                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
+                        isDarkMode
+                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
+                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
+                      }`}
+                    />
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
+                      <span>Authorization Callback URL: <code className="text-[#00A3A6]">{typeof window !== 'undefined' ? `${window.location.origin}/oauth-callback.html` : '/oauth-callback.html'}</code></span>
+                    </div>
+                  </div>
+
                   {jiraError && (
                     <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -683,7 +737,7 @@ export default function ConnectMcpModal({
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Jira Cloud Authorized ({verifiedJiraResult.account || 'Connected'}) ✓
+                            Jira Cloud Authorized ({verifiedJiraResult.basis?.cloudUrl || verifiedJiraResult.account || 'Connected'}) ✓
                           </span>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
@@ -708,7 +762,7 @@ export default function ConnectMcpModal({
                       className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
                       {isConnectingOAuth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                      <span>Authorize Atlassian Jira (OAuth 2.0 — 18 Tools)</span>
+                      <span>Authorize Atlassian Jira (Opens auth.atlassian.com window)</span>
                     </button>
                   )}
                 </div>
@@ -888,6 +942,29 @@ export default function ConnectMcpModal({
                     <span>Perimeter Governance: You can selectively toggle individual tools ON or OFF in the Gateway Controller.</span>
                   </div>
 
+                  <div>
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>GitHub OAuth App Client ID</span>
+                      <a href="https://github.com/settings/developers" target="_blank" rel="noreferrer" className="text-[10px] text-[#00A3A6] hover:underline flex items-center gap-1 font-normal normal-case">
+                        register at github.com/settings/developers <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Ov23liXXXXXXXXXXXXXX or Iv1.XXXXXXXXXXXX"
+                      value={githubClientId}
+                      onChange={(e) => setGithubClientId(e.target.value)}
+                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
+                        isDarkMode
+                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
+                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
+                      }`}
+                    />
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
+                      <span>Authorization Callback URL: <code className="text-[#00A3A6]">{typeof window !== 'undefined' ? `${window.location.origin}/oauth-callback.html` : '/oauth-callback.html'}</code></span>
+                    </div>
+                  </div>
+
                   {oauthError && (
                     <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -901,7 +978,7 @@ export default function ConnectMcpModal({
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            GitHub OAuth Authorized ({verifiedGithubResult.account || 'Connected'}) ✓
+                            GitHub OAuth Authorized ({verifiedGithubResult.basis?.authenticatedAs || 'Connected'}) ✓
                           </span>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
@@ -926,7 +1003,7 @@ export default function ConnectMcpModal({
                       className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
                       {isConnectingOAuth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                      <span>Authorize with GitHub (OAuth 2.0 — All 37 Tools)</span>
+                      <span>Authorize with GitHub (Opens github.com consent window)</span>
                     </button>
                   )}
                 </div>
@@ -1067,20 +1144,26 @@ export default function ConnectMcpModal({
                   </div>
 
                   <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
-                      Google Account Email (Optional hint)
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Google Cloud OAuth Client ID</span>
+                      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-[10px] text-[#00A3A6] hover:underline flex items-center gap-1 font-normal normal-case">
+                        console.cloud.google.com/apis/credentials <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
                     </label>
                     <input
-                      type="email"
-                      placeholder="user@gmail.com or employee@company.com"
-                      value={googleEmail}
-                      onChange={(e) => setGoogleEmail(e.target.value)}
+                      type="text"
+                      placeholder="e.g. 123456789-xxxxxx.apps.googleusercontent.com"
+                      value={googleClientId}
+                      onChange={(e) => setGoogleClientId(e.target.value)}
                       className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
                         isDarkMode
                           ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
                           : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
                       }`}
                     />
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
+                      <span>Authorized Redirect URI: <code className="text-[#00A3A6]">{typeof window !== 'undefined' ? `${window.location.origin}/oauth-callback.html` : '/oauth-callback.html'}</code></span>
+                    </div>
                   </div>
 
                   {googleError && (
@@ -1096,7 +1179,7 @@ export default function ConnectMcpModal({
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Google Workspace Authorized ({verifiedGoogleResult.account || 'Connected'}) ✓
+                            Google Workspace Authorized ({verifiedGoogleResult.basis?.accountEmail || verifiedGoogleResult.account || 'Connected'}) ✓
                           </span>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
@@ -1117,11 +1200,11 @@ export default function ConnectMcpModal({
                   ) : (
                     <button
                       onClick={handleVerifyGoogle}
-                      disabled={isVerifyingGoogle}
+                      disabled={isConnectingOAuth}
                       className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
-                      {isVerifyingGoogle ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                      <span>Authorize Google Workspace (OAuth 2.0 — 15 Tools)</span>
+                      {isConnectingOAuth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                      <span>Authorize Google Workspace (Opens accounts.google.com window)</span>
                     </button>
                   )}
                 </div>

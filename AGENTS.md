@@ -236,3 +236,18 @@ All agents and developers writing code in KEAOS MUST enforce these three invaria
      2. Does every alternate branch (`else`, non-agent nodes, uninitialized state) safely evaluate without throwing?
      3. Are all hook dependencies declared above the hook invocation?
 
+---
+
+## 9. Strict Credential Integrity & Zero-Mock OAuth Invariant
+
+All agents and developers writing code in KEAOS MUST enforce the following integrity rule:
+
+1. **Zero Hardcoded Credentials or Personal Handles**:
+   - **ABSOLUTELY FORBIDDEN**: Never hardcode any user's personal handle, email, username, repository name, or token anywhere in code, fallbacks, or mock responses.
+   - All credentials MUST originate exclusively from active user inputs or authenticated session storage.
+
+2. **Zero Synthetic OAuth Simulation**:
+   - When an OAuth flow is triggered, it MUST initiate a REAL browser authorization handshake (opening the provider's authorization portal, e.g. `https://github.com/login/oauth/authorize`, or the official Device Flow at `https://github.com/login/device`).
+   - Never generate dummy tokens (`gho_oauth_...`) or fake verified responses that bypass genuine provider authentication.
+   - If an OAuth Client ID or configuration is missing, fail transparently with a clear, honest setup prompt rather than pretending the connection succeeded.
+

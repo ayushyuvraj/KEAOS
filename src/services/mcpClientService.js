@@ -352,51 +352,147 @@ export async function verifyJiraMcpConnection({ domain, email, apiToken, project
 }
 
 /**
- * Universal OAuth 2.0 Connection Handler for All MCPs (GitHub, Slack, Jira, Google Workspace).
- * Enforces pre-authorized scopes with all official tools active by default.
+ * Real Production-Grade OAuth 2.0 Connection Handler for All MCPs (GitHub, Slack, Jira, Google Workspace).
+ * Opens a real browser consent popup, captures the authorization code via callback postMessage,
+ * exchanges the code for a live access token via local Vite proxy, and verifies the authenticated user with real APIs.
+ * Zero simulation. Zero mock tokens. Zero hardcoded handles.
  */
-export async function connectMcpViaOAuth({ provider = 'github', accountHint = '', customScopes = [] }) {
+export async function connectMcpViaOAuth({ 
+  provider = 'github', 
+  clientId = '', 
+  clientSecret = '', 
+  customScopes = [] 
+}) {
   const norm = provider.toLowerCase();
+  const redirectUri = `${window.location.origin}/oauth-callback.html`;
+  const state = Math.random().toString(36).substring(2, 15);
 
   // 1. GITHUB OAUTH 2.0
   if (norm.includes('github')) {
     const scopes = customScopes.length > 0 ? customScopes : MCP_AUTH_SPECS.github.scopes;
-    const userHandle = accountHint || 'ayushyuvraj';
-    
-    // Look up any existing verified GitHub token from storage to preserve live API connectivity
-    const savedMcps = getRegisteredMcpServers();
-    const existingGithub = savedMcps.find(s => (s.serviceName || s.name || '').toLowerCase().includes('github') && s.config?.token);
-    const oauthToken = existingGithub?.config?.token || `gho_oauth_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+    const finalClientId = (clientId || import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID || '').trim();
+    const finalClientSecret = (clientSecret || import.meta.env.VITE_GITHUB_OAUTH_CLIENT_SECRET || '').trim();
 
-    let accessibleRepos = [];
-    let userProfile = { login: userHandle, name: 'GitHub Verified Account', public_repos: 6 };
+    if (!finalClientId) {
+      throw new Error(
+        `GitHub OAuth requires a Client ID. Please provide your GitHub OAuth App Client ID (or set VITE_GITHUB_OAUTH_CLIENT_ID in .env). ` +
+        `You can register an OAuth App at https://github.com/settings/developers with Authorization callback URL: ${redirectUri}`
+      );
+    }
 
-    if (existingGithub?.config?.token) {
-      try {
-        const uRes = await fetch('https://api.github.com/user', {
-          headers: { 'Authorization': `token ${existingGithub.config.token}`, 'User-Agent': 'KEAOS-Studio' }
-        });
-        if (uRes.ok) userProfile = await uRes.json();
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(finalClientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes.join(' '))}&state=${state}`;
 
-        const rRes = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
-          headers: { 'Authorization': `token ${existingGithub.config.token}`, 'User-Agent': 'KEAOS-Studio' }
-        });
-        if (rRes.ok) {
-          const rData = await rRes.json();
-          if (Array.isArray(rData) && rData.length > 0) {
-            accessibleRepos = rData.map(r => ({
-              name: r.name,
-              fullName: r.full_name,
-              isPrivate: r.private,
-              description: r.description || '',
-              defaultBranch: r.default_branch || 'main',
-              htmlUrl: r.html_url
-            }));
+    // Open real browser popup
+    const width = 600;
+    const height = 750;
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+    const popup = window.open(
+      authUrl,
+      'keaos-github-oauth',
+      `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`
+    );
+
+    if (!popup) {
+      throw new Error('OAuth popup window was blocked by your browser. Please allow popups for localhost and retry.');
+    }
+
+    // Await authorization code from popup
+    const authCode = await new Promise((resolve, reject) => {
+      let settled = false;
+      const onMessage = (event) => {
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.type === 'KEAOS_OAUTH_RESPONSE') {
+          settled = true;
+          window.removeEventListener('message', onMessage);
+          if (event.data.error) {
+            reject(new Error(`GitHub OAuth Error: ${event.data.errorDescription || event.data.error}`));
+          } else if (event.data.code) {
+            resolve(event.data.code);
+          } else {
+            reject(new Error('No authorization code was returned from GitHub.'));
           }
         }
-      } catch (e) {
-        console.warn('OAuth profile check note:', e);
+      };
+      window.addEventListener('message', onMessage);
+
+      const checkInterval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkInterval);
+          window.removeEventListener('message', onMessage);
+          if (!settled) {
+            reject(new Error('OAuth authorization cancelled: GitHub consent popup was closed.'));
+          }
+        }
+      }, 800);
+    });
+
+    // Real code-to-token exchange via local Vite proxy
+    const tokenRes = await fetch('/api/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'github',
+        code: authCode,
+        clientId: finalClientId,
+        clientSecret: finalClientSecret,
+        redirectUri
+      })
+    });
+
+    if (!tokenRes.ok) {
+      const errData = await tokenRes.json().catch(() => ({}));
+      throw new Error(errData.error || `Failed to exchange GitHub authorization code (HTTP ${tokenRes.status})`);
+    }
+
+    const tokenData = await tokenRes.json();
+    if (tokenData.error) {
+      throw new Error(tokenData.error_description || tokenData.error || 'GitHub token exchange rejected');
+    }
+
+    const accessToken = tokenData.access_token;
+    if (!accessToken) {
+      throw new Error('Did not receive access_token from GitHub OAuth exchange.');
+    }
+
+    // Real user profile fetch from GitHub API
+    const userRes = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `token ${accessToken}`,
+        'User-Agent': 'KEAOS-Studio'
       }
+    });
+
+    if (!userRes.ok) {
+      throw new Error(`Failed to verify authenticated user with GitHub API (HTTP ${userRes.status})`);
+    }
+
+    const userProfile = await userRes.json();
+
+    // Real repositories fetch from GitHub API
+    let accessibleRepos = [];
+    try {
+      const reposRes = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+        headers: {
+          'Authorization': `token ${accessToken}`,
+          'User-Agent': 'KEAOS-Studio'
+        }
+      });
+      if (reposRes.ok) {
+        const reposData = await reposRes.json();
+        if (Array.isArray(reposData)) {
+          accessibleRepos = reposData.map(r => ({
+            name: r.name,
+            fullName: r.full_name,
+            isPrivate: r.private,
+            description: r.description || '',
+            defaultBranch: r.default_branch || 'main',
+            htmlUrl: r.html_url
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('Repository list fetch note:', e);
     }
 
     return {
@@ -404,26 +500,26 @@ export async function connectMcpViaOAuth({ provider = 'github', accountHint = ''
       name: `GitHub OAuth (@${userProfile.login})`,
       displayName: `GitHub OAuth (@${userProfile.login})`,
       serviceName: 'GitHub',
-      description: `Official Enterprise GitHub MCP with all ${GITHUB_OFFICIAL_ACTIONS.length} tools pre-authorized via OAuth 2.0.`,
+      description: `Official Enterprise GitHub MCP with all ${GITHUB_OFFICIAL_ACTIONS.length} tools authenticated via live OAuth 2.0.`,
       transport: 'github-api',
       config: {
-        token: existingGithub?.config?.token || oauthToken,
+        token: accessToken,
         authType: 'oauth',
         scopes,
         owner: userProfile.login
       },
       basis: {
-        provider: 'GitHub OAuth 2.0 / Official MCP Specification',
+        provider: 'GitHub OAuth 2.0 (Live Authorized)',
         authenticatedAs: userProfile.name || userProfile.login,
         username: userProfile.login,
         avatarUrl: userProfile.avatar_url,
-        repository: `${userProfile.login} (${accessibleRepos.length || 6} accessible repos)`,
-        accessibleReposCount: accessibleRepos.length || 6,
+        repository: `${userProfile.login} (${accessibleRepos.length} repos discovered)`,
+        accessibleReposCount: accessibleRepos.length,
         repositories: accessibleRepos,
         apiEndpoint: 'https://api.github.com',
-        authType: 'OAuth 2.0 (Pre-Authorized)',
-        scopesGranted: scopes.join(', '),
-        tokenMasked: 'gho_••••••••'
+        authType: 'OAuth 2.0 (Live Bearer)',
+        scopesGranted: tokenData.scope || scopes.join(', '),
+        tokenMasked: `${accessToken.substring(0, 4)}••••••••`
       },
       tools: GITHUB_OFFICIAL_ACTIONS,
       verifiedAt: new Date().toISOString()
@@ -433,27 +529,91 @@ export async function connectMcpViaOAuth({ provider = 'github', accountHint = ''
   // 2. SLACK OAUTH 2.0
   if (norm.includes('slack')) {
     const scopes = customScopes.length > 0 ? customScopes : MCP_AUTH_SPECS.slack.scopes;
-    const teamName = accountHint || 'Enterprise Workspace';
+    const finalClientId = (clientId || import.meta.env.VITE_SLACK_OAUTH_CLIENT_ID || '').trim();
+    const finalClientSecret = (clientSecret || import.meta.env.VITE_SLACK_OAUTH_CLIENT_SECRET || '').trim();
+
+    if (!finalClientId) {
+      throw new Error(
+        `Slack OAuth requires a Client ID. Please provide your Slack App Client ID (or set VITE_SLACK_OAUTH_CLIENT_ID in .env). ` +
+        `Register at https://api.slack.com/apps with Redirect URL: ${redirectUri}`
+      );
+    }
+
+    const authUrl = `https://slack.com/oauth/v2/authorize?client_id=${encodeURIComponent(finalClientId)}&user_scope=${encodeURIComponent(scopes.join(','))}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+
+    const width = 600;
+    const height = 750;
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+    const popup = window.open(authUrl, 'keaos-slack-oauth', `width=${width},height=${height},left=${left},top=${top}`);
+
+    if (!popup) {
+      throw new Error('OAuth popup window was blocked by your browser. Please allow popups for localhost and retry.');
+    }
+
+    const authCode = await new Promise((resolve, reject) => {
+      let settled = false;
+      const onMessage = (event) => {
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.type === 'KEAOS_OAUTH_RESPONSE') {
+          settled = true;
+          window.removeEventListener('message', onMessage);
+          if (event.data.error) reject(new Error(`Slack OAuth Error: ${event.data.error}`));
+          else if (event.data.code) resolve(event.data.code);
+          else reject(new Error('No authorization code was returned from Slack.'));
+        }
+      };
+      window.addEventListener('message', onMessage);
+      const interval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(interval);
+          window.removeEventListener('message', onMessage);
+          if (!settled) reject(new Error('Slack authorization popup was closed.'));
+        }
+      }, 800);
+    });
+
+    const tokenRes = await fetch('/api/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'slack',
+        code: authCode,
+        clientId: finalClientId,
+        clientSecret: finalClientSecret,
+        redirectUri
+      })
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.ok) {
+      throw new Error(tokenData.error || 'Slack token exchange rejected');
+    }
+
+    const accessToken = tokenData.authed_user?.access_token || tokenData.access_token;
+    const teamName = tokenData.team?.name || 'Slack Workspace';
+
     return {
       id: `mcp-slack-oauth-${Date.now().toString().slice(-4)}`,
       name: `Slack OAuth (${teamName})`,
       displayName: `Slack OAuth (${teamName})`,
       serviceName: 'Slack',
-      description: `Official Slack MCP with all ${SLACK_OFFICIAL_ACTIONS.length} tools pre-authorized via OAuth 2.0.`,
+      description: `Official Slack MCP with all ${SLACK_OFFICIAL_ACTIONS.length} tools pre-authorized via live OAuth 2.0.`,
       transport: 'slack-api',
       config: {
-        botToken: `xoxb-oauth-${Date.now().toString(36)}`,
+        botToken: accessToken,
         authType: 'oauth',
         scopes,
         defaultChannel: '#general'
       },
       basis: {
-        provider: 'Slack OAuth 2.0 / Official MCP Specification',
+        provider: 'Slack OAuth 2.0 (Live Authorized)',
         channel: '#general',
         workspace: teamName,
         apiEndpoint: 'https://slack.com/api',
-        authType: 'OAuth 2.0 (Bot User Pre-Authorized)',
-        scopesGranted: scopes.join(', ')
+        authType: 'OAuth 2.0 (User/Bot Live)',
+        scopesGranted: scopes.join(', '),
+        tokenMasked: `${accessToken.substring(0, 5)}••••••••`
       },
       tools: SLACK_OFFICIAL_ACTIONS,
       verifiedAt: new Date().toISOString()
@@ -463,27 +623,110 @@ export async function connectMcpViaOAuth({ provider = 'github', accountHint = ''
   // 3. JIRA / ATLASSIAN OAUTH 2.0 (3LO)
   if (norm.includes('jira')) {
     const scopes = customScopes.length > 0 ? customScopes : MCP_AUTH_SPECS.jira.scopes;
-    const domain = accountHint || 'enterprise.atlassian.net';
+    const finalClientId = (clientId || import.meta.env.VITE_JIRA_OAUTH_CLIENT_ID || '').trim();
+    const finalClientSecret = (clientSecret || import.meta.env.VITE_JIRA_OAUTH_CLIENT_SECRET || '').trim();
+
+    if (!finalClientId) {
+      throw new Error(
+        `Jira OAuth requires an Atlassian Client ID. Please provide your Client ID (or set VITE_JIRA_OAUTH_CLIENT_ID in .env). ` +
+        `Register at https://developer.atlassian.com/console with Callback URL: ${redirectUri}`
+      );
+    }
+
+    const authUrl = `https://auth.atlassian.com/authorize?audience=api.atlassian.com&client_id=${encodeURIComponent(finalClientId)}&scope=${encodeURIComponent(scopes.join(' '))}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&response_type=code&prompt=consent`;
+
+    const width = 600;
+    const height = 750;
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+    const popup = window.open(authUrl, 'keaos-jira-oauth', `width=${width},height=${height},left=${left},top=${top}`);
+
+    if (!popup) {
+      throw new Error('OAuth popup window was blocked by your browser. Please allow popups for localhost and retry.');
+    }
+
+    const authCode = await new Promise((resolve, reject) => {
+      let settled = false;
+      const onMessage = (event) => {
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.type === 'KEAOS_OAUTH_RESPONSE') {
+          settled = true;
+          window.removeEventListener('message', onMessage);
+          if (event.data.error) reject(new Error(`Atlassian OAuth Error: ${event.data.error}`));
+          else if (event.data.code) resolve(event.data.code);
+          else reject(new Error('No authorization code was returned from Atlassian.'));
+        }
+      };
+      window.addEventListener('message', onMessage);
+      const interval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(interval);
+          window.removeEventListener('message', onMessage);
+          if (!settled) reject(new Error('Atlassian authorization popup was closed.'));
+        }
+      }, 800);
+    });
+
+    const tokenRes = await fetch('/api/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'jira',
+        code: authCode,
+        clientId: finalClientId,
+        clientSecret: finalClientSecret,
+        redirectUri
+      })
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || tokenData.error) {
+      throw new Error(tokenData.error_description || tokenData.error || 'Atlassian token exchange rejected');
+    }
+
+    const accessToken = tokenData.access_token;
+    let cloudId = '';
+    let cloudUrl = '';
+
+    // Fetch accessible Atlassian Cloud sites
+    try {
+      const sitesRes = await fetch('https://api.atlassian.com/oauth/token/accessible-resources', {
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' }
+      });
+      if (sitesRes.ok) {
+        const sites = await sitesRes.json();
+        if (Array.isArray(sites) && sites.length > 0) {
+          cloudId = sites[0].id;
+          cloudUrl = sites[0].url;
+        }
+      }
+    } catch (e) {
+      console.warn('Atlassian accessible resources note:', e);
+    }
+
     return {
       id: `mcp-jira-oauth-${Date.now().toString().slice(-4)}`,
-      name: `Jira OAuth (3LO Cloud)`,
-      displayName: `Jira OAuth (3LO Cloud)`,
+      name: `Jira OAuth (${cloudUrl || 'Cloud'})`,
+      displayName: `Jira OAuth (${cloudUrl || 'Cloud'})`,
       serviceName: 'Atlassian Jira',
-      description: `Official Atlassian Jira MCP with all ${JIRA_OFFICIAL_ACTIONS.length} tools pre-authorized via OAuth 2.0 (3LO).`,
+      description: `Official Atlassian Jira MCP with all ${JIRA_OFFICIAL_ACTIONS.length} tools pre-authorized via live OAuth 2.0 (3LO).`,
       transport: 'jira-rest',
       config: {
-        domain,
+        token: accessToken,
+        cloudId,
         authType: 'oauth',
         scopes,
         projectKey: 'ENG'
       },
       basis: {
-        provider: 'Atlassian OAuth 2.0 (3LO) / Official MCP Specification',
-        domain,
+        provider: 'Atlassian OAuth 2.0 (3LO Live)',
+        cloudId,
+        cloudUrl,
         projectKey: 'ENG',
-        apiEndpoint: `https://${domain}/rest/api/3`,
+        apiEndpoint: cloudId ? `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3` : 'https://api.atlassian.com',
         authType: 'OAuth 2.0 (Atlassian 3LO)',
-        scopesGranted: scopes.join(', ')
+        scopesGranted: scopes.join(', '),
+        tokenMasked: `${accessToken.substring(0, 4)}••••••••`
       },
       tools: JIRA_OFFICIAL_ACTIONS,
       verifiedAt: new Date().toISOString()
@@ -493,25 +736,102 @@ export async function connectMcpViaOAuth({ provider = 'github', accountHint = ''
   // 4. GOOGLE WORKSPACE OAUTH 2.0
   if (norm.includes('google')) {
     const scopes = customScopes.length > 0 ? customScopes : MCP_AUTH_SPECS.google.scopes;
-    const email = accountHint || 'operator@enterprise.org';
+    const finalClientId = (clientId || import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '').trim();
+    const finalClientSecret = (clientSecret || import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_SECRET || '').trim();
+
+    if (!finalClientId) {
+      throw new Error(
+        `Google Workspace OAuth requires a Client ID. Please provide your Google Cloud OAuth Client ID (or set VITE_GOOGLE_OAUTH_CLIENT_ID in .env). ` +
+        `Register in Google Cloud Console -> APIs & Services -> Credentials with Authorized redirect URI: ${redirectUri}`
+      );
+    }
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(finalClientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes.join(' '))}&state=${state}&access_type=offline&prompt=consent`;
+
+    const width = 600;
+    const height = 750;
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+    const popup = window.open(authUrl, 'keaos-google-oauth', `width=${width},height=${height},left=${left},top=${top}`);
+
+    if (!popup) {
+      throw new Error('OAuth popup window was blocked by your browser. Please allow popups for localhost and retry.');
+    }
+
+    const authCode = await new Promise((resolve, reject) => {
+      let settled = false;
+      const onMessage = (event) => {
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.type === 'KEAOS_OAUTH_RESPONSE') {
+          settled = true;
+          window.removeEventListener('message', onMessage);
+          if (event.data.error) reject(new Error(`Google OAuth Error: ${event.data.error}`));
+          else if (event.data.code) resolve(event.data.code);
+          else reject(new Error('No authorization code was returned from Google.'));
+        }
+      };
+      window.addEventListener('message', onMessage);
+      const interval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(interval);
+          window.removeEventListener('message', onMessage);
+          if (!settled) reject(new Error('Google authorization popup was closed.'));
+        }
+      }, 800);
+    });
+
+    const tokenRes = await fetch('/api/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'google',
+        code: authCode,
+        clientId: finalClientId,
+        clientSecret: finalClientSecret,
+        redirectUri
+      })
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || tokenData.error) {
+      throw new Error(tokenData.error_description || tokenData.error || 'Google token exchange rejected');
+    }
+
+    const accessToken = tokenData.access_token;
+    let userEmail = 'Google Account';
+
+    try {
+      const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (infoRes.ok) {
+        const userInfo = await infoRes.json();
+        userEmail = userInfo.email || userEmail;
+      }
+    } catch (e) {
+      console.warn('Google userinfo fetch note:', e);
+    }
+
     return {
       id: `mcp-google-oauth-${Date.now().toString().slice(-4)}`,
-      name: `Google Workspace (${email})`,
-      displayName: `Google Workspace (${email})`,
+      name: `Google Workspace (${userEmail})`,
+      displayName: `Google Workspace (${userEmail})`,
       serviceName: 'Google Workspace',
-      description: `Official Google Workspace MCP with all ${GOOGLE_WORKSPACE_OFFICIAL_ACTIONS.length} tools pre-authorized via OAuth 2.0.`,
+      description: `Official Google Workspace MCP with all ${GOOGLE_WORKSPACE_OFFICIAL_ACTIONS.length} tools pre-authorized via live OAuth 2.0.`,
       transport: 'google-apis',
       config: {
+        token: accessToken,
         authType: 'oauth',
         scopes,
-        email
+        email: userEmail
       },
       basis: {
-        provider: 'Google Identity OAuth 2.0 / Official MCP Specification',
-        accountEmail: email,
+        provider: 'Google Identity OAuth 2.0 (Live Authorized)',
+        accountEmail: userEmail,
         apiEndpoint: 'https://www.googleapis.com',
         authType: 'OAuth 2.0 (Google Identity Services)',
-        scopesGranted: scopes.join(', ')
+        scopesGranted: scopes.join(', '),
+        tokenMasked: `${accessToken.substring(0, 4)}••••••••`
       },
       tools: GOOGLE_WORKSPACE_OFFICIAL_ACTIONS,
       verifiedAt: new Date().toISOString()
