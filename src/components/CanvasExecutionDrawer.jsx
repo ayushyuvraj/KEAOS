@@ -27,7 +27,8 @@ import {
   GitFork,
   Layers,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  Minus
 } from 'lucide-react';
 import MarkdownViewer from './common/MarkdownViewer';
 import { runMeetingSimulation } from '../utils/meetingSimulatorEngine';
