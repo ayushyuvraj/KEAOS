@@ -669,16 +669,18 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
     }
 
     if (toolName === 'create_repository') {
-      const repoName = args.name || args.repo || args.repository_name || args.repository || args.repoName;
-      if (!repoName) {
+      const rawName = args.name || args.repo || args.repository_name || args.repository || args.repoName;
+      if (!rawName) {
         throw new Error('create_repository requires a repository "name".');
       }
+      // Sanitize repository name for GitHub API (replace spaces with hyphens, strip invalid characters)
+      const repoName = String(rawName).trim().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_.-]/g, '');
       const res = await fetch(`https://api.github.com/user/repos`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
           name: repoName,
-          description: args.description || '',
+          description: args.description || 'Created autonomously by KEAOS Agent via MCP',
           private: !!(args.private || args.isPrivate),
           auto_init: true
         })
@@ -699,8 +701,22 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
           htmlUrl: createdRepo.html_url
         };
         if (Array.isArray(mcpServer.basis.repositories)) {
-          mcpServer.basis.repositories = [newRepoItem, ...mcpServer.basis.repositories];
-          mcpServer.basis.accessibleReposCount = (mcpServer.basis.accessibleReposCount || 0) + 1;
+          mcpServer.basis.repositories = [newRepoItem, ...mcpServer.basis.repositories.filter(r => r.name !== newRepoItem.name)];
+          mcpServer.basis.accessibleReposCount = mcpServer.basis.repositories.length;
+        }
+        // Sync basis update to localStorage
+        try {
+          const raw = localStorage.getItem('keaos_saved_mcps');
+          if (raw) {
+            const list = JSON.parse(raw);
+            const idx = list.findIndex(s => s.id === mcpServer.id || s.name === mcpServer.name);
+            if (idx >= 0) {
+              list[idx].basis = mcpServer.basis;
+              localStorage.setItem('keaos_saved_mcps', JSON.stringify(list));
+            }
+          }
+        } catch (e) {
+          console.warn('Could not sync created repo to storage:', e);
         }
       }
       return createdRepo;

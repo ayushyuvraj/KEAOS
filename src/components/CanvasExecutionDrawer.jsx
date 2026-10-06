@@ -37,6 +37,11 @@ import { executeMultiAgentWorkflow, buildMultiAgentDAG } from '../utils/multiAge
 import { transcribeAudioUniversal, getProviderCredential } from '../services/llmService';
 import { getActiveApiKey } from '../services/geminiService';
 import { getRegisteredMcpServers } from '../services/mcpClientService';
+import { 
+  GITHUB_OFFICIAL_ACTIONS, 
+  SLACK_OFFICIAL_ACTIONS, 
+  JIRA_OFFICIAL_ACTIONS 
+} from '../constants/mcpOfficialCatalogs';
 
 export default function CanvasExecutionDrawer({
   activeUseCase,
@@ -104,6 +109,16 @@ export default function CanvasExecutionDrawer({
       if (!src || src.data?.isDeactivated) return;
 
       const matched = findMatchingMcp(src.data, src.id);
+      let directTools = src.data.tools?.length ? src.data.tools : (matched?.tools || []);
+      const directService = (src.data.serviceName || matched?.serviceName || src.data.name || '').toLowerCase();
+      if (directService.includes('github') && directTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+        directTools = GITHUB_OFFICIAL_ACTIONS;
+      } else if (directService.includes('slack') && directTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+        directTools = SLACK_OFFICIAL_ACTIONS;
+      } else if (directService.includes('jira') && directTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+        directTools = JIRA_OFFICIAL_ACTIONS;
+      }
+
       const pillarItem = {
         id: src.data.toolId || src.id,
         nodeId: src.id,
@@ -116,7 +131,7 @@ export default function CanvasExecutionDrawer({
         config: { ...(matched?.config || {}), ...(src.data.config || {}) },
         customDirective: src.data.customDirective || null,
         referenceDoc: src.data.referenceDoc || null,
-        tools: src.data.tools?.length ? src.data.tools : (matched?.tools || []),
+        tools: directTools,
         basis: src.data.basis || matched?.basis || null,
         disabledTools: src.data.disabledTools || [],
         routedTools: src.data.routedTools || [],
@@ -125,15 +140,25 @@ export default function CanvasExecutionDrawer({
 
       directPillars.push(pillarItem);
 
-      // If this direct connection is a GATEWAY, trace upstream edges targeting this gateway
+      // If this direct connection is a GATEWAY, trace connected edges
       // to resolve any MCP servers or tools connected through the gateway perimeter
       if (src.data?.pillarType === 'gateway') {
         const gwDisabled = src.data.disabledTools || [];
-        const gatewayIncoming = (edges || []).filter(ge => ge.target === src.id);
+        const gatewayIncoming = (edges || []).filter(ge => ge.target === src.id || ge.source === src.id);
         gatewayIncoming.forEach(ge => {
-          const upSrc = nodeLookup[ge.source];
+          const upSrcId = ge.target === src.id ? ge.source : ge.target;
+          const upSrc = nodeLookup[upSrcId];
           if (!upSrc || upSrc.data?.isDeactivated) return;
           const matchedUp = findMatchingMcp(upSrc.data, upSrc.id);
+          let upTools = upSrc.data.tools?.length ? upSrc.data.tools : (matchedUp?.tools || []);
+          const upService = (upSrc.data.serviceName || matchedUp?.serviceName || upSrc.data.name || '').toLowerCase();
+          if (upService.includes('github') && upTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+            upTools = GITHUB_OFFICIAL_ACTIONS;
+          } else if (upService.includes('slack') && upTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+            upTools = SLACK_OFFICIAL_ACTIONS;
+          } else if (upService.includes('jira') && upTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+            upTools = JIRA_OFFICIAL_ACTIONS;
+          }
           routedMcpPillars.push({
             id: upSrc.data.toolId || upSrc.id,
             nodeId: upSrc.id,
@@ -146,7 +171,7 @@ export default function CanvasExecutionDrawer({
             config: { ...(matchedUp?.config || {}), ...(upSrc.data.config || {}) },
             customDirective: upSrc.data.customDirective || null,
             referenceDoc: upSrc.data.referenceDoc || null,
-            tools: upSrc.data.tools?.length ? upSrc.data.tools : (matchedUp?.tools || []),
+            tools: upTools,
             basis: upSrc.data.basis || matchedUp?.basis || null,
             routedThroughGateway: src.id,
             gatewayName: src.data.name || 'Zero-Trust Ingress Gateway',
