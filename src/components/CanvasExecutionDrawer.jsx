@@ -259,6 +259,7 @@ export default function CanvasExecutionDrawer({
   const [isChatRunning, setIsChatRunning] = useState(false);
   const [currentChatStep, setCurrentChatStep] = useState(null);
   const chatBottomRef = useRef(null);
+  const chatInputRef = useRef(null);
 
   const generateGreeting = useCallback((agent, modelPillar, pillars) => {
     const isBrainActive = Boolean(modelPillar);
@@ -532,6 +533,16 @@ export default function CanvasExecutionDrawer({
     return () => window.removeEventListener('keaos:ingestion-updated', handleIngestionUpdated);
   }, []);
 
+  // Seamless Auto-focus: Keep cursor in chat input whenever chat completes, drawer opens, or agent switches
+  useEffect(() => {
+    if (!isChatRunning && hasBrain && drawerMode === 'chat') {
+      const timer = setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 30);
+      return () => clearTimeout(timer);
+    }
+  }, [isChatRunning, hasBrain, drawerMode, activeAgentId, isExpanded]);
+
   // Handle Interactive Chat Submission
   const handleSendChat = async (e) => {
     if (e) e.preventDefault();
@@ -644,6 +655,9 @@ export default function CanvasExecutionDrawer({
       if (onExecutionStateChange) {
         onExecutionStateChange({ isExecuting: false, step: 'Complete' });
       }
+      setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 20);
     }
   };
 
@@ -652,6 +666,9 @@ export default function CanvasExecutionDrawer({
       ...prev,
       [activeAgentId]: [generateGreeting(activeAgentNode, connectedModel, connectedPillars)]
     }));
+    setTimeout(() => {
+      chatInputRef.current?.focus();
+    }, 20);
   };
 
 
@@ -1154,6 +1171,9 @@ export default function CanvasExecutionDrawer({
                       key={idx}
                       onClick={() => {
                         setChatInput(chip);
+                        setTimeout(() => {
+                          chatInputRef.current?.focus();
+                        }, 10);
                       }}
                       className={`px-2 py-0.5 rounded border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${
                         isDarkMode 
@@ -1172,15 +1192,25 @@ export default function CanvasExecutionDrawer({
                 isDarkMode ? 'bg-[#18191E] border-[#2E313B]' : 'bg-white border-[#CBD5E1]'
               }`}>
                 <input
+                  ref={chatInputRef}
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      if (isChatRunning) {
+                        e.preventDefault();
+                      }
+                    }
+                  }}
                   placeholder={
-                    hasBrain
-                      ? `Ask ${activeAgentNode?.data?.name || 'Agent'} anything across tools, memory & guardrails... (Press Enter)`
-                      : `Connect a Foundation Model to ${activeAgentNode?.data?.name || 'this agent'} to enable chat...`
+                    !hasBrain
+                      ? `Connect a Foundation Model to ${activeAgentNode?.data?.name || 'this agent'} to enable chat...`
+                      : isChatRunning
+                        ? `${activeAgentNode?.data?.name || 'Agent'} is reasoning... (Type next message)`
+                        : `Ask ${activeAgentNode?.data?.name || 'Agent'} anything across tools, memory & guardrails... (Press Enter)`
                   }
-                  disabled={isChatRunning || !hasBrain}
+                  disabled={!hasBrain}
                   className={`flex-1 px-3 py-2 text-xs font-sans rounded-none border focus:outline-none transition-colors ${
                     !hasBrain 
                       ? 'bg-slate-800/30 border-slate-700 text-slate-500 cursor-not-allowed'
@@ -1188,6 +1218,7 @@ export default function CanvasExecutionDrawer({
                         ? 'bg-[#121316] border-[#383C4A] text-white focus:border-[#0091DA]' 
                         : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00338D]'
                   }`}
+                  autoFocus
                 />
                 <button
                   type="submit"
