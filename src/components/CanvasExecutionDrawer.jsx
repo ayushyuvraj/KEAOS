@@ -40,7 +40,8 @@ import { getRegisteredMcpServers } from '../services/mcpClientService';
 import { 
   GITHUB_OFFICIAL_ACTIONS, 
   SLACK_OFFICIAL_ACTIONS, 
-  JIRA_OFFICIAL_ACTIONS 
+  JIRA_OFFICIAL_ACTIONS,
+  identifyMcpService
 } from '../constants/mcpOfficialCatalogs';
 
 export default function CanvasExecutionDrawer({
@@ -110,12 +111,12 @@ export default function CanvasExecutionDrawer({
 
       const matched = findMatchingMcp(src.data, src.id);
       let directTools = src.data.tools?.length ? src.data.tools : (matched?.tools || []);
-      const directService = (src.data.serviceName || matched?.serviceName || src.data.name || '').toLowerCase();
-      if (directService.includes('github') && directTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+      const directService = identifyMcpService(src.data, src.id) || (matched ? identifyMcpService(matched) : '');
+      if (directService === 'github' && directTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
         directTools = GITHUB_OFFICIAL_ACTIONS;
-      } else if (directService.includes('slack') && directTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+      } else if (directService === 'slack' && directTools.length < SLACK_OFFICIAL_ACTIONS.length) {
         directTools = SLACK_OFFICIAL_ACTIONS;
-      } else if (directService.includes('jira') && directTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+      } else if (directService === 'jira' && directTools.length < JIRA_OFFICIAL_ACTIONS.length) {
         directTools = JIRA_OFFICIAL_ACTIONS;
       }
 
@@ -151,12 +152,12 @@ export default function CanvasExecutionDrawer({
           if (!upSrc || upSrc.data?.isDeactivated) return;
           const matchedUp = findMatchingMcp(upSrc.data, upSrc.id);
           let upTools = upSrc.data.tools?.length ? upSrc.data.tools : (matchedUp?.tools || []);
-          const upService = (upSrc.data.serviceName || matchedUp?.serviceName || upSrc.data.name || '').toLowerCase();
-          if (upService.includes('github') && upTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+          const upService = identifyMcpService(upSrc.data, upSrc.id) || (matchedUp ? identifyMcpService(matchedUp) : '');
+          if (upService === 'github' && upTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
             upTools = GITHUB_OFFICIAL_ACTIONS;
-          } else if (upService.includes('slack') && upTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+          } else if (upService === 'slack' && upTools.length < SLACK_OFFICIAL_ACTIONS.length) {
             upTools = SLACK_OFFICIAL_ACTIONS;
-          } else if (upService.includes('jira') && upTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+          } else if (upService === 'jira' && upTools.length < JIRA_OFFICIAL_ACTIONS.length) {
             upTools = JIRA_OFFICIAL_ACTIONS;
           }
           routedMcpPillars.push({

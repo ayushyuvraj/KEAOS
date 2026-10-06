@@ -7,6 +7,7 @@ import { calculateInferenceCost } from '../services/modelPricingService';
 import { executeRealMcpTool, getRegisteredMcpServers } from '../services/mcpClientService';
 import { 
   getOfficialMcpTools, 
+  identifyMcpService,
   GITHUB_OFFICIAL_ACTIONS, 
   SLACK_OFFICIAL_ACTIONS, 
   JIRA_OFFICIAL_ACTIONS 
@@ -262,15 +263,15 @@ export async function executeUniversalAgentChat({
       }
 
       // Ensure tools list is fully populated from official catalogs
-      const sName = (m.serviceName || m.name || m.displayName || '').toLowerCase();
-      if (sName.includes('github') && (!m.tools || m.tools.length < GITHUB_OFFICIAL_ACTIONS.length)) {
+      const sName = identifyMcpService(m, m.nodeId || m.id);
+      if (sName === 'github' && (!m.tools || m.tools.length < GITHUB_OFFICIAL_ACTIONS.length)) {
         m.tools = GITHUB_OFFICIAL_ACTIONS;
-      } else if (sName.includes('slack') && (!m.tools || m.tools.length < SLACK_OFFICIAL_ACTIONS.length)) {
+      } else if (sName === 'slack' && (!m.tools || m.tools.length < SLACK_OFFICIAL_ACTIONS.length)) {
         m.tools = SLACK_OFFICIAL_ACTIONS;
-      } else if (sName.includes('jira') && (!m.tools || m.tools.length < JIRA_OFFICIAL_ACTIONS.length)) {
+      } else if (sName === 'jira' && (!m.tools || m.tools.length < JIRA_OFFICIAL_ACTIONS.length)) {
         m.tools = JIRA_OFFICIAL_ACTIONS;
       } else if (!m.tools || m.tools.length === 0) {
-        const official = getOfficialMcpTools(m.serviceName || m.name || m.displayName);
+        const official = getOfficialMcpTools(m);
         if (official.length > 0) {
           m.tools = official;
         }

@@ -13,7 +13,8 @@ import {
   GOOGLE_WORKSPACE_OFFICIAL_ACTIONS,
   MCP_AUTH_SPECS,
   extractToolsFromOpenApiSpec,
-  getOfficialMcpTools
+  getOfficialMcpTools,
+  identifyMcpService
 } from '../constants/mcpOfficialCatalogs';
 
 const SAVED_MCPS_STORAGE_KEY = 'keaos_registered_mcps';
@@ -29,24 +30,27 @@ export function getRegisteredMcpServers() {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         return parsed.map(server => {
-          const service = (server.serviceName || server.name || '').toLowerCase();
-          if (service.includes('github') && (!server.tools || server.tools.length < GITHUB_OFFICIAL_ACTIONS.length)) {
+          const service = identifyMcpService(server);
+          if (service === 'github' && (!server.tools || server.tools.length < GITHUB_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
+              serviceName: 'GitHub',
               tools: GITHUB_OFFICIAL_ACTIONS,
               description: `Official Enterprise GitHub MCP with ${GITHUB_OFFICIAL_ACTIONS.length} categorized tools.`
             };
           }
-          if (service.includes('slack') && (!server.tools || server.tools.length < SLACK_OFFICIAL_ACTIONS.length)) {
+          if (service === 'slack' && (!server.tools || server.tools.length < SLACK_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
+              serviceName: 'Slack',
               tools: SLACK_OFFICIAL_ACTIONS,
               description: `Official Enterprise Slack MCP with ${SLACK_OFFICIAL_ACTIONS.length} categorized tools.`
             };
           }
-          if (service.includes('jira') && (!server.tools || server.tools.length < JIRA_OFFICIAL_ACTIONS.length)) {
+          if (service === 'jira' && (!server.tools || server.tools.length < JIRA_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
+              serviceName: 'Jira',
               tools: JIRA_OFFICIAL_ACTIONS,
               description: `Official Enterprise Jira MCP with ${JIRA_OFFICIAL_ACTIONS.length} categorized tools.`
             };
@@ -280,7 +284,9 @@ export async function verifySlackMcpConnection({ webhookUrl, botToken, defaultCh
     return {
       id: `mcp-slack-${Date.now().toString().slice(-4)}`,
       name: `Slack MCP (${defaultChannel || '#general'})`,
-      description: 'Official Slack Webhook connector for real-time channel notifications.',
+      displayName: `Slack MCP (${defaultChannel || '#general'})`,
+      serviceName: 'Slack',
+      description: `Official Slack Webhook connector with ${SLACK_OFFICIAL_ACTIONS.length} categorized tools.`,
       transport: 'slack-webhook',
       config: { webhookUrl: cleanWebhook, defaultChannel: defaultChannel || '#general' },
       basis: {
@@ -298,6 +304,8 @@ export async function verifySlackMcpConnection({ webhookUrl, botToken, defaultCh
   return {
     id: `mcp-slack-bot-${Date.now().toString().slice(-4)}`,
     name: `Slack MCP (${defaultChannel || '#general'})`,
+    displayName: `Slack MCP (${defaultChannel || '#general'})`,
+    serviceName: 'Slack',
     description: `Official Slack Bot token integration with ${SLACK_OFFICIAL_ACTIONS.length} categorized actions.`,
     transport: 'slack-api',
     config: { botToken: cleanToken, defaultChannel: defaultChannel || '#general' },

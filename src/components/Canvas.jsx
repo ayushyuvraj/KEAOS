@@ -14,7 +14,8 @@ import { SOCKET_RULES, PILLARS } from '../constants/pillars';
 import { 
   GITHUB_OFFICIAL_ACTIONS,
   SLACK_OFFICIAL_ACTIONS,
-  JIRA_OFFICIAL_ACTIONS
+  JIRA_OFFICIAL_ACTIONS,
+  identifyMcpService
 } from '../constants/mcpOfficialCatalogs';
 import { 
   AlertTriangle,
@@ -1165,12 +1166,49 @@ function CanvasInner({
   }, [setNodes, nodes, onUpdateNodeData]);
 
   const nodesWithTheme = React.useMemo(() => {
+    // 1. Pre-process and auto-upgrade any MCP node whose tools are outdated
+    const upgradedNodes = (nodes || []).map(n => {
+      if (n.type === 'pillar' && n.data?.pillarType === 'mcp') {
+        const srv = identifyMcpService(n.data, n.id);
+        const currentTools = n.data?.tools || [];
+        if (srv === 'github' && currentTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              serviceName: 'GitHub',
+              tools: GITHUB_OFFICIAL_ACTIONS
+            }
+          };
+        } else if (srv === 'slack' && currentTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              serviceName: 'Slack',
+              tools: SLACK_OFFICIAL_ACTIONS
+            }
+          };
+        } else if (srv === 'jira' && currentTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              serviceName: 'Jira',
+              tools: JIRA_OFFICIAL_ACTIONS
+            }
+          };
+        }
+      }
+      return n;
+    });
+
     const nodeLookup = {};
-    (nodes || []).forEach(n => {
+    upgradedNodes.forEach(n => {
       nodeLookup[n.id] = n;
     });
 
-    return (nodes || []).map(n => {
+    return upgradedNodes.map(n => {
       const isThisNodeActive = executionState.isExecuting && (
         n.id === executionState.nodeId || 
         n.id === executionState.activeAgentId ||
@@ -1190,37 +1228,6 @@ function CanvasInner({
       let disabledTools = [];
       let onToggleTool = null;
 
-      // Auto-upgrade MCP node tools to official catalog if outdated
-      if (n.type === 'pillar' && n.data?.pillarType === 'mcp') {
-        const serverName = (n.data?.serviceName || n.data?.name || '').toLowerCase();
-        let currentTools = n.data?.tools || [];
-        if (serverName.includes('github') && currentTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
-          n = {
-            ...n,
-            data: {
-              ...n.data,
-              tools: GITHUB_OFFICIAL_ACTIONS
-            }
-          };
-        } else if (serverName.includes('slack') && currentTools.length < SLACK_OFFICIAL_ACTIONS.length) {
-          n = {
-            ...n,
-            data: {
-              ...n.data,
-              tools: SLACK_OFFICIAL_ACTIONS
-            }
-          };
-        } else if (serverName.includes('jira') && currentTools.length < JIRA_OFFICIAL_ACTIONS.length) {
-          n = {
-            ...n,
-            data: {
-              ...n.data,
-              tools: JIRA_OFFICIAL_ACTIONS
-            }
-          };
-        }
-      }
-
       if (n.type === 'pillar' && n.data?.pillarType === 'gateway') {
         disabledTools = Array.isArray(n.data?.disabledTools) ? n.data.disabledTools : [];
         const incomingMcpEdges = (edges || []).filter(e => 
@@ -1232,15 +1239,15 @@ function CanvasInner({
           .filter(Boolean);
 
         connectedMcpNodes.forEach(mcpNode => {
-          const serverName = (mcpNode.data?.serviceName || mcpNode.data?.name || '').toLowerCase();
+          const srv = identifyMcpService(mcpNode.data, mcpNode.id);
           const itemDef = PILLARS.mcp?.items?.find(it => it.id === mcpNode.data?.itemId || it.id === mcpNode.data?.toolId || it.name === mcpNode.data?.name);
           let tools = mcpNode.data?.tools || itemDef?.tools || [];
 
-          if (serverName.includes('github') && tools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+          if (srv === 'github' && tools.length < GITHUB_OFFICIAL_ACTIONS.length) {
             tools = GITHUB_OFFICIAL_ACTIONS;
-          } else if (serverName.includes('slack') && tools.length < SLACK_OFFICIAL_ACTIONS.length) {
+          } else if (srv === 'slack' && tools.length < SLACK_OFFICIAL_ACTIONS.length) {
             tools = SLACK_OFFICIAL_ACTIONS;
-          } else if (serverName.includes('jira') && tools.length < JIRA_OFFICIAL_ACTIONS.length) {
+          } else if (srv === 'jira' && tools.length < JIRA_OFFICIAL_ACTIONS.length) {
             tools = JIRA_OFFICIAL_ACTIONS;
           }
 

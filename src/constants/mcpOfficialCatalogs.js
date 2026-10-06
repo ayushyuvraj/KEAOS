@@ -783,14 +783,34 @@ export const MCP_AUTH_SPECS = {
 };
 
 /**
- * Returns the standardized official action catalog for a named service.
+ * Unambiguously identifies the external MCP service (slack, github, jira, google)
+ * from any combination of properties, names, IDs, endpoints, or descriptors.
  */
-export function getOfficialMcpTools(serviceName = '') {
-  const norm = (serviceName || '').toLowerCase().trim();
-  if (norm.includes('github')) return GITHUB_OFFICIAL_ACTIONS;
-  if (norm.includes('slack')) return SLACK_OFFICIAL_ACTIONS;
-  if (norm.includes('jira')) return JIRA_OFFICIAL_ACTIONS;
-  if (norm.includes('google')) return GOOGLE_WORKSPACE_OFFICIAL_ACTIONS;
+export function identifyMcpService(obj = {}, fallbackId = '') {
+  if (!obj && !fallbackId) return '';
+  const str = typeof obj === 'string' ? obj : '';
+  const target = typeof obj === 'object' && obj !== null ? obj : {};
+  const combined = `${str} ${target.serviceName || ''} ${target.name || ''} ${target.displayName || ''} ${target.title || ''} ${target.transport || ''} ${target.basis?.provider || ''} ${target.endpoint || ''} ${target.serverUrl || ''} ${target.id || ''} ${fallbackId || ''}`.toLowerCase();
+  
+  if (combined.includes('slack')) return 'slack';
+  if (combined.includes('github')) return 'github';
+  if (combined.includes('jira')) return 'jira';
+  if (combined.includes('google')) return 'google';
+  return '';
+}
+
+/**
+ * Returns the standardized official action catalog for a named service or MCP object.
+ */
+export function getOfficialMcpTools(serviceOrObj = '') {
+  const service = typeof serviceOrObj === 'string' && !serviceOrObj.includes(' ') && ['slack', 'github', 'jira', 'google'].includes(serviceOrObj.toLowerCase())
+    ? serviceOrObj.toLowerCase()
+    : identifyMcpService(serviceOrObj);
+
+  if (service === 'github') return GITHUB_OFFICIAL_ACTIONS;
+  if (service === 'slack') return SLACK_OFFICIAL_ACTIONS;
+  if (service === 'jira') return JIRA_OFFICIAL_ACTIONS;
+  if (service === 'google') return GOOGLE_WORKSPACE_OFFICIAL_ACTIONS;
   return [];
 }
 

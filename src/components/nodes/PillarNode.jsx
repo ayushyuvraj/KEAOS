@@ -21,8 +21,13 @@ import {
   Key,
   Search
 } from 'lucide-react';
-import { PILLARS } from '../../constants/pillars';
-import { groupToolsByCategory } from '../../constants/mcpOfficialCatalogs';
+import { 
+  groupToolsByCategory,
+  identifyMcpService,
+  SLACK_OFFICIAL_ACTIONS,
+  GITHUB_OFFICIAL_ACTIONS,
+  JIRA_OFFICIAL_ACTIONS
+} from '../../constants/mcpOfficialCatalogs';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
 const PILLAR_ICONS = {
@@ -72,7 +77,15 @@ export default function PillarNode({ id, data, selected }) {
   const disabledTools = data.disabledTools || [];
   const onToggleTool = data.onToggleTool;
   const basis = data.basis;
-  const tools = data.tools || [];
+  const srv = identifyMcpService(data, id);
+  let tools = data.tools || [];
+  if (srv === 'slack' && tools.length < SLACK_OFFICIAL_ACTIONS.length) {
+    tools = SLACK_OFFICIAL_ACTIONS;
+  } else if (srv === 'github' && tools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+    tools = GITHUB_OFFICIAL_ACTIONS;
+  } else if (srv === 'jira' && tools.length < JIRA_OFFICIAL_ACTIONS.length) {
+    tools = JIRA_OFFICIAL_ACTIONS;
+  }
   const allowedCount = routedTools.filter(t => !disabledTools.includes(t.name)).length;
 
   // Filter and categorize Gateway routed tools

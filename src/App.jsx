@@ -22,6 +22,12 @@ import { FRAMEWORKS } from './constants/frameworks';
 import { PILLARS } from './constants/pillars';
 import { DEFAULT_THRESHOLDS } from './constants/goldenDataset';
 import {
+  identifyMcpService,
+  SLACK_OFFICIAL_ACTIONS,
+  GITHUB_OFFICIAL_ACTIONS,
+  JIRA_OFFICIAL_ACTIONS
+} from './constants/mcpOfficialCatalogs';
+import {
   loadUIState,
   saveUIState,
   loadCanvasState,
@@ -559,6 +565,34 @@ export default function App() {
         nodeData = { ...nodeData, prompt, name };
       }
 
+      // Auto-upgrade persisted MCP nodes to full official tool catalogs
+      if (n.type === 'pillar' && nodeData.pillarType === 'mcp') {
+        const srv = identifyMcpService(nodeData, n.id);
+        const currentTools = nodeData.tools || [];
+        if (srv === 'slack' && currentTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+          nodeData = {
+            ...nodeData,
+            serviceName: 'Slack',
+            tools: SLACK_OFFICIAL_ACTIONS,
+            description: `Official Enterprise Slack MCP with ${SLACK_OFFICIAL_ACTIONS.length} categorized tools.`
+          };
+        } else if (srv === 'github' && currentTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+          nodeData = {
+            ...nodeData,
+            serviceName: 'GitHub',
+            tools: GITHUB_OFFICIAL_ACTIONS,
+            description: `Official Enterprise GitHub MCP with ${GITHUB_OFFICIAL_ACTIONS.length} categorized tools.`
+          };
+        } else if (srv === 'jira' && currentTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+          nodeData = {
+            ...nodeData,
+            serviceName: 'Jira',
+            tools: JIRA_OFFICIAL_ACTIONS,
+            description: `Official Enterprise Jira MCP with ${JIRA_OFFICIAL_ACTIONS.length} categorized tools.`
+          };
+        }
+      }
+
       return { ...n, data: nodeData };
     });
   }, [initialCanvas, initialNodes]);
@@ -651,6 +685,57 @@ export default function App() {
       return next;
     });
   }, []);
+
+  // Seamlessly upgrade any active canvas MCP nodes to official 30-tool Slack / GitHub / Jira catalogs
+  useEffect(() => {
+    setNodes((prevNodes) => {
+      let changed = false;
+      const updated = prevNodes.map((n) => {
+        if (n.type === 'pillar' && n.data?.pillarType === 'mcp') {
+          const srv = identifyMcpService(n.data, n.id);
+          const currentTools = n.data?.tools || [];
+          if (srv === 'slack' && currentTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+            changed = true;
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                serviceName: 'Slack',
+                tools: SLACK_OFFICIAL_ACTIONS,
+                description: `Official Enterprise Slack MCP with ${SLACK_OFFICIAL_ACTIONS.length} categorized tools.`
+              }
+            };
+          }
+          if (srv === 'github' && currentTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+            changed = true;
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                serviceName: 'GitHub',
+                tools: GITHUB_OFFICIAL_ACTIONS,
+                description: `Official Enterprise GitHub MCP with ${GITHUB_OFFICIAL_ACTIONS.length} categorized tools.`
+              }
+            };
+          }
+          if (srv === 'jira' && currentTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+            changed = true;
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                serviceName: 'Jira',
+                tools: JIRA_OFFICIAL_ACTIONS,
+                description: `Official Enterprise Jira MCP with ${JIRA_OFFICIAL_ACTIONS.length} categorized tools.`
+              }
+            };
+          }
+        }
+        return n;
+      });
+      return changed ? updated : prevNodes;
+    });
+  }, [setNodes]);
 
   // Save Canvas Topology automatically to localStorage on change
   useEffect(() => {
@@ -755,6 +840,18 @@ export default function App() {
       const xPos = gwNode ? gwNode.position.x + 280 : 1060;
       const yPos = gwNode ? gwNode.position.y : 165;
 
+      const srv = identifyMcpService(mcpData);
+      let effectiveTools = mcpData.tools || [];
+      if (srv === 'slack' && effectiveTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+        effectiveTools = SLACK_OFFICIAL_ACTIONS;
+      } else if (srv === 'github' && effectiveTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+        effectiveTools = GITHUB_OFFICIAL_ACTIONS;
+      } else if (srv === 'jira' && effectiveTools.length < JIRA_OFFICIAL_ACTIONS.length) {
+        effectiveTools = JIRA_OFFICIAL_ACTIONS;
+      }
+
+      const serviceName = mcpData.serviceName || (srv ? (srv.charAt(0).toUpperCase() + srv.slice(1)) : 'External MCP');
+
       const newNode = {
         id: mcpId,
         type: 'pillar',
@@ -765,11 +862,11 @@ export default function App() {
           name: mcpData.name || 'MCP Server',
           displayName: mcpData.displayName || mcpData.name || 'MCP Server',
           subtitle: mcpData.transport?.toUpperCase() || 'HTTP/SSE',
-          description: mcpData.description || `Exposes ${mcpData.tools?.length || 0} real verified MCP tools to the gateway.`,
+          description: mcpData.description || `Exposes ${effectiveTools.length} real verified MCP tools to the gateway.`,
           config: mcpData.config || {},
-          tools: mcpData.tools || [],
+          tools: effectiveTools,
           basis: mcpData.basis || null,
-          serviceName: mcpData.serviceName || 'External MCP',
+          serviceName,
           transport: mcpData.transport || 'sse',
           serverUrl: mcpData.url || '',
           isRealMcp: true,
