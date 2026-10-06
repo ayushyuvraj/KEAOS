@@ -5,7 +5,8 @@ import {
   Background,
   BackgroundVariant,
   addEdge,
-  ReactFlowProvider
+  ReactFlowProvider,
+  ConnectionMode
 } from '@xyflow/react';
 import AgentCoreNode from './nodes/AgentCoreNode';
 import PillarNode from './nodes/PillarNode';
@@ -914,19 +915,22 @@ function CanvasInner({
         }
       }
 
-      // Connection into an MCP Egress Gateway (target is a gateway pillar)
+      // Connection between MCP Server and MCP Egress Gateway (Bidirectional: EITHER direction is fully permitted)
+      const isMcpToGateway = sourceNode.data?.pillarType === 'mcp' && targetNode.data?.pillarType === 'gateway';
+      const isGatewayToMcp = sourceNode.data?.pillarType === 'gateway' && targetNode.data?.pillarType === 'mcp';
+      if (isMcpToGateway || isGatewayToMcp) {
+        return true;
+      }
+
+      // If user drags directly from other non-mcp nodes into gateway, show alert
       if (targetNode.type === 'pillar' && targetNode.data?.pillarType === 'gateway') {
-        if (sourceNode.data?.pillarType === 'mcp') {
-          return true;
-        } else {
-          setInvalidConnectionAlert({
-            sourceName: sourceNode.data?.name || 'Block',
-            sourceType: sourceNode.data?.pillarType || sourceNode.type,
-            targetHandle: targetHandle || 'mcp-in',
-            requiredType: 'mcp (MCP Egress Gateway only accepts MCP Server nodes)'
-          });
-          return false;
-        }
+        setInvalidConnectionAlert({
+          sourceName: sourceNode.data?.name || 'Block',
+          sourceType: sourceNode.data?.pillarType || sourceNode.type,
+          targetHandle: targetHandle || 'mcp-in',
+          requiredType: 'mcp (MCP Egress Gateway only accepts MCP Server nodes)'
+        });
+        return false;
       }
 
       if (targetNode.type === 'agentCore') {
@@ -936,7 +940,7 @@ function CanvasInner({
             sourceName: sourceNode.data?.name || 'MCP Server',
             sourceType: 'mcp',
             targetHandle: targetHandle || 'mcp-in',
-            requiredType: 'Zero-Trust Policy: Direct MCP connections are forbidden. Connect an MCP Egress Gateway first, then route MCP through it.'
+            requiredType: 'Zero-Trust Policy: Direct MCP connections are forbidden. Connect into the MCP Egress Gateway socket (Right or Left), then route through it.'
           });
           return false;
         }
@@ -990,7 +994,29 @@ function CanvasInner({
       let strokeWidth = 1.8;
       let strokeDasharray = '4 4';
 
-      if (targetNode?.type === 'outputNode' || sourceNode?.type === 'outputNode') {
+      let edgeSource = params.source;
+      let edgeTarget = params.target;
+      let edgeSourceHandle = params.sourceHandle;
+      let edgeTargetHandle = params.targetHandle;
+
+      if (sourceNode?.data?.pillarType === 'gateway' && targetNode?.data?.pillarType === 'mcp') {
+        // Dragged from Gateway to MCP: normalize edge so MCP is source and Gateway is target
+        edgeSource = targetNode.id;
+        edgeSourceHandle = 'out';
+        edgeTarget = sourceNode.id;
+        edgeTargetHandle = 'mcp-in';
+        strokeColor = '#00A3A6';
+        strokeWidth = 2.0;
+        strokeDasharray = '4 4';
+      } else if (sourceNode?.data?.pillarType === 'mcp' && targetNode?.data?.pillarType === 'gateway') {
+        edgeSource = sourceNode.id;
+        edgeSourceHandle = params.sourceHandle || 'out';
+        edgeTarget = targetNode.id;
+        edgeTargetHandle = params.targetHandle || 'mcp-in';
+        strokeColor = '#00A3A6';
+        strokeWidth = 2.0;
+        strokeDasharray = '4 4';
+      } else if (targetNode?.type === 'outputNode' || sourceNode?.type === 'outputNode') {
         strokeColor = '#10B981'; // Emerald accent for data/output pipelines
       } else if (sourceNode?.type === 'ingestionNode') {
         strokeColor = '#0091DA'; // Pacific Blue for data ingestion stream
@@ -998,10 +1024,6 @@ function CanvasInner({
         strokeColor = '#6366F1'; // Electric Indigo for A2A Inter-Agent channel
         strokeWidth = 2.2;
         strokeDasharray = '6 4';
-      } else if (sourceNode?.data?.pillarType === 'mcp' && targetNode?.data?.pillarType === 'gateway') {
-        strokeColor = '#00A3A6'; // Cyber Teal for MCP to Gateway
-        strokeWidth = 2.0;
-        strokeDasharray = '4 4';
       } else if (sourceNode?.data?.pillarType === 'gateway' && targetNode?.type === 'agentCore') {
         strokeColor = '#EAAA00'; // Amber for Gateway to Agent Core
         strokeWidth = 2.0;
@@ -1014,6 +1036,10 @@ function CanvasInner({
         addEdge(
           {
             ...params,
+            source: edgeSource,
+            target: edgeTarget,
+            sourceHandle: edgeSourceHandle,
+            targetHandle: edgeTargetHandle,
             type: 'deletable',
             animated: true,
             style: { stroke: strokeColor, strokeWidth, strokeDasharray },
@@ -1026,6 +1052,63 @@ function CanvasInner({
     },
     [nodes, setEdges, setInvalidConnectionAlert, takeSnapshot, handleDeleteEdge]
   );
+
+  const isConnectingRef = useRef(false);
+
+  // Triggered the instant a connector wire is dragged from any handle on any agent or circle
+  const handleConnectStart = useCallback(
+    (event, params) => {
+      isConnectingRef.current = true;
+
+      // 1. Immediately open the Add component panel on the right
+      setIsAddMenuOpen(true);
+      if (setIsInspectorOpen) {
+        setIsInspectorOpen(false);
+      }
+
+      // 2. Resolve contextual category matching
+      const nodeId = params?.nodeId;
+      const handleId = params?.handleId;
+      const sourceNode = (nodes || []).find((n) => n.id === nodeId);
+
+      let targetCategory = null;
+
+      if (sourceNode?.type === 'agentCore') {
+        if (handleId && SOCKET_RULES[handleId]) {
+          targetCategory = SOCKET_RULES[handleId];
+        } else if (handleId === 'agent-out' || handleId === 'agent-upstream') {
+          targetCategory = 'agentCore';
+        }
+      } else if (sourceNode?.type === 'pillar') {
+        const pillarType = sourceNode.data?.pillarType;
+        if (pillarType === 'gateway' && (handleId === 'mcp-in' || handleId === 'mcp-in-left')) {
+          targetCategory = 'mcp';
+        } else if (pillarType === 'mcp') {
+          targetCategory = 'gateway';
+        } else if (pillarType) {
+          targetCategory = pillarType;
+        }
+      } else if (sourceNode?.type === 'ingestionNode') {
+        targetCategory = 'tools';
+      } else if (sourceNode?.type === 'outputNode') {
+        targetCategory = 'outputNode';
+      }
+
+      // 3. Dispatch selection event so the Add Catalog jumps to the relevant category
+      window.dispatchEvent(
+        new CustomEvent('keaos:select-catalog-category', {
+          detail: { categoryId: targetCategory }
+        })
+      );
+    },
+    [setIsAddMenuOpen, setIsInspectorOpen, nodes]
+  );
+
+  const handleConnectEnd = useCallback(() => {
+    setTimeout(() => {
+      isConnectingRef.current = false;
+    }, 200);
+  }, []);
 
   const handleToggleEnforcer = (e) => {
     if (e) {
@@ -1140,10 +1223,13 @@ function CanvasInner({
 
       if (n.type === 'pillar' && n.data?.pillarType === 'gateway') {
         disabledTools = Array.isArray(n.data?.disabledTools) ? n.data.disabledTools : [];
-        const incomingMcpEdges = (edges || []).filter(e => e.target === n.id);
+        const incomingMcpEdges = (edges || []).filter(e => 
+          (e.target === n.id && nodeLookup[e.source]?.data?.pillarType === 'mcp') ||
+          (e.source === n.id && nodeLookup[e.target]?.data?.pillarType === 'mcp')
+        );
         connectedMcpNodes = incomingMcpEdges
-          .map(e => nodeLookup[e.source])
-          .filter(sn => sn && sn.data?.pillarType === 'mcp');
+          .map(e => e.target === n.id ? nodeLookup[e.source] : nodeLookup[e.target])
+          .filter(Boolean);
 
         connectedMcpNodes.forEach(mcpNode => {
           const serverName = (mcpNode.data?.serviceName || mcpNode.data?.name || '').toLowerCase();
@@ -1607,6 +1693,9 @@ function CanvasInner({
         onEdgesChange={handleEdgesChange}
         onNodeDragStart={handleNodeDragStart}
         onConnect={onConnect}
+        onConnectStart={handleConnectStart}
+        onConnectEnd={handleConnectEnd}
+        connectionMode={ConnectionMode.Loose}
         onInit={(instance) => {
           setRfInstance(instance);
           setTimeout(() => {
@@ -1616,6 +1705,7 @@ function CanvasInner({
         fitView
         fitViewOptions={{ padding: 0.2 }}
         onNodeClick={(_, node) => {
+          if (isConnectingRef.current) return;
           setIsAddMenuOpen(false);
           if (onSelectNode) onSelectNode(node);
         }}
@@ -1626,6 +1716,7 @@ function CanvasInner({
           hoveredNodeIdRef.current = null;
         }}
         onPaneClick={() => {
+          if (isConnectingRef.current) return;
           if (onSelectNode) onSelectNode(null);
           if (setIsInspectorOpen) setIsInspectorOpen(false);
           setIsAddMenuOpen(false);

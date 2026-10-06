@@ -346,13 +346,15 @@ export default function PillarNode({ id, data, selected }) {
                 left: '50%',
                 bottom: '-4px',
                 transform: 'translateX(-50%) rotate(45deg)',
-                width: '9px',
-                height: '9px',
+                width: '10px',
+                height: '10px',
                 borderRadius: '1.5px',
                 backgroundColor: handleBgColor,
                 borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
                 borderWidth: '2px',
-                opacity: isDeactivated ? 0.3 : 1
+                opacity: isDeactivated ? 0.3 : 1,
+                cursor: 'crosshair',
+                zIndex: 20
               }}
               title="Gateway Egress: Connect straight down to Agent Core"
             />
@@ -364,17 +366,107 @@ export default function PillarNode({ id, data, selected }) {
               style={{
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '10px',
-                height: '10px',
+                width: '11px',
+                height: '11px',
                 borderRadius: '50%',
                 backgroundColor: '#00A3A6',
                 borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
                 borderWidth: '2px',
                 right: '-5px',
-                boxShadow: '0 0 8px rgba(0,163,166,0.7)',
-                opacity: isDeactivated ? 0.3 : 1
+                boxShadow: '0 0 10px rgba(0,163,166,0.85)',
+                opacity: isDeactivated ? 0.3 : 1,
+                cursor: 'crosshair',
+                zIndex: 20
               }}
               title="MCP Server Ingress Socket: Connect verified live MCP Server"
+            />
+            {/* Circular Ingress Socket for MCP Server (Left handle) */}
+            <Handle
+              type="target"
+              position={Position.Left}
+              id="mcp-in-left"
+              style={{
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '11px',
+                height: '11px',
+                borderRadius: '50%',
+                backgroundColor: '#00A3A6',
+                borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+                borderWidth: '2px',
+                left: '-5px',
+                boxShadow: '0 0 10px rgba(0,163,166,0.85)',
+                opacity: isDeactivated ? 0.3 : 1,
+                cursor: 'crosshair',
+                zIndex: 20
+              }}
+              title="MCP Server Ingress Socket: Connect verified live MCP Server"
+            />
+          </>
+        ) : pillarType === 'mcp' ? (
+          <>
+            {/* MCP Left Output Handle */}
+            <Handle
+              type="source"
+              position={Position.Left}
+              id="out"
+              style={{
+                top: '50%',
+                transform: 'translateY(-50%) rotate(45deg)',
+                width: '10px',
+                height: '10px',
+                borderRadius: '1.5px',
+                backgroundColor: handleBgColor,
+                borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+                borderWidth: '2px',
+                left: '-5px',
+                cursor: 'crosshair',
+                zIndex: 20,
+                opacity: isDeactivated ? 0.3 : 1
+              }}
+              title="Connect MCP to Gateway"
+            />
+            {/* MCP Right Output Handle */}
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="out-right"
+              style={{
+                top: '50%',
+                transform: 'translateY(-50%) rotate(45deg)',
+                width: '10px',
+                height: '10px',
+                borderRadius: '1.5px',
+                backgroundColor: handleBgColor,
+                borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+                borderWidth: '2px',
+                right: '-5px',
+                cursor: 'crosshair',
+                zIndex: 20,
+                opacity: isDeactivated ? 0.3 : 1
+              }}
+              title="Connect MCP to Gateway"
+            />
+            {/* MCP Bottom Output Handle */}
+            <Handle
+              type="source"
+              position={Position.Bottom}
+              id="out-bottom"
+              style={{
+                left: '50%',
+                transform: 'translateX(-50%) rotate(45deg)',
+                width: '10px',
+                height: '10px',
+                borderRadius: '1.5px',
+                backgroundColor: handleBgColor,
+                borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+                borderWidth: '2px',
+                bottom: '-5px',
+                cursor: 'crosshair',
+                zIndex: 20,
+                opacity: isDeactivated ? 0.3 : 1
+              }}
+              title="Connect MCP to Gateway"
             />
           </>
         ) : (
@@ -385,7 +477,9 @@ export default function PillarNode({ id, data, selected }) {
             id="out"
             style={{
               ...handleStyle,
-              opacity: isDeactivated ? 0.3 : 1
+              opacity: isDeactivated ? 0.3 : 1,
+              cursor: 'crosshair',
+              zIndex: 20
             }}
             title={`Connect ${pillarDef.label}`}
           />

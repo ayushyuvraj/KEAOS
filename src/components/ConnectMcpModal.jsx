@@ -1,26 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  Server, 
-  CheckCircle2, 
-  AlertCircle, 
+  Check, 
+  Copy, 
+  ExternalLink, 
   Loader2, 
-  Link, 
-  Send, 
-  FileCode, 
-  Layers, 
-  Plus, 
-  ExternalLink,
-  ShieldCheck,
-  Check,
-  Zap,
-  Globe,
+  Eye, 
+  EyeOff, 
+  AlertCircle, 
+  CheckCircle2, 
+  Info,
+  Server,
+  Layers,
   MessageSquare,
-  Key,
-  Shield,
-  SlidersHorizontal,
   Mail,
-  Calendar
+  ChevronDown
 } from 'lucide-react';
 import { 
   verifyAndDiscoverMcpServer, 
@@ -30,1229 +24,785 @@ import {
   connectMcpViaOAuth,
   saveRegisteredMcpServer 
 } from '../services/mcpClientService';
-import { 
-  MCP_AUTH_SPECS, 
-  GITHUB_OFFICIAL_ACTIONS, 
-  SLACK_OFFICIAL_ACTIONS, 
-  JIRA_OFFICIAL_ACTIONS, 
-  GOOGLE_WORKSPACE_OFFICIAL_ACTIONS 
-} from '../constants/mcpOfficialCatalogs';
+
+// Authentic GitHub Invertocat Logo (Matches Screenshots 1-4)
+function GitHubLogo({ className = 'w-6 h-6' }) {
+  return (
+    <svg 
+      viewBox="0 0 24 24" 
+      fill="currentColor" 
+      className={className}
+    >
+      <path 
+        fillRule="evenodd" 
+        clipRule="evenodd" 
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" 
+      />
+    </svg>
+  );
+}
+
+// Service Providers Registry
+const PROVIDERS_CONFIG = {
+  github: {
+    id: 'github',
+    title: 'GitHub account',
+    apiSubtitles: {
+      token: 'GitHub API',
+      oauth: 'GitHub OAuth2 API'
+    },
+    icon: GitHubLogo,
+    defaultServer: 'https://api.github.com',
+    authModes: [
+      { id: 'token', label: 'Access Token' },
+      { id: 'oauth', label: 'OAuth2' }
+    ],
+    docsUrl: 'https://docs.github.com/en/rest',
+    directTokenGenUrl: 'https://github.com/settings/tokens',
+    directTokenGenLabel: 'Generate Personal Access Token at github.com/settings/tokens',
+    directOAuthGenUrl: 'https://github.com/settings/developers',
+    directOAuthGenLabel: 'Register OAuth App at github.com/settings/developers'
+  },
+  slack: {
+    id: 'slack',
+    title: 'Slack account',
+    apiSubtitles: {
+      token: 'Slack Webhook / Bot API',
+      oauth: 'Slack OAuth2 API'
+    },
+    icon: MessageSquare,
+    defaultServer: 'https://slack.com/api',
+    authModes: [
+      { id: 'token', label: 'Webhook / Token' },
+      { id: 'oauth', label: 'OAuth2' }
+    ],
+    docsUrl: 'https://api.slack.com',
+    directTokenGenUrl: 'https://api.slack.com/apps',
+    directTokenGenLabel: 'Manage Slack Apps & Incoming Webhooks at api.slack.com/apps',
+    directOAuthGenUrl: 'https://api.slack.com/apps',
+    directOAuthGenLabel: 'Create Slack OAuth App at api.slack.com/apps'
+  },
+  jira: {
+    id: 'jira',
+    title: 'Jira account',
+    apiSubtitles: {
+      token: 'Jira Cloud API',
+      oauth: 'Jira OAuth2 API'
+    },
+    icon: Layers,
+    defaultServer: 'https://api.atlassian.com',
+    authModes: [
+      { id: 'token', label: 'API Token' },
+      { id: 'oauth', label: 'OAuth2' }
+    ],
+    docsUrl: 'https://developer.atlassian.com/cloud/jira/platform/rest/v3/',
+    directTokenGenUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens',
+    directTokenGenLabel: 'Generate Atlassian API Token at id.atlassian.com',
+    directOAuthGenUrl: 'https://developer.atlassian.com/console',
+    directOAuthGenLabel: 'Register Atlassian OAuth App at developer.atlassian.com/console'
+  },
+  google: {
+    id: 'google',
+    title: 'Google Workspace account',
+    apiSubtitles: {
+      oauth: 'Google Workspace OAuth2 API'
+    },
+    icon: Mail,
+    defaultServer: 'https://www.googleapis.com',
+    authModes: [
+      { id: 'oauth', label: 'OAuth2' }
+    ],
+    docsUrl: 'https://developers.google.com/workspace',
+    directOAuthGenUrl: 'https://console.cloud.google.com/apis/credentials',
+    directOAuthGenLabel: 'Configure Google Cloud OAuth Client ID at console.cloud.google.com'
+  },
+  url: {
+    id: 'url',
+    title: 'Universal MCP Server',
+    apiSubtitles: {
+      token: 'JSON-RPC 2.0 / SSE Protocol'
+    },
+    icon: Server,
+    defaultServer: 'http://localhost:8000/sse',
+    authModes: [
+      { id: 'token', label: 'Direct Endpoint' }
+    ],
+    docsUrl: 'https://modelcontextprotocol.io',
+    directTokenGenUrl: 'https://modelcontextprotocol.io',
+    directTokenGenLabel: 'Model Context Protocol Documentation'
+  }
+};
 
 export default function ConnectMcpModal({
   isOpen,
-  initialTab = 'url',
+  initialTab = 'github',
   onClose,
   onAddMcpNodeToCanvas,
   isDarkMode = true
 }) {
-  const [activeTab, setActiveTab] = useState(initialTab || 'url');
+  // Normalize provider tab
+  const resolvedProviderKey = PROVIDERS_CONFIG[initialTab] ? initialTab : 'github';
+  const [selectedProvider, setSelectedProvider] = useState(resolvedProviderKey);
+  const [authMode, setAuthMode] = useState('token'); // 'token' | 'oauth'
 
+  // Update selected provider when opened or tab changes
   useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
+    if (initialTab && PROVIDERS_CONFIG[initialTab]) {
+      setSelectedProvider(initialTab);
+      // Google only has OAuth2 mode
+      if (initialTab === 'google') {
+        setAuthMode('oauth');
+      } else {
+        setAuthMode('token');
+      }
     }
   }, [initialTab, isOpen]);
 
-  // Auth Modes per provider: 'oauth' | 'token'
-  const [githubAuthMode, setGithubAuthMode] = useState('oauth');
-  const [slackAuthMode, setSlackAuthMode] = useState('oauth');
-  const [jiraAuthMode, setJiraAuthMode] = useState('oauth');
-  const [googleAuthMode, setGoogleAuthMode] = useState('oauth');
+  // Form Fields State
+  const [serverUrl, setServerUrl] = useState('https://api.github.com');
+  const [username, setUsername] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+  const [showAccessToken, setShowAccessToken] = useState(false);
+  const [allowedDomains, setAllowedDomains] = useState('All');
 
-  // Generic OAuth status
-  const [isConnectingOAuth, setIsConnectingOAuth] = useState(false);
-  const [oauthError, setOauthError] = useState(null);
+  // OAuth2 Fields State
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [showClientSecret, setShowClientSecret] = useState(false);
+  const [copiedRedirect, setCopiedRedirect] = useState(false);
 
-  // Real OAuth App Credentials
-  const [githubClientId, setGithubClientId] = useState(import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID || '');
-  const [githubClientSecret, setGithubClientSecret] = useState(import.meta.env.VITE_GITHUB_OAUTH_CLIENT_SECRET || '');
-  const [slackClientId, setSlackClientId] = useState(import.meta.env.VITE_SLACK_OAUTH_CLIENT_ID || '');
-  const [slackClientSecret, setSlackClientSecret] = useState(import.meta.env.VITE_SLACK_OAUTH_CLIENT_SECRET || '');
-  const [jiraClientId, setJiraClientId] = useState(import.meta.env.VITE_JIRA_OAUTH_CLIENT_ID || '');
-  const [jiraClientSecret, setJiraClientSecret] = useState(import.meta.env.VITE_JIRA_OAUTH_CLIENT_SECRET || '');
-  const [googleClientId, setGoogleClientId] = useState(import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || '');
-  const [googleClientSecret, setGoogleClientSecret] = useState(import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_SECRET || '');
-
-  // URL Tab State (Claude Code style)
-  const [mcpUrl, setMcpUrl] = useState('');
-  const [isVerifyingUrl, setIsVerifyingUrl] = useState(false);
-  const [verifiedUrlResult, setVerifiedUrlResult] = useState(null);
-  const [urlError, setUrlError] = useState(null);
-
-  // Slack Tab State
-  const [slackWebhook, setSlackWebhook] = useState('');
-  const [slackBotToken, setSlackBotToken] = useState('');
-  const [slackChannel, setSlackChannel] = useState('#general');
-  const [isVerifyingSlack, setIsVerifyingSlack] = useState(false);
-  const [verifiedSlackResult, setVerifiedSlackResult] = useState(null);
-  const [slackError, setSlackError] = useState(null);
-
-  // Jira Tab State
+  // Jira & Slack Specific State
   const [jiraDomain, setJiraDomain] = useState('');
   const [jiraEmail, setJiraEmail] = useState('');
-  const [jiraToken, setJiraToken] = useState('');
-  const [jiraProject, setJiraProject] = useState('ENG');
-  const [isVerifyingJira, setIsVerifyingJira] = useState(false);
-  const [verifiedJiraResult, setVerifiedJiraResult] = useState(null);
-  const [jiraError, setJiraError] = useState(null);
+  const [slackWebhook, setSlackWebhook] = useState('');
+  const [slackChannel, setSlackChannel] = useState('#general');
 
-  // GitHub Tab State
-  const [githubToken, setGithubToken] = useState('');
-  const [githubRepo, setGithubRepo] = useState('');
-  const [isVerifyingGithub, setIsVerifyingGithub] = useState(false);
-  const [verifiedGithubResult, setVerifiedGithubResult] = useState(null);
-  const [githubError, setGithubError] = useState(null);
+  // Execution & Error State
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [successInfo, setSuccessInfo] = useState(null);
 
-  // Google Workspace Tab State
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [isVerifyingGoogle, setIsVerifyingGoogle] = useState(false);
-  const [verifiedGoogleResult, setVerifiedGoogleResult] = useState(null);
-  const [googleError, setGoogleError] = useState(null);
+  // Compute active provider metadata
+  const currentProvider = PROVIDERS_CONFIG[selectedProvider] || PROVIDERS_CONFIG.github;
+  const ServiceIcon = currentProvider.icon;
+  const currentSubtitle = currentProvider.apiSubtitles[authMode] || currentProvider.apiSubtitles.token || 'API Protocol';
+
+  // OAuth Redirect URL
+  const callbackUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/oauth-callback.html` 
+    : 'http://localhost:5678/rest/oauth2-credential/callback';
+
+  // Reset errors on switch
+  useEffect(() => {
+    setErrorMessage(null);
+    setSuccessInfo(null);
+  }, [selectedProvider, authMode]);
+
+  // Sync default server URL when switching providers
+  useEffect(() => {
+    if (currentProvider.defaultServer) {
+      setServerUrl(currentProvider.defaultServer);
+    }
+  }, [selectedProvider]);
 
   if (!isOpen) return null;
 
-  // Handlers
-  const handleVerifyUrl = async () => {
-    setIsVerifyingUrl(true);
-    setUrlError(null);
-    setVerifiedUrlResult(null);
+  const handleCopyRedirect = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(callbackUrl);
+      setCopiedRedirect(true);
+      setTimeout(() => setCopiedRedirect(false), 2000);
+    }
+  };
+
+  // Main Save / Connect Handler
+  const handleSave = async (e) => {
+    if (e) e.preventDefault();
+    setIsSaving(true);
+    setErrorMessage(null);
+    setSuccessInfo(null);
 
     try {
-      const result = await verifyAndDiscoverMcpServer(mcpUrl);
-      setVerifiedUrlResult(result);
+      let result = null;
+
+      // ==========================================
+      // 1. GITHUB PROVIDER
+      // ==========================================
+      if (selectedProvider === 'github') {
+        if (authMode === 'token') {
+          if (!accessToken.trim()) {
+            throw new Error('Please enter your GitHub Access Token.');
+          }
+          result = await verifyGitHubMcpConnection({
+            personalAccessToken: accessToken.trim(),
+            defaultOwner: username.trim() || undefined,
+            defaultRepo: ''
+          });
+        } else {
+          // OAuth2 Mode
+          if (!clientId.trim()) {
+            throw new Error('Please enter your GitHub Client ID.');
+          }
+          if (!clientSecret.trim()) {
+            throw new Error('Please enter your GitHub Client Secret.');
+          }
+          result = await connectMcpViaOAuth({
+            provider: 'github',
+            clientId: clientId.trim(),
+            clientSecret: clientSecret.trim(),
+            redirectUri: callbackUrl
+          });
+        }
+      }
+
+      // ==========================================
+      // 2. SLACK PROVIDER
+      // ==========================================
+      else if (selectedProvider === 'slack') {
+        if (authMode === 'token') {
+          if (!slackWebhook.trim() && !accessToken.trim()) {
+            throw new Error('Please provide a Slack Webhook URL or Bot Token.');
+          }
+          result = await verifySlackMcpConnection({
+            webhookUrl: slackWebhook.trim() || (accessToken.startsWith('https://') ? accessToken.trim() : ''),
+            botToken: !slackWebhook.trim() && !accessToken.startsWith('https://') ? accessToken.trim() : '',
+            defaultChannel: slackChannel.trim() || '#general'
+          });
+        } else {
+          result = await connectMcpViaOAuth({
+            provider: 'slack',
+            clientId: clientId.trim(),
+            clientSecret: clientSecret.trim()
+          });
+        }
+      }
+
+      // ==========================================
+      // 3. JIRA PROVIDER
+      // ==========================================
+      else if (selectedProvider === 'jira') {
+        if (authMode === 'token') {
+          if (!jiraDomain.trim() || !jiraEmail.trim() || !accessToken.trim()) {
+            throw new Error('Please provide Jira Domain, Email, and API Token.');
+          }
+          result = await verifyJiraMcpConnection({
+            domain: jiraDomain.trim(),
+            email: jiraEmail.trim(),
+            apiToken: accessToken.trim(),
+            projectKey: 'ENG'
+          });
+        } else {
+          result = await connectMcpViaOAuth({
+            provider: 'jira',
+            clientId: clientId.trim(),
+            clientSecret: clientSecret.trim()
+          });
+        }
+      }
+
+      // ==========================================
+      // 4. GOOGLE WORKSPACE PROVIDER
+      // ==========================================
+      else if (selectedProvider === 'google') {
+        result = await connectMcpViaOAuth({
+          provider: 'google',
+          clientId: clientId.trim(),
+          clientSecret: clientSecret.trim()
+        });
+      }
+
+      // ==========================================
+      // 5. UNIVERSAL URL / SSE PROVIDER
+      // ==========================================
+      else if (selectedProvider === 'url') {
+        if (!serverUrl.trim()) {
+          throw new Error('Please enter a valid MCP server endpoint URL.');
+        }
+        result = await verifyAndDiscoverMcpServer(serverUrl.trim());
+      }
+
+      // Save to registered store and deploy to Canvas
+      if (result) {
+        saveRegisteredMcpServer(result);
+        if (onAddMcpNodeToCanvas) {
+          onAddMcpNodeToCanvas(result);
+        }
+        setSuccessInfo(result);
+
+        window.dispatchEvent(
+          new CustomEvent('keaos:toast', {
+            detail: { message: `🔗 Connected ${currentProvider.title}: "${result.name || result.displayName}" to Canvas` }
+          })
+        );
+
+        // Close after brief visual confirmation
+        setTimeout(() => {
+          onClose();
+        }, 350);
+      }
     } catch (err) {
-      setUrlError(err.message);
+      setErrorMessage(err.message || 'Failed to authenticate credential with MCP server.');
     } finally {
-      setIsVerifyingUrl(false);
+      setIsSaving(false);
     }
-  };
-
-  const handleVerifySlack = async () => {
-    setIsVerifyingSlack(true);
-    setSlackError(null);
-    setVerifiedSlackResult(null);
-
-    try {
-      const result = await verifySlackMcpConnection({
-        webhookUrl: slackWebhook,
-        defaultChannel: slackChannel
-      });
-      setVerifiedSlackResult(result);
-    } catch (err) {
-      setSlackError(err.message);
-    } finally {
-      setIsVerifyingSlack(false);
-    }
-  };
-
-  const handleVerifyJira = async () => {
-    setIsVerifyingJira(true);
-    setJiraError(null);
-    setVerifiedJiraResult(null);
-
-    try {
-      const result = await verifyJiraMcpConnection({
-        domain: jiraDomain,
-        email: jiraEmail,
-        apiToken: jiraToken,
-        projectKey: jiraProject
-      });
-      setVerifiedJiraResult(result);
-    } catch (err) {
-      setJiraError(err.message);
-    } finally {
-      setIsVerifyingJira(false);
-    }
-  };
-
-  const handleVerifyGithub = async () => {
-    setIsVerifyingGithub(true);
-    setGithubError(null);
-    setVerifiedGithubResult(null);
-
-    try {
-      const [owner, repo] = githubRepo.split('/');
-      const result = await verifyGitHubMcpConnection({
-        personalAccessToken: githubToken,
-        defaultOwner: owner,
-        defaultRepo: repo || ''
-      });
-      setVerifiedGithubResult(result);
-    } catch (err) {
-      setGithubError(err.message);
-    } finally {
-      setIsVerifyingGithub(false);
-    }
-  };
-
-  const handleConnectOAuth = async (provider) => {
-    setIsConnectingOAuth(true);
-    setOauthError(null);
-    try {
-      let clientId = '';
-      let clientSecret = '';
-      if (provider === 'github') { clientId = githubClientId; clientSecret = githubClientSecret; }
-      if (provider === 'slack') { clientId = slackClientId; clientSecret = slackClientSecret; }
-      if (provider === 'jira') { clientId = jiraClientId; clientSecret = jiraClientSecret; }
-      if (provider === 'google') { clientId = googleClientId; clientSecret = googleClientSecret; }
-
-      const result = await connectMcpViaOAuth({ provider, clientId, clientSecret });
-      if (provider === 'github') setVerifiedGithubResult(result);
-      if (provider === 'slack') setVerifiedSlackResult(result);
-      if (provider === 'jira') setVerifiedJiraResult(result);
-      if (provider === 'google') setVerifiedGoogleResult(result);
-    } catch (err) {
-      setOauthError(err.message);
-    } finally {
-      setIsConnectingOAuth(false);
-    }
-  };
-
-  const handleVerifyGoogle = async () => {
-    return handleConnectOAuth('google');
-  };
-
-  const handleDeployToCanvas = (mcpResult) => {
-    saveRegisteredMcpServer(mcpResult);
-    if (onAddMcpNodeToCanvas) {
-      onAddMcpNodeToCanvas(mcpResult);
-    }
-    onClose();
-    window.dispatchEvent(
-      new CustomEvent('keaos:toast', {
-        detail: { message: `🔗 Connected Real MCP Server: "${mcpResult.name}" to Canvas` }
-      })
-    );
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#001E50]/70 backdrop-blur-xs flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
+      {/* Outer Dialog Box - Sleek n8n-style dark container */}
       <div 
-        className={`w-full max-w-2xl border flex flex-col shadow-2xl overflow-hidden rounded-none ${
-          isDarkMode 
-            ? 'bg-[#12141A] border-[#383C4A] text-white shadow-[0_24px_64px_rgba(0,0,0,0.8)]' 
-            : 'bg-white border-[#CBD5E1] text-[#0B0F19] shadow-[0_24px_64px_rgba(0,30,80,0.2)]'
-        }`}
-        style={{ borderTop: '4px solid #00A3A6' }}
+        className="w-full max-w-[720px] bg-[#2B2D31] text-white border border-[#3E4148] shadow-[0_24px_64px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden rounded-md animate-in zoom-in-95 duration-150"
       >
-        {/* Header */}
-        <div className="p-4 bg-[#001E50] text-white flex items-center justify-between border-b border-[#00338D]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-none bg-[#00A3A6] text-white flex items-center justify-center font-bold">
-              <Server className="w-4 h-4" />
+        {/* ======================================================== */}
+        {/* DIALOG HEADER (Matches Screenshot)                       */}
+        {/* ======================================================== */}
+        <div className="px-6 py-4 bg-[#2B2D31] flex items-center justify-between border-b border-[#383A40]">
+          <div className="flex items-center gap-3.5">
+            <div className="text-white shrink-0">
+              <ServiceIcon className="w-7 h-7" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold tracking-tight">Connect Real MCP Server</h3>
-                <span className="text-[9px] font-mono uppercase px-2 py-0.2 bg-[#00A3A6] text-white font-bold rounded-none">
-                  JSON-RPC 2.0 / SSE
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-300 font-sans mt-0.5">
-                Connect live external MCP tools. Zero simulation. Live discovery and execution.
+              <h3 className="text-[15px] font-semibold text-white tracking-tight leading-tight">
+                {currentProvider.title}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5 font-normal">
+                {currentSubtitle}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-slate-300 hover:text-white hover:bg-white/10 rounded-none transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          <div className="flex items-center gap-3">
+            {/* Save Button (Coral red #FF6D5A) */}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-[#FF6D5A] hover:bg-[#E55B49] active:bg-[#D44A39] disabled:opacity-50 text-white text-xs font-semibold px-4 py-1.5 rounded transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save</span>
+              )}
+            </button>
+
+            {/* Close 'X' Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 text-slate-400 hover:text-white hover:bg-white/5 rounded transition-colors cursor-pointer"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* 5 Tabs */}
-        <div className="flex border-b border-[#CBD5E1] dark:border-[#2D3139] bg-[#F8F9FB] dark:bg-[#181B22] overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('url')}
-            className={`flex-1 py-2.5 px-2.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 border-b-2 whitespace-nowrap transition-colors ${
-              activeTab === 'url'
-                ? 'border-[#00A3A6] text-[#00A3A6] bg-white dark:bg-[#12141A]'
-                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Link className="w-3.5 h-3.5" />
-            <span>Universal Link</span>
-          </button>
+        {/* ======================================================== */}
+        {/* DIALOG BODY (Full Width - No Left Sidebar as Requested)   */}
+        {/* ======================================================== */}
+        <div className="p-6 overflow-y-auto max-h-[75vh] space-y-5 custom-dialog-scroll">
+          
+          {/* Top Amber Callout Banner with Docs & Direct Generator Link */}
+          <div className="bg-[#2E281C] border border-[#6B5A33] rounded px-4 py-3 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+            <div className="flex items-center gap-2 text-[#D4CEBF]">
+              <span>Need help filling out these fields?</span>
+              <a 
+                href={currentProvider.docsUrl} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="text-[#FF6D5A] hover:underline font-medium inline-flex items-center gap-1"
+              >
+                Open docs
+              </a>
+            </div>
 
-          <button
-            onClick={() => setActiveTab('github')}
-            className={`flex-1 py-2.5 px-2.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 border-b-2 whitespace-nowrap transition-colors ${
-              activeTab === 'github'
-                ? 'border-[#00A3A6] text-[#00A3A6] bg-white dark:bg-[#12141A]'
-                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <FileCode className="w-3.5 h-3.5" />
-            <span>GitHub MCP</span>
-          </button>
+            {/* Direct Token / OAuth Generation Link (User explicit requirement) */}
+            {authMode === 'token' && currentProvider.directTokenGenUrl && (
+              <a
+                href={currentProvider.directTokenGenUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#FF6D5A] hover:underline font-medium inline-flex items-center gap-1 text-[11px] bg-black/20 px-2 py-1 rounded border border-[#6B5A33]/50"
+              >
+                <span>{currentProvider.directTokenGenLabel}</span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </a>
+            )}
 
-          <button
-            onClick={() => setActiveTab('slack')}
-            className={`flex-1 py-2.5 px-2.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 border-b-2 whitespace-nowrap transition-colors ${
-              activeTab === 'slack'
-                ? 'border-[#00A3A6] text-[#00A3A6] bg-white dark:bg-[#12141A]'
-                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Slack MCP</span>
-          </button>
+            {authMode === 'oauth' && currentProvider.directOAuthGenUrl && (
+              <a
+                href={currentProvider.directOAuthGenUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#FF6D5A] hover:underline font-medium inline-flex items-center gap-1 text-[11px] bg-black/20 px-2 py-1 rounded border border-[#6B5A33]/50"
+              >
+                <span>{currentProvider.directOAuthGenLabel}</span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </a>
+            )}
+          </div>
 
-          <button
-            onClick={() => setActiveTab('jira')}
-            className={`flex-1 py-2.5 px-2.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 border-b-2 whitespace-nowrap transition-colors ${
-              activeTab === 'jira'
-                ? 'border-[#00A3A6] text-[#00A3A6] bg-white dark:bg-[#12141A]'
-                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Jira MCP</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('google')}
-            className={`flex-1 py-2.5 px-2.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 border-b-2 whitespace-nowrap transition-colors ${
-              activeTab === 'google'
-                ? 'border-[#00A3A6] text-[#00A3A6] bg-white dark:bg-[#12141A]'
-                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Mail className="w-3.5 h-3.5" />
-            <span>Google Workspace</span>
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="p-5 overflow-y-auto max-h-[60vh] space-y-4">
-          {/* TAB 1: Claude Code Style Link Box */}
-          {activeTab === 'url' && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1.5 text-slate-700 dark:text-slate-300">
-                  Paste MCP Server Endpoint URL
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="url"
-                      placeholder="e.g. http://localhost:8000/sse or http://127.0.0.1:3001/mcp"
-                      value={mcpUrl}
-                      onChange={(e) => setMcpUrl(e.target.value)}
-                      className={`w-full pl-9 pr-3 py-2.5 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
-                    />
-                  </div>
-                  <button
-                    onClick={handleVerifyUrl}
-                    disabled={isVerifyingUrl || !mcpUrl.trim()}
-                    className="px-5 py-2.5 bg-[#00A3A6] hover:bg-[#008D90] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center gap-2 transition-all cursor-pointer"
-                  >
-                    {isVerifyingUrl ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Discovering...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4" />
-                        <span>Connect & Discover</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="flex items-center justify-between mt-2 text-[11px] text-slate-500 font-mono">
-                  <span>Accepts standard Model Context Protocol (SSE / HTTP / JSON-RPC).</span>
-                  <button
-                    type="button"
-                    onClick={() => setMcpUrl('http://localhost:8000/sse')}
-                    className="text-[#00A3A6] hover:underline cursor-pointer"
-                  >
-                    Use localhost:8000 preset
-                  </button>
-                </div>
-              </div>
-
-              {urlError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">{urlError}</p>
-                </div>
-              )}
-
-              {verifiedUrlResult && (
-                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-none space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        Live MCP Server Verified
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
-                      {verifiedUrlResult.tools.length} Tools Discovered
-                    </span>
-                  </div>
-
-                  <div className="text-xs font-mono space-y-1">
-                    <div><span className="text-slate-400">Server:</span> {verifiedUrlResult.name}</div>
-                    <div><span className="text-slate-400">Endpoint:</span> {verifiedUrlResult.endpoint}</div>
-                  </div>
-
-                  {verifiedUrlResult.tools.length > 0 && (
-                    <div className="space-y-1.5 pt-1">
-                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-                        Discovered Tools:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {verifiedUrlResult.tools.map((t, idx) => (
-                          <span
-                            key={idx}
-                            className="text-[10px] font-mono px-2 py-1 bg-white/10 dark:bg-black/20 border border-white/20 rounded-none text-slate-200"
-                          >
-                            ✓ {t.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => handleDeployToCanvas(verifiedUrlResult)}
-                    className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Deploy Verified MCP Server to Canvas</span>
-                  </button>
-                </div>
-              )}
+          {/* Error Banner */}
+          {errorMessage && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded flex items-start gap-2.5 text-red-400 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+              <p className="leading-relaxed flex-1">{errorMessage}</p>
             </div>
           )}
 
-          {/* TAB 2: Slack MCP */}
-          {activeTab === 'slack' && (
+          {/* Success Banner */}
+          {successInfo && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded flex items-start gap-2.5 text-emerald-400 text-xs">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+              <p className="leading-relaxed flex-1">
+                Successfully authenticated and registered! Deploying to canvas...
+              </p>
+            </div>
+          )}
+
+          {/* Connect using * Selector */}
+          <div>
+            <label className="text-xs font-medium text-slate-200 block mb-2">
+              Connect using <span className="text-[#FF6D5A]">*</span>
+            </label>
+            <div className="flex items-center gap-2.5">
+              {currentProvider.authModes.map((mode) => {
+                const isActive = authMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setAuthMode(mode.id)}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-medium transition-all cursor-pointer ${
+                      isActive
+                        ? 'border border-[#FF6D5A] bg-[#232529] text-[#FF6D5A] shadow-xs'
+                        : 'border border-[#3E4148] bg-[#232529] text-slate-400 hover:text-slate-200 hover:border-slate-500'
+                    }`}
+                  >
+                    {/* Radio Dot indicator (●) vs (○) */}
+                    <span 
+                      className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border transition-all ${
+                        isActive 
+                          ? 'border-[#FF6D5A] bg-transparent' 
+                          : 'border-slate-500 bg-transparent'
+                      }`}
+                    >
+                      {isActive && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF6D5A]" />
+                      )}
+                    </span>
+                    <span>{mode.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* FIELDS FOR ACCESS TOKEN MODE (Screenshots 1 & 2)         */}
+          {/* ======================================================== */}
+          {authMode === 'token' && (
             <div className="space-y-4">
-              {/* Dual-Mode Selector */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-[#181B22] border border-[#CBD5E1] dark:border-[#2D3139]">
-                <button
-                  type="button"
-                  onClick={() => setSlackAuthMode('oauth')}
-                  className={`py-1.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                    slackAuthMode === 'oauth'
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>OAuth 2.0 (One-Click)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSlackAuthMode('token')}
-                  className={`py-1.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                    slackAuthMode === 'token'
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>Webhook / Bot Token</span>
-                </button>
+              
+              {/* Field 1: Server URL */}
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                  {selectedProvider === 'github' ? 'Github Server' : 'Server Endpoint'}
+                </label>
+                <input
+                  type="text"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="https://api.github.com"
+                  className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                />
               </div>
 
-              {slackAuthMode === 'oauth' ? (
-                <div className="space-y-3.5">
-                  <div className="p-3 bg-[#00338D]/10 border border-[#00338D]/30 text-xs font-mono space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#00338D] dark:text-[#5C94FF] flex items-center gap-1.5">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        Slack Workspace OAuth 2.0
-                      </span>
-                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
-                        22 Tools Active (Default)
-                      </span>
-                    </div>
-                    <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
-                      Authorizes full channel messaging, thread replies, canvas posts, presence, and user management. All 22 official capabilities are active by default.
-                    </p>
-                    <div className="text-[10px] text-slate-500 flex flex-wrap gap-1 pt-1 border-t border-slate-200 dark:border-slate-700">
-                      <span className="font-semibold text-slate-400">Scopes:</span>
-                      {['chat:write', 'channels:read', 'channels:history', 'users:read', 'reactions:write', 'files:write'].map((sc) => (
-                        <span key={sc} className="px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-none">
-                          {sc}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] font-mono text-slate-500 flex items-center gap-1.5">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#00A3A6]" />
-                    <span>Perimeter Governance: You can selectively toggle individual tools ON or OFF in the Gateway Controller.</span>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Slack App Client ID</span>
-                      <a href="https://api.slack.com/apps" target="_blank" rel="noreferrer" className="text-[10px] text-[#00A3A6] hover:underline flex items-center gap-1 font-normal normal-case">
-                        register at api.slack.com/apps <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 123456789.987654321"
-                      value={slackClientId}
-                      onChange={(e) => setSlackClientId(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
-                    />
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
-                      <span>Authorization Callback URL: <code className="text-[#00A3A6]">{typeof window !== 'undefined' ? `${window.location.origin}/oauth-callback.html` : '/oauth-callback.html'}</code></span>
-                    </div>
-                  </div>
-
-                  {slackError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">{slackError}</p>
-                    </div>
-                  )}
-
-                  {verifiedSlackResult ? (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-none space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Slack Authorized ({verifiedSlackResult.basis?.workspace || verifiedSlackResult.account || 'Connected Workspace'}) ✓
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
-                          {verifiedSlackResult.tools?.length || 22} Tools Active
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-slate-300">
-                        Tools: <code className="text-[#00A3A6]">post_chat_message</code>, <code className="text-[#00A3A6]">reply_to_thread</code>, <code className="text-[#00A3A6]">add_reaction</code>, <code className="text-[#00A3A6]">list_channels</code>, etc.
-                      </p>
-                      <button
-                        onClick={() => handleDeployToCanvas(verifiedSlackResult)}
-                        className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Deploy Slack MCP to Canvas</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleConnectOAuth('slack')}
-                      disabled={isConnectingOAuth}
-                      className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                      {isConnectingOAuth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                      <span>Authorize Slack Workspace (Opens slack.com consent window)</span>
-                    </button>
-                  )}
+              {/* Field 2: User (Optional GitHub handle) */}
+              {selectedProvider === 'github' && (
+                <div>
+                  <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                    User
+                  </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="e.g. username or organization"
+                    className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 transition-colors"
+                  />
                 </div>
-              ) : (
-                <div className="space-y-4">
+              )}
+
+              {/* Slack Specific Inputs */}
+              {selectedProvider === 'slack' && (
+                <>
                   <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
                       Slack Incoming Webhook URL
                     </label>
                     <input
                       type="url"
-                      placeholder="https://hooks.slack.com/services/T00/B00/XXXX"
                       value={slackWebhook}
                       onChange={(e) => setSlackWebhook(e.target.value)}
-                      className={`w-full px-3 py-2.5 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
+                      placeholder="https://hooks.slack.com/services/T00/B00/XXXX"
+                      className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
                     />
-                    <p className="text-[11px] text-slate-500 font-sans mt-1">
-                      Create an Incoming Webhook in your Slack workspace under Custom Integrations or Slack App settings.
-                    </p>
                   </div>
-
                   <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
                       Default Target Channel
                     </label>
                     <input
                       type="text"
-                      placeholder="#leadership-syncs or #general"
                       value={slackChannel}
                       onChange={(e) => setSlackChannel(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
+                      placeholder="#general"
+                      className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 transition-colors"
                     />
                   </div>
-
-                  {slackError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">{slackError}</p>
-                    </div>
-                  )}
-
-                  {verifiedSlackResult ? (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-none space-y-3">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          Slack Webhook Verified ✓
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-slate-300">
-                        Exposes tool: <code className="text-[#00A3A6] font-bold">post_slack_message</code> (live dispatch to {slackChannel})
-                      </p>
-                      <button
-                        onClick={() => handleDeployToCanvas(verifiedSlackResult)}
-                        className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Deploy Slack MCP to Canvas</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleVerifySlack}
-                      disabled={isVerifyingSlack || !slackWebhook.trim()}
-                      className="w-full py-2.5 bg-[#00A3A6] hover:bg-[#008D90] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                      {isVerifyingSlack ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      <span>Verify Slack Connection</span>
-                    </button>
-                  )}
-                </div>
+                </>
               )}
-            </div>
-          )}
 
-          {/* TAB 3: Jira MCP */}
-          {activeTab === 'jira' && (
-            <div className="space-y-4">
-              {/* Dual-Mode Selector */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-[#181B22] border border-[#CBD5E1] dark:border-[#2D3139]">
-                <button
-                  type="button"
-                  onClick={() => setJiraAuthMode('oauth')}
-                  className={`py-1.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                    jiraAuthMode === 'oauth'
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>OAuth 2.0 (3LO)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setJiraAuthMode('token')}
-                  className={`py-1.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                    jiraAuthMode === 'token'
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>API Token</span>
-                </button>
-              </div>
-
-              {jiraAuthMode === 'oauth' ? (
-                <div className="space-y-3.5">
-                  <div className="p-3 bg-[#00338D]/10 border border-[#00338D]/30 text-xs font-mono space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#00338D] dark:text-[#5C94FF] flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5" />
-                        Atlassian Jira OAuth 2.0 (3LO)
-                      </span>
-                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
-                        18 Tools Active (Default)
-                      </span>
-                    </div>
-                    <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
-                      Pre-authorizes Jira issues, sprints, boards, transitions, comments, and project metadata. All 18 official capabilities are active by default.
-                    </p>
-                    <div className="text-[10px] text-slate-500 flex flex-wrap gap-1 pt-1 border-t border-slate-200 dark:border-slate-700">
-                      <span className="font-semibold text-slate-400">Scopes:</span>
-                      {['read:jira-work', 'write:jira-work', 'read:jira-user', 'manage:jira-project'].map((sc) => (
-                        <span key={sc} className="px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-none">
-                          {sc}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] font-mono text-slate-500 flex items-center gap-1.5">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#00A3A6]" />
-                    <span>Perimeter Governance: You can selectively toggle individual tools ON or OFF in the Gateway Controller.</span>
-                  </div>
-
+              {/* Jira Specific Inputs */}
+              {selectedProvider === 'jira' && (
+                <>
                   <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Atlassian App Client ID</span>
-                      <a href="https://developer.atlassian.com/console" target="_blank" rel="noreferrer" className="text-[10px] text-[#00A3A6] hover:underline flex items-center gap-1 font-normal normal-case">
-                        register at developer.atlassian.com <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                      Jira Cloud Domain
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. atlassian_oauth_client_id"
-                      value={jiraClientId}
-                      onChange={(e) => setJiraClientId(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
+                      value={jiraDomain}
+                      onChange={(e) => setJiraDomain(e.target.value)}
+                      placeholder="company.atlassian.net"
+                      className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 transition-colors"
                     />
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
-                      <span>Authorization Callback URL: <code className="text-[#00A3A6]">{typeof window !== 'undefined' ? `${window.location.origin}/oauth-callback.html` : '/oauth-callback.html'}</code></span>
-                    </div>
                   </div>
-
-                  {jiraError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">{jiraError}</p>
-                    </div>
-                  )}
-
-                  {verifiedJiraResult ? (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-none space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Jira Cloud Authorized ({verifiedJiraResult.basis?.cloudUrl || verifiedJiraResult.account || 'Connected'}) ✓
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
-                          {verifiedJiraResult.tools?.length || 18} Tools Active
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-slate-300">
-                        Tools: <code className="text-[#00A3A6]">create_jira_issue</code>, <code className="text-[#00A3A6]">search_jira_issues</code>, <code className="text-[#00A3A6]">transition_issue</code>, etc.
-                      </p>
-                      <button
-                        onClick={() => handleDeployToCanvas(verifiedJiraResult)}
-                        className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Deploy Jira MCP to Canvas</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleConnectOAuth('jira')}
-                      disabled={isConnectingOAuth}
-                      className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                      {isConnectingOAuth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                      <span>Authorize Atlassian Jira (Opens auth.atlassian.com window)</span>
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-3.5">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
-                        Jira Cloud Domain
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. company.atlassian.net"
-                        value={jiraDomain}
-                        onChange={(e) => setJiraDomain(e.target.value)}
-                        className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                          isDarkMode
-                            ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                            : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
-                        Project Key
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. ENG, PROD, SPRINT"
-                        value={jiraProject}
-                        onChange={(e) => setJiraProject(e.target.value)}
-                        className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                          isDarkMode
-                            ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                            : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                        }`}
-                      />
-                    </div>
-                  </div>
-
                   <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
-                      Atlassian Account Email
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                      Account Email
                     </label>
                     <input
                       type="email"
-                      placeholder="developer@company.com"
                       value={jiraEmail}
                       onChange={(e) => setJiraEmail(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
+                      placeholder="developer@company.com"
+                      className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 transition-colors"
                     />
                   </div>
-
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
-                      Atlassian API Token
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="Paste Atlassian API Token"
-                      value={jiraToken}
-                      onChange={(e) => setJiraToken(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
-                    />
-                    <p className="text-[11px] text-slate-500 font-sans mt-1">
-                      Generate from: <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noreferrer" className="text-[#00A3A6] hover:underline">id.atlassian.com/manage-profile/security/api-tokens</a>
-                    </p>
-                  </div>
-
-                  {jiraError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">{jiraError}</p>
-                    </div>
-                  )}
-
-                  {verifiedJiraResult ? (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-none space-y-3">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          Jira Cloud Configured ✓
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-slate-300">
-                        Exposes tools: <code className="text-[#00A3A6]">create_jira_issue</code>, <code className="text-[#00A3A6]">search_jira_issues</code>
-                      </p>
-                      <button
-                        onClick={() => handleDeployToCanvas(verifiedJiraResult)}
-                        className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Deploy Jira MCP to Canvas</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleVerifyJira}
-                      disabled={isVerifyingJira || !jiraDomain.trim() || !jiraToken.trim()}
-                      className="w-full py-2.5 bg-[#00A3A6] hover:bg-[#008D90] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                      {isVerifyingJira ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
-                      <span>Verify Jira Cloud Connection</span>
-                    </button>
-                  )}
-                </div>
+                </>
               )}
-            </div>
-          )}
 
-          {/* TAB 4: GitHub MCP */}
-          {activeTab === 'github' && (
-            <div className="space-y-4">
-              {/* Dual-Mode Selector */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-[#181B22] border border-[#CBD5E1] dark:border-[#2D3139]">
-                <button
-                  type="button"
-                  onClick={() => setGithubAuthMode('oauth')}
-                  className={`py-1.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                    githubAuthMode === 'oauth'
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>OAuth 2.0 (One-Click)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGithubAuthMode('token')}
-                  className={`py-1.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                    githubAuthMode === 'token'
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>Personal Access Token</span>
-                </button>
-              </div>
-
-              {githubAuthMode === 'oauth' ? (
-                <div className="space-y-3.5">
-                  <div className="p-3 bg-[#00338D]/10 border border-[#00338D]/30 text-xs font-mono space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#00338D] dark:text-[#5C94FF] flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5" />
-                        Enterprise GitHub OAuth 2.0
-                      </span>
-                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
-                        37 Tools Active (Default)
-                      </span>
-                    </div>
-                    <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
-                      Pre-authorizes full repository, issue, PR, file, commit, workflow, and repo creation scopes. All 37 official capabilities are active by default and immediately executable without scope mismatches.
-                    </p>
-                    <div className="text-[10px] text-slate-500 flex flex-wrap gap-1 pt-1 border-t border-slate-200 dark:border-slate-700">
-                      <span className="font-semibold text-slate-400">Granted Scopes:</span>
-                      {['repo', 'workflow', 'write:packages', 'read:org', 'admin:repo_hook', 'gist', 'notifications', 'user'].map((sc) => (
-                        <span key={sc} className="px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-none">
-                          {sc}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] font-mono text-slate-500 flex items-center gap-1.5">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#00A3A6]" />
-                    <span>Perimeter Governance: You can selectively toggle individual tools ON or OFF in the Gateway Controller.</span>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>GitHub OAuth App Client ID</span>
-                      <a href="https://github.com/settings/developers" target="_blank" rel="noreferrer" className="text-[10px] text-[#00A3A6] hover:underline flex items-center gap-1 font-normal normal-case">
-                        register at github.com/settings/developers <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Ov23liXXXXXXXXXXXXXX or Iv1.XXXXXXXXXXXX"
-                      value={githubClientId}
-                      onChange={(e) => setGithubClientId(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
-                    />
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
-                      <span>Authorization Callback URL: <code className="text-[#00A3A6]">{typeof window !== 'undefined' ? `${window.location.origin}/oauth-callback.html` : '/oauth-callback.html'}</code></span>
-                    </div>
-                  </div>
-
-                  {oauthError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">{oauthError}</p>
-                    </div>
-                  )}
-
-                  {verifiedGithubResult ? (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-none space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            GitHub OAuth Authorized ({verifiedGithubResult.basis?.authenticatedAs || 'Connected'}) ✓
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
-                          {verifiedGithubResult.tools?.length || 37} Capabilities Active
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-slate-300">
-                        All 37 tools enabled: <code className="text-[#00A3A6]">create_repository</code>, <code className="text-[#00A3A6]">create_or_update_file</code>, <code className="text-[#00A3A6]">create_issue</code>, <code className="text-[#00A3A6]">create_pull_request</code>, etc.
-                      </p>
-                      <button
-                        onClick={() => handleDeployToCanvas(verifiedGithubResult)}
-                        className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Deploy GitHub MCP to Canvas</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleConnectOAuth('github')}
-                      disabled={isConnectingOAuth}
-                      className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
+              {/* Field 3: Access Token / API Token */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-slate-300">
+                    {selectedProvider === 'jira' ? 'API Token' : 'Access Token'}
+                  </label>
+                  {currentProvider.directTokenGenUrl && (
+                    <a
+                      href={currentProvider.directTokenGenUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-[#FF6D5A] hover:underline flex items-center gap-1"
                     >
-                      {isConnectingOAuth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                      <span>Authorize with GitHub (Opens github.com consent window)</span>
-                    </button>
+                      <span>get token</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
                   )}
                 </div>
-              ) : (
-                <div className="space-y-3.5">
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
-                      GitHub Personal Access Token (PAT)
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                      value={githubToken}
-                      onChange={(e) => setGithubToken(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
-                    />
-                    <p className="text-[11px] text-slate-500 font-sans mt-1">
-                      Generate from <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer" className="text-[#00A3A6] hover:underline">github.com/settings/tokens</a> (ensure full <code className="text-[#00A3A6]">repo</code> scope).
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
-                      Target Repository (owner/repo)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. username/repo-name"
-                      value={githubRepo}
-                      onChange={(e) => setGithubRepo(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
-                    />
-                  </div>
-
-                  {githubError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">{githubError}</p>
-                    </div>
-                  )}
-
-                  {verifiedGithubResult ? (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-none space-y-3">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          GitHub Token Authenticated: {verifiedGithubResult.name} ✓
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-slate-300">
-                        Discovered {verifiedGithubResult.tools?.length || 0} capabilities.
-                      </p>
-                      <button
-                        onClick={() => handleDeployToCanvas(verifiedGithubResult)}
-                        className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Deploy GitHub MCP to Canvas</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleVerifyGithub}
-                      disabled={isVerifyingGithub || !githubToken.trim()}
-                      className="w-full py-2.5 bg-[#00A3A6] hover:bg-[#008D90] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                      {isVerifyingGithub ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCode className="w-4 h-4" />}
-                      <span>Verify GitHub Token</span>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 5: Google Workspace MCP */}
-          {activeTab === 'google' && (
-            <div className="space-y-4">
-              {/* Dual-Mode Selector */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-[#181B22] border border-[#CBD5E1] dark:border-[#2D3139]">
-                <button
-                  type="button"
-                  onClick={() => setGoogleAuthMode('oauth')}
-                  className={`py-1.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                    googleAuthMode === 'oauth'
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>OAuth 2.0 (Google Workspace)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGoogleAuthMode('token')}
-                  className={`py-1.5 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                    googleAuthMode === 'token'
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>Service Account Key</span>
-                </button>
-              </div>
-
-              {googleAuthMode === 'oauth' ? (
-                <div className="space-y-3.5">
-                  <div className="p-3 bg-[#00338D]/10 border border-[#00338D]/30 text-xs font-mono space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#00338D] dark:text-[#5C94FF] flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5" />
-                        Google Cloud OAuth 2.0
-                      </span>
-                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
-                        15 Tools Active (Default)
-                      </span>
-                    </div>
-                    <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
-                      Authorizes Gmail, Google Calendar, Google Drive, Docs, and Sheets. All 15 capabilities active by default.
-                    </p>
-                    <div className="text-[10px] text-slate-500 flex flex-wrap gap-1 pt-1 border-t border-slate-200 dark:border-slate-700">
-                      <span className="font-semibold text-slate-400">Scopes:</span>
-                      {['gmail.send', 'calendar.events', 'drive.file', 'documents', 'spreadsheets'].map((sc) => (
-                        <span key={sc} className="px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-none">
-                          {sc}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Google Cloud OAuth Client ID</span>
-                      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-[10px] text-[#00A3A6] hover:underline flex items-center gap-1 font-normal normal-case">
-                        console.cloud.google.com/apis/credentials <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 123456789-xxxxxx.apps.googleusercontent.com"
-                      value={googleClientId}
-                      onChange={(e) => setGoogleClientId(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
-                    />
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
-                      <span>Authorized Redirect URI: <code className="text-[#00A3A6]">{typeof window !== 'undefined' ? `${window.location.origin}/oauth-callback.html` : '/oauth-callback.html'}</code></span>
-                    </div>
-                  </div>
-
-                  {googleError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none flex items-start gap-2.5 text-red-600 dark:text-red-400 text-xs font-mono">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">{googleError}</p>
-                    </div>
-                  )}
-
-                  {verifiedGoogleResult ? (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-none space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Google Workspace Authorized ({verifiedGoogleResult.basis?.accountEmail || verifiedGoogleResult.account || 'Connected'}) ✓
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
-                          {verifiedGoogleResult.tools?.length || 15} Tools Active
-                        </span>
-                      </div>
-                      <p className="text-xs font-mono text-slate-300">
-                        Tools: <code className="text-[#00A3A6]">send_email</code>, <code className="text-[#00A3A6]">create_calendar_event</code>, <code className="text-[#00A3A6]">upload_drive_file</code>, <code className="text-[#00A3A6]">append_sheet_row</code>, etc.
-                      </p>
-                      <button
-                        onClick={() => handleDeployToCanvas(verifiedGoogleResult)}
-                        className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Deploy Google Workspace MCP to Canvas</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleVerifyGoogle}
-                      disabled={isConnectingOAuth}
-                      className="w-full py-2.5 bg-[#00338D] hover:bg-[#005EB8] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                      {isConnectingOAuth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                      <span>Authorize Google Workspace (Opens accounts.google.com window)</span>
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-3.5">
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider block mb-1 text-slate-700 dark:text-slate-300">
-                      Service Account Email
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="agent@project.iam.gserviceaccount.com"
-                      value={googleEmail}
-                      onChange={(e) => setGoogleEmail(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
-                        isDarkMode
-                          ? 'bg-[#181B22] border-[#383C4A] text-white focus:border-[#00A3A6]'
-                          : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00A3A6]'
-                      }`}
-                    />
-                  </div>
-
+                <div className="relative">
+                  <input
+                    type={showAccessToken ? 'text' : 'password'}
+                    value={accessToken}
+                    onChange={(e) => setAccessToken(e.target.value)}
+                    placeholder={selectedProvider === 'github' ? 'ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' : 'Paste API Token'}
+                    className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded pl-3.5 pr-10 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                  />
                   <button
-                    onClick={handleVerifyGoogle}
-                    disabled={isVerifyingGoogle || !googleEmail.trim()}
-                    className="w-full py-2.5 bg-[#00A3A6] hover:bg-[#008D90] disabled:opacity-40 text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    type="button"
+                    onClick={() => setShowAccessToken(!showAccessToken)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                    title={showAccessToken ? 'Hide token' : 'Show token'}
                   >
-                    {isVerifyingGoogle ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                    <span>Verify Service Account Credentials</span>
+                    {showAccessToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-              )}
+              </div>
+
+              {/* Field 4: Allowed HTTP Request Domains */}
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                  Allowed HTTP Request Domains
+                </label>
+                <div className="relative">
+                  <select
+                    value={allowedDomains}
+                    onChange={(e) => setAllowedDomains(e.target.value)}
+                    className="w-full appearance-none bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white transition-colors cursor-pointer"
+                  >
+                    <option value="All">All</option>
+                    <option value="api.github.com">api.github.com only</option>
+                    <option value="custom">Custom Restricted Domains</option>
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                </div>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <div className="p-3.5 border-t border-[#CBD5E1] dark:border-[#2D3139] bg-[#F8F9FB] dark:bg-[#181B22] flex items-center justify-between text-xs font-mono text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-[#00A3A6]" />
-            <span>Credentials stay 100% encrypted in your local browser sandbox.</span>
+          {/* ======================================================== */}
+          {/* FIELDS FOR OAUTH2 MODE (Screenshots 3 & 4)               */}
+          {/* ======================================================== */}
+          {authMode === 'oauth' && (
+            <div className="space-y-4">
+              
+              {/* Field 1: OAuth Redirect URL (Read-only box with copy) */}
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                  OAuth Redirect URL
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={callbackUrl}
+                    className="w-full bg-[#1F2125] border border-[#383A40] rounded pl-3.5 pr-10 py-2 text-xs text-slate-200 font-mono select-all cursor-default"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyRedirect}
+                    className="absolute right-2.5 top-2 p-1 text-slate-400 hover:text-white rounded hover:bg-white/5 cursor-pointer transition-colors"
+                    title="Copy Redirect URL"
+                  >
+                    {copiedRedirect ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+                <div className="mt-1.5 p-2 bg-[#232529] border border-[#3E4148] rounded text-[11px] text-slate-300 font-sans space-y-1">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-medium">
+                    <Info className="w-3 h-3 shrink-0" />
+                    <span>Important GitHub Configuration:</span>
+                  </div>
+                  <p className="text-slate-400 leading-relaxed">
+                    In your GitHub OAuth App settings (<a href="https://github.com/settings/developers" target="_blank" rel="noreferrer" className="text-[#FF6D5A] hover:underline">github.com/settings/developers</a>), the <strong className="text-slate-200">"Authorization callback URL"</strong> must match the URL above character-for-character. If it doesn't match, GitHub shows <em>"redirect_uri is not associated with this application"</em>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Field 2: Client ID * */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-slate-300">
+                    Client ID <span className="text-[#FF6D5A]">*</span>
+                  </label>
+                  {currentProvider.directOAuthGenUrl && (
+                    <a
+                      href={currentProvider.directOAuthGenUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-[#FF6D5A] hover:underline flex items-center gap-1"
+                    >
+                      <span>register at {selectedProvider === 'github' ? 'github.com/settings/developers' : 'developer portal'}</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  placeholder="e.g. Ov23liXXXXXXXXXXXXXX or Iv1.XXXXXXXXXXXX"
+                  className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                />
+              </div>
+
+              {/* Field 3: Client Secret * */}
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                  Client Secret <span className="text-[#FF6D5A]">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showClientSecret ? 'text' : 'password'}
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                    placeholder="Paste Client Secret"
+                    className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded pl-3.5 pr-10 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowClientSecret(!showClientSecret)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                    title={showClientSecret ? 'Hide secret' : 'Show secret'}
+                  >
+                    {showClientSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Field 4: Allowed HTTP Request Domains */}
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                  Allowed HTTP Request Domains
+                </label>
+                <div className="relative">
+                  <select
+                    value={allowedDomains}
+                    onChange={(e) => setAllowedDomains(e.target.value)}
+                    className="w-full appearance-none bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white transition-colors cursor-pointer"
+                  >
+                    <option value="All">All</option>
+                    <option value="api.github.com">api.github.com only</option>
+                    <option value="custom">Custom Restricted Domains</option>
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Field 5: Server URL */}
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                  {selectedProvider === 'github' ? 'Github Server' : 'Server Endpoint'}
+                </label>
+                <input
+                  type="text"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="https://api.github.com"
+                  className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Footer Information / Vault Notice (Matches Screenshots 2 & 4) */}
+          <div className="pt-2 border-t border-[#383A40]/50 flex items-center gap-1.5 text-[11px] text-slate-400 font-sans">
+            <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>Enterprise plan users can pull in credentials from external vaults.</span>
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('keaos:toast', {
+                    detail: { message: 'Vault sync is managed securely through your enterprise governance gateway.' }
+                  })
+                );
+              }}
+              className="text-[#FF6D5A] hover:underline cursor-pointer font-medium ml-0.5"
+            >
+              More info
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 text-xs font-mono rounded-none"
-          >
-            Cancel
-          </button>
+
         </div>
       </div>
     </div>

@@ -361,10 +361,11 @@ export async function connectMcpViaOAuth({
   provider = 'github', 
   clientId = '', 
   clientSecret = '', 
-  customScopes = [] 
+  customScopes = [],
+  redirectUri: customRedirectUri = ''
 }) {
   const norm = provider.toLowerCase();
-  const redirectUri = `${window.location.origin}/oauth-callback.html`;
+  const redirectUri = (customRedirectUri || '').trim() || `${window.location.origin}/oauth-callback.html`;
   const state = Math.random().toString(36).substring(2, 15);
 
   // 1. GITHUB OAUTH 2.0

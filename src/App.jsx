@@ -712,7 +712,7 @@ export default function App() {
   const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
   const [isConnectMcpModalOpen, setIsConnectMcpModalOpen] = useState(false);
-  const [connectMcpInitialTab, setConnectMcpInitialTab] = useState('url');
+  const [connectMcpInitialTab, setConnectMcpInitialTab] = useState('github');
   const [apiSettingsTab, setApiSettingsTab] = useState('google');
   const [configuredCount, setConfiguredCount] = useState(getAllConfiguredProviders().length);
   const [hasApiKey, setHasApiKey] = useState(getAllConfiguredProviders().length > 0 || Boolean(getActiveApiKey()));
@@ -724,7 +724,7 @@ export default function App() {
       if (e?.detail?.tab) {
         setConnectMcpInitialTab(e.detail.tab);
       } else {
-        setConnectMcpInitialTab('url');
+        setConnectMcpInitialTab('github');
       }
       setIsConnectMcpModalOpen(true);
     };
@@ -746,9 +746,12 @@ export default function App() {
   // Deploy a verified real MCP server to the Canvas and auto-wire to Gateway
   const handleAddRealMcpToCanvas = useCallback((mcpData) => {
     const mcpId = `node-mcp-${Date.now().toString().slice(-4)}`;
+    let targetGwNodeId = null;
+
     setNodes((nds) => {
       // Find the gateway node if present
       const gwNode = nds.find(n => n.type === 'pillar' && n.data?.pillarType === 'gateway');
+      if (gwNode) targetGwNodeId = gwNode.id;
       const xPos = gwNode ? gwNode.position.x + 280 : 1060;
       const yPos = gwNode ? gwNode.position.y : 165;
 
@@ -775,30 +778,33 @@ export default function App() {
         }
       };
 
-      // Auto-wire to gateway if present
-      if (gwNode) {
-        setEdges((eds) => {
-          const already = eds.some(e => e.source === mcpId && e.target === gwNode.id);
-          if (!already) {
-            return [
-              ...eds,
-              {
-                id: `edge-${mcpId}-to-${gwNode.id}`,
-                source: mcpId,
-                sourceHandle: 'out',
-                target: gwNode.id,
-                targetHandle: 'mcp-in',
-                animated: true,
-                style: { stroke: '#00A3A6', strokeWidth: 2 }
-              }
-            ];
-          }
-          return eds;
-        });
-      }
-
       return [...nds, newNode];
     });
+
+    // Auto-wire to gateway properly
+    setTimeout(() => {
+      setEdges((eds) => {
+        const already = eds.some(e => e.source === mcpId || e.target === mcpId);
+        if (already) return eds;
+        const gwNodeId = targetGwNodeId || (eds.find(e => e.targetHandle === 'mcp-in')?.source);
+        if (gwNodeId) {
+          return [
+            ...eds,
+            {
+              id: `edge-${mcpId}-to-${gwNodeId}`,
+              source: mcpId,
+              sourceHandle: 'out',
+              target: gwNodeId,
+              targetHandle: 'mcp-in',
+              type: 'deletable',
+              animated: true,
+              style: { stroke: '#00A3A6', strokeWidth: 2, strokeDasharray: '4 4' }
+            }
+          ];
+        }
+        return eds;
+      });
+    }, 50);
 
     window.dispatchEvent(new CustomEvent('keaos:toast', {
       detail: { message: `🔌 Deployed ${mcpData.name} (${mcpData.tools?.length || 0} tools) to Gateway` }
@@ -1199,7 +1205,7 @@ export default function App() {
               {/* Single Unified Right Sidebar (Identical width w-96, flawless smooth transition between Inspector & Catalog) */}
               {((isInspectorOpen && selectedNode) || isAddMenuOpen) && (
                 <aside 
-                  className={`w-96 h-full border-l shrink-0 flex flex-col overflow-hidden select-none z-20 animate-in slide-in-from-right-3 duration-250 ease-out transition-all ${
+                  className={`w-96 h-full border-l shrink-0 flex flex-col overflow-hidden select-none z-20 animate-swift-slide-in transition-all ${
                     isDarkMode ? 'bg-[#0D0F17] border-white/[0.08] shadow-2xl' : 'bg-white border-slate-200/80 shadow-xl'
                   }`}
                 >

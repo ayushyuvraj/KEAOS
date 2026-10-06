@@ -363,6 +363,28 @@ export default function NodeCatalogPanel({
     };
   }, []);
 
+  // Listen for canvas connection drag or action event to navigate catalog category
+  useEffect(() => {
+    const handleSelectCategoryEvent = (e) => {
+      const categoryId = e.detail?.categoryId;
+      if (categoryId) {
+        setActiveCategoryId(categoryId);
+        setSelectedModelProvider(null);
+        setSearchQuery('');
+      } else {
+        setActiveCategoryId(null);
+        setSelectedModelProvider(null);
+        setSearchQuery('');
+      }
+    };
+    window.addEventListener('keaos:select-catalog-category', handleSelectCategoryEvent);
+    window.addEventListener('keaos:open-node-catalog', handleSelectCategoryEvent);
+    return () => {
+      window.removeEventListener('keaos:select-catalog-category', handleSelectCategoryEvent);
+      window.removeEventListener('keaos:open-node-catalog', handleSelectCategoryEvent);
+    };
+  }, []);
+
   // Custom Skill Creation Form State
   const [isCreatingSkill, setIsCreatingSkill] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
@@ -805,23 +827,18 @@ export default function NodeCatalogPanel({
                       <div
                         key={item.id}
                         onClick={() => handleItemClick(category.id, item)}
-                        className={`p-3 border transition-all cursor-pointer flex items-start justify-between gap-3 ${
+                        className={`p-2.5 border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                           isDarkMode 
                             ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0091DA] hover:bg-[#252833]' 
                             : 'bg-white border-[#E2E8F0] hover:border-[#00338D] hover:bg-[#F8FAFC]'
                         }`}
                       >
                         <div className="flex-1 min-w-0">
-                          <h5 className={`text-xs font-bold truncate ${
+                          <h5 className={`text-xs font-semibold truncate ${
                             isDarkMode ? 'text-white' : 'text-[#0B0F19]'
                           }`}>
                             {item.name}
                           </h5>
-                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${
-                            isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                          }`}>
-                            {item.description}
-                          </p>
                         </div>
                         <button
                           onClick={(e) => {
@@ -879,30 +896,25 @@ export default function NodeCatalogPanel({
                       <button
                         key={provider.id}
                         onClick={() => handleSelectProvider(provider.id)}
-                        className={`w-full p-3.5 border transition-all text-left flex items-start justify-between gap-3 group cursor-pointer ${
+                        className={`w-full p-2.5 border transition-all text-left flex items-center justify-between gap-3 group cursor-pointer ${
                           isDarkMode
                             ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0091DA] hover:bg-[#252833]'
                             : 'bg-white border-[#E2E8F0] hover:border-[#00338D] hover:bg-[#F8FAFC]'
                         }`}
                       >
-                        <div className="flex items-start gap-3 min-w-0 flex-1">
-                          <ProviderLogo className="w-8 h-8 shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <h4 className={`text-xs font-bold tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                                {provider.name}
-                              </h4>
-                              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
-                                isConfigured || provider.isLocal
-                                  ? 'bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30'
-                                  : 'bg-slate-100 text-slate-500 border border-slate-200'
-                              }`}>
-                                {isConfigured ? '● Key Ready' : provider.isLocal ? '● Local Endpoint' : '○ Paste Key'}
-                              </span>
-                            </div>
-                            <p className={`text-[11px] mt-0.5 line-clamp-1 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                              {provider.tagline}
-                            </p>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <ProviderLogo className="w-6 h-6 shrink-0" />
+                          <div className="min-w-0 flex-1 flex items-center gap-2">
+                            <h4 className={`text-xs font-bold tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                              {provider.name}
+                            </h4>
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                              isConfigured || provider.isLocal
+                                ? 'bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            }`}>
+                              {isConfigured ? '● Key Ready' : provider.isLocal ? '● Local Endpoint' : '○ Paste Key'}
+                            </span>
                           </div>
                         </div>
 
@@ -1187,25 +1199,22 @@ export default function NodeCatalogPanel({
                               <div
                                 key={model.id}
                                 onClick={() => handleAddDiscoveredModel(model)}
-                                className={`group p-2.5 border transition-all cursor-pointer flex items-start justify-between gap-2.5 ${
+                                className={`group p-2 border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
                                   isDarkMode
                                     ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0091DA] hover:bg-[#252833]'
                                     : 'bg-white border-[#E2E8F0] hover:border-[#00338D] hover:bg-[#F8FAFC]'
                                 }`}
                               >
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <SelectedLogo className="w-3.5 h-3.5 shrink-0" />
-                                    <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                                      {model.name}
-                                    </h5>
-                                  </div>
-                                  <span className="text-[10px] font-mono text-slate-400 block truncate mt-0.5">
-                                    {model.id}
-                                  </span>
-                                  <p className={`text-[10px] line-clamp-2 mt-1 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                                    {model.description}
-                                  </p>
+                                <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                                  <SelectedLogo className="w-3.5 h-3.5 shrink-0" />
+                                  <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                                    {model.name}
+                                  </h5>
+                                  {model.id !== model.name && (
+                                    <span className="text-[10px] font-mono text-slate-400 truncate">
+                                      ({model.id})
+                                    </span>
+                                  )}
                                 </div>
 
                                 <button
@@ -1213,7 +1222,7 @@ export default function NodeCatalogPanel({
                                     e.stopPropagation();
                                     handleAddDiscoveredModel(model);
                                   }}
-                                  className={`btn-tactile w-7 h-7 flex items-center justify-center shrink-0 border transition-all mt-0.5 ${
+                                  className={`btn-tactile w-7 h-7 flex items-center justify-center shrink-0 border transition-all ${
                                     addedItemId === `model-${selectedModelProvider}-${model.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
                                       ? 'bg-[#009A44] text-white border-[#009A44]'
                                       : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#001E50]'
@@ -1246,7 +1255,7 @@ export default function NodeCatalogPanel({
                 type="button"
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                    detail: { tab: 'url' }
+                    detail: { tab: 'github' }
                   }));
                 }}
                 className="card-pressable w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#00A3A6] to-[#008A8C] hover:opacity-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-[#00A3A6]/20 transition-all cursor-pointer"
@@ -1275,31 +1284,26 @@ export default function NodeCatalogPanel({
                           detail: { tab: 'url' }
                         }));
                       }}
-                      className={`p-3 border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-3 group ${
+                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
                         isDarkMode 
                           ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#00A3A6] hover:bg-[#252833]' 
                           : 'bg-white border-[#E2E8F0] hover:border-[#00A3A6] hover:bg-[#F0FAF9]'
                       }`}
                     >
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center shrink-0 border border-[#00A3A6]/30">
-                          <Globe className="w-4 h-4" />
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-7 h-7 rounded-lg bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center shrink-0 border border-[#00A3A6]/30">
+                          <Globe className="w-3.5 h-3.5" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                              Universal MCP Link
-                            </h5>
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
-                              HTTP / SSE
-                            </span>
-                          </div>
-                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                            Connect any JSON-RPC 2.0 or SSE endpoint with live ping and automatic tool discovery (Claude Code style).
-                          </p>
+                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                            Universal MCP Link
+                          </h5>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
+                            HTTP / SSE
+                          </span>
                         </div>
                       </div>
-                      <span className="text-xs font-bold text-[#00A3A6] font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      <span className="text-xs font-bold text-[#00A3A6] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
                         Connect →
                       </span>
                     </div>
@@ -1313,31 +1317,26 @@ export default function NodeCatalogPanel({
                           detail: { tab: 'slack' }
                         }));
                       }}
-                      className={`p-3 border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-3 group ${
+                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
                         isDarkMode 
                           ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#009A44] hover:bg-[#252833]' 
                           : 'bg-white border-[#E2E8F0] hover:border-[#009A44] hover:bg-[#F2FAF5]'
                       }`}
                     >
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg bg-[#009A44]/15 text-[#009A44] flex items-center justify-center shrink-0 border border-[#009A44]/30">
-                          <MessageSquare className="w-4 h-4" />
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-7 h-7 rounded-lg bg-[#009A44]/15 text-[#009A44] flex items-center justify-center shrink-0 border border-[#009A44]/30">
+                          <MessageSquare className="w-3.5 h-3.5" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                              Slack MCP Server
-                            </h5>
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30">
-                              WEBHOOK / BOT
-                            </span>
-                          </div>
-                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                            Dispatch meeting summaries, follow-up alerts, and task commitments directly into Slack channels.
-                          </p>
+                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                            Slack MCP Server
+                          </h5>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30">
+                            WEBHOOK / BOT
+                          </span>
                         </div>
                       </div>
-                      <span className="text-xs font-bold text-[#009A44] font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      <span className="text-xs font-bold text-[#009A44] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
                         Connect →
                       </span>
                     </div>
@@ -1351,31 +1350,26 @@ export default function NodeCatalogPanel({
                           detail: { tab: 'jira' }
                         }));
                       }}
-                      className={`p-3 border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-3 group ${
+                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
                         isDarkMode 
                           ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#EAAA00] hover:bg-[#252833]' 
                           : 'bg-white border-[#E2E8F0] hover:border-[#EAAA00] hover:bg-[#FAF6EC]'
                       }`}
                     >
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg bg-[#EAAA00]/15 text-[#EAAA00] flex items-center justify-center shrink-0 border border-[#EAAA00]/30">
-                          <GitFork className="w-4 h-4" />
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-7 h-7 rounded-lg bg-[#EAAA00]/15 text-[#EAAA00] flex items-center justify-center shrink-0 border border-[#EAAA00]/30">
+                          <GitFork className="w-3.5 h-3.5" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                              Atlassian Jira Cloud MCP
-                            </h5>
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#EAAA00]/15 text-[#EAAA00] border border-[#EAAA00]/30">
-                              REST API
-                            </span>
-                          </div>
-                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                            Create action item tickets, query project backlog, and update issue statuses on your Jira workspace.
-                          </p>
+                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                            Atlassian Jira Cloud MCP
+                          </h5>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#EAAA00]/15 text-[#EAAA00] border border-[#EAAA00]/30">
+                            REST API
+                          </span>
                         </div>
                       </div>
-                      <span className="text-xs font-bold text-[#EAAA00] font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      <span className="text-xs font-bold text-[#EAAA00] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
                         Connect →
                       </span>
                     </div>
@@ -1389,31 +1383,26 @@ export default function NodeCatalogPanel({
                           detail: { tab: 'github' }
                         }));
                       }}
-                      className={`p-3 border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-3 group ${
+                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
                         isDarkMode 
                           ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#483698] hover:bg-[#252833]' 
                           : 'bg-white border-[#E2E8F0] hover:border-[#483698] hover:bg-[#F5F2FA]'
                       }`}
                     >
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg bg-[#483698]/15 text-[#483698] flex items-center justify-center shrink-0 border border-[#483698]/30">
-                          <GithubIcon className="w-4 h-4" />
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-7 h-7 rounded-lg bg-[#483698]/15 text-[#483698] flex items-center justify-center shrink-0 border border-[#483698]/30">
+                          <GithubIcon className="w-3.5 h-3.5" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                              GitHub MCP Server
-                            </h5>
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#483698]/15 text-[#483698] border border-[#483698]/30">
-                              PAT TOKEN
-                            </span>
-                          </div>
-                          <p className={`text-[11px] line-clamp-2 mt-0.5 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                            Inspect repositories, create tracking issues, search commits, and automate pull requests.
-                          </p>
+                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                            GitHub MCP Server
+                          </h5>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#483698]/15 text-[#483698] border border-[#483698]/30">
+                            PAT TOKEN
+                          </span>
                         </div>
                       </div>
-                      <span className="text-xs font-bold text-[#483698] font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      <span className="text-xs font-bold text-[#483698] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
                         Connect →
                       </span>
                     </div>
@@ -1446,18 +1435,13 @@ export default function NodeCatalogPanel({
                             isDarkMode ? 'bg-[#1E2028] border-[#00A3A6]/40' : 'bg-white border-[#00A3A6]/30'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                                  {server.name}
-                                </h5>
-                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
-                                  {server.transport?.toUpperCase() || 'SSE'}
-                                </span>
-                              </div>
-                              <span className="text-[10px] font-mono text-slate-400 block truncate mt-0.5">
-                                {server.url || server.config?.domain || 'Direct API Bridge'}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1 flex items-center gap-2">
+                              <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                                {server.name}
+                              </h5>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
+                                {server.transport?.toUpperCase() || 'SSE'}
                               </span>
                             </div>
 
@@ -1705,50 +1689,30 @@ export default function NodeCatalogPanel({
                     <div
                       key={item.id}
                       onClick={() => handleItemAdd(activeCategory.id, item)}
-                      className={`group p-3.5 border rounded-xl transition-all duration-200 cursor-pointer flex items-start justify-between gap-3 shadow-sm card-pressable ${
+                      className={`group p-2.5 border rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 shadow-xs card-pressable ${
                         isDarkMode 
-                          ? 'bg-[#1E2028]/90 border-slate-700/60 hover:border-[#0091DA]/80 hover:bg-[#252833] hover:shadow-md' 
-                          : 'bg-white border-slate-200/90 hover:border-[#00338D]/60 hover:bg-slate-50/80 hover:shadow-md'
+                          ? 'bg-[#1E2028]/90 border-slate-700/60 hover:border-[#0091DA]/80 hover:bg-[#252833]' 
+                          : 'bg-white border-slate-200/90 hover:border-[#00338D]/60 hover:bg-slate-50/80'
                       }`}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: `${activeCategory.color}15`, color: activeCategory.color }}
-                          >
-                            <ItemIcon className="w-3.5 h-3.5" />
-                          </div>
-                          <h5 className={`text-xs font-semibold truncate ${
-                            isDarkMode ? 'text-white' : 'text-slate-900'
-                          }`}>
-                            {item.name}
-                          </h5>
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <div 
+                          className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: `${activeCategory.color}15`, color: activeCategory.color }}
+                        >
+                          <ItemIcon className="w-3.5 h-3.5" />
                         </div>
-                        <p className={`text-[11px] line-clamp-2 mt-1.5 leading-relaxed ${
-                          isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                        <h5 className={`text-xs font-semibold truncate ${
+                          isDarkMode ? 'text-white' : 'text-slate-900'
                         }`}>
-                          {item.description}
-                        </p>
-                        <div className="mt-2.5 flex items-center gap-1.5">
-                          <span 
-                            className="text-[9px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 font-medium"
-                            style={{ 
-                              backgroundColor: activeCategory.bgColor, 
-                              color: activeCategory.color, 
-                              borderColor: `${activeCategory.color}30` 
-                            }}
-                          >
-                            <Plug className="w-2.5 h-2.5" />
-                            {activeCategory.socketId}
-                          </span>
+                          {item.name}
+                        </h5>
 
-                          {isCustom && (
-                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 font-semibold">
-                              CUSTOM
-                            </span>
-                          )}
-                        </div>
+                        {isCustom && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 shrink-0">
+                            CUSTOM
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
