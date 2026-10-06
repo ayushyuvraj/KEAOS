@@ -1106,7 +1106,7 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
 
   // 4. Real GitHub API Execution (Full 37-Action Standard Suite)
   if (transport === 'github-api' && config?.token) {
-    const owner = args.owner || config.owner || mcpServer.basis?.username || 'ayushyuvraj';
+    const owner = args.owner || config.owner || mcpServer.basis?.username || '';
     const repo = args.repo || config.repo || args.name || args.repository || args.repoName;
     const headers = {
       'Authorization': `token ${config.token}`,
@@ -1127,13 +1127,15 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       }
       // Public User Fallback if /user/repos returns empty
       if (!Array.isArray(repos) || repos.length === 0) {
-        const username = owner || config.owner || 'ayushyuvraj';
-        const fallbackRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`, {
-          method: 'GET',
-          headers
-        });
-        if (fallbackRes.ok) {
-          repos = await fallbackRes.json();
+        const username = owner || config.owner || mcpServer.basis?.username;
+        if (username) {
+          const fallbackRes = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?per_page=100&sort=updated`, {
+            method: 'GET',
+            headers
+          });
+          if (fallbackRes.ok) {
+            repos = await fallbackRes.json();
+          }
         }
       }
       const mapped = (Array.isArray(repos) ? repos : []).map(r => ({
