@@ -524,6 +524,169 @@ export const JIRA_OFFICIAL_ACTIONS = [
   }
 ];
 
+export const GOOGLE_WORKSPACE_OFFICIAL_ACTIONS = [
+  // Calendar Actions
+  {
+    name: 'list_calendar_events',
+    displayName: 'List calendar events',
+    category: 'Calendar Actions',
+    type: 'read',
+    description: 'Lists upcoming events from primary or specified Google Calendar.'
+  },
+  {
+    name: 'create_calendar_event',
+    displayName: 'Create calendar event',
+    category: 'Calendar Actions',
+    type: 'write',
+    description: 'Schedules a new meeting or event with attendees and Google Meet link.'
+  },
+  {
+    name: 'update_calendar_event',
+    displayName: 'Update calendar event',
+    category: 'Calendar Actions',
+    type: 'write',
+    description: 'Updates meeting details, times, attendees, or agenda.'
+  },
+  {
+    name: 'delete_calendar_event',
+    displayName: 'Delete calendar event',
+    category: 'Calendar Actions',
+    type: 'destructive',
+    description: 'Cancels and removes a scheduled meeting from Google Calendar.'
+  },
+  // Drive Actions
+  {
+    name: 'list_drive_files',
+    displayName: 'List Google Drive files',
+    category: 'Drive Actions',
+    type: 'read',
+    description: 'Searches and lists documents, spreadsheets, and files in Drive.'
+  },
+  {
+    name: 'get_drive_file_metadata',
+    displayName: 'Get file metadata',
+    category: 'Drive Actions',
+    type: 'read',
+    description: 'Retrieves ownership, permissions, and sharing status of a Drive file.'
+  },
+  {
+    name: 'upload_drive_file',
+    displayName: 'Upload file to Drive',
+    category: 'Drive Actions',
+    type: 'write',
+    description: 'Uploads documents or reports to Google Drive folder.'
+  },
+  {
+    name: 'delete_drive_file',
+    displayName: 'Delete Drive file',
+    category: 'Drive Actions',
+    type: 'destructive',
+    description: 'Moves a file or document to Google Drive trash.'
+  },
+  // Gmail Actions
+  {
+    name: 'list_emails',
+    displayName: 'Search & list emails',
+    category: 'Gmail Actions',
+    type: 'read',
+    description: 'Queries inbox for emails matching sender, subject, or label.'
+  },
+  {
+    name: 'send_email',
+    displayName: 'Send email via Gmail',
+    category: 'Gmail Actions',
+    type: 'write',
+    description: 'Sends automated executive recaps or notifications to recipients.'
+  },
+  {
+    name: 'create_draft_email',
+    displayName: 'Create email draft',
+    category: 'Gmail Actions',
+    type: 'write',
+    description: 'Prepares an email draft in Gmail without immediate sending.'
+  },
+  // Docs & Sheets Actions
+  {
+    name: 'read_google_doc',
+    displayName: 'Read Google Doc',
+    category: 'Document Actions',
+    type: 'read',
+    description: 'Extracts formatted text and headings from a Google Document.'
+  },
+  {
+    name: 'append_to_google_doc',
+    displayName: 'Append to Google Doc',
+    category: 'Document Actions',
+    type: 'write',
+    description: 'Appends summary sections or meeting minutes to an existing Google Doc.'
+  },
+  {
+    name: 'read_sheet_rows',
+    displayName: 'Read Spreadsheet rows',
+    category: 'Sheets Actions',
+    type: 'read',
+    description: 'Queries rows and tabular data from a Google Sheet.'
+  },
+  {
+    name: 'append_sheet_row',
+    displayName: 'Append row to Sheet',
+    category: 'Sheets Actions',
+    type: 'write',
+    description: 'Appends structured metrics, action items, or audit records to Sheet.'
+  }
+];
+
+/**
+ * Universal Authentication Specifications for All MCP Servers
+ */
+export const MCP_AUTH_SPECS = {
+  github: {
+    id: 'github',
+    name: 'GitHub',
+    supportedModes: ['token', 'oauth'],
+    defaultMode: 'oauth',
+    oauthProviderName: 'GitHub OAuth 2.0',
+    scopes: ['repo', 'user', 'read:org', 'workflow'],
+    scopeDescription: 'Pre-authorizes all 37 repository, issue, commit, and branch tools.',
+    totalDefaultTools: GITHUB_OFFICIAL_ACTIONS.length
+  },
+  slack: {
+    id: 'slack',
+    name: 'Slack',
+    supportedModes: ['token', 'oauth'],
+    defaultMode: 'oauth',
+    oauthProviderName: 'Slack OAuth 2.0',
+    scopes: ['chat:write', 'channels:read', 'channels:history', 'users:read', 'files:write'],
+    scopeDescription: 'Pre-authorizes all 22 channel, messaging, pin, and upload tools.',
+    totalDefaultTools: SLACK_OFFICIAL_ACTIONS.length
+  },
+  jira: {
+    id: 'jira',
+    name: 'Atlassian Jira',
+    supportedModes: ['token', 'oauth'],
+    defaultMode: 'oauth',
+    oauthProviderName: 'Atlassian OAuth 2.0 (3LO)',
+    scopes: ['read:jira-work', 'write:jira-work', 'read:jira-user', 'offline_access'],
+    scopeDescription: 'Pre-authorizes all 18 sprint, issue, transition, and worklog tools.',
+    totalDefaultTools: JIRA_OFFICIAL_ACTIONS.length
+  },
+  google: {
+    id: 'google',
+    name: 'Google Workspace',
+    supportedModes: ['token', 'oauth'],
+    defaultMode: 'oauth',
+    oauthProviderName: 'Google Identity OAuth 2.0',
+    scopes: [
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/drive',
+      'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/documents'
+    ],
+    scopeDescription: 'Pre-authorizes all 15 Calendar, Drive, Gmail, Docs, and Sheets tools.',
+    totalDefaultTools: GOOGLE_WORKSPACE_OFFICIAL_ACTIONS.length
+  }
+};
+
 /**
  * Returns the standardized official action catalog for a named service.
  */
@@ -532,6 +695,7 @@ export function getOfficialMcpTools(serviceName = '') {
   if (norm.includes('github')) return GITHUB_OFFICIAL_ACTIONS;
   if (norm.includes('slack')) return SLACK_OFFICIAL_ACTIONS;
   if (norm.includes('jira')) return JIRA_OFFICIAL_ACTIONS;
+  if (norm.includes('google')) return GOOGLE_WORKSPACE_OFFICIAL_ACTIONS;
   return [];
 }
 
