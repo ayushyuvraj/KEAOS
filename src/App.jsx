@@ -54,11 +54,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         }
       }
     },
-    // 2. Brain / Model Node (Positioned directly above the Antenna with generous zero-overlap clearance)
+    // 2. Brain / Model Node (Positioned directly above the center Model socket)
     {
       id: 'node-model-1',
       type: 'pillar',
-      position: { x: 595, y: -10 },
+      position: { x: 595, y: -20 },
       data: {
         pillarType: 'model',
         name: 'Gemini 2.0 Flash',
@@ -66,11 +66,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
       }
     },
-    // 3. Hands / Tool Ingestion Node (Positioned to the left of the Left Arm Bolt)
+    // 3. Hands / Tool Ingestion Node (Positioned to the upper left)
     {
       id: 'node-tool-1',
       type: 'pillar',
-      position: { x: 260, y: 220 },
+      position: { x: 230, y: -20 },
       data: {
         pillarType: 'tools',
         toolId: 'tool-audio-transcribe',
@@ -79,11 +79,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { format: 'mp3', diarization: true }
       }
     },
-    // 4. Reach / MCP Egress Gateway Node (Positioned between Agent Core and live MCPs)
+    // 4. Reach / MCP Egress Gateway Node (Positioned directly above the top-right MCP socket)
     {
       id: 'node-mcp-gw-1',
       type: 'pillar',
-      position: { x: 790, y: 220 },
+      position: { x: 780, y: -20 },
       data: {
         pillarType: 'gateway',
         itemId: 'gw-mcp-controller',
@@ -128,11 +128,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { length: 'concise', focus: 'decisions' }
       }
     },
-    // 8. Output Component Node (Positioned to the upper right of Agent Core with zero-overlap clearance)
+    // 8. Output Component Node (Positioned directly to the right of the centered Output Arm)
     {
       id: 'node-output-1',
       type: 'outputNode',
-      position: { x: 800, y: 50 },
+      position: { x: 800, y: 260 },
       data: {
         title: 'Agent Intelligence Output',
         content: '',
@@ -141,11 +141,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         isExpanded: false
       }
     },
-    // 9. Input Ingestion Node (Positioned to the left of Agent Core tools-in socket)
+    // 9. Input Ingestion Node (Positioned directly above the top-left Tools socket)
     {
       id: 'node-ingest-1',
       type: 'ingestionNode',
-      position: { x: 260, y: 180 },
+      position: { x: 410, y: -20 },
       data: {
         title: 'Data & Audio Ingestion',
         content: '',
@@ -684,6 +684,13 @@ export default function App() {
       return changed ? updated : prevNodes;
     });
   }, [isDarkMode, setNodes]);
+
+  // Open Node Catalog Panel via custom event
+  useEffect(() => {
+    const handleOpenCatalog = () => setIsAddMenuOpen(true);
+    window.addEventListener('keaos:open-node-catalog', handleOpenCatalog);
+    return () => window.removeEventListener('keaos:open-node-catalog', handleOpenCatalog);
+  }, []);
 
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const selectedNode = useMemo(() => {

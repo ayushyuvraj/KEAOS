@@ -315,25 +315,17 @@ export default function IngestionNode({ id, data = {}, selected }) {
           </div>
         )}
 
-        {/* Right Socket: data-out (feeds directly to agent tools-in) */}
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="data-out"
-          style={{
-            top: '50%',
-            right: '-6px',
-            transform: 'translateY(-50%) rotate(45deg)',
-            width: '10px',
-            height: '10px',
-            borderRadius: '2px',
-            backgroundColor: meta.color,
-            borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
-            borderWidth: '2px',
-            zIndex: 10
-          }}
-          title="Connect Ingested Data Stream to Agent"
-        />
+        {/* Succinct Canvas Label Placed ABOVE Circle to Avoid Any Wire Overlap */}
+        <div className="mb-2 text-center max-w-[130px]">
+          <span className={`text-[11px] font-semibold tracking-tight block truncate ${
+            isDarkMode ? 'text-white' : 'text-[#111827]'
+          }`}>
+            {currentFile?.name ? currentFile.name : title}
+          </span>
+          <span className="text-[9px] font-mono block -mt-0.5 text-slate-400">
+            {isProcessing ? 'Transcribing...' : isReady ? `${charCount} chars ready` : 'Click to Upload'}
+          </span>
+        </div>
 
         {/* 60px Circular Morphing Disc */}
         <div
@@ -350,6 +342,26 @@ export default function IngestionNode({ id, data = {}, selected }) {
               : 'bg-white text-slate-800'
           } ${selected ? 'ring-4 ring-[#0091DA]' : ''}`}
         >
+          {/* Bottom Socket: data-out (feeds directly downward to agent tools-in) */}
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="data-out"
+            style={{
+              left: '50%',
+              bottom: '-5px',
+              transform: 'translateX(-50%) rotate(45deg)',
+              width: '10px',
+              height: '10px',
+              borderRadius: '2px',
+              backgroundColor: meta.color,
+              borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+              borderWidth: '2px',
+              zIndex: 10
+            }}
+            title="Connect Ingested Data Stream to Agent"
+          />
+
           {/* Animated Concentric Radar Wave when Active */}
           {(isExecuting || isProcessing) && (
             <>
@@ -395,18 +407,6 @@ export default function IngestionNode({ id, data = {}, selected }) {
             }}
           >
             {isReady ? meta.label : 'INGEST'}
-          </span>
-        </div>
-
-        {/* Succinct Canvas Label */}
-        <div className="mt-2 text-center max-w-[130px]">
-          <span className={`text-[11px] font-semibold tracking-tight block truncate ${
-            isDarkMode ? 'text-white' : 'text-[#111827]'
-          }`}>
-            {currentFile?.name ? currentFile.name : title}
-          </span>
-          <span className="text-[9px] font-mono block -mt-0.5 text-slate-400">
-            {isProcessing ? 'Transcribing...' : isReady ? `${charCount} chars ready` : 'Click to Upload'}
           </span>
         </div>
       </div>

@@ -686,6 +686,18 @@ function CanvasInner({
     if (setIsInspectorOpen) setIsInspectorOpen(true);
   }, [nodes, onSelectNode, setIsInspectorOpen, setIsAddMenuOpen]);
 
+  // Handle open node catalog for adding blocks / capabilities
+  const handleOpenCatalog = useCallback(() => {
+    setIsAddMenuOpen(true);
+  }, [setIsAddMenuOpen]);
+
+  // Listener to open node catalog via event
+  useEffect(() => {
+    const handleOpenCatalogEvent = () => setIsAddMenuOpen(true);
+    window.addEventListener('keaos:open-node-catalog', handleOpenCatalogEvent);
+    return () => window.removeEventListener('keaos:open-node-catalog', handleOpenCatalogEvent);
+  }, [setIsAddMenuOpen]);
+
   // Handle execute node / step
   const handleExecuteNode = useCallback((nodeId) => {
     const node = nodes.find(n => n.id === nodeId);
@@ -1242,7 +1254,8 @@ function CanvasInner({
           onCopy: handleCopyNode,
           onOpenInspector: handleOpenInspector,
           onExecute: handleExecuteNode,
-          onRename: handleRenameNode
+          onRename: handleRenameNode,
+          onOpenCatalog: handleOpenCatalog
         }
       };
     });
@@ -1259,7 +1272,8 @@ function CanvasInner({
     handleCopyNode, 
     handleOpenInspector, 
     handleExecuteNode,
-    handleRenameNode
+    handleRenameNode,
+    handleOpenCatalog
   ]);
 
   // Edges styled dynamically: when executing, active transmitting edge glows and pulses with taxonomy color

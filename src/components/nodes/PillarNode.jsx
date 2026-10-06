@@ -171,7 +171,9 @@ export default function PillarNode({ id, data, selected }) {
     top: '-4px'
   };
 
-  if (pillarType === 'model') {
+  const isTopPillar = pillarType === 'model' || pillarType === 'tools' || pillarType === 'gateway' || pillarType === 'mcp';
+
+  if (pillarType === 'model' || pillarType === 'tools') {
     handlePosition = Position.Bottom;
     handleStyle = {
       left: '50%',
@@ -183,19 +185,6 @@ export default function PillarNode({ id, data, selected }) {
       borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
       borderWidth: '2px',
       bottom: '-4px'
-    };
-  } else if (pillarType === 'tools') {
-    handlePosition = Position.Right;
-    handleStyle = {
-      top: '50%',
-      transform: 'translateY(-50%) rotate(45deg)',
-      width: '9px',
-      height: '9px',
-      borderRadius: '1.5px',
-      backgroundColor: handleBgColor,
-      borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
-      borderWidth: '2px',
-      right: '-4px'
     };
   } else if (pillarType === 'mcp') {
     handlePosition = Position.Left;
@@ -211,20 +200,65 @@ export default function PillarNode({ id, data, selected }) {
       left: '-4px'
     };
   } else if (pillarType === 'gateway') {
-    // Gateway uses dual handles rendered conditionally below
-    handlePosition = Position.Left;
+    // Gateway uses dual handles rendered conditionally below (Bottom for out, Right for mcp-in)
+    handlePosition = Position.Bottom;
   }
 
-  let toolbarPlacement = '-top-8 left-1/2 -translate-x-1/2';
-  let dropdownPlacement = 'top';
+  let toolbarPlacement = 'top-1/2 -right-14 -translate-y-1/2';
+  let dropdownPlacement = isTopPillar ? 'bottom' : 'top';
 
-  if (pillarType === 'memory' || pillarType === 'skills' || pillarType === 'policies') {
-    toolbarPlacement = 'top-1 -right-14';
-    dropdownPlacement = 'bottom';
-  } else {
-    toolbarPlacement = '-top-8 left-1/2 -translate-x-1/2';
-    dropdownPlacement = 'top';
-  }
+  const renderPillarLabel = (isTop) => (
+    <div className={`${isTop ? 'mb-2' : 'mt-2'} text-center max-w-[140px]`}>
+      <span className={`text-[11px] font-semibold tracking-tight block truncate ${
+        isDeactivated
+          ? 'line-through text-slate-500'
+          : isDarkMode ? 'text-white' : 'text-[#111827]'
+      }`}>
+        {name}
+      </span>
+      <span className={`text-[9px] font-mono block -mt-0.5 uppercase tracking-wider ${
+        isDeactivated
+          ? 'text-amber-500'
+          : isDarkMode ? 'text-slate-400' : 'text-slate-600'
+      }`}>
+        {isDeactivated ? 'Deactivated' : pillarDef.label}
+      </span>
+
+      {/* Gateway Capabilities Toggle Pill */}
+      {pillarType === 'gateway' && routedTools.length > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowGatewayFlyout(!showGatewayFlyout);
+          }}
+          className={`mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all border ${
+            disabledTools.length > 0
+              ? 'bg-amber-500/15 text-amber-500 border-amber-500/40 hover:bg-amber-500/25 shadow-xs'
+              : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/40 hover:bg-emerald-500/25 shadow-xs'
+          }`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${disabledTools.length > 0 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+          <span>{allowedCount}/{routedTools.length} Features</span>
+        </button>
+      )}
+
+      {/* MCP Capabilities Discovery Pill */}
+      {pillarType === 'mcp' && tools.length > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowMcpFlyout(!showMcpFlyout);
+          }}
+          className="mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/40 hover:bg-[#00A3A6]/25 rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all shadow-xs"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00A3A6]" />
+          <span>{tools.length} Features</span>
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="relative group flex flex-col items-center select-none">
@@ -255,6 +289,9 @@ export default function PillarNode({ id, data, selected }) {
           <span>{pillarDef.label || 'ACTIVE'}</span>
         </div>
       )}
+
+      {/* Clean Succinct Label Placed ABOVE Node for Top Pillars (Zero Wire Overlap) */}
+      {isTopPillar && renderPillarLabel(true)}
 
       {/* Circular Token Disc */}
       <div
@@ -300,24 +337,24 @@ export default function PillarNode({ id, data, selected }) {
         {/* Handle Positioning: Dual handles for Gateway; single handle for other pillars */}
         {pillarType === 'gateway' ? (
           <>
-            {/* Output to Agent Core (Left handle) */}
+            {/* Output to Agent Core (Bottom handle -> connects straight down into mcp-in) */}
             <Handle
               type="source"
-              position={Position.Left}
+              position={Position.Bottom}
               id="out"
               style={{
-                top: '50%',
-                transform: 'translateY(-50%) rotate(45deg)',
+                left: '50%',
+                bottom: '-4px',
+                transform: 'translateX(-50%) rotate(45deg)',
                 width: '9px',
                 height: '9px',
                 borderRadius: '1.5px',
                 backgroundColor: handleBgColor,
                 borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
                 borderWidth: '2px',
-                left: '-4px',
                 opacity: isDeactivated ? 0.3 : 1
               }}
-              title="Gateway Egress: Connect to Agent Core"
+              title="Gateway Egress: Connect straight down to Agent Core"
             />
             {/* Circular Ingress Socket for MCP Server (Right handle) */}
             <Handle
@@ -337,7 +374,7 @@ export default function PillarNode({ id, data, selected }) {
                 boxShadow: '0 0 8px rgba(0,163,166,0.7)',
                 opacity: isDeactivated ? 0.3 : 1
               }}
-              title="MCP Server Ingress Socket: Connect verified live MCP Server (Universal Link, Slack, Jira, GitHub)"
+              title="MCP Server Ingress Socket: Connect verified live MCP Server"
             />
           </>
         ) : (
@@ -360,57 +397,8 @@ export default function PillarNode({ id, data, selected }) {
         />
       </div>
 
-      {/* Clean Succinct Label Below Node */}
-      <div className="mt-2 text-center max-w-[140px]">
-        <span className={`text-[11px] font-semibold tracking-tight block truncate ${
-          isDeactivated
-            ? 'line-through text-slate-500'
-            : isDarkMode ? 'text-white' : 'text-[#111827]'
-        }`}>
-          {name}
-        </span>
-        <span className={`text-[9px] font-mono block -mt-0.5 uppercase tracking-wider ${
-          isDeactivated
-            ? 'text-amber-500'
-            : isDarkMode ? 'text-slate-400' : 'text-slate-600'
-        }`}>
-          {isDeactivated ? 'Deactivated' : pillarDef.label}
-        </span>
-
-        {/* Gateway Capabilities Toggle Pill */}
-        {pillarType === 'gateway' && routedTools.length > 0 && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowGatewayFlyout(!showGatewayFlyout);
-            }}
-            className={`mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all border ${
-              disabledTools.length > 0
-                ? 'bg-amber-500/15 text-amber-500 border-amber-500/40 hover:bg-amber-500/25 shadow-xs'
-                : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/40 hover:bg-emerald-500/25 shadow-xs'
-            }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${disabledTools.length > 0 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-            <span>{allowedCount}/{routedTools.length} Features</span>
-          </button>
-        )}
-
-        {/* MCP Capabilities Discovery Pill */}
-        {pillarType === 'mcp' && tools.length > 0 && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMcpFlyout(!showMcpFlyout);
-            }}
-            className="mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/40 hover:bg-[#00A3A6]/25 rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all shadow-xs"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00A3A6]" />
-            <span>{tools.length} Features</span>
-          </button>
-        )}
-      </div>
+      {/* Clean Succinct Label Below Node for Bottom Pillars */}
+      {!isTopPillar && renderPillarLabel(false)}
 
       {/* GATEWAY ON-CANVAS CAPABILITY & POLICY FLYOUT */}
       {pillarType === 'gateway' && showGatewayFlyout && routedTools.length > 0 && (
