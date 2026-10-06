@@ -21,6 +21,7 @@ import {
   Key,
   Search
 } from 'lucide-react';
+import { PILLARS } from '../../constants/pillars';
 import { 
   groupToolsByCategory,
   identifyMcpService,
