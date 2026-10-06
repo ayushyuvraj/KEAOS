@@ -489,10 +489,11 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
     throw new Error(violationMessage);
   }
 
-  const { transport, config, endpoint } = mcpServer;
+  const { transport, config } = mcpServer;
+  const endpoint = mcpServer.endpoint || mcpServer.serverUrl || config?.endpoint || config?.serverUrl || config?.url;
 
-  // 1. External Live JSON-RPC MCP Server
-  if (transport === 'sse-http' && endpoint) {
+  // 1. External Live JSON-RPC MCP Server (Supports sse-http, http-jsonrpc, mcp-jsonrpc, or any server with endpoint/url)
+  if (endpoint && (transport === 'sse-http' || transport === 'http-jsonrpc' || transport === 'jsonrpc' || transport === 'mcp-jsonrpc' || !transport || transport === 'mcp-server')) {
     const payload = {
       jsonrpc: '2.0',
       id: Date.now(),
@@ -503,19 +504,62 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       }
     };
 
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream',
+      ...(config?.headers || {})
+    };
+    if (config?.token) headers['Authorization'] = `Bearer ${config.token}`;
+    if (config?.apiKey) headers['X-API-Key'] = config.apiKey;
+
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(15000)
     });
 
     if (!res.ok) {
-      throw new Error(`MCP Server returned HTTP ${res.status}`);
+      const errText = await res.text().catch(() => '');
+      throw new Error(`MCP Server at ${endpoint} returned HTTP ${res.status}: ${errText || res.statusText}`);
     }
 
     const data = await res.json();
+    if (data.error) {
+      throw new Error(data.error.message || `MCP Error: ${JSON.stringify(data.error)}`);
+    }
     return data.result || data;
+  }
+
+  // 1.5 Generic OpenAPI REST Execution (for any external service added via OpenAPI spec)
+  if (transport === 'openapi-rest' || (endpoint && (mcpServer.tools || []).some(t => t.name === toolName && t.endpointPath))) {
+    const toolDef = (mcpServer.tools || []).find(t => t.name === toolName);
+    let targetPath = toolDef?.endpointPath || '';
+    const method = toolDef?.httpMethod || 'POST';
+    for (const [k, v] of Object.entries(args)) {
+      if (targetPath.includes(`{${k}}`)) {
+        targetPath = targetPath.replace(`{${k}}`, encodeURIComponent(v));
+      }
+    }
+    const baseUrl = (endpoint || '').replace(/\/+$/, '');
+    const fullUrl = `${baseUrl}${targetPath.startsWith('/') ? '' : '/'}${targetPath}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(config?.headers || {})
+    };
+    if (config?.token) headers['Authorization'] = `Bearer ${config.token}`;
+    if (config?.apiKey) headers['X-API-Key'] = config.apiKey;
+
+    const fetchOptions = { method, headers };
+    if (method !== 'GET' && method !== 'HEAD') {
+      fetchOptions.body = JSON.stringify(args);
+    }
+    const res = await fetch(fullUrl, fetchOptions);
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`OpenAPI MCP error HTTP ${res.status}: ${errText || res.statusText}`);
+    }
+    return await res.json().catch(() => ({ success: true, status: res.status }));
   }
 
   // 2. Real Slack Webhook Execution
@@ -570,8 +614,8 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
 
   // 4. Real GitHub API Execution (Full 37-Action Standard Suite)
   if (transport === 'github-api' && config?.token) {
-    const owner = args.owner || config.owner;
-    const repo = args.repo || config.repo;
+    const owner = args.owner || config.owner || mcpServer.basis?.username || 'ayushyuvraj';
+    const repo = args.repo || config.repo || args.name || args.repository || args.repoName;
     const headers = {
       'Authorization': `token ${config.token}`,
       'Accept': 'application/vnd.github.v3+json',
@@ -615,24 +659,51 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
     }
 
     if (toolName === 'get_repository') {
-      const res = await fetch(`https://api.github.com/repos/${owner}/${repo || args.name}`, { method: 'GET', headers });
-      if (!res.ok) throw new Error(`GitHub API error HTTP ${res.status}`);
+      const targetRepo = repo || args.name;
+      const res = await fetch(`https://api.github.com/repos/${owner}/${targetRepo}`, { method: 'GET', headers });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(`GitHub API error: ${errJson.message || `HTTP ${res.status}`}`);
+      }
       return await res.json();
     }
 
     if (toolName === 'create_repository') {
+      const repoName = args.name || args.repo || args.repository_name || args.repository || args.repoName;
+      if (!repoName) {
+        throw new Error('create_repository requires a repository "name".');
+      }
       const res = await fetch(`https://api.github.com/user/repos`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          name: args.name,
+          name: repoName,
           description: args.description || '',
-          private: !!args.private,
+          private: !!(args.private || args.isPrivate),
           auto_init: true
         })
       });
-      if (!res.ok) throw new Error(`GitHub API error HTTP ${res.status}`);
-      return await res.json();
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        const detailedMsg = errJson.message || (errJson.errors && errJson.errors[0]?.message) || `HTTP ${res.status}`;
+        throw new Error(`GitHub API error: ${detailedMsg}`);
+      }
+      const createdRepo = await res.json();
+      if (mcpServer.basis) {
+        const newRepoItem = {
+          name: createdRepo.name,
+          fullName: createdRepo.full_name,
+          isPrivate: createdRepo.private,
+          description: createdRepo.description || '',
+          defaultBranch: createdRepo.default_branch || 'main',
+          htmlUrl: createdRepo.html_url
+        };
+        if (Array.isArray(mcpServer.basis.repositories)) {
+          mcpServer.basis.repositories = [newRepoItem, ...mcpServer.basis.repositories];
+          mcpServer.basis.accessibleReposCount = (mcpServer.basis.accessibleReposCount || 0) + 1;
+        }
+      }
+      return createdRepo;
     }
 
     if (toolName === 'fork_repository') {
@@ -958,5 +1029,44 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
     }
   }
 
-  throw new Error(`Execution handler for tool "${toolName}" on transport "${transport}" is not configured.`);
+  // Final universal fallback: If the server has an endpoint of any kind, try JSON-RPC tools/call
+  if (endpoint) {
+    const payload = {
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method: 'tools/call',
+      params: {
+        name: toolName,
+        arguments: args
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream',
+      ...(config?.headers || {})
+    };
+    if (config?.token) headers['Authorization'] = `Bearer ${config.token}`;
+    if (config?.apiKey) headers['X-API-Key'] = config.apiKey;
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`MCP Server at ${endpoint} returned HTTP ${res.status}: ${errText || res.statusText}`);
+    }
+
+    const data = await res.json();
+    if (data.error) {
+      throw new Error(data.error.message || `MCP Error: ${JSON.stringify(data.error)}`);
+    }
+    return data.result || data;
+  }
+
+  throw new Error(`Execution handler for tool "${toolName}" on MCP server "${mcpServer.name || 'External'}" (transport: "${transport || 'unknown'}") is not configured.`);
 }

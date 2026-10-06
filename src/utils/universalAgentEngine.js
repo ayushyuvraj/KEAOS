@@ -6,6 +6,142 @@ import {
 import { getEpisodicMemoryStore } from './meetingSimulatorEngine';
 import { calculateInferenceCost } from '../services/modelPricingService';
 import { executeRealMcpTool, getRegisteredMcpServers } from '../services/mcpClientService';
+import { getOfficialMcpTools } from '../constants/mcpOfficialCatalogs';
+
+/**
+ * Universal Tool Call Parser: extracts tool calls from LLM response.
+ * Supports:
+ * 1. Primary delimiter: <<<TOOL_CALL>>> ... <<<END_TOOL_CALL>>>
+ * 2. Markdown JSON code blocks containing "tool" or "action" or "name"
+ * 3. Inline JSON objects with "tool" and ("arguments" or "args")
+ */
+export function parseToolCallFromText(text) {
+  if (!text || typeof text !== 'string') return null;
+
+  // 1. Primary delimiter: <<<TOOL_CALL>>> ... <<<END_TOOL_CALL>>>
+  const delimiterMatch = text.match(/<<<TOOL_CALL>>>([\s\S]*?)<<<END_TOOL_CALL>>>/i);
+  if (delimiterMatch) {
+    try {
+      const parsed = JSON.parse(delimiterMatch[1].trim());
+      const toolName = parsed.tool || parsed.name || parsed.action;
+      const args = parsed.arguments || parsed.args || parsed.parameters || parsed.action_input || {};
+      if (toolName && typeof toolName === 'string') {
+        return {
+          toolName: toolName.trim(),
+          args: typeof args === 'object' && args !== null ? args : {},
+          raw: delimiterMatch[0]
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to parse <<<TOOL_CALL>>> JSON:', e);
+    }
+  }
+
+  // 2. Markdown code block with JSON containing "tool", "action", or "name"
+  const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/gi;
+  let codeMatch;
+  while ((codeMatch = codeBlockRegex.exec(text)) !== null) {
+    try {
+      const parsed = JSON.parse(codeMatch[1].trim());
+      const toolName = parsed.tool || parsed.action || parsed.name;
+      if (toolName && typeof toolName === 'string' && (parsed.arguments || parsed.args || parsed.parameters || parsed.action_input)) {
+        const args = parsed.arguments || parsed.args || parsed.parameters || parsed.action_input || {};
+        return {
+          toolName: toolName.trim(),
+          args: typeof args === 'object' && args !== null ? args : {},
+          raw: codeMatch[0]
+        };
+      }
+    } catch (e) {
+      // not a tool call json, continue
+    }
+  }
+
+  // 3. Inline JSON object with "tool" and ("arguments" or "args")
+  const inlineRegex = /\{[\s\r\n]*"(?:tool|action)"[\s\r\n]*:[\s\r\n]*"([^"]+)"[\s\S]*?\}/i;
+  const inlineMatch = text.match(inlineRegex);
+  if (inlineMatch) {
+    try {
+      const parsed = JSON.parse(inlineMatch[0].trim());
+      const toolName = parsed.tool || parsed.action;
+      const args = parsed.arguments || parsed.args || parsed.parameters || parsed.action_input || {};
+      if (toolName && typeof toolName === 'string') {
+        return {
+          toolName: toolName.trim(),
+          args: typeof args === 'object' && args !== null ? args : {},
+          raw: inlineMatch[0]
+        };
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detects future-tense deferral promises where the LLM promises to do work
+ * instead of taking immediate tool action.
+ */
+export function detectDeferralPromise(text, userMessage) {
+  if (!text || typeof text !== 'string') return false;
+
+  const deferralPatterns = [
+    /proceeding with (the )?(creation|repo|action|operation)/i,
+    /(i will|i'll) (create|make|build|add|delete|update|set up|send|post|push|fetch)/i,
+    /creating (the )?(repo|repository|issue|ticket|file|channel)/i,
+    /let me (create|make|build|set up|delete|update|run|execute|fetch)/i,
+    /working on (creating|making|setting up|executing)/i,
+    /in the process of (creating|making)/i,
+    /one moment (while|please)/i,
+    /please hold on/i,
+    /executing (the )?command/i,
+    /retriev(ing|e) the list/i
+  ];
+
+  return deferralPatterns.some(p => p.test(text));
+}
+
+/**
+ * Normalizes tool name resolution with common aliases across all MCP servers.
+ */
+function findToolInCatalog(requestedName, availableToolsMap) {
+  if (!requestedName) return null;
+  const clean = requestedName.toLowerCase().trim().replace(/[-]/g, '_');
+
+  if (availableToolsMap.has(clean)) {
+    return availableToolsMap.get(clean);
+  }
+
+  const aliases = {
+    'create_repo': 'create_repository',
+    'make_repo': 'create_repository',
+    'new_repo': 'create_repository',
+    'list_repos': 'list_repositories',
+    'get_repos': 'list_repositories',
+    'get_repo': 'get_repository',
+    'read_repository': 'get_repository',
+    'send_slack': 'send_channel_message',
+    'send_message': 'send_channel_message',
+    'post_message': 'send_channel_message',
+    'create_ticket': 'create_issue',
+    'create_jira_issue': 'create_issue'
+  };
+
+  const aliased = aliases[clean];
+  if (aliased && availableToolsMap.has(aliased)) {
+    return availableToolsMap.get(aliased);
+  }
+
+  for (const [key, val] of availableToolsMap.entries()) {
+    if (key.endsWith(`_${clean}`) || clean.endsWith(`_${key}`)) {
+      return val;
+    }
+  }
+
+  return null;
+}
 
 /**
  * Universal SHA-256 Audit Fingerprint Generator (W3C WebCrypto)
@@ -139,12 +275,13 @@ export async function executeUniversalAgentChat({
   if (skillNodes.length > 0) {
     logStep('Specialized Skills', `Bound ${skillNodes.length} skills: ${skillNodes.map(s => s.name).join(', ')}.`, 'skills', skillNodes[0]?.id, 70);
   }
-  if (mcpNodes.length > 0) {
-    const allSavedMcps = getRegisteredMcpServers();
+  const allSavedMcps = getRegisteredMcpServers();
+  const availableToolsMap = new Map();
 
-    // Ensure every MCP node has valid transport and credentials merged from registry
+  if (mcpNodes.length > 0) {
+    // Ensure every MCP node has valid transport, tools, and credentials merged from registry
     for (const m of mcpNodes) {
-      if (!m.config?.token || !m.transport) {
+      if (!m.config?.token || !m.transport || !m.tools?.length) {
         const matching = (allSavedMcps || []).find(s => 
           s.id === m.id || 
           s.name === m.name || 
@@ -162,7 +299,27 @@ export async function executeUniversalAgentChat({
         }
       }
 
-      // If this is a GitHub MCP, check if we need to execute list_repositories
+      // If tools list is still empty, populate from official catalogs
+      if (!m.tools || m.tools.length === 0) {
+        const official = getOfficialMcpTools(m.serviceName || m.name || m.displayName);
+        if (official.length > 0) {
+          m.tools = official;
+        }
+      }
+
+      // Register all tools for this MCP into availableToolsMap
+      const tools = m.tools || m.data?.tools || [];
+      for (const t of tools) {
+        const isBlocked = disabledTools.includes(t.name);
+        availableToolsMap.set(t.name.toLowerCase(), {
+          tool: t,
+          toolName: t.name,
+          mcpServer: m,
+          isBlocked
+        });
+      }
+
+      // If this is a GitHub MCP, check if we need to pre-fetch list_repositories
       const isGitHub = (m.name || '').toLowerCase().includes('github') || 
                        m.transport === 'github-api' || 
                        m.serviceName?.toLowerCase().includes('github') || 
@@ -196,7 +353,7 @@ export async function executeUniversalAgentChat({
       }
     }
 
-    logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} MCP tools: ${mcpNodes.map(m => m.name).join(', ')}.`, 'mcp', mcpNodes[0]?.id, 80);
+    logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} MCP servers with ${availableToolsMap.size} total operational tools: ${mcpNodes.map(m => m.displayName || m.name).join(', ')}.`, 'mcp', mcpNodes[0]?.id, 80);
   }
   if (toolNodes.length > 0) {
     logStep('Execution Tools', `Readying ${toolNodes.length} client ingestion tools: ${toolNodes.map(t => t.name).join(', ')}.`, 'tools', toolNodes[0]?.id, 60);
@@ -218,8 +375,8 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
     : '';
 
   const mcpInstruction = mcpNodes.length > 0
-    ? `\n[CONNECTED MCP PROTOCOL SERVERS (Mediated by Zero-Trust Egress Gateway)]:
-The following Model Context Protocol (MCP) servers are wired to this agent on the visual canvas. You have DIRECT, AUTHENTICATED ACCESS to these external systems through their live exposed tools. You must NEVER claim you lack access to external systems, repositories, or databases.
+    ? `\n[CONNECTED MCP PROTOCOL SERVERS & OPERATIONAL TOOLS (Zero-Trust Egress Gateway Enforced)]:
+The following Model Context Protocol (MCP) servers are wired to this agent on the visual canvas. You have DIRECT, AUTHENTICATED ACCESS to these external systems and their live tools. You must NEVER claim you lack access to external systems, repositories, or databases.
 ${mcpNodes.map((m, idx) => {
   const allTools = m.tools || m.data?.tools || [];
   const activeTools = allTools.filter(t => !disabledTools.includes(t.name));
@@ -232,18 +389,35 @@ ${mcpNodes.map((m, idx) => {
   if (b.repository) text += `  - Configured Target Scope: ${b.repository}\n`;
   if (b.accessibleReposCount !== undefined) text += `  - Total Accessible Repositories: ${b.accessibleReposCount}\n`;
   if (Array.isArray(b.repositories) && b.repositories.length > 0) {
-    text += `  - LIVE VERIFIED REPOSITORIES INVENTORY (${b.repositories.length}):\n${b.repositories.map((r, rIdx) => `    ${rIdx + 1}. [${r.fullName || r.name}](${r.htmlUrl}) — ${r.isPrivate ? 'Private' : 'Public'}, Default Branch: "${r.defaultBranch || 'main'}"${r.description ? ` — Description: "${r.description}"` : ''}`).join('\n')}\n`;
+    text += `  - LIVE VERIFIED REPOSITORIES INVENTORY (${b.repositories.length}):\n${b.repositories.slice(0, 15).map((r, rIdx) => `    ${rIdx + 1}. [${r.fullName || r.name}](${r.htmlUrl}) — ${r.isPrivate ? 'Private' : 'Public'}, Default Branch: "${r.defaultBranch || 'main'}"${r.description ? ` — Description: "${r.description}"` : ''}`).join('\n')}\n`;
   }
-  text += `  - Active Permitted Tools (${activeTools.length}): ${activeTools.map(t => `${t.name} (${t.description || t.type})`).join(', ') || 'None'}\n`;
+  text += `  - Active Permitted Tools (${activeTools.length}):\n${activeTools.map(t => `    • \`${t.name}\`: ${t.description || t.displayName || 'Tool action'}`).join('\n') || '    None'}\n`;
   if (blockedTools.length > 0) {
     text += `  - ZERO-TRUST PERIMETER BLOCK: [${blockedTools.map(t => t.name).join(', ')}] are DISABLED by the operator at the Gateway. If the user asks for these actions, explain that they are restricted by policy.`;
   }
   return text;
 }).join('\n\n')}
 
-[CRITICAL OPERATIONAL MANDATE]:
-1. When asked to list, name, or inspect repositories, you MUST immediately list every repository from the inventory above with its exact name, visibility, and link.
-2. Under NO circumstance output future-tense promises or deferrals such as: "Executing the command...", "Retrieving the list now...", "Please hold on...", or "One moment...". The command has ALREADY run in the backend. Provide the full verified list directly to the user.`
+[AUTONOMOUS TOOL INVOCATION PROTOCOL (ZERO-SIMULATION MANDATE)]:
+When the user asks you to perform ANY operational action (create, update, delete, trigger, fetch, query, search, send, inspect, list) or when you need real data from connected systems:
+1. ZERO DEFERRALS: NEVER output promises, future-tense statements, or delays such as "Proceeding with creation now...", "I will create this now...", "Executing...", "Please wait...", or "One moment...".
+2. IMMEDIATE INVOCATION: You MUST invoke the appropriate tool IMMEDIATELY in your response using the following exact tool call block:
+
+<<<TOOL_CALL>>>
+{
+  "tool": "<tool_name>",
+  "arguments": {
+    "<param_key>": "<param_value>"
+  }
+}
+<<<END_TOOL_CALL>>>
+
+3. ZERO FALSE CLAIMS: You MUST NEVER claim that a repository, issue, file, message, ticket, or resource has been created, modified, or deleted UNLESS you have executed the tool and received verified confirmation output in this execution session.
+4. STRICT VERIFICATION & GROUND-TRUTH CONTRACT:
+   - If the user asks whether a resource exists, was created, or is present (e.g., "is it created?", "did you do it?", "check if it exists", "verify XYZ"):
+   - Inspect the verified tool execution history in this conversation.
+   - If not confirmed in this immediate session, YOU MUST CALL AN INSPECTION TOOL (such as \`get_repository\`, \`list_repositories\`, \`get_issue\`, \`list_issues\`, \`get_file_contents\`, etc.) to verify its existence from external ground truth BEFORE replying.
+   - If an inspection tool reports that the resource is not found or fails, tell the user truthfully that it does not exist. NEVER pretend or claim it exists.`
     : '';
 
   const toolsInstruction = toolNodes.length > 0
@@ -288,99 +462,192 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
 
   logStep(`Foundation Model (${PROVIDERS[provider]?.name || provider})`, `Dispatching multi-pillar context to ${modelDisplayName}...`, 'model', modelNode.id, 0);
 
-  // 7. DISPATCH LIVE INFERENCE
+  // 7. AUTONOMOUS REACT TOOL EXECUTION LOOP (UNIVERSAL ACROSS ALL MCPS)
   const formattedMessages = [
     ...conversationHistory.map(c => ({ role: c.role, content: c.content })),
     { role: 'user', content: processedInput }
   ];
 
   let rawResponseText = '';
+  let finalResponseText = '';
   let modelLatency = 0;
   let totalTokens = 0;
   let isLiveExecution = false;
 
+  const MAX_TOOL_STEPS = 5;
+  let toolStepCount = 0;
+  let currentMessages = [...formattedMessages];
+
   try {
-    const chatResult = await executeUniversalChat({
-      provider,
-      modelId,
-      systemPrompt: fullSystemPrompt,
-      messages: formattedMessages,
-      temperature: agentConfig.temperature ?? 0.2
-    });
+    while (toolStepCount < MAX_TOOL_STEPS) {
+      toolStepCount++;
 
-    rawResponseText = chatResult.text;
-    modelLatency = chatResult.durationMs;
-    totalTokens = chatResult.totalTokens;
-    isLiveExecution = chatResult.isLive;
+      const chatResult = await executeUniversalChat({
+        provider,
+        modelId,
+        systemPrompt: fullSystemPrompt,
+        messages: currentMessages,
+        temperature: agentConfig.temperature ?? 0.2
+      });
 
-    // 7.1 AUTONOMOUS SELF-CORRECTION INTERCEPTOR
-    // If the model produced a deferral statement (e.g. "Executing the command...") instead of the complete answer
-    const isDeferral = /(executing (the )?command|retriev(ing|e) the list|please hold on|one moment|fetching the repositories|let me retrieve)/i.test(rawResponseText);
-    
-    if (isDeferral) {
-      const gitHubMcp = mcpNodes.find(m => m.basis?.repositories?.length > 0 || m.config?.token);
-      let repoList = gitHubMcp?.basis?.repositories || [];
+      rawResponseText = chatResult.text || '';
+      modelLatency += chatResult.durationMs || 0;
+      totalTokens += chatResult.totalTokens || 0;
+      if (chatResult.isLive) isLiveExecution = true;
 
-      // If repositories weren't retrieved yet, fetch them live right now
-      if (repoList.length === 0 && gitHubMcp && gitHubMcp.config?.token) {
-        logStep('MCP Live Query', `Executing list_repositories via GitHub API...`, 'mcp', gitHubMcp.id, 200);
-        try {
-          const liveResult = await executeRealMcpTool({
-            toolName: 'list_repositories',
-            server: gitHubMcp,
-            args: {},
-            options: { disabledTools }
-          });
-          if (liveResult && Array.isArray(liveResult.repositories)) {
-            repoList = liveResult.repositories;
-            gitHubMcp.basis = {
-              ...(gitHubMcp.basis || {}),
-              accessibleReposCount: liveResult.totalCount,
-              repositories: liveResult.repositories
-            };
-          }
-        } catch (e) {
-          console.warn('Fallback tool execution failed:', e);
-        }
+      // 7.1 Check for tool call in model response
+      const toolCall = parseToolCallFromText(rawResponseText);
+
+      // 7.2 Proactive Deferral Interceptor:
+      // If the model produced a deferral statement (e.g. "Proceeding with creation now...") without executing a tool
+      if (!toolCall && detectDeferralPromise(rawResponseText, userMessage) && availableToolsMap.size > 0) {
+        logStep(
+          'Zero-Simulation Interceptor',
+          'Intercepted deferral promise without execution. Enforcing immediate tool execution...',
+          'gateway',
+          gatewayNode?.id,
+          60
+        );
+
+        currentMessages.push({ role: 'assistant', content: rawResponseText });
+        currentMessages.push({
+          role: 'user',
+          content: `[SYSTEM PROTOCOL MANDATE - ZERO-SIMULATION]: You responded with a deferral promise ("${rawResponseText.slice(0, 100)}...") without invoking any tool.
+Under KEAOS Enterprise rules, you are FORBIDDEN from stating you will do an action without invoking the tool.
+Emit the required tool call NOW using:
+<<<TOOL_CALL>>>
+{
+  "tool": "<tool_name>",
+  "arguments": { ... }
+}
+<<<END_TOOL_CALL>>>
+Emit the tool call immediately.`
+        });
+        continue;
       }
 
-      if (repoList.length > 0) {
-        logStep('Autonomous Tool Synthesis', `Intercepted deferral. Finalizing output with ${repoList.length} verified repositories...`, 'mcp', gitHubMcp?.id, 150);
-
-        const followUpUserPrompt = `The command 'list_repositories' has executed successfully. Here is the verified live inventory of all ${repoList.length} repositories from the GitHub API:\n` +
-          repoList.map((r, idx) => `${idx + 1}. **[${r.fullName || r.name}](${r.htmlUrl})** (${r.isPrivate ? '🔒 Private' : '🌐 Public'})\n   - Description: ${r.description || 'No description provided.'}\n   - Default Branch: \`${r.defaultBranch || 'main'}\``).join('\n') +
-          `\n\nNow respond directly to the user presenting this complete list with markdown links, visibility badges, and descriptions. Do NOT say you are executing the command; present the finished result.`;
-
-        try {
-          const correctedChatResult = await executeUniversalChat({
-            provider,
-            modelId,
-            systemPrompt: fullSystemPrompt,
-            messages: [
-              ...formattedMessages,
-              { role: 'assistant', content: rawResponseText },
-              { role: 'user', content: followUpUserPrompt }
-            ],
-            temperature: 0.1
-          });
-
-          if (correctedChatResult.text && !/(executing (the )?command)/i.test(correctedChatResult.text)) {
-            rawResponseText = correctedChatResult.text;
-            totalTokens += correctedChatResult.totalTokens;
-            modelLatency += correctedChatResult.durationMs;
-          } else {
-            // Direct guaranteed synthesis if model still stumbles
-            rawResponseText = `Here is the complete list of all **${repoList.length} repositories** accessible under your authenticated GitHub account (**@${gitHubMcp?.basis?.username || 'ayushyuvraj'}**):\n\n` +
-              repoList.map((r, idx) => `${idx + 1}. **[${r.fullName || r.name}](${r.htmlUrl})** — ${r.isPrivate ? '🔒 *Private*' : '🌐 *Public*'}\n   ${r.description ? `> ${r.description}\n` : ''}   *Default Branch: \`${r.defaultBranch || 'main'}\`*`).join('\n\n') +
-              `\n\nAll tools are active via the Zero-Trust Gateway. Would you like me to inspect file contents, read code, or create issues in any of these repositories?`;
-          }
-        } catch (correctionErr) {
-          console.warn('Correction inference warning:', correctionErr);
-          rawResponseText = `Here is the complete list of all **${repoList.length} repositories** accessible under your authenticated GitHub account (**@${gitHubMcp?.basis?.username || 'ayushyuvraj'}**):\n\n` +
-            repoList.map((r, idx) => `${idx + 1}. **[${r.fullName || r.name}](${r.htmlUrl})** — ${r.isPrivate ? '🔒 *Private*' : '🌐 *Public*'}\n   ${r.description ? `> ${r.description}\n` : ''}   *Default Branch: \`${r.defaultBranch || 'main'}\`*`).join('\n\n') +
-            `\n\nAll tools are active via the Zero-Trust Gateway. Would you like me to inspect file contents, read code, or create issues in any of these repositories?`;
-        }
+      // 7.3 If no tool call and no deferral promise, we have reached the final answer
+      if (!toolCall) {
+        finalResponseText = rawResponseText;
+        break;
       }
+
+      // 7.4 Tool Call Detected: Execute Real MCP Action
+      const { toolName, args } = toolCall;
+      const toolEntry = findToolInCatalog(toolName, availableToolsMap);
+
+      if (!toolEntry) {
+        logStep(
+          'Tool Lookup Failed',
+          `Tool "${toolName}" was not found across connected MCP servers.`,
+          'mcp',
+          null,
+          50
+        );
+        currentMessages.push({ role: 'assistant', content: rawResponseText });
+        currentMessages.push({
+          role: 'user',
+          content: `[TOOL EXECUTION ERROR]: Tool "${toolName}" is not registered on any connected MCP server. Available tools: ${Array.from(availableToolsMap.keys()).join(', ')}. Please use an available tool or explain the limitation to the user.`
+        });
+        continue;
+      }
+
+      const { tool, mcpServer, isBlocked } = toolEntry;
+
+      // Zero-Trust Gateway Perimeter Check
+      if (isBlocked || disabledTools.includes(toolName)) {
+        logStep(
+          'Gateway Policy Violation',
+          `Tool "${toolName}" BLOCKED by Zero-Trust Egress Gateway.`,
+          'gateway',
+          gatewayNode?.id,
+          60
+        );
+        currentMessages.push({ role: 'assistant', content: rawResponseText });
+        currentMessages.push({
+          role: 'user',
+          content: `[GATEWAY POLICY VIOLATION]: Execution of tool "${toolName}" was BLOCKED at the Gateway perimeter by operator Zero-Trust policy. Explain this security constraint to the user.`
+        });
+        continue;
+      }
+
+      // Execute the real tool on the external MCP server!
+      logStep(
+        'Live MCP Tool Execution',
+        `Executing "${toolName}" on ${mcpServer.displayName || mcpServer.name} with params: ${JSON.stringify(args)}...`,
+        'mcp',
+        mcpServer.id,
+        250
+      );
+
+      let executionSuccess = false;
+      let toolResultData = null;
+      let toolErrorMsg = null;
+
+      try {
+        toolResultData = await executeRealMcpTool(mcpServer, toolName, args, { disabledTools });
+        executionSuccess = true;
+        logStep(
+          'Live MCP Tool Complete',
+          `Tool "${toolName}" executed successfully. Received verified response from external system.`,
+          'mcp',
+          mcpServer.id,
+          150
+        );
+
+        // If repository was created, update basis inventory
+        if (toolName === 'create_repository' && toolResultData && mcpServer.basis) {
+          const newRepoItem = {
+            name: toolResultData.name || args.name,
+            fullName: toolResultData.full_name || `${mcpServer.basis?.username || 'user'}/${args.name}`,
+            isPrivate: toolResultData.private ?? !!args.private,
+            description: toolResultData.description || args.description || '',
+            defaultBranch: toolResultData.default_branch || 'main',
+            htmlUrl: toolResultData.html_url || `https://github.com/${mcpServer.basis?.username || 'user'}/${args.name}`
+          };
+          if (Array.isArray(mcpServer.basis.repositories)) {
+            mcpServer.basis.repositories = [newRepoItem, ...mcpServer.basis.repositories];
+            mcpServer.basis.accessibleReposCount = (mcpServer.basis.accessibleReposCount || 0) + 1;
+          }
+        }
+      } catch (execErr) {
+        console.error(`MCP Tool "${toolName}" execution error:`, execErr);
+        toolErrorMsg = execErr.message;
+        logStep(
+          'Live MCP Tool Failed',
+          `Execution error: ${execErr.message}`,
+          'mcp',
+          mcpServer.id,
+          120
+        );
+      }
+
+      // 7.5 Feed verified tool output back to model for final synthesis
+      currentMessages.push({ role: 'assistant', content: rawResponseText });
+      if (executionSuccess) {
+        currentMessages.push({
+          role: 'user',
+          content: `[VERIFIED TOOL EXECUTION RESULT for "${toolName}"]:
+Status: SUCCESS (HTTP / API Verified from external system)
+Data:
+${JSON.stringify(toolResultData, null, 2)}
+
+Now synthesize your response directly to the user. Present the verified confirmation details (exact names, URLs, IDs, branches). Under NO circumstances say you are proceeding or will do it; present the completed confirmation.`
+        });
+      } else {
+        currentMessages.push({
+          role: 'user',
+          content: `[TOOL EXECUTION FAILED for "${toolName}"]:
+Status: FAILED
+Error: ${toolErrorMsg}
+
+Report this exact failure truthfully to the user. Explain why the operation failed based on the error above. Under NO circumstances pretend or claim that the operation succeeded.`
+        });
+      }
+    }
+
+    if (!finalResponseText) {
+      finalResponseText = rawResponseText;
     }
   } catch (err) {
     console.error('LLM dispatch failed:', err);
@@ -388,7 +655,10 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
   }
 
   // 8. POST-INFERENCE GUARDRAIL VERIFICATION GATE
-  let finalSanitizedResponse = rawResponseText;
+  let cleanResponse = (finalResponseText || rawResponseText || '')
+    .replace(/<<<TOOL_CALL>>>[\s\S]*?<<<END_TOOL_CALL>>>/gi, '')
+    .trim();
+  let finalSanitizedResponse = cleanResponse || finalResponseText || rawResponseText;
   let postInferenceRedactions = 0;
   if (policyNodes.length > 0) {
     const hasPiiPolicy = policyNodes.some(p => p.id?.includes('pii') || p.name?.toLowerCase().includes('pii') || p.config?.redactSalaries);
