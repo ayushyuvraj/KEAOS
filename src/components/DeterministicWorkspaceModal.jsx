@@ -21,7 +21,8 @@ import {
   Search,
   Settings,
   HelpCircle,
-  Cpu
+  Cpu,
+  MessageSquare
 } from 'lucide-react';
 import { compileDeterministicLogic } from '../services/deterministicCompiler';
 import { executeDeterministicTask } from '../services/deterministicRunner';
@@ -42,7 +43,7 @@ export default function DeterministicWorkspaceModal({
   // Local state initialized from node data
   const [nodeName, setNodeName] = useState(nodeData?.name || 'Deterministic Logic Box');
   const [prompt, setPrompt] = useState(nodeData?.prompt || '');
-  const [language, setLanguage] = useState(nodeData?.language || 'python');
+  const [language, setLanguage] = useState(nodeData?.language || 'auto');
   const [code, setCode] = useState(nodeData?.code || '');
   const [engine, setEngine] = useState(nodeData?.engine || 'auto'); // auto | browser | backend
 
@@ -462,9 +463,10 @@ export default function DeterministicWorkspaceModal({
                           : 'bg-white border-slate-300 text-[#00338D]'
                       }`}
                     >
+                      <option value="auto">Platform-Agnostic (Auto-Detect)</option>
+                      <option value="javascript">JavaScript / TypeScript (Browser Native)</option>
                       <option value="python">Python (Pandas / Native)</option>
                       <option value="sql">SQL (DuckDB / Relational)</option>
-                      <option value="javascript">JavaScript / TypeScript</option>
                     </select>
                   </div>
 
@@ -512,6 +514,27 @@ export default function DeterministicWorkspaceModal({
                       <span>GENERATE / UPDATE CODE FROM PROMPT</span>
                     </>
                   )}
+                </button>
+
+                {/* Or Discuss in Co-Pilot Panel */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onClose) onClose();
+                    window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', {
+                      detail: { mode: 'deterministic-copilot', nodeId }
+                    }));
+                    window.dispatchEvent(new CustomEvent('keaos:expand-drawer'));
+                  }}
+                  className={`w-full py-2 px-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer rounded-none ${
+                    isDarkMode 
+                      ? 'bg-[#00338D]/25 hover:bg-[#00338D]/45 text-[#0091DA] border-[#00338D]' 
+                      : 'bg-blue-50 hover:bg-blue-100 text-[#00338D] border-blue-200'
+                  }`}
+                  title="Open conversational Co-Pilot in bottom panel using the connected model brain"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>DISCUSS & PLAN IN BOTTOM CO-PILOT PANEL</span>
                 </button>
               </div>
 

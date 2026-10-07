@@ -80,7 +80,17 @@ export async function compileDeterministicLogic({
   provider = 'google',
   modelId = null
 }) {
-  const effectiveLang = (language || 'javascript').toLowerCase();
+  let effectiveLang = (language || 'auto').toLowerCase();
+  if (effectiveLang === 'auto') {
+    const p = (prompt || '').toLowerCase();
+    if (p.includes('python') || p.includes('pandas') || p.includes('dataframe')) {
+      effectiveLang = 'python';
+    } else if (p.includes('select ') || p.includes('sql') || p.includes('from ')) {
+      effectiveLang = 'sql';
+    } else {
+      effectiveLang = 'javascript';
+    }
+  }
   const credential = getProviderCredential(provider);
 
   // If no credential configured, use resilient offline generator

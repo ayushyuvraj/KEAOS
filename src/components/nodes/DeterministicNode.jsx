@@ -12,9 +12,11 @@ import {
   Zap,
   Layers,
   Database,
-  ArrowRight
+  ArrowRight,
+  MessageSquare
 } from 'lucide-react';
 import { executeDeterministicTask } from '../../services/deterministicRunner';
+import NodeActionToolbar from '../common/NodeActionToolbar';
 
 export default function DeterministicNode({ id, data, selected }) {
   const isDarkMode = data?.isDarkMode !== false;
@@ -113,6 +115,33 @@ export default function DeterministicNode({ id, data, selected }) {
         borderTop: '3px solid #EAAA00' // Distinctive Amber Gold Deterministic Accent
       }}
     >
+      {/* Floating Micro-Toolbar on Hover */}
+      <NodeActionToolbar
+        nodeId={id}
+        nodeName={data?.name || 'Deterministic Logic'}
+        isDeactivated={isDeactivated}
+        onOpenChat={() => {
+          if (data?.onOpenDeterministicChat) {
+            data.onOpenDeterministicChat(id);
+          } else {
+            window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', {
+              detail: { mode: 'deterministic-copilot', nodeId: id }
+            }));
+            window.dispatchEvent(new CustomEvent('keaos:expand-drawer'));
+          }
+        }}
+        onExecute={handleQuickRun}
+        onToggleDeactivate={() => data?.onToggleDeactivate && data.onToggleDeactivate(id)}
+        onDelete={() => data?.onDelete && data.onDelete(id)}
+        onOpenInspector={() => data?.onOpenInspector && data.onOpenInspector(id)}
+        onDuplicate={() => data?.onDuplicate && data.onDuplicate(id)}
+        onCopy={() => data?.onCopy && data.onCopy(id)}
+        onRename={(nodeId, newName) => data?.onRename && data.onRename(nodeId, newName)}
+        isDarkMode={isDarkMode}
+        className="-top-7 right-2"
+        dropdownPlacement="bottom"
+      />
+
       {/* Input Handle (Left - Accepts connections from multiple boxes/agents) */}
       <Handle
         type="target"
@@ -174,8 +203,33 @@ export default function DeterministicNode({ id, data, selected }) {
           </div>
         </div>
 
-        {/* Quick Run / Status Badge */}
-        <div className="flex items-center gap-1.5">
+        {/* Quick Actions: Chat with Co-Pilot & Quick Run */}
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          {/* Small Chat Icon - Opens Co-Pilot in Bottom Panel */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (data?.onOpenDeterministicChat) {
+                data.onOpenDeterministicChat(id);
+              } else {
+                window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', {
+                  detail: { mode: 'deterministic-copilot', nodeId: id }
+                }));
+                window.dispatchEvent(new CustomEvent('keaos:expand-drawer'));
+              }
+            }}
+            className={`p-1.5 text-xs font-mono font-bold flex items-center justify-center transition-all ${
+              isDarkMode 
+                ? 'bg-[#EAAA00]/15 hover:bg-[#EAAA00]/30 text-[#EAAA00] border border-[#EAAA00]/50' 
+                : 'bg-amber-100 hover:bg-amber-200 text-[#B8860B] border border-amber-300'
+            } rounded-none cursor-pointer active:scale-95`}
+            title={`Chat with Co-Pilot for ${data?.name || 'this rule'} (uses connected Agent's brain)`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Quick Run / Status Badge */}
           <button
             onClick={handleQuickRun}
             disabled={isRunning}
@@ -183,7 +237,7 @@ export default function DeterministicNode({ id, data, selected }) {
               isRunning 
                 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' 
                 : 'bg-[#0091DA] hover:bg-[#007BB8] text-white border border-[#0091DA]'
-            } rounded-none cursor-pointer`}
+            } rounded-none cursor-pointer active:scale-95`}
             title="Execute logic deterministically (0 tokens)"
           >
             {isRunning ? (

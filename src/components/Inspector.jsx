@@ -29,7 +29,8 @@ import {
   GitFork,
   Check,
   Search,
-  Code2
+  Code2,
+  MessageSquare
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { groupToolsByCategory } from '../constants/mcpOfficialCatalogs';
@@ -1777,13 +1778,14 @@ export default function Inspector({
                       Language
                     </label>
                     <select
-                      value={nodeData.language || 'python'}
+                      value={nodeData.language || 'auto'}
                       onChange={(e) => onUpdateNodeData(selectedNode.id, { language: e.target.value })}
                       className={`w-full py-1.5 px-2 text-xs font-mono font-bold rounded-none border ${t.input}`}
                     >
+                      <option value="auto">Platform-Agnostic (Auto)</option>
+                      <option value="javascript">JavaScript</option>
                       <option value="python">Python</option>
                       <option value="sql">SQL</option>
-                      <option value="javascript">JavaScript</option>
                     </select>
                   </div>
                   <div>
@@ -1803,11 +1805,25 @@ export default function Inspector({
                 <button
                   type="button"
                   onClick={() => {
+                    window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', {
+                      detail: { mode: 'deterministic-copilot', nodeId: selectedNode.id }
+                    }));
+                    window.dispatchEvent(new CustomEvent('keaos:expand-drawer'));
+                  }}
+                  className="w-full py-2.5 px-3 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all border border-[#0091DA]"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-[#EAAA00]" />
+                  <span>Discuss with Brain Co-Pilot</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
                     window.dispatchEvent(new CustomEvent('keaos:open-deterministic-workspace', {
                       detail: { nodeId: selectedNode.id }
                     }));
                   }}
-                  className="w-full py-2.5 px-3 bg-[#0091DA] hover:bg-[#007BB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all border border-[#0091DA]"
+                  className="w-full py-2 px-3 bg-slate-700/30 hover:bg-slate-700/50 text-slate-200 text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all border border-slate-600/40"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Open Full Logic & Sandbox Workspace</span>

@@ -372,12 +372,23 @@ export async function executeDeterministicPython(pythonCode, inputData = {}, bac
  * Universal Dispatcher: executes any language with requested engine.
  */
 export async function executeDeterministicTask({
-  language = 'javascript',
+  language = 'auto',
   code = '',
   inputData = {},
   engine = 'auto'
 }) {
-  const lang = (language || 'javascript').toLowerCase();
+  let lang = (language || 'auto').toLowerCase();
+  
+  if (lang === 'auto') {
+    const trimmed = (code || '').trim();
+    if (trimmed.startsWith('def ') || trimmed.includes('import pandas') || trimmed.includes('import numpy') || trimmed.includes('import sys')) {
+      lang = 'python';
+    } else if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH') || trimmed.startsWith('--')) {
+      lang = 'sql';
+    } else {
+      lang = 'javascript';
+    }
+  }
 
   if (lang === 'sql') {
     return await executeDeterministicSQL(code, inputData);

@@ -143,6 +143,16 @@ function CanvasInner({
     }
   }, [setIsDrawerExpanded, nodes, onSelectNode]);
 
+  // Switch to specific deterministic node Co-Pilot and expand bottom drawer
+  const handleOpenDeterministicChat = useCallback((nodeId) => {
+    if (setIsDrawerExpanded) setIsDrawerExpanded(true);
+    window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', { detail: { mode: 'deterministic-copilot', nodeId } }));
+    const targetNode = (nodes || []).find(n => n.id === nodeId);
+    if (targetNode && onSelectNode) {
+      onSelectNode(targetNode);
+    }
+  }, [setIsDrawerExpanded, nodes, onSelectNode]);
+
   // Global toast listener for canvas messages
   useEffect(() => {
     const handleToast = (e) => {
@@ -305,6 +315,35 @@ function CanvasInner({
     window.addEventListener('keaos:deterministic-executed', handleDeterministicExecuted);
     return () => window.removeEventListener('keaos:deterministic-executed', handleDeterministicExecuted);
   }, [edges, setNodes]);
+
+  // Listen for real-time Deterministic Code update events from Co-Pilot
+  useEffect(() => {
+    const handleDeterministicCodeUpdated = (e) => {
+      const detail = e.detail;
+      if (!detail || !detail.nodeId) return;
+
+      setNodes((nds) => {
+        return nds.map((n) => {
+          if (n.id === detail.nodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                code: detail.code !== undefined ? detail.code : n.data?.code,
+                language: detail.language !== undefined ? detail.language : n.data?.language,
+                prompt: detail.prompt !== undefined ? detail.prompt : n.data?.prompt,
+                lastStatus: 'ready'
+              }
+            };
+          }
+          return n;
+        });
+      });
+    };
+
+    window.addEventListener('keaos:deterministic-code-updated', handleDeterministicCodeUpdated);
+    return () => window.removeEventListener('keaos:deterministic-code-updated', handleDeterministicCodeUpdated);
+  }, [setNodes]);
 
   // Listen for spawn-output-node event (e.g. from agent [+] button)
   useEffect(() => {
@@ -1534,6 +1573,7 @@ function CanvasInner({
           disabledTools,
           onToggleTool,
           onOpenAgentChat: handleOpenAgentChat,
+          onOpenDeterministicChat: handleOpenDeterministicChat,
           onDelete: handleDeleteNode,
           onDuplicate: handleDuplicateNode,
           onToggleDeactivate: handleToggleDeactivateNode,
@@ -1552,6 +1592,7 @@ function CanvasInner({
     executionState, 
     handleToggleGatewayTool,
     handleOpenAgentChat,
+    handleOpenDeterministicChat,
     handleDeleteNode, 
     handleDuplicateNode, 
     handleToggleDeactivateNode, 
