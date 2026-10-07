@@ -19,7 +19,8 @@ import {
   FileText,
   Type,
   Plug,
-  UploadCloud
+  UploadCloud,
+  Code2
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { getRegisteredMcpServers } from '../services/mcpClientService';
@@ -300,6 +301,7 @@ export default function Palette({ onAddNode }) {
                       if (item.id === 'tool-audio-transcribe') ItemIcon = Mic;
                       if (item.id === 'tool-doc-parser') ItemIcon = FileText;
                       if (item.id === 'tool-text-box-ingest') ItemIcon = Type;
+                      if (item.id === 'tool-deterministic-box') ItemIcon = Code2;
 
                       return (
                         <div

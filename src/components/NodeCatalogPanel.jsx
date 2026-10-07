@@ -168,6 +168,28 @@ const NODE_CATEGORIES = [
     ]
   },
   {
+    id: 'deterministicNode',
+    label: 'Deterministic Logic',
+    subtitle: 'Zero-token Python, SQL, and JS code execution from simple human language',
+    icon: Code,
+    color: '#EAAA00', // Amber Gold
+    bgColor: '#FDF7E6',
+    badge: '⚡ 0 TOKENS',
+    socketId: 'in',
+    items: [
+      {
+        id: 'deterministic-box-primary',
+        name: 'Deterministic Logic Box',
+        description: 'Zero-token mathematical join, table pivot, VLOOKUP, variable swapping, and custom Python/SQL/JS logic from simple human language.',
+        isDeterministicNode: true,
+        config: {
+          language: 'python',
+          engine: 'auto'
+        }
+      }
+    ]
+  },
+  {
     id: 'model',
     label: 'Models',
     subtitle: 'Google, Anthropic, OpenAI, Ollama Local & OpenRouter',

@@ -28,7 +28,8 @@ import {
   Ban,
   GitFork,
   Check,
-  Search
+  Search,
+  Code2
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { groupToolsByCategory } from '../constants/mcpOfficialCatalogs';
@@ -166,6 +167,7 @@ export default function Inspector({
   const isAgent = selectedNode?.type === 'agentCore';
   const isOutput = selectedNode?.type === 'outputNode';
   const isIngest = selectedNode?.type === 'ingestionNode';
+  const isDeterministic = selectedNode?.type === 'deterministicNode';
   const nodeData = selectedNode?.data || {};
   const pillarDef = PILLARS[nodeData?.pillarType];
   const isModel = nodeData?.pillarType === 'model';
@@ -386,6 +388,8 @@ export default function Inspector({
           <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
             {isAgent ? (
               <Bot className="w-4 h-4 text-blue-300" />
+            ) : isDeterministic ? (
+              <Code2 className="w-4 h-4 text-[#EAAA00]" />
             ) : isOutput ? (
               <Sparkles className="w-4 h-4 text-emerald-400" />
             ) : isIngest ? (
@@ -398,7 +402,7 @@ export default function Inspector({
           </div>
           <div>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400 block font-mono">
-              {isAgent ? 'Core Agent Inspector' : isOutput ? 'Output Component' : isIngest ? 'Ingestion Port' : isModel ? 'Foundation Model' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
+              {isAgent ? 'Core Agent Inspector' : isDeterministic ? 'Deterministic Box' : isOutput ? 'Output Component' : isIngest ? 'Ingestion Port' : isModel ? 'Foundation Model' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
             </span>
             <h4 className={`text-sm font-semibold truncate max-w-[190px] tracking-tight ${t.title}`}>
               {isOutput ? (nodeData.title || 'Agent Output') : isIngest ? (nodeData.fileName || nodeData.title || 'Data Ingestion') : nodeData.name}
@@ -1740,6 +1744,76 @@ export default function Inspector({
                 </div>
               );
             })()}
+
+            {/* Dedicated Deterministic Box Inspector Card */}
+            {isDeterministic && (
+              <div className={`p-4 ${t.card} rounded-none border space-y-3.5`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider font-mono text-[#EAAA00] flex items-center gap-1.5">
+                    <Code2 className="w-3.5 h-3.5" />
+                    Deterministic Box
+                  </span>
+                  <span className="text-[9px] font-mono font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-none">
+                    ⚡ 0 TOKENS
+                  </span>
+                </div>
+
+                <div>
+                  <label className={`text-[10px] font-mono uppercase tracking-wider ${t.subText} block mb-1 font-semibold`}>
+                    Simple Human Prompt
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={nodeData.prompt || ''}
+                    onChange={(e) => onUpdateNodeData(selectedNode.id, { prompt: e.target.value })}
+                    placeholder="e.g. 'swap variables x and y', 'join table A with B on id'..."
+                    className={`w-full p-2.5 text-xs font-mono leading-relaxed border rounded-none resize-none ${t.input}`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={`text-[10px] font-mono uppercase ${t.subText} block mb-1 font-semibold`}>
+                      Language
+                    </label>
+                    <select
+                      value={nodeData.language || 'python'}
+                      onChange={(e) => onUpdateNodeData(selectedNode.id, { language: e.target.value })}
+                      className={`w-full py-1.5 px-2 text-xs font-mono font-bold rounded-none border ${t.input}`}
+                    >
+                      <option value="python">Python</option>
+                      <option value="sql">SQL</option>
+                      <option value="javascript">JavaScript</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`text-[10px] font-mono uppercase ${t.subText} block mb-1 font-semibold`}>
+                      Last Status
+                    </label>
+                    <div className="py-1.5 px-2 text-xs font-mono font-bold">
+                      {nodeData.lastStatus === 'success' ? (
+                        <span className="text-emerald-400">✓ Ready ({nodeData.lastLatencyMs}ms)</span>
+                      ) : (
+                        <span className="text-slate-400">• Idle</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('keaos:open-deterministic-workspace', {
+                      detail: { nodeId: selectedNode.id }
+                    }));
+                  }}
+                  className="w-full py-2.5 px-3 bg-[#0091DA] hover:bg-[#007BB8] text-white text-xs font-mono font-bold rounded-none flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all border border-[#0091DA]"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open Full Logic & Sandbox Workspace</span>
+                </button>
+              </div>
+            )}
 
             {(nodeData.pillarType === 'skills' || nodeData.pillarType === 'policies') && (
               <div className={`p-4 ${t.card} rounded-2xl space-y-3.5`}>

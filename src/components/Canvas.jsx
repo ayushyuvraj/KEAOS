@@ -54,12 +54,14 @@ import CanvasExecutionDrawer from './CanvasExecutionDrawer';
 import DeletableEdge from './edges/DeletableEdge';
 import OutputDisplayNode from './nodes/OutputDisplayNode';
 import IngestionNode from './nodes/IngestionNode';
+import DeterministicNode from './nodes/DeterministicNode';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
   pillar: PillarNode,
   outputNode: OutputDisplayNode,
-  ingestionNode: IngestionNode
+  ingestionNode: IngestionNode,
+  deterministicNode: DeterministicNode
 };
 
 const edgeTypes = {
@@ -155,24 +157,37 @@ function CanvasInner({
     return () => window.removeEventListener('keaos:toast', handleToast);
   }, []);
 
-  // Listen for real-time Agent Output events and update connected Canvas Output Nodes
+  // Listen for real-time Agent Output events and update connected Canvas Output Nodes & Deterministic Nodes
   useEffect(() => {
     const handleAgentOutput = (e) => {
       const detail = e.detail;
       if (!detail) return;
 
       setNodes((nds) => {
-        const outputNodes = nds.filter((n) => n.type === 'outputNode');
-        if (outputNodes.length === 0) return nds;
-
         return nds.map((n) => {
+          // 1. Update the executing agent node itself so it records its lastOutput
+          if (n.id === detail.agentId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                lastOutput: detail.output,
+                auditHash: detail.auditHash || n.data?.auditHash,
+                observability: detail.observability || n.data?.observability,
+                costUsd: detail.costUsd || n.data?.costUsd
+              }
+            };
+          }
+
+          // 2. Update connected Canvas Output Nodes
           if (n.type === 'outputNode') {
             const isConnectedToAgent = (edges || []).some(
               (ed) => ed.source === detail.agentId && ed.target === n.id
             );
             const hasIncomingEdges = (edges || []).some((ed) => ed.target === n.id);
+            const outputNodes = nds.filter((o) => o.type === 'outputNode');
 
-            // Update if connected directly to this agent, or if it's the lone output node on the canvas
+            // Update if connected directly to this agent, or if it's the lone output node on canvas
             if (isConnectedToAgent || !hasIncomingEdges || outputNodes.length === 1) {
               return {
                 ...n,
@@ -191,6 +206,24 @@ function CanvasInner({
               };
             }
           }
+
+          // 3. Update connected Deterministic Nodes (Fan-Out: one agent -> multiple deterministic boxes)
+          if (n.type === 'deterministicNode') {
+            const isConnectedToAgent = (edges || []).some(
+              (ed) => ed.source === detail.agentId && ed.target === n.id
+            );
+            if (isConnectedToAgent) {
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  lastUpstreamReceived: detail.output,
+                  lastUpstreamTime: Date.now()
+                }
+              };
+            }
+          }
+
           return n;
         });
       });
@@ -198,6 +231,79 @@ function CanvasInner({
 
     window.addEventListener('keaos:agent-output', handleAgentOutput);
     return () => window.removeEventListener('keaos:agent-output', handleAgentOutput);
+  }, [edges, setNodes]);
+
+  // Listen for real-time Deterministic Node execution events and update connected downstream nodes
+  useEffect(() => {
+    const handleDeterministicExecuted = (e) => {
+      const detail = e.detail;
+      if (!detail || !detail.nodeId) return;
+
+      setNodes((nds) => {
+        return nds.map((n) => {
+          // 1. Update the executing deterministic node itself
+          if (n.id === detail.nodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                lastOutput: detail.output,
+                lastStatus: 'success',
+                lastLatencyMs: detail.latencyMs
+              }
+            };
+          }
+
+          // 2. Propagate to connected Canvas Output Nodes
+          if (n.type === 'outputNode') {
+            const isConnected = (edges || []).some(
+              (ed) => ed.source === detail.nodeId && ed.target === n.id
+            );
+            if (isConnected) {
+              const formattedOutput = typeof detail.output === 'object' && detail.output !== null
+                ? JSON.stringify(detail.output, null, 2)
+                : String(detail.output ?? '');
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  outputContent: formattedOutput,
+                  status: 'ready',
+                  isExpanded: true,
+                  observability: {
+                    totalTokens: 0,
+                    latencyMs: detail.latencyMs || 0,
+                    note: 'Deterministic 0-Token Pipeline'
+                  }
+                }
+              };
+            }
+          }
+
+          // 3. Propagate to downstream Deterministic Nodes (Chaining: Box 1 -> Box 2, Fan-Out to Box 2 & Box 3)
+          if (n.type === 'deterministicNode') {
+            const isConnected = (edges || []).some(
+              (ed) => ed.source === detail.nodeId && ed.target === n.id
+            );
+            if (isConnected) {
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  lastUpstreamReceived: detail.output,
+                  lastUpstreamTime: Date.now()
+                }
+              };
+            }
+          }
+
+          return n;
+        });
+      });
+    };
+
+    window.addEventListener('keaos:deterministic-executed', handleDeterministicExecuted);
+    return () => window.removeEventListener('keaos:deterministic-executed', handleDeterministicExecuted);
   }, [edges, setNodes]);
 
   // Listen for spawn-output-node event (e.g. from agent [+] button)
@@ -759,6 +865,17 @@ function CanvasInner({
     }, 2000);
   }, [takeSnapshot, setNodes]);
 
+  // Handle update deterministic node data
+  const handleUpdateDeterministicNode = useCallback((nodeId, updatedData) => {
+    if (onUpdateNodeData) {
+      onUpdateNodeData(nodeId, updatedData);
+    } else {
+      setNodes((nds) =>
+        nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...updatedData } } : n))
+      );
+    }
+  }, [onUpdateNodeData, setNodes]);
+
   // Global Keyboard Shortcuts Listener:
   // - 'D' / 'd': Toggle Deactivate / Activate on selected or hovered node
   // - 'Ctrl+D': Duplicate selected or hovered node
@@ -923,6 +1040,28 @@ function CanvasInner({
         return true;
       }
 
+      // Deterministic Box Connections (Universal DAG flow: chaining, fan-in, fan-out)
+      // 1. Chaining between Deterministic boxes
+      if (sourceNode.type === 'deterministicNode' && targetNode.type === 'deterministicNode') {
+        return true;
+      }
+      // 2. Deterministic box feeding Agent Core
+      if (sourceNode.type === 'deterministicNode' && targetNode.type === 'agentCore') {
+        return true;
+      }
+      // 3. Agent Core feeding Deterministic box
+      if (sourceNode.type === 'agentCore' && targetNode.type === 'deterministicNode') {
+        return true;
+      }
+      // 4. Ingestion Node feeding Deterministic box
+      if (sourceNode.type === 'ingestionNode' && targetNode.type === 'deterministicNode') {
+        return true;
+      }
+      // 5. Deterministic box feeding Output Node
+      if (sourceNode.type === 'deterministicNode' && targetNode.type === 'outputNode') {
+        return true;
+      }
+
       // If user drags directly from other non-mcp nodes into gateway, show alert
       if (targetNode.type === 'pillar' && targetNode.data?.pillarType === 'gateway') {
         setInvalidConnectionAlert({
@@ -1029,6 +1168,10 @@ function CanvasInner({
         strokeColor = '#EAAA00'; // Amber for Gateway to Agent Core
         strokeWidth = 2.0;
         strokeDasharray = '4 4';
+      } else if (sourceNode?.type === 'deterministicNode' || targetNode?.type === 'deterministicNode') {
+        strokeColor = '#EAAA00'; // Amber Gold for Deterministic Stream
+        strokeWidth = 2.0;
+        strokeDasharray = '5 4';
       }
 
       takeSnapshot();
@@ -1227,6 +1370,9 @@ function CanvasInner({
       let connectedMcpNodes = [];
       let disabledTools = [];
       let onToggleTool = null;
+      let upstreamCount = 0;
+      let upstreamPayload = null;
+      let upstreamSources = [];
 
       if (n.type === 'pillar' && n.data?.pillarType === 'gateway') {
         disabledTools = Array.isArray(n.data?.disabledTools) ? n.data.disabledTools : [];
@@ -1324,6 +1470,49 @@ function CanvasInner({
         }
       }
 
+      if (n.type === 'deterministicNode') {
+        const incomingEdges = (edges || []).filter(e => e.target === n.id);
+        upstreamCount = incomingEdges.length;
+        upstreamSources = incomingEdges.map(e => {
+          const srcNode = nodeLookup[e.source];
+          let srcOutput = srcNode?.data?.lastOutput ?? srcNode?.data?.content ?? srcNode?.data?.outputContent ?? null;
+          if (typeof srcOutput === 'string' && srcOutput.trim()) {
+            const clean = srcOutput.trim().replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+            if ((clean.startsWith('{') && clean.endsWith('}')) || (clean.startsWith('[') && clean.endsWith(']'))) {
+              try { srcOutput = JSON.parse(clean); } catch {}
+            }
+          }
+          return {
+            id: e.source,
+            name: srcNode?.data?.name || srcNode?.data?.title || e.source,
+            type: srcNode?.type || 'node',
+            output: srcOutput
+          };
+        });
+
+        const payload = {};
+        if (upstreamSources.length === 1) {
+          const singleOut = upstreamSources[0].output;
+          if (typeof singleOut === 'object' && singleOut !== null) {
+            Object.assign(payload, singleOut);
+          }
+          payload['data'] = singleOut;
+          payload[upstreamSources[0].name.replace(/[^a-zA-Z0-9_]/g, '_')] = singleOut;
+        } else if (upstreamSources.length > 1) {
+          upstreamSources.forEach(s => {
+            const key = s.name.replace(/[^a-zA-Z0-9_]/g, '_');
+            payload[key] = s.output;
+          });
+          const firstValid = upstreamSources.find(s => s.output !== null && s.output !== undefined);
+          if (firstValid) {
+            payload['data'] = firstValid.output;
+          }
+        }
+        payload['sources'] = upstreamSources;
+        payload['allOutputs'] = upstreamSources.map(s => s.output);
+        upstreamPayload = payload;
+      }
+
       return {
         ...n,
         data: {
@@ -1336,6 +1525,10 @@ function CanvasInner({
           inheritedModelName: inheritedModelName,
           upstreamAgentCount: agentCounts?.agent || 0,
           upstreamAgentNames: upstreamAgentNames || [],
+          upstreamCount,
+          upstreamPayload,
+          upstreamSources,
+          onUpdateNodeData: handleUpdateDeterministicNode,
           routedTools,
           connectedMcpNodes,
           disabledTools,
@@ -1366,6 +1559,7 @@ function CanvasInner({
     handleOpenInspector, 
     handleExecuteNode,
     handleRenameNode,
+    handleUpdateDeterministicNode,
     handleOpenCatalog
   ]);
 

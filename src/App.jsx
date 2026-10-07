@@ -13,6 +13,7 @@ import CodeExportView from './components/CodeExportView';
 import ApiSettingsModal from './components/ApiSettingsModal';
 import ClusterDiagnosticsModal from './components/ClusterDiagnosticsModal';
 import ConnectMcpModal from './components/ConnectMcpModal';
+import DeterministicWorkspaceModal from './components/DeterministicWorkspaceModal';
 import AuditExplorerView from './components/screens/AuditExplorerView';
 import ObservabilityView from './components/screens/ObservabilityView';
 import PillarCatalogView from './components/screens/PillarCatalogView';
@@ -803,6 +804,13 @@ export default function App() {
   const [hasApiKey, setHasApiKey] = useState(getAllConfiguredProviders().length > 0 || Boolean(getActiveApiKey()));
   const [invalidConnectionAlert, setInvalidConnectionAlert] = useState(null);
 
+  // Deterministic Logic & Sandbox Workspace Modal State
+  const [isDeterministicModalOpen, setIsDeterministicModalOpen] = useState(false);
+  const [activeDeterministicNodeId, setActiveDeterministicNodeId] = useState(null);
+  const activeDeterministicNode = useMemo(() => {
+    return nodes.find(n => n.id === activeDeterministicNodeId) || null;
+  }, [nodes, activeDeterministicNodeId]);
+
   // Global event listener for opening the Universal MCP connector modal
   useEffect(() => {
     const handleOpenConnectMcp = (e) => {
@@ -816,6 +824,35 @@ export default function App() {
     window.addEventListener('keaos:open-connect-mcp', handleOpenConnectMcp);
     return () => window.removeEventListener('keaos:open-connect-mcp', handleOpenConnectMcp);
   }, []);
+
+  // Event listener for opening the Deterministic Logic Workspace Modal
+  useEffect(() => {
+    const handleOpenDeterministic = (e) => {
+      const targetId = e.detail?.nodeId;
+      if (targetId) {
+        setActiveDeterministicNodeId(targetId);
+        setIsDeterministicModalOpen(true);
+      }
+    };
+    window.addEventListener('keaos:open-deterministic-workspace', handleOpenDeterministic);
+    return () => window.removeEventListener('keaos:open-deterministic-workspace', handleOpenDeterministic);
+  }, []);
+
+  // Update deterministic node data from modal
+  const handleUpdateDeterministicNode = useCallback((nodeId, updatedData) => {
+    setNodes((nds) => nds.map((n) => {
+      if (n.id === nodeId) {
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            ...updatedData
+          }
+        };
+      }
+      return n;
+    }));
+  }, [setNodes]);
 
   // Evaluation & Gatekeeper
   const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
@@ -1047,6 +1084,41 @@ export default function App() {
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `📥 Added Ingestion Component to Canvas` }
+      }));
+      return;
+    }
+
+    if (pillarKey === 'deterministicNode' || pillarKey === 'deterministic' || item?.isDeterministicNode) {
+      const newNodeId = `node-deterministic-${Date.now().toString().slice(-4)}`;
+      let count = 1;
+      setNodes((nds) => {
+        const existing = nds.filter(n => n.type === 'deterministicNode');
+        count = existing.length + 1;
+        const xPos = 480 + (existing.length * 40);
+        const yPos = 300 + (existing.length * 40);
+
+        const newNode = {
+          id: newNodeId,
+          type: 'deterministicNode',
+          position: { x: xPos, y: yPos },
+          data: {
+            name: item.name && item.name !== 'Deterministic Logic Box'
+              ? `${item.name} #${count}`
+              : `Deterministic Box #${count}`,
+            prompt: '',
+            language: item.config?.language || 'python',
+            code: 'def process(inputs):\n    # Write deterministic Python logic here\n    result = inputs\n    return result',
+            engine: 'auto',
+            lastStatus: 'idle'
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `⚡ Added Deterministic Logic Box to Canvas` }
       }));
       return;
     }
@@ -1445,6 +1517,18 @@ export default function App() {
         initialTab={connectMcpInitialTab}
         onClose={() => setIsConnectMcpModalOpen(false)}
         onAddMcpNodeToCanvas={handleAddRealMcpToCanvas}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Universal Deterministic Logic & Sandbox Workspace Modal */}
+      <DeterministicWorkspaceModal
+        isOpen={isDeterministicModalOpen}
+        nodeId={activeDeterministicNodeId}
+        nodeData={activeDeterministicNode?.data || {}}
+        nodes={nodes}
+        edges={edges}
+        onClose={() => setIsDeterministicModalOpen(false)}
+        onUpdateNode={handleUpdateDeterministicNode}
         isDarkMode={isDarkMode}
       />
     </div>

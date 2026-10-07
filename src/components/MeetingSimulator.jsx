@@ -187,6 +187,21 @@ export default function MeetingSimulator({
     });
 
     setSimulationResult(result);
+
+    try {
+      window.dispatchEvent(new CustomEvent('keaos:agent-output', {
+        detail: {
+          agentId: activeUseCase?.agent?.id || 'agent-core',
+          output: result.rawOutput || (typeof result === 'string' ? result : JSON.stringify(result, null, 2)),
+          auditHash: result.auditHash,
+          observability: result.observability,
+          costUsd: result.economics?.costUsd || 0
+        }
+      }));
+    } catch (e) {
+      console.warn('Failed to dispatch keaos:agent-output from MeetingSimulator:', e);
+    }
+
     setIsRunning(false);
   };
 

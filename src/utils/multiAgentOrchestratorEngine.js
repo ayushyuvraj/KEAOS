@@ -376,10 +376,31 @@ export async function executeMultiAgentWorkflow({
 
     // Run agents in the same tier in parallel (Fan-out pattern)
     const tierPromises = currentTierAgents.map(async (agent) => {
-      // Find incoming upstream agents for THIS specific agent
-      const incomingEdges = edges.filter(e => e.target === agent.id && (e.targetHandle === 'agent-in' || !e.targetHandle));
+      // Find incoming upstream sources (Agents & Deterministic Boxes) for THIS specific agent
+      const incomingEdges = edges.filter(e => e.target === agent.id && (e.targetHandle === 'agent-in' || e.targetHandle === 'tools-in' || !e.targetHandle));
       const upstreamAgentOutputs = incomingEdges
-        .map(e => agentOutputs[e.source])
+        .map(e => {
+          if (agentOutputs[e.source]) {
+            return agentOutputs[e.source];
+          }
+          const upNode = (nodes || []).find(n => n.id === e.source);
+          if (upNode?.type === 'deterministicNode' && upNode?.data?.lastOutput !== undefined && upNode?.data?.lastOutput !== null) {
+            const outStr = typeof upNode.data.lastOutput === 'object'
+              ? JSON.stringify(upNode.data.lastOutput, null, 2)
+              : String(upNode.data.lastOutput);
+            return {
+              agentName: upNode.data?.name || 'Deterministic Logic Box',
+              frameworkName: 'Deterministic Engine (0 Tokens)',
+              role: 'Deterministic Data Processor',
+              output: outStr,
+              provider: 'deterministic',
+              modelId: upNode.data?.language || 'python',
+              tokens: 0,
+              latencyMs: upNode.data?.lastLatencyMs || 0
+            };
+          }
+          return null;
+        })
         .filter(Boolean);
 
       // Pulse canvas state for this active agent

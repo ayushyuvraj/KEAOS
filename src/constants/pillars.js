@@ -341,6 +341,14 @@ export const PILLARS = {
         description: 'Queries attendee status and agenda from corporate calendar API.',
         config: { syncIntervalMins: 15 },
         category: 'utility'
+      },
+      {
+        id: 'tool-deterministic-box',
+        name: 'Deterministic Logic Box',
+        description: 'Zero-token mathematical joins, table pivots, VLOOKUP, variable transforms, and custom Python/SQL/JS logic.',
+        config: { language: 'python', engine: 'auto' },
+        category: 'deterministic',
+        isDeterministicNode: true
       }
     ]
   }
@@ -373,7 +381,9 @@ export const SOCKET_RULES = {
   'policies-in': 'policies',
   'tool-in': 'tools',
   'tools-in': 'tools',
-  'agent-in': 'agentCore'
+  'agent-in': 'agentCore',
+  'in': 'deterministicNode',
+  'out': 'deterministicNode'
 };
 
 
