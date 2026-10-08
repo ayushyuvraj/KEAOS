@@ -8,9 +8,16 @@ import {
   AlertCircle, 
   Loader2, 
   MessageSquare,
-  Zap
+  Zap,
+  Lock,
+  Unlock,
+  Copy,
+  RotateCcw,
+  FileText,
+  FileCode
 } from 'lucide-react';
 import { executeDeterministicTask } from '../../services/deterministicRunner';
+import { compileDeterministicLogic } from '../../services/deterministicCompiler';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
 export default function DeterministicNode({ id, data, selected }) {
@@ -22,7 +29,22 @@ export default function DeterministicNode({ id, data, selected }) {
   const [statusMessage, setStatusMessage] = useState(data?.lastError || '');
   const [latencyMs, setLatencyMs] = useState(data?.lastLatencyMs || null);
 
-  // Sync state when Canvas updates node data props
+  // Tab mode & Overwrite Protection Guard states
+  const [activeTab, setActiveTab] = useState('directive'); // 'directive' | 'code'
+  const [isCodeLocked, setIsCodeLocked] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [isRecompiling, setIsRecompiling] = useState(false);
+
+  // Detect pre-existing logic / code
+  const language = (data?.language || 'python').toLowerCase();
+  const codeText = data?.code || '';
+  const hasCompiledCode = Boolean(
+    codeText && 
+    codeText.trim().length > 0 &&
+    !codeText.trim().startsWith('def process(inputs):\n    # Write') &&
+    codeText.trim() !== 'function process(inputs) {\n  return inputs;\n}'
+  );
+  const codeLines = codeText ? codeText.split('\n').filter(l => l.trim()).length : 0;
   useEffect(() => {
     if (data?.lastStatus) setRunStatus(data.lastStatus);
     if (data?.isRunning !== undefined) setIsRunning(Boolean(data.isRunning));
@@ -53,9 +75,6 @@ export default function DeterministicNode({ id, data, selected }) {
       window.removeEventListener('keaos:deterministic-executed', handleExecuted);
     };
   }, [id]);
-
-  const language = (data?.language || 'python').toLowerCase();
-  const codeText = data?.code || '';
 
   // Inline Editable Rule Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -92,6 +111,38 @@ export default function DeterministicNode({ id, data, selected }) {
     setLocalText(val);
     if (data?.onUpdateNodeData) {
       data.onUpdateNodeData(id, { prompt: val, ruleSummary: val, summary: val });
+    }
+  };
+
+  const handleCopyCode = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!codeText) return;
+    navigator.clipboard.writeText(codeText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRecompile = async (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (isRecompiling || !localText.trim()) return;
+    setIsRecompiling(true);
+    try {
+      const res = await compileDeterministicLogic({
+        prompt: localText,
+        language,
+        sampleInputs: data?.lastUpstreamReceived || { sample: 'data' }
+      });
+      if (res?.code && data?.onUpdateNodeData) {
+        data.onUpdateNodeData(id, { code: res.code, prompt: localText });
+      }
+      setActiveTab('code');
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `✓ Recompiled logic for "${nodeTitle}"` }
+      }));
+    } catch (err) {
+      console.error('Recompile error:', err);
+    } finally {
+      setIsRecompiling(false);
     }
   };
 
@@ -273,11 +324,11 @@ export default function DeterministicNode({ id, data, selected }) {
         title="Deterministic Output Stream (Connect to Final Output Viewer to inspect/export)"
       />
 
-      {/* Top Header: Clean, borderless ghost actions, editable title & live status badge */}
+      {/* Top Header: Clean, borderless ghost actions, editable title & presence badges */}
       <div className={`px-2.5 pt-2 pb-1.5 flex items-center justify-between border-b ${
         isDarkMode ? 'border-[#262B3B]/60' : 'border-slate-100'
       }`}>
-        {/* Left: Icon, Editable Title & Status Pill */}
+        {/* Left: Icon, Editable Title & Status Badges */}
         <div className="flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
           <Code2 className={`w-3.5 h-3.5 shrink-0 ${isRunning ? 'text-amber-400 animate-spin' : runStatus === 'success' ? 'text-emerald-400' : 'text-[#EAAA00]'}`} />
           {isEditingTitle ? (
@@ -301,35 +352,55 @@ export default function DeterministicNode({ id, data, selected }) {
             <span
               onClick={() => setIsEditingTitle(true)}
               title="Click to rename rule"
-              className="text-xs font-mono font-bold text-[#EAAA00] truncate max-w-[110px] cursor-text hover:underline decoration-dashed decoration-[#EAAA00]/60 transition-all"
+              className="text-xs font-mono font-bold text-[#EAAA00] truncate max-w-[100px] cursor-text hover:underline decoration-dashed decoration-[#EAAA00]/60 transition-all"
             >
               {nodeTitle}
             </span>
           )}
 
-          {/* Institutional Status Badge */}
+          {/* Logic Presence Indicator (Institutional Zero-Click Awareness) */}
           {isRunning ? (
             <span className="text-[8px] font-mono px-1 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 font-bold animate-pulse shrink-0">
               <Loader2 className="w-2.5 h-2.5 animate-spin" />
               <span>RUNNING</span>
             </span>
-          ) : runStatus === 'success' ? (
-            <span className="text-[8px] font-mono px-1 py-0.2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-0.5 font-bold shrink-0" title={`Executed in ${latencyMs || 0}ms • 0 Tokens consumed`}>
-              <Check className="w-2.5 h-2.5 text-emerald-400" />
-              <span>{latencyMs ? `${latencyMs}ms` : '0 TOK'}</span>
+          ) : hasCompiledCode ? (
+            <span 
+              className="text-[8px] font-mono px-1.5 py-0.2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-bold shrink-0 cursor-pointer hover:bg-emerald-500/25 transition-colors"
+              onClick={() => setActiveTab('code')}
+              title={`Custom logic compiled (${codeLines} lines). Click to view code.`}
+            >
+              <Lock className="w-2.5 h-2.5 text-emerald-400" />
+              <span>{language.toUpperCase()} • {codeLines}L</span>
             </span>
-          ) : runStatus === 'error' ? (
-            <span className="text-[8px] font-mono px-1 py-0.2 bg-red-500/15 text-red-400 border border-red-500/30 font-bold shrink-0" title={statusMessage || 'Execution error'}>
-              ERROR
+          ) : hasPromptDirective ? (
+            <span 
+              className="text-[8px] font-mono px-1.5 py-0.2 bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1 font-bold shrink-0"
+              title="Natural language directive configured"
+            >
+              <FileText className="w-2.5 h-2.5 text-amber-300" />
+              <span>DIRECTIVE</span>
             </span>
           ) : (
             <span className="text-[8px] font-mono px-1 py-0.2 bg-slate-700/20 text-slate-400 font-bold shrink-0">
-              0 TOK
+              READY
+            </span>
+          )}
+
+          {/* Execution Latency Pill if completed */}
+          {runStatus === 'success' && latencyMs !== null && (
+            <span className="text-[8px] font-mono px-1 py-0.2 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold shrink-0" title={`Executed in ${latencyMs}ms (0 tokens)`}>
+              {latencyMs}ms
+            </span>
+          )}
+          {runStatus === 'error' && (
+            <span className="text-[8px] font-mono px-1 py-0.2 bg-red-500/15 text-red-400 border border-red-500/30 font-bold shrink-0" title={statusMessage || 'Execution error'}>
+              ERR
             </span>
           )}
         </div>
 
-        {/* Right: Tactile Ghost Action Icons (No boxes/borders around them) */}
+        {/* Right: Tactile Ghost Action Icons */}
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
           {/* Quick Run */}
           <button
@@ -350,7 +421,7 @@ export default function DeterministicNode({ id, data, selected }) {
             )}
           </button>
 
-          {/* Chat Icon — Opens bottom Co-Pilot chat ONLY */}
+          {/* Chat Icon — Opens bottom Co-Pilot chat */}
           <button
             type="button"
             onClick={handleChatClick}
@@ -380,21 +451,146 @@ export default function DeterministicNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* Main Body: Maximized Functional Rule Summary Text Area */}
+      {/* Segmented Mode Switcher: Directive (Human) vs Code (Machine) */}
+      <div className={`px-2.5 pt-1 pb-1 flex items-center justify-between border-b text-[10px] font-mono ${
+        isDarkMode ? 'bg-[#0A0D14] border-[#222736]' : 'bg-slate-100 border-slate-200'
+      }`} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('directive')}
+            className={`px-2 py-0.5 font-bold transition-all border-b-2 ${
+              activeTab === 'directive'
+                ? isDarkMode ? 'text-amber-400 border-[#EAAA00]' : 'text-amber-700 border-[#EAAA00]'
+                : 'text-slate-400 border-transparent hover:text-slate-200'
+            }`}
+          >
+            Directive {hasPromptDirective ? '•' : ''}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('code')}
+            className={`px-2 py-0.5 font-bold flex items-center gap-1 transition-all border-b-2 ${
+              activeTab === 'code'
+                ? isDarkMode ? 'text-emerald-400 border-emerald-400' : 'text-emerald-700 border-emerald-600'
+                : 'text-slate-400 border-transparent hover:text-slate-200'
+            }`}
+          >
+            {hasCompiledCode && <Lock className="w-2.5 h-2.5 text-emerald-400" />}
+            <span>Code {hasCompiledCode ? `(${codeLines}L)` : ''}</span>
+          </button>
+        </div>
+
+        {/* Right side tab-contextual controls */}
+        {activeTab === 'code' ? (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setIsCodeLocked(!isCodeLocked)}
+              className={`px-1.5 py-0.5 text-[8px] flex items-center gap-1 font-bold border transition-colors ${
+                isCodeLocked 
+                  ? 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white' 
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+              }`}
+              title={isCodeLocked ? 'Click to unlock code for manual editing' : 'Click to lock code against accidental edits'}
+            >
+              {isCodeLocked ? <Lock className="w-2.5 h-2.5 text-slate-400" /> : <Unlock className="w-2.5 h-2.5 text-amber-400" />}
+              <span>{isCodeLocked ? 'Locked' : 'Unlocked'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyCode}
+              className="p-1 text-slate-400 hover:text-white transition-colors"
+              title="Copy code to clipboard"
+            >
+              {copied ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+            </button>
+          </div>
+        ) : hasCompiledCode ? (
+          <button
+            type="button"
+            onClick={handleRecompile}
+            disabled={isRecompiling}
+            className="px-1.5 py-0.5 text-[8px] bg-[#EAAA00]/15 hover:bg-[#EAAA00]/25 text-[#EAAA00] border border-[#EAAA00]/40 flex items-center gap-1 font-bold transition-all cursor-pointer"
+            title="Recompile active logic from current prompt"
+          >
+            <RotateCcw className={`w-2.5 h-2.5 ${isRecompiling ? 'animate-spin' : ''}`} />
+            <span>{isRecompiling ? 'Compiling...' : 'Recompile'}</span>
+          </button>
+        ) : null}
+      </div>
+
+      {/* Main Body: Dual-View with Overwrite Protection */}
       <div className="p-2.5">
-        <textarea
-          value={localText}
-          onChange={handleTextChange}
-          onKeyDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          rows={3.5}
-          placeholder="Rule summary (e.g. Appends incoming records into stateful Excel workbook)..."
-          className={`nodrag nowheel w-full p-2 text-[11px] font-mono leading-relaxed resize-none rounded-none border transition-colors outline-none focus:ring-1 focus:ring-[#EAAA00] ${
-            isDarkMode 
-              ? 'bg-[#0A0D14] border-[#242A3B] text-slate-200 placeholder-slate-600 focus:border-[#EAAA00]'
-              : 'bg-slate-50 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-[#EAAA00]'
-          }`}
-        />
+        {activeTab === 'directive' ? (
+          <>
+            {/* Overwrite Protection Banner if code already exists */}
+            {hasCompiledCode && (
+              <div className={`mb-1.5 px-2 py-1 text-[9px] font-mono border flex items-center justify-between ${
+                isDarkMode ? 'bg-[#0E151E] border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+              }`}>
+                <span className="flex items-center gap-1 truncate max-w-[210px]">
+                  <Lock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                  <span>Compiled {language.toUpperCase()} active ({codeLines}L). Logic preserved.</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('code')}
+                  className="underline hover:text-white font-bold shrink-0 ml-1 cursor-pointer"
+                >
+                  View Code →
+                </button>
+              </div>
+            )}
+
+            <textarea
+              value={localText}
+              onChange={handleTextChange}
+              onKeyDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              rows={hasCompiledCode ? 2.5 : 3.5}
+              placeholder="Rule summary (e.g. Appends incoming records into stateful Excel workbook)..."
+              className={`nodrag nowheel w-full p-2 text-[11px] font-mono leading-relaxed resize-none rounded-none border transition-colors outline-none focus:ring-1 focus:ring-[#EAAA00] ${
+                isDarkMode 
+                  ? 'bg-[#0A0D14] border-[#242A3B] text-slate-200 placeholder-slate-600 focus:border-[#EAAA00]'
+                  : 'bg-slate-50 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-[#EAAA00]'
+              }`}
+            />
+          </>
+        ) : (
+          /* Code View: Syntax Styled with Read-Only Lock Guard */
+          <div className="relative">
+            {isCodeLocked && (
+              <div 
+                onClick={() => setIsCodeLocked(false)}
+                className="absolute top-1 right-1 z-10 px-1.5 py-0.5 bg-black/75 backdrop-blur-sm border border-slate-700 text-[8px] font-mono text-slate-300 flex items-center gap-1 cursor-pointer hover:border-amber-400 transition-colors"
+                title="Click to unlock for manual editing"
+              >
+                <Lock className="w-2.5 h-2.5 text-emerald-400" />
+                <span>Protected (Click to edit)</span>
+              </div>
+            )}
+            <textarea
+              value={codeText}
+              onChange={(e) => {
+                if (isCodeLocked) return;
+                if (data?.onUpdateNodeData) {
+                  data.onUpdateNodeData(id, { code: e.target.value });
+                }
+              }}
+              readOnly={isCodeLocked}
+              rows={hasCompiledCode ? 3.8 : 3.5}
+              className={`nodrag nowheel w-full p-2 text-[10px] font-mono leading-relaxed resize-none rounded-none border transition-colors outline-none ${
+                isCodeLocked ? 'opacity-90 select-all cursor-default' : 'focus:ring-1 focus:ring-emerald-400'
+              } ${
+                isDarkMode 
+                  ? 'bg-[#07090F] border-[#202534] text-emerald-400' 
+                  : 'bg-slate-900 border-slate-800 text-emerald-400'
+              }`}
+              placeholder="// Write or compile deterministic logic here..."
+            />
+          </div>
+        )}
 
         {/* Output / Table Preview Banner if executed */}
         {runStatus === 'success' && (data?.lastOutput || data?.lastTableData) && (
