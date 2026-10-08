@@ -49,8 +49,10 @@ import {
 
 // Helper to render deterministic assistant message with interactive "Apply Code" buttons
 function renderDeterministicContent(msg, onApplyCode, isApplied) {
-  if (!msg.content) return null;
-  const content = msg.content;
+  if (!msg?.content) return null;
+  const content = typeof msg.content === 'string'
+    ? msg.content
+    : (msg.content?.text || msg.content?.responseText || (typeof msg.content === 'object' ? JSON.stringify(msg.content, null, 2) : String(msg.content)));
   
   // Extract all fenced code blocks
   const codeBlockRegex = /```([a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/g;
@@ -132,28 +134,16 @@ function renderDeterministicContent(msg, onApplyCode, isApplied) {
                   <Copy className="w-3 h-3" />
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => onApplyCode(part.code, part.language, part.blockId)}
-                  className={`px-3 py-1 text-[11px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer rounded-none border ${
+                <span
+                  className={`px-3 py-1 text-[11px] font-mono font-bold flex items-center gap-1.5 rounded-none border ${
                     blockApplied
-                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
-                      : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#0091DA] hover:shadow-md active:scale-95'
+                      ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/60 shadow-sm'
+                      : 'bg-[#00338D] text-white border-[#0091DA]'
                   }`}
-                  title="Apply this code directly to the active Deterministic Box"
                 >
-                  {blockApplied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>APPLIED TO BOX</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-3.5 h-3.5 fill-current text-[#EAAA00]" />
-                      <span>APPLY CODE TO BOX</span>
-                    </>
-                  )}
-                </button>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{blockApplied ? 'DEPLOYED & ACTIVE IN BOX' : 'DEPLOYED TO BOX'}</span>
+                </span>
               </div>
             </div>
 
@@ -557,22 +547,13 @@ export default function CanvasExecutionDrawer({
   // Generate Institutional Greeting for Deterministic Logic Co-Pilot
   const generateDeterministicGreeting = useCallback((node, brain) => {
     const boxName = node?.data?.name || 'Deterministic Logic';
-    const agentName = brain?.connectedAgentName || 'Agent';
-    const modelName = brain?.modelDisplayName || 'Foundation Model';
     const hasBrain = Boolean(brain?.hasBrain);
 
     if (hasBrain) {
       return {
         id: `det-init-${node?.id || 'default'}`,
         role: 'assistant',
-        content: `Hello! I am your **Deterministic Logic Co-Pilot** for **${boxName}**.\n\n` +
-          `🧠 **Active Brain**: \`${modelName}\` *(inherited from ${agentName})*\n` +
-          `⚡ **Execution Guarantee**: 100% Deterministic • 0 tokens consumed at runtime\n\n` +
-          `Tell me what you'd like this rule to accomplish in plain, simple language. For example:\n` +
-          `• *"In the present structure whatever output I am generating should get saved in an Excel file and it should keep appending the conversation."*\n` +
-          `• *"Join Table A with Table B on customer_id and identify any discrepancies."*\n` +
-          `• *"Tax reconciliation: Reconcile PR records against GSTR 2B on GSTIN and invoice value."*\n\n` +
-          `We will first talk through the methodology and plan. Once we agree on the approach and you give the go-ahead ("proceed" or "green light"), I will generate the complete deterministic code for you to apply directly to this box!`,
+        content: `What deterministic logic should **${boxName}** execute?\n\nDescribe in plain English to synthesize code with zero tokens.`,
         timestamp: 'Live'
       };
     }
@@ -580,9 +561,7 @@ export default function CanvasExecutionDrawer({
     return {
       id: `det-init-${node?.id || 'default'}`,
       role: 'assistant',
-      content: `👋 I am the **Deterministic Logic Co-Pilot** for **${boxName}**.\n\n` +
-        `⚠️ **No AI Brain Connected to an Agent**\n\n` +
-        `To plan and write deterministic code conversationally, I need a Foundation Model brain. Please wire a Foundation Model (Gemini, Claude, GPT, or Ollama) to an Agent on the canvas.`,
+      content: `No Foundation Model brain connected. Connect a model to an Agent on the canvas to power this Co-Pilot.`,
       timestamp: 'Idle'
     };
   }, []);
@@ -975,47 +954,71 @@ export default function CanvasExecutionDrawer({
 
     try {
       const systemPrompt = `You are the KEAOS Deterministic Logic Co-Pilot & Software Architect.
-You are helping the user build a 100% deterministic code module inside a KEAOS Deterministic Rule Box (${activeDeterministicNode.data?.name || 'Deterministic Logic'}).
-Once the code is finalized and applied, this box will run purely algorithmically with ZERO LLM calls and ZERO token consumption at runtime.
+You are helping the user design, plan, and deploy a 100% deterministic code module inside the KEAOS Deterministic Rule Box named "${activeDeterministicNode.data?.name || 'Deterministic Logic'}".
+Once finalized and deployed, this box runs purely algorithmically in KEAOS with ZERO LLM calls and ZERO token consumption at runtime.
 
-HOW YOU COMMUNICATE:
-1. Warm, Simple & Conversational: Talk with the user in very friendly, approachable, and plain human language (just like ChatGPT or Gemini). Avoid unnecessary academic jargon.
-2. Listen & Propose Methodology First:
-   - When the user tells you what they want to achieve (even in very crude or casual language), first acknowledge their goal.
-   - Outline the proposed approach and methodology clearly in simple terms:
-     * Explain how incoming data (e.g. from an upstream AI agent output or file) will be structured.
-     * Explain the step-by-step logic, data transformations, and libraries to be used (e.g. standard JavaScript with object manipulation, SheetJS/xlsx for Excel workbooks, or Python pandas/openpyxl if requested).
-     * Ask if this approach sounds good or if they want any specific columns, rules, or adjustments.
-3. Finalize & Code on Green Light:
-   - When the user gives the go-ahead (e.g. "go ahead", "looks good", "yes", "proceed", "green", "do it", or asks for the code):
-     * Confirm the finalized methodology.
-     * Provide the COMPLETE, self-contained, working code inside a single standard markdown code block:
-       \`\`\`javascript
-       // Code here
-       function process(inputs) {
-         ...
-         return result;
-       }
-       \`\`\`
-       or
-       \`\`\`python
-       # Code here
-       def process(inputs):
-         ...
-         return result
-       \`\`\`
-4. Platform Agnostic:
-   - If the user specified a language (Python, JavaScript, SQL), use that language.
-   - If the user did not specify, choose the best zero-overhead runtime (for Excel/browser/JSON workflows, JavaScript is ideal; for heavy data-frames, Python).
-   - Ensure the function has an entry point:
-     * For JavaScript: \`function process(inputs)\` that accepts \`inputs\` and returns the result.
-     * For Python: \`def process(inputs):\` that accepts \`inputs\` and returns the result.
-5. Strict Deterministic Purity:
-   - The code must be 100% deterministic, robust, and handle edge cases (empty data, missing fields) gracefully.`;
+YOU OPERATE STRICTLY IN A TWO-PHASE PROTOCOL:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1: BRAINSTORMING & ARCHITECTURAL PLANNING (Default Phase)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+When the user states what they want or asks "How do I get this?" / describes a logic goal:
+1. DO NOT GENERATE CODE YET.
+2. Provide a crisp, machine-like, structured logic architecture proposal:
+   - Input Structure: Expected incoming data format from upstream AI agents (e.g. array of objects, customer records, raw text).
+   - Processing Logic: Step-by-step algorithmic transformation (e.g. stateful row appending, filtering, aggregating).
+   - Output Specification: Exactly what this box delivers (e.g. an accumulated Excel/CSV dataset, transformed JSON, metrics).
+3. Conclude with:
+   "Is this what you want, or would you like to refine the logic?"
+4. If the user suggests tweaks or changes, iterate and update the architectural plan in the same crisp, machine-like style.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2: FINALIZATION & DEPLOYMENT (When User Approves)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy", "looks good", "go ahead", "do it", "sound good", "implement it", "I am okay with this logic"):
+1. Confirm deployment in 1 crisp sentence:
+   "✓ Logic compiled and deployed to ${activeDeterministicNode.data?.name || 'Rule Box'}. The rule is now live and ready to run."
+2. Immediately provide the COMPLETE, self-contained, working deterministic code inside a single standard markdown code block:
+   \`\`\`javascript
+   // Self-contained browser-native process function
+   function process(inputs, state) {
+     ...
+     return result;
+   }
+   \`\`\`
+   or (if Python was specifically requested):
+   \`\`\`python
+   def process(inputs):
+     ...
+     return result
+   \`\`\`
+3. BROWSER & PLATFORM RUNTIME RULES:
+   - This code executes directly inside the KEAOS browser sandbox engine.
+   - For stateful appending (e.g. Excel/CSV table accumulator):
+     The runtime provides a persistent \`state\` object and \`inputs\`.
+     Example for Excel/Table appending:
+     \`\`\`javascript
+     function process(inputs, state) {
+       state.rows = state.rows || [];
+       const newRow = typeof inputs === 'object' ? inputs : { output: inputs };
+       state.rows.push({
+         id: state.rows.length + 1,
+         timestamp: new Date().toISOString(),
+         ...newRow
+       });
+       return {
+         totalRows: state.rows.length,
+         lastAppended: newRow,
+         table: state.rows
+       };
+     }
+     \`\`\`
+   - NEVER tell the user to install packages ('npm install', 'pip install'), open a terminal, or set up Node.js.
+   - NEVER tell the user "you can go ahead and implement this". The KEAOS platform automatically intercepts this code and deploys it directly into their box on the canvas!`;
 
       const messagesForLlm = currentThread.slice(-6).map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content
+        content: typeof m.content === 'string' ? m.content : (m.content?.text || JSON.stringify(m.content))
       }));
       messagesForLlm.push({ role: 'user', content: promptText });
 
@@ -1029,13 +1032,50 @@ HOW YOU COMMUNICATE:
       });
 
       const latencyMs = Math.round(performance.now() - startTime);
+      const responseText = typeof chatResponse === 'string'
+        ? chatResponse
+        : (chatResponse?.text || chatResponse?.responseText || chatResponse?.rawText || '');
+
+      // Check if the response contains a synthesized deterministic code block
+      const codeBlockRegex = /```([a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/;
+      const codeMatch = codeBlockRegex.exec(responseText);
+
+      const assistantMsgId = `ast-det-${Date.now()}`;
+      if (codeMatch && codeMatch[2]) {
+        const rawLang = (codeMatch[1] || 'javascript').toLowerCase();
+        const detectedLang = rawLang.includes('py') ? 'python' : rawLang.includes('sql') ? 'sql' : 'javascript';
+        const detectedCode = codeMatch[2].trim();
+        const deployedBlockId = `${assistantMsgId}-block-0`;
+
+        // Automatically compile and deploy the code into the canvas node!
+        window.dispatchEvent(new CustomEvent('keaos:deterministic-code-updated', {
+          detail: {
+            nodeId,
+            code: detectedCode,
+            language: detectedLang,
+            prompt: promptText
+          }
+        }));
+
+        setAppliedCodeMap(prev => ({
+          ...prev,
+          [deployedBlockId]: true,
+          [assistantMsgId]: true
+        }));
+
+        window.dispatchEvent(new CustomEvent('keaos:toast', {
+          detail: {
+            message: `✓ Deployed logic to "${activeDeterministicNode.data?.name || 'Rule Box'}"`
+          }
+        }));
+      }
 
       const assistantMsg = {
-        id: `ast-det-${Date.now()}`,
+        id: assistantMsgId,
         role: 'assistant',
-        content: chatResponse.responseText || chatResponse,
+        content: responseText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        tokens: chatResponse.totalTokens || 0,
+        tokens: chatResponse?.totalTokens || 0,
         latencyMs,
         provider: deterministicBrain.provider,
         modelName: deterministicBrain.modelDisplayName
@@ -1120,7 +1160,8 @@ HOW YOU COMMUNICATE:
       const res = await executeDeterministicTask({
         language: lang,
         code,
-        inputData: inputPayload
+        inputData: inputPayload,
+        nodeId: node.id
       });
 
       if (res.success) {
@@ -1437,25 +1478,54 @@ HOW YOU COMMUNICATE:
         {/* Right: Quick Run & Expand Icon */}
         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
           {drawerMode === 'deterministic-copilot' ? (
-            <div className={`text-[11px] font-mono hidden md:flex items-center gap-1.5 ${
-              isDarkMode ? 'text-slate-400' : 'text-slate-600'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${deterministicBrain?.hasBrain ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-              <span className={`font-bold transition-colors ${
-                isDarkMode ? 'text-white/90' : 'text-[#0B0F19]'
+            <div className="flex items-center gap-2">
+              <div className={`text-[11px] font-mono hidden md:flex items-center gap-1.5 ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-600'
               }`}>
-                {activeDeterministicNode?.data?.name || 'Deterministic Rule'}
-              </span>
-              <span>•</span>
-              <span className="text-emerald-400 font-bold">0 TOKENS RUNTIME</span>
-              <span>•</span>
-              <span className={
-                deterministicBrain?.hasBrain 
-                  ? (isDarkMode ? 'text-[#0091DA]' : 'text-[#005EB8]') + ' font-semibold' 
-                  : 'text-amber-500 font-semibold'
-              }>
-                {deterministicBrain?.hasBrain ? `${deterministicBrain.modelDisplayName} (from ${deterministicBrain.connectedAgentName})` : 'No Brain Connected'}
-              </span>
+                <span className={`w-1.5 h-1.5 rounded-full ${deterministicBrain?.hasBrain ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                <span className={`font-bold transition-colors ${
+                  isDarkMode ? 'text-white/90' : 'text-[#0B0F19]'
+                }`}>
+                  {activeDeterministicNode?.data?.name || 'Deterministic Rule'}
+                </span>
+                {deterministicBrain?.hasBrain && (
+                  <>
+                    <span>•</span>
+                    <span className={isDarkMode ? 'text-[#0091DA]' : 'text-[#005EB8]'}>
+                      {deterministicBrain.modelDisplayName}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Play icon button: Run (0 Tokens) - zero text */}
+              <button
+                type="button"
+                onClick={handleRunDeterministicBoxNow}
+                disabled={isDeterministicChatRunning}
+                className={`p-1.5 transition-colors cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
+                  isDarkMode 
+                    ? 'text-slate-400 hover:text-emerald-400' 
+                    : 'text-slate-500 hover:text-emerald-600'
+                }`}
+                title="Run logic (0 tokens)"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+              </button>
+
+              {/* Delete / Trash icon button: Clear chat - zero text */}
+              <button
+                type="button"
+                onClick={handleClearDeterministicChat}
+                className={`p-1.5 transition-colors cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
+                  isDarkMode 
+                    ? 'text-slate-400 hover:text-red-400' 
+                    : 'text-slate-500 hover:text-red-600'
+                }`}
+                title="Clear chat history"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           ) : (
             <div className={`text-[11px] font-mono hidden md:flex items-center gap-1.5 ${
@@ -1784,90 +1854,6 @@ HOW YOU COMMUNICATE:
           {/* ========================================================= */}
           {drawerMode === 'deterministic-copilot' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
-              {/* Co-Pilot Sub-Header */}
-              <div className={`px-5 py-2 border-b flex items-center justify-between text-xs font-mono transition-colors ${
-                isDarkMode ? 'bg-[#18191E] border-[#2A2D36] text-slate-400' : 'bg-white border-gray-200 text-slate-600'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md bg-[#EAAA00]/20 text-[#EAAA00] flex items-center justify-center border border-[#EAAA00]/40">
-                    <Code2 className="w-3.5 h-3.5 font-bold" />
-                  </div>
-                  <span className={`font-bold text-sm tracking-tight transition-colors ${
-                    isDarkMode ? 'text-white' : 'text-[#0B0F19]'
-                  }`}>
-                    {activeDeterministicNode?.data?.name || 'Deterministic Logic'}
-                  </span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
-                    isDarkMode 
-                      ? 'bg-amber-500/15 text-[#EAAA00] border-amber-500/30' 
-                      : 'bg-amber-50 text-[#B8860B] border-amber-200'
-                  }`}>
-                    PLATFORM-AGNOSTIC
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-bold">
-                    <Zap className="w-3 h-3 text-emerald-400" />
-                    <span>0 TOKENS RUNTIME</span>
-                  </span>
-                  {deterministicBrain?.hasBrain ? (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-[#38BDF8] border border-blue-500/30 flex items-center gap-1 font-bold">
-                      <Brain className="w-3 h-3 text-[#38BDF8]" />
-                      <span>{deterministicBrain.modelDisplayName} (from {deterministicBrain.connectedAgentName})</span>
-                    </span>
-                  ) : (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 flex items-center gap-1 font-bold">
-                      <AlertTriangle className="w-3 h-3 text-amber-500" />
-                      <span>NO AGENT BRAIN CONNECTED</span>
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* One-Click Quick Run */}
-                  <button
-                    type="button"
-                    onClick={handleRunDeterministicBoxNow}
-                    disabled={isDeterministicChatRunning}
-                    className="px-2.5 py-1 text-[11px] font-mono font-bold bg-[#0091DA] hover:bg-[#007BB8] text-white rounded-none flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
-                    title="Execute compiled code deterministically with zero token consumption"
-                  >
-                    <Play className="w-3 h-3 fill-current" />
-                    <span>Run (0 Tokens)</span>
-                  </button>
-
-                  {/* Open Sandbox / Full Editor Modal */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (activeDeterministicNode) {
-                        window.dispatchEvent(new CustomEvent('keaos:open-deterministic-workspace', {
-                          detail: { nodeId: activeDeterministicNode.id }
-                        }));
-                      }
-                    }}
-                    className={`px-2.5 py-1 text-[11px] font-mono font-bold border rounded-none flex items-center gap-1.5 transition-all cursor-pointer ${
-                      isDarkMode 
-                        ? 'bg-[#1E2333] hover:bg-[#252C40] border-[#343D56] text-slate-300 hover:text-white' 
-                        : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700 hover:text-black'
-                    }`}
-                    title="Open Full Code & Table Sandbox"
-                  >
-                    <Sliders className="w-3 h-3" />
-                    <span>Sandbox</span>
-                  </button>
-
-                  {/* Clear Chat */}
-                  <button
-                    type="button"
-                    onClick={handleClearDeterministicChat}
-                    className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-400 transition-colors cursor-pointer px-1 py-1"
-                    title="Reset Chat History"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Clear</span>
-                  </button>
-                </div>
-              </div>
-
               {/* Chat Stream History Area */}
               <div key={activeDeterministicNode?.id || 'det-chat'} className="flex-1 overflow-y-auto p-4 space-y-4 font-sans text-xs agent-switch-motion">
                 {deterministicChatMessages.map((msg) => {
@@ -1899,7 +1885,7 @@ HOW YOU COMMUNICATE:
                         }`}>
                           {isUser ? (
                             <div className="whitespace-pre-wrap font-sans text-xs">
-                              {msg.content}
+                              {typeof msg.content === 'string' ? msg.content : (msg.content?.text || JSON.stringify(msg.content))}
                             </div>
                           ) : (
                             renderDeterministicContent(msg, handleApplyCodeToBox, (blockId) => appliedCodeMap[blockId])
@@ -1979,36 +1965,6 @@ HOW YOU COMMUNICATE:
                 </div>
               )}
 
-              {/* Quick Starter Chips */}
-              {deterministicBrain?.hasBrain && (
-                <div className="px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-700/20 text-[10px] font-mono shrink-0">
-                  <span className="text-slate-500 font-bold shrink-0">Prompts:</span>
-                  {[
-                    'Save output in an Excel file and keep appending the conversation',
-                    'Join Table A with Table B on matching id column',
-                    'Tax reconciliation: match PR vs GSTR 2B records',
-                    'Filter status pending and calculate column sum'
-                  ].map((chip, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setChatInput(chip);
-                        setTimeout(() => {
-                          chatInputRef.current?.focus();
-                        }, 10);
-                      }}
-                      className={`px-2 py-0.5 rounded border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${
-                        isDarkMode 
-                          ? 'bg-[#1F2128] border-[#383C4A] text-slate-300 hover:text-white hover:border-[#EAAA00]' 
-                          : 'bg-white border-[#CBD5E1] text-slate-700 hover:text-black hover:border-[#EAAA00]'
-                      }`}
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-              )}
-
               {/* Interactive Chat Input Bar */}
               <form onSubmit={handleSendDeterministicChat} className={`p-3 border-t flex items-center gap-2 ${
                 isDarkMode ? 'bg-[#18191E] border-[#2E313B]' : 'bg-white border-[#CBD5E1]'
@@ -2027,32 +1983,32 @@ HOW YOU COMMUNICATE:
                   }}
                   placeholder={
                     !deterministicBrain?.hasBrain
-                      ? 'Connect a Foundation Model to an Agent on the canvas to enable Co-Pilot...'
+                      ? 'Connect a model to an Agent to enable Co-Pilot...'
                       : isDeterministicChatRunning
-                        ? 'Co-Pilot is reasoning... (Type next question)'
-                        : `Tell ${activeDeterministicNode?.data?.name || 'Logic Co-Pilot'} what to build in simple words... (Press Enter)`
+                        ? 'Reasoning...'
+                        : `Describe logic for ${activeDeterministicNode?.data?.name || 'this rule'}... (Enter to send)`
                   }
                   disabled={!deterministicBrain?.hasBrain}
-                  className={`flex-1 px-3 py-2 text-xs font-sans rounded-none border focus:outline-none transition-colors ${
+                  className={`flex-1 px-3 py-2 text-xs font-mono rounded-none border focus:outline-none transition-colors ${
                     !deterministicBrain?.hasBrain 
                       ? 'bg-slate-800/30 border-slate-700 text-slate-500 cursor-not-allowed'
                       : isDarkMode 
-                        ? 'bg-[#121316] border-[#383C4A] text-white focus:border-[#EAAA00]' 
-                        : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00338D]'
+                        ? 'bg-[#121316] border-[#2A3042] text-white focus:border-[#EAAA00]' 
+                        : 'bg-slate-50 border-slate-300 text-[#0B0F19] focus:border-[#00338D]'
                   }`}
                   autoFocus
                 />
                 <button
                   type="submit"
                   disabled={isDeterministicChatRunning || !chatInput.trim() || !deterministicBrain?.hasBrain}
-                  className={`px-4 py-2 text-xs font-bold font-mono rounded-none flex items-center gap-1.5 transition-all btn-tactile ${
+                  className={`p-2 rounded-none flex items-center justify-center transition-all ${
                     isDeterministicChatRunning || !chatInput.trim() || !deterministicBrain?.hasBrain
-                      ? 'opacity-40 bg-slate-700 text-slate-400 cursor-not-allowed'
-                      : 'bg-[#EAAA00] hover:bg-[#D49800] text-[#001E50] shadow-sm cursor-pointer'
+                      ? 'opacity-30 bg-slate-700 text-slate-400 cursor-not-allowed'
+                      : 'bg-[#EAAA00] hover:bg-[#D49800] text-[#001E50] shadow-sm cursor-pointer active:scale-95'
                   }`}
+                  title="Send"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Send</span>
                 </button>
               </form>
             </div>

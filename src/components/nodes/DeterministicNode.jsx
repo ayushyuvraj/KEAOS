@@ -1,19 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { 
   Code2, 
   Play, 
-  ExternalLink, 
+  Sliders,
   Check, 
   AlertCircle, 
   Loader2, 
-  Copy, 
-  Trash2, 
-  Zap,
-  Layers,
-  Database,
-  ArrowRight,
-  MessageSquare
+  MessageSquare,
+  Zap
 } from 'lucide-react';
 import { executeDeterministicTask } from '../../services/deterministicRunner';
 import NodeActionToolbar from '../common/NodeActionToolbar';
@@ -28,33 +23,34 @@ export default function DeterministicNode({ id, data, selected }) {
   const [latencyMs, setLatencyMs] = useState(data?.lastLatencyMs || null);
 
   const language = (data?.language || 'python').toLowerCase();
-  const promptText = data?.prompt || '';
   const codeText = data?.code || '';
 
-  // Language pill color badge
-  const getLangBadgeStyle = () => {
-    switch (language) {
-      case 'python':
-        return { text: 'PYTHON', bg: 'bg-blue-500/15', textCol: 'text-blue-400', border: 'border-blue-500/30' };
-      case 'sql':
-        return { text: 'SQL', bg: 'bg-emerald-500/15', textCol: 'text-emerald-400', border: 'border-emerald-500/30' };
-      default:
-        return { text: 'JAVASCRIPT', bg: 'bg-amber-500/15', textCol: 'text-amber-400', border: 'border-amber-500/30' };
+  // Local state for inline editable text box
+  const [localPrompt, setLocalPrompt] = useState(data?.prompt || '');
+
+  useEffect(() => {
+    if (data?.prompt !== undefined && data?.prompt !== localPrompt) {
+      setLocalPrompt(data.prompt);
+    }
+  }, [data?.prompt]);
+
+  const handlePromptChange = (e) => {
+    const val = e.target.value;
+    setLocalPrompt(val);
+    if (data?.onUpdateNodeData) {
+      data.onUpdateNodeData(id, { prompt: val });
     }
   };
 
-  const badge = getLangBadgeStyle();
-
   // Quick Run logic right from node
   const handleQuickRun = async (e) => {
-    e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
     if (isRunning) return;
 
     setIsRunning(true);
     setRunStatus('running');
 
     try {
-      // Gather inputs passed through data or upstream
       const inputPayload = data?.upstreamPayload || data?.currentInput || data?.manualInput || data?.uploadedData || { sampleA: 10, sampleB: 20 };
       const res = await executeDeterministicTask({
         language,
@@ -66,7 +62,6 @@ export default function DeterministicNode({ id, data, selected }) {
         setRunStatus('success');
         setLatencyMs(res.latencyMs);
         setStatusMessage('');
-        // Propagate result
         if (data?.onUpdateNodeData) {
           data.onUpdateNodeData(id, {
             lastOutput: res.output,
@@ -90,22 +85,45 @@ export default function DeterministicNode({ id, data, selected }) {
     }
   };
 
-  const handleOpenWorkspace = (e) => {
-    e.stopPropagation();
+  // Open Co-Pilot chat in bottom drawer ONLY (never open right panel)
+  const handleChatClick = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (data?.onOpenDeterministicChat) {
+      data.onOpenDeterministicChat(id);
+    } else {
+      window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', {
+        detail: { mode: 'deterministic-copilot', nodeId: id }
+      }));
+      window.dispatchEvent(new CustomEvent('keaos:expand-drawer'));
+    }
+  };
+
+  // Small button to open Sandbox Workspace Modal
+  const handleOpenSandbox = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
     window.dispatchEvent(new CustomEvent('keaos:open-deterministic-workspace', {
       detail: { nodeId: id }
     }));
   };
 
+  // Clicking anywhere else on the box opens the right panel (Inspector)
+  const handleBoxClick = () => {
+    if (data?.onOpenInspector) {
+      data.onOpenInspector(id);
+    } else {
+      window.dispatchEvent(new CustomEvent('keaos:select-node', { detail: { nodeId: id } }));
+    }
+  };
+
   return (
     <div
-      onClick={handleOpenWorkspace}
-      className={`relative w-80 select-none transition-all duration-200 cursor-pointer ${
+      onClick={handleBoxClick}
+      className={`relative group w-80 select-none transition-all duration-200 cursor-pointer ${
         isDarkMode ? 'bg-[#151821] text-white' : 'bg-white text-[#0B0F19]'
       } ${
         selected 
           ? 'ring-2 ring-[#0091DA] shadow-[0_0_20px_rgba(0,145,218,0.25)]' 
-          : 'shadow-lg hover:shadow-xl'
+          : 'shadow-md hover:shadow-xl'
       } ${
         isDeactivated ? 'opacity-40 grayscale' : 'opacity-100'
       } border ${
@@ -115,21 +133,12 @@ export default function DeterministicNode({ id, data, selected }) {
         borderTop: '3px solid #EAAA00' // Distinctive Amber Gold Deterministic Accent
       }}
     >
-      {/* Floating Micro-Toolbar on Hover */}
+      {/* Floating Micro-Toolbar on Hover (displays on hover just like Agent and circular nodes) */}
       <NodeActionToolbar
         nodeId={id}
         nodeName={data?.name || 'Deterministic Logic'}
         isDeactivated={isDeactivated}
-        onOpenChat={() => {
-          if (data?.onOpenDeterministicChat) {
-            data.onOpenDeterministicChat(id);
-          } else {
-            window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', {
-              detail: { mode: 'deterministic-copilot', nodeId: id }
-            }));
-            window.dispatchEvent(new CustomEvent('keaos:expand-drawer'));
-          }
-        }}
+        onOpenChat={handleChatClick}
         onExecute={handleQuickRun}
         onToggleDeactivate={() => data?.onToggleDeactivate && data.onToggleDeactivate(id)}
         onDelete={() => data?.onDelete && data.onDelete(id)}
@@ -152,7 +161,7 @@ export default function DeterministicNode({ id, data, selected }) {
           left: '-7px',
           width: '12px',
           height: '12px',
-          borderRadius: '0px', // Strict 0px angular geometry
+          borderRadius: '0px',
           backgroundColor: '#EAAA00',
           borderColor: isDarkMode ? '#151821' : '#FFFFFF',
           borderWidth: '2px',
@@ -171,7 +180,7 @@ export default function DeterministicNode({ id, data, selected }) {
           right: '-7px',
           width: '12px',
           height: '12px',
-          borderRadius: '0px', // Strict 0px angular geometry
+          borderRadius: '0px',
           backgroundColor: '#0091DA',
           borderColor: isDarkMode ? '#151821' : '#FFFFFF',
           borderWidth: '2px',
@@ -180,141 +189,116 @@ export default function DeterministicNode({ id, data, selected }) {
         title="Deterministic Output Stream (Fan-out supported)"
       />
 
-      {/* Top Header */}
-      <div className={`p-3 border-b flex items-center justify-between ${
-        isDarkMode ? 'border-[#262B3B] bg-[#1A1F2C]' : 'border-slate-200 bg-slate-50'
+      {/* Top Header: Title on Left, Small Borderless Icons on Top Right (no boxes around them) */}
+      <div className={`px-3 pt-2.5 pb-1.5 flex items-center justify-between border-b ${
+        isDarkMode ? 'border-[#262B3B]/60' : 'border-slate-100'
       }`}>
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-[#EAAA00]/20 text-[#EAAA00] flex items-center justify-center shrink-0 border border-[#EAAA00]/40 rounded-none">
-            <Code2 className="w-4 h-4 font-bold" />
-          </div>
-          <div>
-            <h4 className="text-xs font-bold font-mono tracking-tight text-[#EAAA00]">
-              {data?.name || 'Deterministic Logic'}
-            </h4>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 border ${badge.bg} ${badge.textCol} ${badge.border} rounded-none`}>
-                {badge.text}
-              </span>
-              <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.2 flex items-center gap-0.5 rounded-none font-bold">
-                <Zap className="w-2.5 h-2.5" /> 0 TOKENS
-              </span>
-            </div>
-          </div>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Code2 className="w-3.5 h-3.5 text-[#EAAA00] shrink-0" />
+          <span className="text-xs font-mono font-bold text-[#EAAA00] truncate">
+            {data?.name || 'Deterministic Logic'}
+          </span>
+          <span className="text-[8.5px] font-mono text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded-none font-bold shrink-0">
+            0 TOK
+          </span>
         </div>
 
-        {/* Quick Actions: Chat with Co-Pilot & Quick Run */}
-        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          {/* Small Chat Icon - Opens Co-Pilot in Bottom Panel */}
+        {/* Small icons on top right WITHOUT boxes/borders around them */}
+        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {/* Quick Run icon button */}
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (data?.onOpenDeterministicChat) {
-                data.onOpenDeterministicChat(id);
-              } else {
-                window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', {
-                  detail: { mode: 'deterministic-copilot', nodeId: id }
-                }));
-                window.dispatchEvent(new CustomEvent('keaos:expand-drawer'));
-              }
-            }}
-            className={`p-1.5 text-xs font-mono font-bold flex items-center justify-center transition-all ${
-              isDarkMode 
-                ? 'bg-[#EAAA00]/15 hover:bg-[#EAAA00]/30 text-[#EAAA00] border border-[#EAAA00]/50' 
-                : 'bg-amber-100 hover:bg-amber-200 text-[#B8860B] border border-amber-300'
-            } rounded-none cursor-pointer active:scale-95`}
-            title={`Chat with Co-Pilot for ${data?.name || 'this rule'} (uses connected Agent's brain)`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Quick Run / Status Badge */}
-          <button
             onClick={handleQuickRun}
             disabled={isRunning}
-            className={`p-1.5 text-xs font-mono font-bold flex items-center justify-center transition-all ${
-              isRunning 
-                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' 
-                : 'bg-[#0091DA] hover:bg-[#007BB8] text-white border border-[#0091DA]'
-            } rounded-none cursor-pointer active:scale-95`}
-            title="Execute logic deterministically (0 tokens)"
+            className={`p-1 transition-colors cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
+              isDarkMode 
+                ? 'text-slate-400 hover:text-emerald-400' 
+                : 'text-slate-500 hover:text-emerald-600'
+            }`}
+            title="Run logic (0 tokens)"
           >
             {isRunning ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
             ) : (
               <Play className="w-3.5 h-3.5 fill-current" />
             )}
           </button>
+
+          {/* Chat icon button — Opens bottom Co-Pilot chat ONLY */}
+          <button
+            type="button"
+            onClick={handleChatClick}
+            className={`p-1 transition-colors cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
+              isDarkMode 
+                ? 'text-slate-400 hover:text-[#0091DA]' 
+                : 'text-slate-500 hover:text-[#00338D]'
+            }`}
+            title="Open Co-Pilot chat in bottom panel"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Small button to open Sandbox Workspace */}
+          <button
+            type="button"
+            onClick={handleOpenSandbox}
+            className={`p-1 transition-colors cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
+              isDarkMode 
+                ? 'text-slate-400 hover:text-[#EAAA00]' 
+                : 'text-slate-500 hover:text-[#B8860B]'
+            }`}
+            title="Open Full Deterministic Sandbox Workspace"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      {/* Node Body */}
-      <div className="p-3 space-y-2.5">
-        {/* Human language prompt preview */}
-        <div className={`p-2 border text-[11px] leading-relaxed ${
-          isDarkMode ? 'bg-[#0F1117] border-[#222736] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
-        } rounded-none min-h-[46px]`}>
-          <div className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1">
-            Human Instruction
-          </div>
-          <p className="line-clamp-2 italic font-mono text-[11px]">
-            {promptText ? `"${promptText}"` : 'No instruction configured. Click to open workspace.'}
-          </p>
-        </div>
+      {/* Main Body: Clean Text Box for Deterministic Rule / Prompt */}
+      <div className="p-3">
+        <textarea
+          value={localPrompt}
+          onChange={handlePromptChange}
+          onKeyDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          rows={3}
+          placeholder="Enter deterministic rule or prompt (e.g. filter rows where status is active)..."
+          className={`nodrag nowheel w-full p-2 text-xs font-mono leading-relaxed resize-none rounded-none border transition-colors outline-none focus:ring-1 focus:ring-[#EAAA00] ${
+            isDarkMode 
+              ? 'bg-[#0B0F19] border-[#2A3042] text-slate-200 placeholder-slate-600 focus:border-[#EAAA00]' 
+              : 'bg-slate-50 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-[#EAAA00]'
+          }`}
+        />
 
-        {/* Status / Latency row */}
-        <div className="flex items-center justify-between text-[10px] font-mono pt-0.5">
-          <div className="flex items-center gap-1.5">
+        {/* Subtle Bottom Status Strip */}
+        <div className="flex items-center justify-between text-[9px] font-mono mt-1.5 px-0.5">
+          <span className="truncate">
             {runStatus === 'success' && (
-              <span className="text-emerald-400 flex items-center gap-1 font-bold">
-                <Check className="w-3 h-3" /> Ready ({latencyMs}ms)
+              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                <Check className="w-2.5 h-2.5" /> Ready ({latencyMs}ms)
               </span>
             )}
             {runStatus === 'error' && (
-              <span className="text-red-400 flex items-center gap-1 font-bold truncate max-w-[170px]" title={statusMessage}>
-                <AlertCircle className="w-3 h-3 shrink-0" /> {statusMessage || 'Error'}
+              <span className="text-red-400 font-bold flex items-center gap-1 truncate max-w-[170px]" title={statusMessage}>
+                <AlertCircle className="w-2.5 h-2.5 shrink-0" /> {statusMessage || 'Error'}
               </span>
             )}
             {runStatus === 'running' && (
-              <span className="text-blue-400 flex items-center gap-1 font-bold animate-pulse">
-                <Loader2 className="w-3 h-3 animate-spin" /> Running...
-              </span>
+              <span className="text-blue-400 font-bold animate-pulse">Running...</span>
             )}
             {runStatus === 'idle' && (
-              <span className="text-slate-400 flex items-center gap-1">
-                • Idle (Awaiting Run)
-              </span>
+              <span className="text-slate-400">• {language.toUpperCase()} • Idle</span>
             )}
-          </div>
+          </span>
 
-          <span className={`text-[9px] font-mono font-bold ${
-            data?.upstreamCount > 1 
-              ? 'text-[#EAAA00]' 
-              : data?.upstreamCount === 1 
-                ? 'text-[#0091DA]' 
-                : 'text-slate-400'
-          }`}>
+          <span className="text-slate-400 shrink-0 ml-2">
             {data?.upstreamCount > 1 
-              ? `⚡ ${data.upstreamCount} In (Fan-In)` 
+              ? `⚡ ${data.upstreamCount} In` 
               : data?.upstreamCount === 1 
-                ? '🔗 1 In (Chained)' 
+                ? '🔗 1 In' 
                 : 'Standalone'}
           </span>
         </div>
-
-        {/* Bottom Workspace Action */}
-        <button
-          onClick={handleOpenWorkspace}
-          className={`w-full py-1.5 px-3 border text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all ${
-            isDarkMode 
-              ? 'bg-[#1E2333] hover:bg-[#252C40] border-[#343D56] text-[#0091DA]' 
-              : 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-[#00338D]'
-          } rounded-none cursor-pointer`}
-        >
-          <span>Open Logic & Sandbox</span>
-          <ExternalLink className="w-3 h-3" />
-        </button>
       </div>
     </div>
   );

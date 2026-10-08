@@ -143,15 +143,11 @@ function CanvasInner({
     }
   }, [setIsDrawerExpanded, nodes, onSelectNode]);
 
-  // Switch to specific deterministic node Co-Pilot and expand bottom drawer
+  // Switch to specific deterministic node Co-Pilot and expand bottom drawer (isolated from right Inspector)
   const handleOpenDeterministicChat = useCallback((nodeId) => {
     if (setIsDrawerExpanded) setIsDrawerExpanded(true);
     window.dispatchEvent(new CustomEvent('keaos:set-drawer-mode', { detail: { mode: 'deterministic-copilot', nodeId } }));
-    const targetNode = (nodes || []).find(n => n.id === nodeId);
-    if (targetNode && onSelectNode) {
-      onSelectNode(targetNode);
-    }
-  }, [setIsDrawerExpanded, nodes, onSelectNode]);
+  }, [setIsDrawerExpanded]);
 
   // Global toast listener for canvas messages
   useEffect(() => {

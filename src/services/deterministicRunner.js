@@ -183,12 +183,62 @@ function executeSimpleSQL(sqlQuery, tablesMap) {
   return workingRows;
 }
 
+// In-memory state store for stateful deterministic rules (e.g. accumulator tables, Excel row buffers)
+const deterministicStateStore = new Map();
+
+export function getDeterministicState(nodeId = 'default') {
+  if (!deterministicStateStore.has(nodeId)) {
+    deterministicStateStore.set(nodeId, { rows: [], history: [], accumulator: [] });
+  }
+  return deterministicStateStore.get(nodeId);
+}
+
+export function resetDeterministicState(nodeId = 'default') {
+  if (deterministicStateStore.has(nodeId)) {
+    deterministicStateStore.delete(nodeId);
+  }
+}
+
+export function downloadSpreadsheetFile(rows, filename = 'output.csv') {
+  if (!rows || !Array.isArray(rows) || rows.length === 0) return false;
+  try {
+    const headers = Object.keys(rows[0]).filter(k => !k.startsWith('__'));
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => headers.map(h => {
+        const val = r[h] !== undefined && r[h] !== null ? r[h] : '';
+        const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+        return str.includes(',') || str.includes('"') || str.includes('\n')
+          ? `"${str.replace(/"/g, '""')}"`
+          : str;
+      }).join(','))
+    ].join('\n');
+
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename.endsWith('.csv') ? filename : `${filename}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      return true;
+    }
+  } catch (err) {
+    console.error('Failed to download spreadsheet:', err);
+  }
+  return false;
+}
+
 /**
- * Executes JavaScript / TypeScript deterministic logic.
+ * Executes JavaScript / TypeScript deterministic logic with stateful memory and export tools.
  */
-export async function executeDeterministicJS(code, inputData = {}) {
+export async function executeDeterministicJS(code, inputData = {}, nodeId = 'default') {
   const startTime = performance.now();
   const normalized = normalizeInputs(inputData);
+  const state = getDeterministicState(nodeId);
 
   try {
     // Check if code contains process(...) or transform(...) function declaration
@@ -197,7 +247,7 @@ export async function executeDeterministicJS(code, inputData = {}) {
       runnerScript = `
         ${code}
         if (typeof process === 'function') {
-          return process(inputs);
+          return process(inputs, state);
         }
         return typeof result !== 'undefined' ? result : inputs;
       `;
@@ -211,16 +261,22 @@ export async function executeDeterministicJS(code, inputData = {}) {
       `;
     }
 
+    const exportExcel = (rows, fname = 'output.csv') => downloadSpreadsheetFile(rows || state.rows, fname);
+    const exportCsv = exportExcel;
+
     // Isolate execution via Function constructor
-    // Expose helpers: Math, Date, JSON, Object, Array, RegExp, Number, String
-    const fn = new Function('inputs', 'input', 'data', runnerScript);
-    const result = fn(normalized, normalized, normalized.data);
+    // Expose helpers: inputs, state, exportExcel, exportCsv
+    const fn = new Function('inputs', 'input', 'data', 'state', 'exportExcel', 'exportCsv', runnerScript);
+    const result = fn(normalized, normalized, normalized.data, state, exportExcel, exportCsv);
 
     const latencyMs = Number((performance.now() - startTime).toFixed(2));
+    const tableData = (result && result.table) || (state && state.rows && state.rows.length > 0 ? state.rows : null);
+
     return {
       success: true,
       language: 'javascript',
       output: result,
+      tableData,
       latencyMs,
       timestamp: new Date().toISOString()
     };
@@ -375,6 +431,7 @@ export async function executeDeterministicTask({
   language = 'auto',
   code = '',
   inputData = {},
+  nodeId = 'default',
   engine = 'auto'
 }) {
   let lang = (language || 'auto').toLowerCase();
@@ -396,6 +453,6 @@ export async function executeDeterministicTask({
     return await executeDeterministicPython(code, inputData);
   } else {
     // Default to JavaScript / TypeScript
-    return await executeDeterministicJS(code, inputData);
+    return await executeDeterministicJS(code, inputData, nodeId);
   }
 }
