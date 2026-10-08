@@ -18,27 +18,48 @@ export default function DeterministicNode({ id, data, selected }) {
   const isDeactivated = Boolean(data?.isDeactivated);
   
   const [isRunning, setIsRunning] = useState(false);
-  const [runStatus, setRunStatus] = useState(data?.lastStatus || 'idle'); // idle | success | error
+  const [runStatus, setRunStatus] = useState(data?.lastStatus || 'idle');
   const [statusMessage, setStatusMessage] = useState(data?.lastError || '');
   const [latencyMs, setLatencyMs] = useState(data?.lastLatencyMs || null);
 
   const language = (data?.language || 'python').toLowerCase();
   const codeText = data?.code || '';
 
-  // Local state for inline editable text box
-  const [localPrompt, setLocalPrompt] = useState(data?.prompt || '');
+  // Inline Editable Rule Title
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [nodeTitle, setNodeTitle] = useState(data?.name || 'Rule1');
 
   useEffect(() => {
-    if (data?.prompt !== undefined && data?.prompt !== localPrompt) {
-      setLocalPrompt(data.prompt);
+    if (data?.name && data.name !== nodeTitle) {
+      setNodeTitle(data.name);
     }
-  }, [data?.prompt]);
+  }, [data?.name]);
 
-  const handlePromptChange = (e) => {
+  const handleTitleSubmit = () => {
+    setIsEditingTitle(false);
+    const trimmed = nodeTitle.trim() || 'Rule1';
+    setNodeTitle(trimmed);
+    if (data?.onRename) {
+      data.onRename(id, trimmed);
+    } else if (data?.onUpdateNodeData) {
+      data.onUpdateNodeData(id, { name: trimmed });
+    }
+  };
+
+  // Local state for inline editable rule summary / prompt
+  const displaySummary = data?.ruleSummary || data?.summary || data?.prompt || '';
+  const [localText, setLocalText] = useState(displaySummary);
+
+  useEffect(() => {
+    const current = data?.ruleSummary || data?.summary || data?.prompt || '';
+    setLocalText(current);
+  }, [data?.ruleSummary, data?.summary, data?.prompt]);
+
+  const handleTextChange = (e) => {
     const val = e.target.value;
-    setLocalPrompt(val);
+    setLocalText(val);
     if (data?.onUpdateNodeData) {
-      data.onUpdateNodeData(id, { prompt: val });
+      data.onUpdateNodeData(id, { prompt: val, ruleSummary: val, summary: val });
     }
   };
 
@@ -53,8 +74,9 @@ export default function DeterministicNode({ id, data, selected }) {
     try {
       const inputPayload = data?.upstreamPayload || data?.currentInput || data?.manualInput || data?.uploadedData || { sampleA: 10, sampleB: 20 };
       const res = await executeDeterministicTask({
+        nodeId: id,
         language,
-        code: codeText || (language === 'python' ? 'def process(inputs):\n    return inputs' : 'function process(inputs) { return inputs; }'),
+        code: codeText || (language === 'python' ? 'def process(inputs):\n    return inputs' : 'function process(inputs, state) { return inputs; }'),
         inputData: inputPayload
       });
 
@@ -118,7 +140,7 @@ export default function DeterministicNode({ id, data, selected }) {
   return (
     <div
       onClick={handleBoxClick}
-      className={`relative group w-80 select-none transition-all duration-200 cursor-pointer ${
+      className={`relative group w-72 select-none transition-all duration-150 cursor-pointer ${
         isDarkMode ? 'bg-[#151821] text-white' : 'bg-white text-[#0B0F19]'
       } ${
         selected 
@@ -133,10 +155,10 @@ export default function DeterministicNode({ id, data, selected }) {
         borderTop: '3px solid #EAAA00' // Distinctive Amber Gold Deterministic Accent
       }}
     >
-      {/* Floating Micro-Toolbar on Hover (displays on hover just like Agent and circular nodes) */}
+      {/* Floating Micro-Toolbar on Hover */}
       <NodeActionToolbar
         nodeId={id}
-        nodeName={data?.name || 'Deterministic Logic'}
+        nodeName={nodeTitle}
         isDeactivated={isDeactivated}
         onOpenChat={handleChatClick}
         onExecute={handleQuickRun}
@@ -145,13 +167,16 @@ export default function DeterministicNode({ id, data, selected }) {
         onOpenInspector={() => data?.onOpenInspector && data.onOpenInspector(id)}
         onDuplicate={() => data?.onDuplicate && data.onDuplicate(id)}
         onCopy={() => data?.onCopy && data.onCopy(id)}
-        onRename={(nodeId, newName) => data?.onRename && data.onRename(nodeId, newName)}
+        onRename={(nodeId, newName) => {
+          setNodeTitle(newName);
+          if (data?.onRename) data.onRename(nodeId, newName);
+        }}
         isDarkMode={isDarkMode}
         className="-top-7 right-2"
         dropdownPlacement="bottom"
       />
 
-      {/* Input Handle (Left - Accepts connections from multiple boxes/agents) */}
+      {/* Input Handle (Left - Fan-in supported) */}
       <Handle
         type="target"
         position={Position.Left}
@@ -167,10 +192,10 @@ export default function DeterministicNode({ id, data, selected }) {
           borderWidth: '2px',
           zIndex: 20
         }}
-        title="Input Data Stream (Fan-in supported)"
+        title="Input Data Stream"
       />
 
-      {/* Output Handle (Right - Feeds downstream boxes or agents) */}
+      {/* Output Handle (Right - Fan-out supported) */}
       <Handle
         type="source"
         position={Position.Right}
@@ -186,31 +211,52 @@ export default function DeterministicNode({ id, data, selected }) {
           borderWidth: '2px',
           zIndex: 20
         }}
-        title="Deterministic Output Stream (Fan-out supported)"
+        title="Deterministic Output Stream"
       />
 
-      {/* Top Header: Title on Left, Small Borderless Icons on Top Right (no boxes around them) */}
-      <div className={`px-3 pt-2.5 pb-1.5 flex items-center justify-between border-b ${
+      {/* Top Header: Clean, borderless ghost actions, editable title */}
+      <div className={`px-2.5 pt-2 pb-1.5 flex items-center justify-between border-b ${
         isDarkMode ? 'border-[#262B3B]/60' : 'border-slate-100'
       }`}>
-        <div className="flex items-center gap-1.5 min-w-0">
+        {/* Left: Icon and Inline Editable Title */}
+        <div className="flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
           <Code2 className="w-3.5 h-3.5 text-[#EAAA00] shrink-0" />
-          <span className="text-xs font-mono font-bold text-[#EAAA00] truncate">
-            {data?.name || 'Deterministic Logic'}
-          </span>
-          <span className="text-[8.5px] font-mono text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded-none font-bold shrink-0">
-            0 TOK
-          </span>
+          {isEditingTitle ? (
+            <input
+              type="text"
+              value={nodeTitle}
+              onChange={(e) => setNodeTitle(e.target.value)}
+              onBlur={handleTitleSubmit}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === 'Enter') handleTitleSubmit();
+                if (e.key === 'Escape') {
+                  setNodeTitle(data?.name || 'Rule1');
+                  setIsEditingTitle(false);
+                }
+              }}
+              autoFocus
+              className="nodrag nowheel text-xs font-mono font-bold text-[#EAAA00] bg-transparent border-b border-[#EAAA00] outline-none px-0.5 py-0 max-w-[130px]"
+            />
+          ) : (
+            <span
+              onClick={() => setIsEditingTitle(true)}
+              title="Click to rename rule"
+              className="text-xs font-mono font-bold text-[#EAAA00] truncate max-w-[130px] cursor-text hover:underline decoration-dashed decoration-[#EAAA00]/60 transition-all"
+            >
+              {nodeTitle}
+            </span>
+          )}
         </div>
 
-        {/* Small icons on top right WITHOUT boxes/borders around them */}
+        {/* Right: Tactile Ghost Action Icons (No boxes/borders around them) */}
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-          {/* Quick Run icon button */}
+          {/* Quick Run */}
           <button
             type="button"
             onClick={handleQuickRun}
             disabled={isRunning}
-            className={`p-1 transition-colors cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
+            className={`p-1 transition-all duration-100 cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
               isDarkMode 
                 ? 'text-slate-400 hover:text-emerald-400' 
                 : 'text-slate-500 hover:text-emerald-600'
@@ -224,81 +270,51 @@ export default function DeterministicNode({ id, data, selected }) {
             )}
           </button>
 
-          {/* Chat icon button — Opens bottom Co-Pilot chat ONLY */}
+          {/* Chat Icon — Opens bottom Co-Pilot chat ONLY */}
           <button
             type="button"
             onClick={handleChatClick}
-            className={`p-1 transition-colors cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
+            className={`p-1 transition-all duration-100 cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
               isDarkMode 
                 ? 'text-slate-400 hover:text-[#0091DA]' 
                 : 'text-slate-500 hover:text-[#00338D]'
             }`}
-            title="Open Co-Pilot chat in bottom panel"
+            title="Open Co-Pilot chat"
           >
             <MessageSquare className="w-3.5 h-3.5" />
           </button>
 
-          {/* Small button to open Sandbox Workspace */}
+          {/* Sandbox Workspace */}
           <button
             type="button"
             onClick={handleOpenSandbox}
-            className={`p-1 transition-colors cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
+            className={`p-1 transition-all duration-100 cursor-pointer active:scale-90 bg-transparent border-0 outline-none ${
               isDarkMode 
                 ? 'text-slate-400 hover:text-[#EAAA00]' 
                 : 'text-slate-500 hover:text-[#B8860B]'
             }`}
-            title="Open Full Deterministic Sandbox Workspace"
+            title="Open Sandbox Workspace"
           >
             <Sliders className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Main Body: Clean Text Box for Deterministic Rule / Prompt */}
-      <div className="p-3">
+      {/* Main Body: Maximized Functional Rule Summary Text Area */}
+      <div className="p-2.5">
         <textarea
-          value={localPrompt}
-          onChange={handlePromptChange}
+          value={localText}
+          onChange={handleTextChange}
           onKeyDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          rows={3}
-          placeholder="Enter deterministic rule or prompt (e.g. filter rows where status is active)..."
-          className={`nodrag nowheel w-full p-2 text-xs font-mono leading-relaxed resize-none rounded-none border transition-colors outline-none focus:ring-1 focus:ring-[#EAAA00] ${
+          rows={3.5}
+          placeholder="Rule summary (e.g. Appends incoming records into stateful Excel workbook)..."
+          className={`nodrag nowheel w-full p-2 text-[11px] font-mono leading-relaxed resize-none rounded-none border transition-colors outline-none focus:ring-1 focus:ring-[#EAAA00] ${
             isDarkMode 
-              ? 'bg-[#0B0F19] border-[#2A3042] text-slate-200 placeholder-slate-600 focus:border-[#EAAA00]' 
+              ? 'bg-[#0A0D14] border-[#242A3B] text-slate-200 placeholder-slate-600 focus:border-[#EAAA00]'
               : 'bg-slate-50 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-[#EAAA00]'
           }`}
         />
-
-        {/* Subtle Bottom Status Strip */}
-        <div className="flex items-center justify-between text-[9px] font-mono mt-1.5 px-0.5">
-          <span className="truncate">
-            {runStatus === 'success' && (
-              <span className="text-emerald-400 font-bold flex items-center gap-1">
-                <Check className="w-2.5 h-2.5" /> Ready ({latencyMs}ms)
-              </span>
-            )}
-            {runStatus === 'error' && (
-              <span className="text-red-400 font-bold flex items-center gap-1 truncate max-w-[170px]" title={statusMessage}>
-                <AlertCircle className="w-2.5 h-2.5 shrink-0" /> {statusMessage || 'Error'}
-              </span>
-            )}
-            {runStatus === 'running' && (
-              <span className="text-blue-400 font-bold animate-pulse">Running...</span>
-            )}
-            {runStatus === 'idle' && (
-              <span className="text-slate-400">• {language.toUpperCase()} • Idle</span>
-            )}
-          </span>
-
-          <span className="text-slate-400 shrink-0 ml-2">
-            {data?.upstreamCount > 1 
-              ? `⚡ ${data.upstreamCount} In` 
-              : data?.upstreamCount === 1 
-                ? '🔗 1 In' 
-                : 'Standalone'}
-          </span>
-        </div>
       </div>
     </div>
   );

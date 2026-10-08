@@ -328,6 +328,8 @@ function CanvasInner({
                 code: detail.code !== undefined ? detail.code : n.data?.code,
                 language: detail.language !== undefined ? detail.language : n.data?.language,
                 prompt: detail.prompt !== undefined ? detail.prompt : n.data?.prompt,
+                ruleSummary: detail.ruleSummary || detail.summary || detail.prompt || n.data?.ruleSummary,
+                summary: detail.summary || detail.ruleSummary || detail.prompt || n.data?.summary,
                 lastStatus: 'ready'
               }
             };

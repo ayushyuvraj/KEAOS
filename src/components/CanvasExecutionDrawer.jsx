@@ -976,9 +976,11 @@ When the user states what they want or asks "How do I get this?" / describes a l
 PHASE 2: FINALIZATION & DEPLOYMENT (When User Approves)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy", "looks good", "go ahead", "do it", "sound good", "implement it", "I am okay with this logic"):
-1. Confirm deployment in 1 crisp sentence:
+1. Provide a single-line functional summary of what this rule does in as few words as possible (do NOT echo user chat phrases):
+   RULE_SUMMARY: <Ultra-crisp summary of rule function, max 6-10 words, e.g. Appends incoming records into stateful Excel table>
+2. Confirm deployment in 1 crisp sentence:
    "✓ Logic compiled and deployed to ${activeDeterministicNode.data?.name || 'Rule Box'}. The rule is now live and ready to run."
-2. Immediately provide the COMPLETE, self-contained, working deterministic code inside a single standard markdown code block:
+3. Immediately provide the COMPLETE, self-contained, working deterministic code inside a single standard markdown code block:
    \`\`\`javascript
    // Self-contained browser-native process function
    function process(inputs, state) {
@@ -992,7 +994,7 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
      ...
      return result
    \`\`\`
-3. BROWSER & PLATFORM RUNTIME RULES:
+4. BROWSER & PLATFORM RUNTIME RULES:
    - This code executes directly inside the KEAOS browser sandbox engine.
    - For stateful appending (e.g. Excel/CSV table accumulator):
      The runtime provides a persistent \`state\` object and \`inputs\`.
@@ -1047,13 +1049,31 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
         const detectedCode = codeMatch[2].trim();
         const deployedBlockId = `${assistantMsgId}-block-0`;
 
+        // Extract ultra-short functional summary for the canvas node preview
+        const summaryRegex = /RULE_SUMMARY:\s*([^\n\r]+)/i;
+        const summaryMatch = summaryRegex.exec(responseText);
+        let detectedSummary = summaryMatch ? summaryMatch[1].trim() : null;
+
+        if (!detectedSummary && detectedCode) {
+          const commentMatch = /\/\/\s*([^\n\r]+)/.exec(detectedCode);
+          if (commentMatch && !commentMatch[1].toLowerCase().includes('self-contained')) {
+            detectedSummary = commentMatch[1].trim();
+          }
+        }
+
+        if (!detectedSummary) {
+          detectedSummary = 'Executes custom deterministic logic';
+        }
+
         // Automatically compile and deploy the code into the canvas node!
         window.dispatchEvent(new CustomEvent('keaos:deterministic-code-updated', {
           detail: {
             nodeId,
             code: detectedCode,
             language: detectedLang,
-            prompt: promptText
+            prompt: detectedSummary,
+            ruleSummary: detectedSummary,
+            summary: detectedSummary
           }
         }));
 

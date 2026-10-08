@@ -566,6 +566,13 @@ export default function App() {
         nodeData = { ...nodeData, prompt, name };
       }
 
+      if (n.type === 'deterministicNode') {
+        if (prompt && (prompt.includes('I am okay with') || prompt.includes('implement now') || prompt.includes('proceed with'))) {
+          const cleanSummary = nodeData.ruleSummary || 'Appends incoming records into stateful Excel workbook';
+          nodeData = { ...nodeData, prompt: cleanSummary, ruleSummary: cleanSummary, summary: cleanSummary };
+        }
+      }
+
       // Auto-upgrade persisted MCP nodes to full official tool catalogs
       if (n.type === 'pillar' && nodeData.pillarType === 'mcp') {
         const srv = identifyMcpService(nodeData, n.id);
