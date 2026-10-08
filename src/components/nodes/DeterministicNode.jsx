@@ -45,12 +45,18 @@ export default function DeterministicNode({ id, data, selected }) {
     codeText.trim() !== 'function process(inputs) {\n  return inputs;\n}'
   );
   const codeLines = codeText ? codeText.split('\n').filter(l => l.trim()).length : 0;
+  const isStaged = Boolean(data?.isStaged && !isRunning);
+
   useEffect(() => {
     if (data?.lastStatus) setRunStatus(data.lastStatus);
     if (data?.isRunning !== undefined) setIsRunning(Boolean(data.isRunning));
+    if (data?.isExecuting !== undefined) {
+      setIsRunning(Boolean(data.isExecuting));
+      if (data.isExecuting) setRunStatus('running');
+    }
     if (data?.lastLatencyMs !== undefined) setLatencyMs(data.lastLatencyMs);
     if (data?.lastError !== undefined) setStatusMessage(data.lastError || '');
-  }, [data?.lastStatus, data?.isRunning, data?.lastLatencyMs, data?.lastError]);
+  }, [data?.lastStatus, data?.isRunning, data?.isExecuting, data?.lastLatencyMs, data?.lastError]);
 
   // Listen for real-time executing and executed events for this specific node
   useEffect(() => {
@@ -164,13 +170,16 @@ export default function DeterministicNode({ id, data, selected }) {
         || data?.uploadedData 
         || { sampleA: 10, sampleB: 20, tokens: 1250, latencyMs: 140 };
 
-      const res = await executeDeterministicTask({
-        nodeId: id,
-        language,
-        code: data?.code || '',
-        prompt: localText || data?.prompt || data?.ruleSummary || '',
-        inputData: inputPayload
-      });
+      const [res] = await Promise.all([
+        executeDeterministicTask({
+          nodeId: id,
+          language,
+          code: data?.code || '',
+          prompt: localText || data?.prompt || data?.ruleSummary || '',
+          inputData: inputPayload
+        }),
+        new Promise((resolve) => setTimeout(resolve, 850))
+      ]);
 
       if (res.success) {
         setRunStatus('success');
@@ -240,12 +249,16 @@ export default function DeterministicNode({ id, data, selected }) {
   return (
     <div
       onClick={handleBoxClick}
-      className={`relative group w-72 select-none transition-all duration-150 cursor-pointer ${
+      className={`relative group w-72 select-none transition-all duration-200 cursor-pointer ${
         isDarkMode ? 'bg-[#151821] text-white' : 'bg-white text-[#0B0F19]'
       } ${
-        selected 
-          ? 'ring-2 ring-[#0091DA] shadow-[0_0_20px_rgba(0,145,218,0.25)]' 
-          : 'shadow-md hover:shadow-xl'
+        isRunning 
+          ? 'deterministic-glow-breath ring-4 ring-amber-400/70 scale-[1.02] border-[#EAAA00]' 
+          : isStaged
+            ? 'ring-2 ring-amber-400/40 border-amber-500/80 shadow-[0_0_18px_rgba(234,170,0,0.25)]'
+            : selected 
+              ? 'ring-2 ring-[#0091DA] shadow-[0_0_20px_rgba(0,145,218,0.25)]' 
+              : 'shadow-md hover:shadow-xl'
       } ${
         isDeactivated ? 'opacity-40 grayscale' : 'opacity-100'
       } border ${
@@ -254,18 +267,60 @@ export default function DeterministicNode({ id, data, selected }) {
       style={{
         borderTop: isRunning 
           ? '3px solid #EAAA00' 
-          : runStatus === 'success' 
-            ? '3px solid #10B981' 
-            : runStatus === 'error'
-              ? '3px solid #EF4444'
-              : '3px solid #EAAA00',
+          : isStaged
+            ? '3px solid #EAAA00'
+            : runStatus === 'success' 
+              ? '3px solid #10B981' 
+              : runStatus === 'error'
+                ? '3px solid #EF4444'
+                : '3px solid #EAAA00',
         boxShadow: isRunning 
-          ? '0 0 25px rgba(234, 170, 0, 0.45), 0 0 50px rgba(234, 170, 0, 0.2)' 
-          : runStatus === 'success'
-            ? '0 0 15px rgba(16, 185, 129, 0.2)'
-            : undefined
+          ? undefined
+          : isStaged
+            ? '0 0 16px rgba(234, 170, 0, 0.3)'
+            : runStatus === 'success'
+              ? '0 0 15px rgba(16, 185, 129, 0.2)'
+              : undefined
       }}
     >
+      {/* Floating Active Status Beacon (Exact Parity with Circular Nodes) */}
+      {isRunning ? (
+        <div 
+          className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[8.5px] font-mono tracking-wider font-bold uppercase shadow-2xl z-40 flex items-center gap-1.5 text-white bg-[#EAAA00] animate-bounce pointer-events-none"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+          <span>COMPUTING LOGIC • 0 TOKENS</span>
+        </div>
+      ) : isStaged ? (
+        <div 
+          className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[8px] font-mono tracking-wider font-bold uppercase shadow-lg z-40 flex items-center gap-1.5 text-amber-200 bg-amber-950/90 border border-amber-500/50 pointer-events-none animate-pulse"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+          <span>PIPELINE STAGED • AWAITING STREAM</span>
+        </div>
+      ) : null}
+
+      {/* Concentric Perimeter Radar Waves when Active (Exact Parity with Circular Nodes) */}
+      {isRunning && (
+        <>
+          <span 
+            className="absolute -inset-2.5 rounded-none animate-ping opacity-40 pointer-events-none z-0"
+            style={{ backgroundColor: '#EAAA00' }}
+          />
+          <span 
+            className="absolute -inset-1 rounded-none animate-pulse opacity-45 pointer-events-none z-0"
+            style={{ backgroundColor: '#EAAA00' }}
+          />
+        </>
+      )}
+
+      {/* Scanning Laser Beam Overlay during active computation */}
+      {isRunning && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
+          <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-amber-400/25 to-transparent deterministic-laser-sweep" />
+        </div>
+      )}
+
       {/* Floating Micro-Toolbar on Hover */}
       <NodeActionToolbar
         nodeId={id}
@@ -298,12 +353,12 @@ export default function DeterministicNode({ id, data, selected }) {
           width: '12px',
           height: '12px',
           borderRadius: '0px',
-          backgroundColor: isRunning ? '#F59E0B' : '#EAAA00',
+          backgroundColor: isRunning ? '#F59E0B' : isStaged ? '#D97706' : '#EAAA00',
           borderColor: isDarkMode ? '#151821' : '#FFFFFF',
           borderWidth: '2px',
-          zIndex: 20
+          zIndex: 30
         }}
-        className={isRunning ? 'animate-pulse ring-2 ring-amber-400' : ''}
+        className={isRunning ? 'animate-pulse ring-4 ring-amber-400/80' : isStaged ? 'animate-pulse ring-2 ring-amber-400/50' : ''}
         title="Input Data Stream (Connect Agent or Ingestion Output)"
       />
 
@@ -318,11 +373,12 @@ export default function DeterministicNode({ id, data, selected }) {
           width: '12px',
           height: '12px',
           borderRadius: '0px',
-          backgroundColor: runStatus === 'success' ? '#10B981' : '#0091DA',
+          backgroundColor: isRunning ? '#F59E0B' : runStatus === 'success' ? '#10B981' : '#0091DA',
           borderColor: isDarkMode ? '#151821' : '#FFFFFF',
           borderWidth: '2px',
-          zIndex: 20
+          zIndex: 30
         }}
+        className={isRunning ? 'animate-pulse ring-4 ring-amber-400/80' : ''}
         title="Deterministic Output Stream (Connect to Final Output Viewer to inspect/export)"
       />
 
@@ -362,9 +418,14 @@ export default function DeterministicNode({ id, data, selected }) {
 
           {/* Logic Presence Indicator (Institutional Zero-Click Awareness) */}
           {isRunning ? (
-            <span className="text-[8px] font-mono px-1 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 font-bold animate-pulse shrink-0">
-              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+            <span className="text-[8px] font-mono px-1.5 py-0.2 bg-amber-500 text-black flex items-center gap-1 font-bold animate-pulse shrink-0">
+              <Loader2 className="w-2.5 h-2.5 animate-spin text-black" />
               <span>RUNNING</span>
+            </span>
+          ) : isStaged ? (
+            <span className="text-[8px] font-mono px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 font-bold animate-pulse shrink-0" title="Workflow pipeline active: awaiting upstream output stream">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+              <span>STAGED</span>
             </span>
           ) : hasCompiledCode ? (
             <span 

@@ -239,19 +239,30 @@ function CanvasInner({
             }));
           });
 
+          // Also set executionState so canvas wires and glowing indicators highlight this node!
+          setExecutionState({
+            isExecuting: true,
+            step: `Executing Deterministic Logic...`,
+            nodeId: connectedDetNodes[0]?.id
+          });
+
           setTimeout(() => {
             connectedDetNodes.forEach(async (detNode) => {
               const code = detNode.data?.code;
               const prompt = detNode.data?.prompt || detNode.data?.ruleSummary || detNode.data?.summary || '';
               const lang = detNode.data?.language || 'auto';
               try {
-                const res = await executeDeterministicTask({
-                  nodeId: detNode.id,
-                  language: lang,
-                  code,
-                  prompt,
-                  inputData: richAgentPayload
-                });
+                // Guarantee at least 850ms visible celebration window so user actually sees the glow & bouncing beacon!
+                const [res] = await Promise.all([
+                  executeDeterministicTask({
+                    nodeId: detNode.id,
+                    language: lang,
+                    code,
+                    prompt,
+                    inputData: richAgentPayload
+                  }),
+                  new Promise((r) => setTimeout(r, 850))
+                ]);
 
                 window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
                   detail: { 
@@ -269,6 +280,8 @@ function CanvasInner({
                 window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
                   detail: { nodeId: detNode.id, output: err.message, latencyMs: 0, success: false, error: err.message }
                 }));
+              } finally {
+                setExecutionState({ isExecuting: false, step: '' });
               }
             });
           }, 60);
@@ -1580,11 +1593,13 @@ function CanvasInner({
         n.id === executionState.activeAgentId ||
         (n.type === 'agentCore' && !executionState.nodeId && !executionState.activeAgentId) ||
         (n.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
-        (n.data?.pillarType && n.data.pillarType === executionState.pillarType)
+        (n.data?.pillarType && n.data.pillarType === executionState.pillarType) ||
+        (n.type === 'deterministicNode' && (executionState.nodeId === n.id || executionState.step?.includes('Deterministic')))
       );
 
       // Dynamically calculate attachedCounts and connectedModelName specifically for THIS agent node
       // Rule 1: Explicitly initialize all prospective return fields in outer iteration scope
+      let isStaged = false;
       let agentCounts = n.data?.attachedCounts;
       let connectedModelName = null;
       let inheritedModelName = null;
@@ -1695,7 +1710,21 @@ function CanvasInner({
 
       if (n.type === 'deterministicNode') {
         const incomingEdges = (edges || []).filter(e => e.target === n.id);
+        const outgoingEdges = (edges || []).filter(e => e.source === n.id);
         upstreamCount = incomingEdges.length;
+
+        // If workflow is executing and this deterministic node is connected in the active DAG, mark as staged!
+        if (executionState.isExecuting && !n.data?.isDeactivated) {
+          const isConnectedToWorkflow = incomingEdges.some(e => {
+            const src = nodeLookup[e.source];
+            return src?.type === 'agentCore' || src?.type === 'outputNode';
+          }) || outgoingEdges.some(e => {
+            const tgt = nodeLookup[e.target];
+            return tgt?.type === 'agentCore' || tgt?.type === 'outputNode';
+          });
+          isStaged = isConnectedToWorkflow;
+        }
+
         upstreamSources = incomingEdges.map(e => {
           const srcNode = nodeLookup[e.source];
           let srcOutput = srcNode?.data?.lastOutput ?? srcNode?.data?.content ?? srcNode?.data?.outputContent ?? null;
@@ -1741,7 +1770,8 @@ function CanvasInner({
         data: {
           ...n.data,
           isDarkMode,
-          isExecuting: isThisNodeActive || (n.type === 'agentCore' && executionState.isExecuting && !executionState.activeAgentId),
+          isExecuting: isThisNodeActive || (n.type === 'agentCore' && executionState.isExecuting && !executionState.activeAgentId) || (n.type === 'deterministicNode' && (isThisNodeActive || n.data?.isRunning)),
+          isStaged,
           executionStep: executionState.step,
           attachedCounts: agentCounts,
           connectedModelName: connectedModelName,
@@ -1805,25 +1835,40 @@ function CanvasInner({
       const originalStroke = edge.style?.stroke || '#0091DA';
       const deactivatedStroke = isDarkMode ? '#475569' : '#94A3B8';
 
-      // Live Active Wire Animation: When source pillar or ingestion node is actively transmitting
-      const isSourceActive = executionState.isExecuting && (
+      // Deterministic Edge checks: wires connected to or from deterministicNode
+      const isDetEdge = (sourceNode?.type === 'deterministicNode' || targetNode?.type === 'deterministicNode');
+      const isDetActive = isDetEdge && (
+        (executionState.isExecuting && (
+          executionState.step?.includes('Deterministic') ||
+          executionState.nodeId === edge.source ||
+          executionState.nodeId === edge.target
+        )) ||
+        sourceNode?.data?.isRunning ||
+        targetNode?.data?.isRunning ||
+        (executionState.isExecuting && (sourceNode?.data?.isStaged || targetNode?.data?.isStaged))
+      );
+
+      // Live Active Wire Animation: When source pillar, ingestion node, or deterministic node is actively transmitting
+      const isSourceActive = (executionState.isExecuting && (
         (sourceNode?.data?.pillarType && sourceNode.data.pillarType === executionState.pillarType) ||
         (sourceNode?.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
         (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode' && (executionState.step === 'Complete' || executionState.step === 'Starting'))
-      );
+      )) || Boolean(isDetActive);
 
       // Only animate edges when there is active execution or streaming in progress
-      const isEdgeStreaming = executionState.isExecuting && (
+      const isEdgeStreaming = (executionState.isExecuting && (
         isSourceActive ||
         (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode') ||
         (sourceNode?.data?.pillarType === 'model' && targetNode?.type === 'agentCore')
-      );
+      )) || Boolean(isDetActive);
 
-      const activeColor = sourceNode?.data?.pillarType 
-        ? (PILLARS[sourceNode.data.pillarType]?.color || '#0091DA') 
-        : (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') 
-          ? '#10B981' 
-          : '#0091DA';
+      const activeColor = isDetEdge 
+        ? '#EAAA00' 
+        : sourceNode?.data?.pillarType 
+          ? (PILLARS[sourceNode.data.pillarType]?.color || '#0091DA') 
+          : (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') 
+            ? '#10B981' 
+            : '#0091DA';
 
       return {
         ...edge,

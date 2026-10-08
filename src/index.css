@@ -254,6 +254,40 @@ input[type="range"].modern-slider::-moz-range-thumb {
   animation: brainBeaconBreath 3s infinite ease-in-out;
 }
 
+@keyframes deterministicBeaconBreath {
+  0%, 100% {
+    box-shadow: 0 0 16px rgba(234, 170, 0, 0.45), inset 0 0 10px rgba(234, 170, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 38px rgba(234, 170, 0, 0.9), 0 0 75px rgba(234, 170, 0, 0.35), inset 0 0 20px rgba(234, 170, 0, 0.3);
+  }
+}
+
+.deterministic-glow-breath {
+  animation: deterministicBeaconBreath 1.6s infinite ease-in-out;
+}
+
+@keyframes deterministicLaserSweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  70% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(200%);
+    opacity: 0;
+  }
+}
+
+.deterministic-laser-sweep {
+  animation: deterministicLaserSweep 1.8s infinite ease-in-out;
+}
+
 @keyframes agentSwitchCrossfade {
   from {
     opacity: 0.2;
