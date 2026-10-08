@@ -52,6 +52,14 @@ export default function OutputDisplayNode({ id, data, selected }) {
   const isDeactivated = Boolean(data.isDeactivated);
 
   const [isExpanded, setIsExpanded] = useState(data.isExpanded ?? false);
+
+  // Auto-expand when data.isExpanded changes from Canvas (e.g. when fresh output arrives)
+  useEffect(() => {
+    if (data.isExpanded !== undefined) {
+      setIsExpanded(data.isExpanded);
+    }
+  }, [data.isExpanded]);
+
   const [copied, setCopied] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
   const [viewFormat, setViewFormat] = useState('formatted'); // 'formatted' | 'raw'
@@ -862,6 +870,17 @@ export default function OutputDisplayNode({ id, data, selected }) {
             <Layers className="w-3 h-3" />
             <span>{runsHistory.length} Run{runsHistory.length !== 1 ? 's' : ''} Stored ({persistenceStrategy.toUpperCase()})</span>
           </div>
+
+          {/* Upstream Source Provenance */}
+          {data?.sourceNodeType === 'deterministic' ? (
+            <div className="flex items-center gap-1 font-bold text-amber-400 bg-amber-500/10 px-1 py-0.2 border border-amber-500/30">
+              <span>⚡ FROM RULE: {data?.sourceNodeName || 'Deterministic'}</span>
+            </div>
+          ) : data?.outputContent ? (
+            <div className="flex items-center gap-1 font-bold text-[#0091DA] bg-[#0091DA]/10 px-1 py-0.2 border border-[#0091DA]/30">
+              <span>🤖 FROM AGENT</span>
+            </div>
+          ) : null}
 
           <span>•</span>
 

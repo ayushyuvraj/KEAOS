@@ -655,7 +655,7 @@ export default function CanvasExecutionDrawer({
       try {
         window.dispatchEvent(new CustomEvent('keaos:agent-output', {
           detail: {
-            agentId: activeAgentId || 'agent-core',
+            agentId: activeAgentId || allAgentNodes[0]?.id || 'agent-core',
             output: result.rawOutput || (typeof result === 'string' ? result : JSON.stringify(result, null, 2)),
             auditHash: result.auditHash,
             observability: result.observability,
@@ -722,7 +722,9 @@ export default function CanvasExecutionDrawer({
           detail: {
             title: `Fleet Deliverable (${result.completedStages} Stages • ${result.totalAgents} Agents)`,
             markdown: result.synthesizedDeliverable,
-            result: result
+            output: result.synthesizedDeliverable,
+            result: result,
+            agentId: allAgentNodes[allAgentNodes.length - 1]?.id || allAgentNodes[0]?.id || 'agent-core'
           }
         }));
       } catch (e) {

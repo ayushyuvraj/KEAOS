@@ -17,10 +17,42 @@ export default function DeterministicNode({ id, data, selected }) {
   const isDarkMode = data?.isDarkMode !== false;
   const isDeactivated = Boolean(data?.isDeactivated);
   
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning, setIsRunning] = useState(Boolean(data?.isRunning));
   const [runStatus, setRunStatus] = useState(data?.lastStatus || 'idle');
   const [statusMessage, setStatusMessage] = useState(data?.lastError || '');
   const [latencyMs, setLatencyMs] = useState(data?.lastLatencyMs || null);
+
+  // Sync state when Canvas updates node data props
+  useEffect(() => {
+    if (data?.lastStatus) setRunStatus(data.lastStatus);
+    if (data?.isRunning !== undefined) setIsRunning(Boolean(data.isRunning));
+    if (data?.lastLatencyMs !== undefined) setLatencyMs(data.lastLatencyMs);
+    if (data?.lastError !== undefined) setStatusMessage(data.lastError || '');
+  }, [data?.lastStatus, data?.isRunning, data?.lastLatencyMs, data?.lastError]);
+
+  // Listen for real-time executing and executed events for this specific node
+  useEffect(() => {
+    const handleExecuting = (e) => {
+      if (e.detail?.nodeId === id) {
+        setIsRunning(true);
+        setRunStatus('running');
+      }
+    };
+    const handleExecuted = (e) => {
+      if (e.detail?.nodeId === id) {
+        setIsRunning(false);
+        setRunStatus(e.detail?.success !== false ? 'success' : 'error');
+        if (e.detail?.latencyMs !== undefined) setLatencyMs(e.detail.latencyMs);
+        if (e.detail?.error) setStatusMessage(e.detail.error);
+      }
+    };
+    window.addEventListener('keaos:deterministic-executing', handleExecuting);
+    window.addEventListener('keaos:deterministic-executed', handleExecuted);
+    return () => {
+      window.removeEventListener('keaos:deterministic-executing', handleExecuting);
+      window.removeEventListener('keaos:deterministic-executed', handleExecuted);
+    };
+  }, [id]);
 
   const language = (data?.language || 'python').toLowerCase();
   const codeText = data?.code || '';
@@ -152,7 +184,18 @@ export default function DeterministicNode({ id, data, selected }) {
         isDarkMode ? 'border-[#2D3346]' : 'border-slate-300'
       } rounded-none`}
       style={{
-        borderTop: '3px solid #EAAA00' // Distinctive Amber Gold Deterministic Accent
+        borderTop: isRunning 
+          ? '3px solid #EAAA00' 
+          : runStatus === 'success' 
+            ? '3px solid #10B981' 
+            : runStatus === 'error'
+              ? '3px solid #EF4444'
+              : '3px solid #EAAA00',
+        boxShadow: isRunning 
+          ? '0 0 25px rgba(234, 170, 0, 0.45), 0 0 50px rgba(234, 170, 0, 0.2)' 
+          : runStatus === 'success'
+            ? '0 0 15px rgba(16, 185, 129, 0.2)'
+            : undefined
       }}
     >
       {/* Floating Micro-Toolbar on Hover */}
@@ -176,7 +219,7 @@ export default function DeterministicNode({ id, data, selected }) {
         dropdownPlacement="bottom"
       />
 
-      {/* Input Handle (Left - Fan-in supported) */}
+      {/* Input Handle (Left - Fan-in supported, pulses when active) */}
       <Handle
         type="target"
         position={Position.Left}
@@ -187,15 +230,16 @@ export default function DeterministicNode({ id, data, selected }) {
           width: '12px',
           height: '12px',
           borderRadius: '0px',
-          backgroundColor: '#EAAA00',
+          backgroundColor: isRunning ? '#F59E0B' : '#EAAA00',
           borderColor: isDarkMode ? '#151821' : '#FFFFFF',
           borderWidth: '2px',
           zIndex: 20
         }}
-        title="Input Data Stream"
+        className={isRunning ? 'animate-pulse ring-2 ring-amber-400' : ''}
+        title="Input Data Stream (Connect Agent or Ingestion Output)"
       />
 
-      {/* Output Handle (Right - Fan-out supported) */}
+      {/* Output Handle (Right - Connects to Output Viewer) */}
       <Handle
         type="source"
         position={Position.Right}
@@ -206,21 +250,21 @@ export default function DeterministicNode({ id, data, selected }) {
           width: '12px',
           height: '12px',
           borderRadius: '0px',
-          backgroundColor: '#0091DA',
+          backgroundColor: runStatus === 'success' ? '#10B981' : '#0091DA',
           borderColor: isDarkMode ? '#151821' : '#FFFFFF',
           borderWidth: '2px',
           zIndex: 20
         }}
-        title="Deterministic Output Stream"
+        title="Deterministic Output Stream (Connect to Final Output Viewer to inspect/export)"
       />
 
-      {/* Top Header: Clean, borderless ghost actions, editable title */}
+      {/* Top Header: Clean, borderless ghost actions, editable title & live status badge */}
       <div className={`px-2.5 pt-2 pb-1.5 flex items-center justify-between border-b ${
         isDarkMode ? 'border-[#262B3B]/60' : 'border-slate-100'
       }`}>
-        {/* Left: Icon and Inline Editable Title */}
+        {/* Left: Icon, Editable Title & Status Pill */}
         <div className="flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
-          <Code2 className="w-3.5 h-3.5 text-[#EAAA00] shrink-0" />
+          <Code2 className={`w-3.5 h-3.5 shrink-0 ${isRunning ? 'text-amber-400 animate-spin' : runStatus === 'success' ? 'text-emerald-400' : 'text-[#EAAA00]'}`} />
           {isEditingTitle ? (
             <input
               type="text"
@@ -236,15 +280,36 @@ export default function DeterministicNode({ id, data, selected }) {
                 }
               }}
               autoFocus
-              className="nodrag nowheel text-xs font-mono font-bold text-[#EAAA00] bg-transparent border-b border-[#EAAA00] outline-none px-0.5 py-0 max-w-[130px]"
+              className="nodrag nowheel text-xs font-mono font-bold text-[#EAAA00] bg-transparent border-b border-[#EAAA00] outline-none px-0.5 py-0 max-w-[110px]"
             />
           ) : (
             <span
               onClick={() => setIsEditingTitle(true)}
               title="Click to rename rule"
-              className="text-xs font-mono font-bold text-[#EAAA00] truncate max-w-[130px] cursor-text hover:underline decoration-dashed decoration-[#EAAA00]/60 transition-all"
+              className="text-xs font-mono font-bold text-[#EAAA00] truncate max-w-[110px] cursor-text hover:underline decoration-dashed decoration-[#EAAA00]/60 transition-all"
             >
               {nodeTitle}
+            </span>
+          )}
+
+          {/* Institutional Status Badge */}
+          {isRunning ? (
+            <span className="text-[8px] font-mono px-1 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 font-bold animate-pulse shrink-0">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              <span>RUNNING</span>
+            </span>
+          ) : runStatus === 'success' ? (
+            <span className="text-[8px] font-mono px-1 py-0.2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-0.5 font-bold shrink-0" title={`Executed in ${latencyMs || 0}ms • 0 Tokens consumed`}>
+              <Check className="w-2.5 h-2.5 text-emerald-400" />
+              <span>{latencyMs ? `${latencyMs}ms` : '0 TOK'}</span>
+            </span>
+          ) : runStatus === 'error' ? (
+            <span className="text-[8px] font-mono px-1 py-0.2 bg-red-500/15 text-red-400 border border-red-500/30 font-bold shrink-0" title={statusMessage || 'Execution error'}>
+              ERROR
+            </span>
+          ) : (
+            <span className="text-[8px] font-mono px-1 py-0.2 bg-slate-700/20 text-slate-400 font-bold shrink-0">
+              0 TOK
             </span>
           )}
         </div>
