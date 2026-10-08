@@ -114,6 +114,8 @@ export default function DeterministicNode({ id, data, selected }) {
     }
   };
 
+  const hasPromptDirective = Boolean(localText && localText.trim().length > 0);
+
   const handleCopyCode = (e) => {
     if (e && e.stopPropagation) e.stopPropagation();
     if (!codeText) return;
