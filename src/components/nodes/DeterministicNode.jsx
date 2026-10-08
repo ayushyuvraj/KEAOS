@@ -104,11 +104,18 @@ export default function DeterministicNode({ id, data, selected }) {
     setRunStatus('running');
 
     try {
-      const inputPayload = data?.upstreamPayload || data?.currentInput || data?.manualInput || data?.uploadedData || { sampleA: 10, sampleB: 20 };
+      const inputPayload = data?.lastUpstreamReceived 
+        || data?.upstreamPayload 
+        || data?.currentInput 
+        || data?.manualInput 
+        || data?.uploadedData 
+        || { sampleA: 10, sampleB: 20, tokens: 1250, latencyMs: 140 };
+
       const res = await executeDeterministicTask({
         nodeId: id,
         language,
-        code: codeText || (language === 'python' ? 'def process(inputs):\n    return inputs' : 'function process(inputs, state) { return inputs; }'),
+        code: data?.code || '',
+        prompt: localText || data?.prompt || data?.ruleSummary || '',
         inputData: inputPayload
       });
 
@@ -119,12 +126,20 @@ export default function DeterministicNode({ id, data, selected }) {
         if (data?.onUpdateNodeData) {
           data.onUpdateNodeData(id, {
             lastOutput: res.output,
+            lastTableData: res.tableData,
             lastStatus: 'success',
             lastLatencyMs: res.latencyMs
           });
         }
         window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
-          detail: { nodeId: id, output: res.output, latencyMs: res.latencyMs }
+          detail: { 
+            nodeId: id, 
+            output: res.output, 
+            tableData: res.tableData,
+            latencyMs: res.latencyMs,
+            success: true,
+            sourceAgentName: nodeTitle
+          }
         }));
       } else {
         setRunStatus('error');
@@ -380,6 +395,20 @@ export default function DeterministicNode({ id, data, selected }) {
               : 'bg-slate-50 border-slate-300 text-slate-800 placeholder-slate-400 focus:border-[#EAAA00]'
           }`}
         />
+
+        {/* Output / Table Preview Banner if executed */}
+        {runStatus === 'success' && (data?.lastOutput || data?.lastTableData) && (
+          <div className={`mt-1.5 p-1.5 text-[9px] font-mono border ${
+            isDarkMode ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+          } flex items-center justify-between`}>
+            <span className="truncate max-w-[210px] font-medium">
+              ✓ {typeof data.lastOutput === 'object' 
+                  ? (data.lastOutput?.summary || data.lastOutput?.action || (data.lastTableData ? `${data.lastTableData.length} Rows Generated` : 'Output Ready')) 
+                  : String(data.lastOutput || 'Output Ready').slice(0, 45)}
+            </span>
+            <span className="text-[8px] font-bold shrink-0">{latencyMs ? `${latencyMs}ms` : '0 TOK'}</span>
+          </div>
+        )}
       </div>
     </div>
   );

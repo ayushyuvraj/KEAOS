@@ -171,6 +171,21 @@ function CanvasInner({
       if (!detail) return;
 
       const agentRawOutput = detail.output || detail.markdown || (typeof detail.result === 'string' ? detail.result : JSON.stringify(detail.result, null, 2)) || '';
+      const agentTokens = detail.tokens || detail.observability?.totalTokens || 0;
+      const agentLatency = detail.latencyMs || detail.observability?.latencyMs || 0;
+      const richAgentPayload = {
+        output: agentRawOutput,
+        data: agentRawOutput,
+        text: agentRawOutput,
+        tokens: agentTokens,
+        latencyMs: agentLatency,
+        observability: detail.observability || {
+          totalTokens: agentTokens,
+          latencyMs: agentLatency
+        },
+        costUsd: detail.costUsd || 0,
+        auditHash: detail.auditHash || null
+      };
 
       setNodes((nds) => {
         // Collect prospective executing agent IDs
@@ -181,18 +196,41 @@ function CanvasInner({
           allAgents.forEach((a) => executingAgentIds.add(a.id));
         }
 
-        // Find all deterministic nodes connected downstream of the executing agent(s)
+        // 1. Identify all updated Output Nodes
+        const outputNodeIdsToUpdate = new Set();
+        nds.forEach((n) => {
+          if (n.type === 'outputNode' && !n.data?.isDeactivated) {
+            const isConnectedToAgent = (edges || []).some(
+              (ed) => (executingAgentIds.has(ed.source) && ed.target === n.id) ||
+                      (executingAgentIds.has(ed.target) && ed.source === n.id)
+            );
+            const hasIncomingEdges = (edges || []).some((ed) => ed.target === n.id || ed.source === n.id);
+            const outputNodes = nds.filter((o) => o.type === 'outputNode');
+            if (isConnectedToAgent || !hasIncomingEdges || outputNodes.length === 1) {
+              outputNodeIdsToUpdate.add(n.id);
+            }
+          }
+        });
+
+        // 2. Identify all Deterministic Nodes that should execute:
+        //    a) Connected directly to executing Agent Core
+        //    b) Connected to an Output Node that is receiving this output!
         const connectedDetNodes = nds.filter((n) => {
           if (n.type !== 'deterministicNode' || n.data?.isDeactivated) return false;
           return (edges || []).some((ed) => {
+            // Direct Agent -> Deterministic Rule (either drag direction)
             if (executingAgentIds.has(ed.source) && ed.target === n.id) return true;
-            const src = nds.find((s) => s.id === ed.source);
-            if (src?.type === 'agentCore' && ed.target === n.id) return true;
+            if (executingAgentIds.has(ed.target) && ed.source === n.id) return true;
+
+            // Output Viewer -> Deterministic Rule (either drag direction)
+            if (outputNodeIdsToUpdate.has(ed.source) && ed.target === n.id) return true;
+            if (outputNodeIdsToUpdate.has(ed.target) && ed.source === n.id) return true;
+
             return false;
           });
         });
 
-        // If there are connected deterministic nodes, trigger visible activation and execution!
+        // 3. If there are connected deterministic nodes, trigger visible activation and execution!
         if (connectedDetNodes.length > 0) {
           // Immediately notify UI that deterministic nodes are running!
           connectedDetNodes.forEach((detNode) => {
@@ -203,14 +241,16 @@ function CanvasInner({
 
           setTimeout(() => {
             connectedDetNodes.forEach(async (detNode) => {
-              const code = detNode.data?.code || (detNode.data?.language === 'python' ? 'def process(inputs):\n    return inputs' : 'function process(inputs, state) { return inputs; }');
+              const code = detNode.data?.code;
+              const prompt = detNode.data?.prompt || detNode.data?.ruleSummary || detNode.data?.summary || '';
               const lang = detNode.data?.language || 'auto';
               try {
                 const res = await executeDeterministicTask({
                   nodeId: detNode.id,
                   language: lang,
                   code,
-                  inputData: agentRawOutput
+                  prompt,
+                  inputData: richAgentPayload
                 });
 
                 window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
@@ -250,67 +290,56 @@ function CanvasInner({
           }
 
           // 2. Update connected Canvas Output Nodes
-          if (n.type === 'outputNode') {
-            const isConnectedToAgent = (edges || []).some(
-              (ed) => executingAgentIds.has(ed.source) && ed.target === n.id
-            );
-            const hasIncomingEdges = (edges || []).some((ed) => ed.target === n.id);
-            const outputNodes = nds.filter((o) => o.type === 'outputNode');
+          if (outputNodeIdsToUpdate.has(n.id)) {
+            const strategy = n.data?.persistenceStrategy || 'append';
+            const prevHistory = Array.isArray(n.data?.runsHistory) ? n.data.runsHistory : [];
+            const newRun = {
+              runNumber: strategy === 'overwrite' ? 1 : prevHistory.length + 1,
+              timestamp: new Date().toLocaleTimeString(),
+              content: agentRawOutput,
+              auditHash: detail.auditHash || null,
+              tokens: agentTokens,
+              latencyMs: agentLatency,
+              costUsd: detail.costUsd || 0,
+              source: 'agent',
+              sourceNodeType: 'agent',
+              sourceNodeName: nds.find(a => executingAgentIds.has(a.id))?.data?.name || 'Autonomous Agent'
+            };
+            const nextHistory = strategy === 'overwrite' ? [newRun] : [...prevHistory, newRun];
 
-            // Update if connected directly to this agent, or if it's the lone output node on canvas
-            if (isConnectedToAgent || !hasIncomingEdges || outputNodes.length === 1) {
-              const strategy = n.data?.persistenceStrategy || 'append';
-              const prevHistory = Array.isArray(n.data?.runsHistory) ? n.data.runsHistory : [];
-              const newRun = {
-                runNumber: strategy === 'overwrite' ? 1 : prevHistory.length + 1,
-                timestamp: new Date().toLocaleTimeString(),
-                content: agentRawOutput,
-                auditHash: detail.auditHash || null,
-                tokens: detail.tokens || detail.observability?.totalTokens || 0,
-                latencyMs: detail.latencyMs || detail.observability?.latencyMs || 0,
-                costUsd: detail.costUsd || 0,
-                source: 'agent',
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                outputContent: agentRawOutput,
+                runsHistory: nextHistory,
                 sourceNodeType: 'agent',
-                sourceNodeName: nds.find(a => executingAgentIds.has(a.id))?.data?.name || 'Autonomous Agent'
-              };
-              const nextHistory = strategy === 'overwrite' ? [newRun] : [...prevHistory, newRun];
-
-              return {
-                ...n,
-                data: {
-                  ...n.data,
-                  outputContent: agentRawOutput,
-                  runsHistory: nextHistory,
-                  sourceNodeType: 'agent',
-                  sourceNodeName: nds.find(a => executingAgentIds.has(a.id))?.data?.name || 'Autonomous Agent',
-                  auditHash: detail.auditHash || null,
-                  observability: detail.observability || {
-                    totalTokens: detail.tokens || 0,
-                    latencyMs: detail.latencyMs || 0
-                  },
-                  costUsd: detail.costUsd || 0,
-                  status: 'ready',
-                  isExpanded: true // Auto-expand when fresh output arrives so user sees it right away!
-                }
-              };
-            }
+                sourceNodeName: nds.find(a => executingAgentIds.has(a.id))?.data?.name || 'Autonomous Agent',
+                auditHash: detail.auditHash || null,
+                observability: detail.observability || {
+                  totalTokens: agentTokens,
+                  latencyMs: agentLatency
+                },
+                costUsd: detail.costUsd || 0,
+                status: 'ready',
+                isExpanded: true // Auto-expand when fresh output arrives so user sees it right away!
+              }
+            };
           }
 
           // 3. Update connected Deterministic Nodes
-          if (n.type === 'deterministicNode') {
-            const isConnectedToAgent = connectedDetNodes.some((cd) => cd.id === n.id);
-            if (isConnectedToAgent) {
-              return {
-                ...n,
-                data: {
-                  ...n.data,
-                  lastUpstreamReceived: agentRawOutput,
-                  lastUpstreamTime: Date.now(),
-                  lastStatus: 'running',
-                  isRunning: true
-                }
-              };
-            }
+          if (connectedDetNodes.some((cd) => cd.id === n.id)) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                lastUpstreamReceived: richAgentPayload,
+                upstreamPayload: richAgentPayload,
+                lastUpstreamTime: Date.now(),
+                lastStatus: 'running',
+                isRunning: true
+              }
+            };
           }
 
           return n;
@@ -1093,7 +1122,6 @@ function CanvasInner({
       if (isCtrlOrCmd) {
         if (key === 'Enter') {
           e.preventDefault();
-          if (setIsDrawerExpanded) setIsDrawerExpanded(true);
           window.dispatchEvent(new CustomEvent('keaos:execute-workflow'));
           const toastMsg = '⚡ Executing Workflow...';
           setToastNotification(toastMsg);
@@ -1835,7 +1863,6 @@ function CanvasInner({
       <div className="absolute top-4 left-6 z-20 flex items-center gap-3">
         <button
           onClick={() => {
-            if (setIsDrawerExpanded) setIsDrawerExpanded(true);
             window.dispatchEvent(new CustomEvent('keaos:execute-workflow'));
           }}
           disabled={executionState.isExecuting}

@@ -750,6 +750,7 @@ export default function CanvasExecutionDrawer({
         setDrawerMode('fleet');
         handleRunFleetPipeline();
       } else {
+        setDrawerMode('chat');
         handleRunAgent();
       }
     };
