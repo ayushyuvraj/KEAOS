@@ -139,18 +139,18 @@ export default function Palette({ onAddNode }) {
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h5 className="text-xs font-bold text-[#0B0F19] tracking-tight">Output Display</h5>
+                    <h5 className="text-xs font-bold text-[#0B0F19] tracking-tight">Final Output Viewer</h5>
                     <span className="text-[8px] font-mono px-1 py-0.2 bg-[#10B981]/10 text-[#059669] font-bold rounded">
-                      STREAM
+                      SINK & EXPORT
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-500">Morphing output card & audit</p>
+                  <p className="text-[10px] text-slate-500">Live viewer, Excel/PDF exporter & relay</p>
                 </div>
               </div>
               <button
-                onClick={() => onAddNode('outputNode', { name: 'Agent Output' })}
+                onClick={() => onAddNode('outputNode', { name: 'Final Output Viewer' })}
                 className="btn-tactile w-7 h-7 bg-[#10B981] hover:bg-[#059669] text-white flex items-center justify-center transition-all shrink-0 border border-[#047857] shadow-sm cursor-pointer"
-                title="Add new Output Component to canvas"
+                title="Add Final Output Viewer & Exporter to canvas"
               >
                 <Plus className="w-4 h-4" />
               </button>

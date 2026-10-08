@@ -55,6 +55,7 @@ import DeletableEdge from './edges/DeletableEdge';
 import OutputDisplayNode from './nodes/OutputDisplayNode';
 import IngestionNode from './nodes/IngestionNode';
 import DeterministicNode from './nodes/DeterministicNode';
+import { executeDeterministicTask } from '../services/deterministicRunner';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
@@ -169,7 +170,39 @@ function CanvasInner({
       const detail = e.detail;
       if (!detail) return;
 
+      const agentRawOutput = detail.output || detail.markdown || (typeof detail.result === 'string' ? detail.result : JSON.stringify(detail.result, null, 2)) || '';
+
       setNodes((nds) => {
+        // Collect any downstream deterministic nodes connected to this agent to trigger automatic execution
+        const connectedDetNodes = nds.filter(
+          (n) => n.type === 'deterministicNode' && (edges || []).some((ed) => ed.source === detail.agentId && ed.target === n.id)
+        );
+
+        // If there are connected deterministic nodes, trigger their execution automatically!
+        if (connectedDetNodes.length > 0) {
+          setTimeout(() => {
+            connectedDetNodes.forEach(async (detNode) => {
+              const code = detNode.data?.code || (detNode.data?.language === 'python' ? 'def process(inputs):\n    return inputs' : 'function process(inputs, state) { return inputs; }');
+              const lang = detNode.data?.language || 'auto';
+              try {
+                const res = await executeDeterministicTask({
+                  nodeId: detNode.id,
+                  language: lang,
+                  code,
+                  inputData: agentRawOutput
+                });
+                if (res.success) {
+                  window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
+                    detail: { nodeId: detNode.id, output: res.output, latencyMs: res.latencyMs }
+                  }));
+                }
+              } catch (err) {
+                console.error(`Deterministic auto-run error for ${detNode.id}:`, err);
+              }
+            });
+          }, 50);
+        }
+
         return nds.map((n) => {
           // 1. Update the executing agent node itself so it records its lastOutput
           if (n.id === detail.agentId) {
@@ -177,7 +210,7 @@ function CanvasInner({
               ...n,
               data: {
                 ...n.data,
-                lastOutput: detail.output,
+                lastOutput: agentRawOutput,
                 auditHash: detail.auditHash || n.data?.auditHash,
                 observability: detail.observability || n.data?.observability,
                 costUsd: detail.costUsd || n.data?.costUsd
@@ -195,11 +228,26 @@ function CanvasInner({
 
             // Update if connected directly to this agent, or if it's the lone output node on canvas
             if (isConnectedToAgent || !hasIncomingEdges || outputNodes.length === 1) {
+              const strategy = n.data?.persistenceStrategy || 'append';
+              const prevHistory = Array.isArray(n.data?.runsHistory) ? n.data.runsHistory : [];
+              const newRun = {
+                runNumber: strategy === 'overwrite' ? 1 : prevHistory.length + 1,
+                timestamp: new Date().toLocaleTimeString(),
+                content: agentRawOutput,
+                auditHash: detail.auditHash || null,
+                tokens: detail.tokens || detail.observability?.totalTokens || 0,
+                latencyMs: detail.latencyMs || detail.observability?.latencyMs || 0,
+                costUsd: detail.costUsd || 0,
+                source: 'agent'
+              };
+              const nextHistory = strategy === 'overwrite' ? [newRun] : [...prevHistory, newRun];
+
               return {
                 ...n,
                 data: {
                   ...n.data,
-                  outputContent: detail.output || '',
+                  outputContent: agentRawOutput,
+                  runsHistory: nextHistory,
                   auditHash: detail.auditHash || null,
                   observability: detail.observability || {
                     totalTokens: detail.tokens || 0,
@@ -223,7 +271,7 @@ function CanvasInner({
                 ...n,
                 data: {
                   ...n.data,
-                  lastUpstreamReceived: detail.output,
+                  lastUpstreamReceived: agentRawOutput,
                   lastUpstreamTime: Date.now()
                 }
               };
@@ -245,7 +293,40 @@ function CanvasInner({
       const detail = e.detail;
       if (!detail || !detail.nodeId) return;
 
+      const formattedOutput = typeof detail.output === 'object' && detail.output !== null
+        ? JSON.stringify(detail.output, null, 2)
+        : String(detail.output ?? '');
+
       setNodes((nds) => {
+        // Chaining: find any downstream deterministic nodes connected to this deterministic node
+        const downstreamDetNodes = nds.filter(
+          (n) => n.type === 'deterministicNode' && (edges || []).some((ed) => ed.source === detail.nodeId && ed.target === n.id)
+        );
+
+        if (downstreamDetNodes.length > 0) {
+          setTimeout(() => {
+            downstreamDetNodes.forEach(async (detNode) => {
+              const code = detNode.data?.code || (detNode.data?.language === 'python' ? 'def process(inputs):\n    return inputs' : 'function process(inputs, state) { return inputs; }');
+              const lang = detNode.data?.language || 'auto';
+              try {
+                const res = await executeDeterministicTask({
+                  nodeId: detNode.id,
+                  language: lang,
+                  code,
+                  inputData: detail.output
+                });
+                if (res.success) {
+                  window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
+                    detail: { nodeId: detNode.id, output: res.output, latencyMs: res.latencyMs }
+                  }));
+                }
+              } catch (err) {
+                console.error(`Chained deterministic execution error for ${detNode.id}:`, err);
+              }
+            });
+          }, 50);
+        }
+
         return nds.map((n) => {
           // 1. Update the executing deterministic node itself
           if (n.id === detail.nodeId) {
@@ -266,14 +347,26 @@ function CanvasInner({
               (ed) => ed.source === detail.nodeId && ed.target === n.id
             );
             if (isConnected) {
-              const formattedOutput = typeof detail.output === 'object' && detail.output !== null
-                ? JSON.stringify(detail.output, null, 2)
-                : String(detail.output ?? '');
+              const strategy = n.data?.persistenceStrategy || 'append';
+              const prevHistory = Array.isArray(n.data?.runsHistory) ? n.data.runsHistory : [];
+              const newRun = {
+                runNumber: strategy === 'overwrite' ? 1 : prevHistory.length + 1,
+                timestamp: new Date().toLocaleTimeString(),
+                content: formattedOutput,
+                auditHash: null,
+                tokens: 0,
+                latencyMs: detail.latencyMs || 0,
+                costUsd: 0,
+                source: 'deterministic'
+              };
+              const nextHistory = strategy === 'overwrite' ? [newRun] : [...prevHistory, newRun];
+
               return {
                 ...n,
                 data: {
                   ...n.data,
                   outputContent: formattedOutput,
+                  runsHistory: nextHistory,
                   status: 'ready',
                   isExpanded: true,
                   observability: {
