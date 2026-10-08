@@ -42,8 +42,6 @@ export default function Sidebar({
 
   const tabs = [
     { id: 'canvas', label: 'Visual Canvas & Run', icon: Layers },
-    { id: 'evaluation', label: 'Evaluation & Gate', icon: FileCheck2, badge: evaluationPassed ? 'PASSED' : null },
-    { id: 'code', label: 'Export SDK', icon: Code2 },
     { id: 'audit', label: 'Audit Ledger', icon: ShieldCheck },
     { id: 'observability', label: 'Observability', icon: Activity },
     { id: 'catalog', label: 'Pillars Catalog', icon: Cpu }
