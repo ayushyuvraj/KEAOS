@@ -3,13 +3,10 @@ import { Handle, Position } from '@xyflow/react';
 import { 
   Code2, 
   Play, 
-  Sliders,
-  Check, 
-  AlertCircle, 
+  Sliders, 
   AlertTriangle,
   Loader2, 
   MessageSquare,
-  Zap,
   Unlock
 } from 'lucide-react';
 import { executeDeterministicTask } from '../../services/deterministicRunner';
@@ -259,7 +256,7 @@ export default function DeterministicNode({ id, data, selected }) {
   return (
     <div
       onClick={handleBoxClick}
-      className={`relative group w-[228px] rounded-[18px] border-2 transition-all duration-200 select-none p-3 flex flex-col gap-2.5 cursor-pointer shadow-xl ${
+      className={`relative group w-[228px] h-[136px] rounded-[18px] border-2 transition-all duration-200 select-none flex flex-col justify-between cursor-pointer shadow-xl ${
         isDeactivated
           ? 'opacity-45 grayscale border-dashed border-slate-500 bg-slate-800/40'
           : isDarkMode
@@ -272,6 +269,7 @@ export default function DeterministicNode({ id, data, selected }) {
             ? 'border-[#0091DA] ring-2 ring-[#0091DA]'
             : isDarkMode ? 'hover:border-[#525769]' : 'hover:border-[#94A3B8]'
       }`}
+      style={{ padding: '8px 10px' }}
     >
       {/* Subtle Corner Hardware Rivets (Matching Agent 1) */}
       <div className={`absolute top-2 left-2.5 w-1 h-1 rounded-full pointer-events-none ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
@@ -342,7 +340,7 @@ export default function DeterministicNode({ id, data, selected }) {
         title="Output Data Stream"
       />
 
-      {/* Header Row: Icon + Editable Title on left, Action buttons on right */}
+      {/* Header Row: Icon + Editable Title on left, Status Dot + Action buttons on right */}
       <div className="flex items-center justify-between gap-1.5 px-0.5 pt-0.5">
         <div className="flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
           <Code2 className={`w-3.5 h-3.5 shrink-0 ${isRunning ? 'text-amber-400 animate-spin' : runStatus === 'success' ? 'text-emerald-500' : 'text-[#EAAA00]'}`} />
@@ -374,8 +372,27 @@ export default function DeterministicNode({ id, data, selected }) {
           )}
         </div>
 
-        {/* Right Ghost Actions: Play, Chat, Sandbox */}
+        {/* Right Actions: Small Circle Status Indicator + Play, Chat, Sandbox */}
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {/* Small circle status indicator (to the left of play button) */}
+          <span
+            onClick={!isFrozen && hasLogic ? handleFreezeLogic : undefined}
+            className={`w-2 h-2 rounded-full transition-all shrink-0 ${
+              !hasLogic
+                ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)]'
+                : !isFrozen
+                  ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.7)] cursor-pointer hover:scale-125'
+                  : 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
+            } ${isRunning ? 'animate-ping' : ''}`}
+            title={
+              !hasLogic
+                ? 'No logic defined'
+                : !isFrozen
+                  ? 'Draft logic (Click to freeze)'
+                  : 'Logic frozen & active'
+            }
+          />
+
           <button
             type="button"
             onClick={handleQuickRun}
@@ -422,142 +439,90 @@ export default function DeterministicNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* 3-State Lifecycle Status Button */}
-      <div onClick={(e) => e.stopPropagation()}>
-        {!hasLogic ? (
-          /* Red: No Logic */
-          <button
-            type="button"
-            onClick={() => textareaRef.current?.focus()}
-            className={`w-full py-1 px-2 rounded-full text-[10px] font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              isDarkMode
-                ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25'
-                : 'bg-rose-50 text-rose-600 border border-rose-300 hover:bg-rose-100'
+      {/* Main Logic Text Box & Inline Overwrite Protection (Fills remaining height) */}
+      <div className="relative flex-1 mt-1 flex flex-col" onClick={(e) => e.stopPropagation()}>
+        {showOverwriteWarning ? (
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className={`w-full h-full p-2 rounded-xl text-[10px] font-mono border flex flex-col justify-between transition-all ${
+              isDarkMode 
+                ? 'bg-amber-950/40 border-amber-500/50 text-amber-200' 
+                : 'bg-amber-50 border-amber-400 text-amber-900'
             }`}
-            title="No logic defined. Enter directive or code below."
           >
-            <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
-            <span>No Logic</span>
-          </button>
-        ) : !isFrozen ? (
-          /* Amber: Draft Logic • Click to Freeze */
-          <button
-            type="button"
-            onClick={handleFreezeLogic}
-            className={`w-full py-1 px-2 rounded-full text-[10px] font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
-              isDarkMode
-                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25 shadow-xs'
-                : 'bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100 shadow-xs'
-            }`}
-            title="Draft logic in progress. Click to freeze and protect."
-          >
-            <Zap className="w-3 h-3 text-amber-500 shrink-0" />
-            <span>Draft Logic • Click to Freeze</span>
-          </button>
+            <div className="flex items-start gap-1.5">
+              <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
+              <span className="font-semibold leading-tight text-[9.5px]">
+                Logic has already been there, but you're trying to replace it.
+              </span>
+            </div>
+            <div className="flex items-center justify-end gap-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setShowOverwriteWarning(false)}
+                className={`px-2 py-0.5 text-[8.5px] font-bold rounded transition-colors cursor-pointer ${
+                  isDarkMode 
+                    ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' 
+                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFrozen(false);
+                  setShowOverwriteWarning(false);
+                  if (data?.onUpdateNodeData) {
+                    data.onUpdateNodeData(id, { isFrozen: false });
+                  }
+                  setTimeout(() => textareaRef.current?.focus(), 50);
+                }}
+                className="px-2 py-0.5 text-[8.5px] font-bold rounded bg-amber-500 text-black hover:bg-amber-400 flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+              >
+                <Unlock className="w-2.5 h-2.5" />
+                Unlock to Edit
+              </button>
+            </div>
+          </div>
         ) : (
-          /* Green: Logic Active • Go Ahead */
-          <button
-            type="button"
-            onClick={handleQuickRun}
-            className={`w-full py-1 px-2 rounded-full text-[10px] font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
-              isDarkMode
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/25 shadow-xs'
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 shadow-xs'
+          <textarea
+            ref={textareaRef}
+            value={localText}
+            onChange={(e) => {
+              if (isFrozen) {
+                setShowOverwriteWarning(true);
+                return;
+              }
+              handleTextChange(e);
+            }}
+            onClick={handleTextareaClick}
+            onFocus={(e) => {
+              if (isFrozen) {
+                e.target.blur();
+                setShowOverwriteWarning(true);
+              }
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (isFrozen) {
+                e.preventDefault();
+                setShowOverwriteWarning(true);
+              }
+            }}
+            readOnly={isFrozen}
+            placeholder="Describe deterministic logic (e.g., parse rows, calculate tax, format output)..."
+            className={`nodrag nowheel w-full h-full p-2 text-[10.5px] font-mono leading-relaxed resize-none rounded-xl border transition-all outline-none ${
+              isFrozen
+                ? isDarkMode
+                  ? 'bg-[#141722]/80 border-[#2A2E3D] text-slate-300 cursor-pointer selection:bg-transparent'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 cursor-pointer selection:bg-transparent'
+                : isDarkMode 
+                  ? 'bg-[#0E111A] border-[#2E3547] text-white placeholder-slate-500 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
+                  : 'bg-white border-slate-300 text-[#0B0F19] placeholder-slate-400 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
             }`}
-            title="Logic is frozen & active. Click to run."
-          >
-            <Check className="w-3 h-3 text-emerald-500 shrink-0" />
-            <span>Logic Active • Go Ahead</span>
-          </button>
+          />
         )}
-      </div>
-
-      {/* Accidental Overwrite Protection Warning Banner */}
-      {showOverwriteWarning && (
-        <div 
-          onClick={(e) => e.stopPropagation()} 
-          className={`p-2.5 rounded-xl text-[10px] font-mono border transition-all ${
-            isDarkMode 
-              ? 'bg-amber-950/40 border-amber-500/50 text-amber-200' 
-              : 'bg-amber-50 border-amber-400 text-amber-900'
-          }`}
-        >
-          <div className="flex items-start gap-1.5 mb-2">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-            <span className="font-semibold leading-tight">
-              Logic has already been there, but you're trying to replace it.
-            </span>
-          </div>
-          <div className="flex items-center justify-end gap-1.5">
-            <button
-              type="button"
-              onClick={() => setShowOverwriteWarning(false)}
-              className={`px-2 py-0.5 text-[9px] font-bold rounded-lg transition-colors cursor-pointer ${
-                isDarkMode 
-                  ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' 
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-              }`}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsFrozen(false);
-                setShowOverwriteWarning(false);
-                if (data?.onUpdateNodeData) {
-                  data.onUpdateNodeData(id, { isFrozen: false });
-                }
-                setTimeout(() => textareaRef.current?.focus(), 50);
-              }}
-              className="px-2 py-0.5 text-[9px] font-bold rounded-lg bg-amber-500 text-black hover:bg-amber-400 flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-            >
-              <Unlock className="w-2.5 h-2.5" />
-              Unlock to Edit
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Main Logic Text Box */}
-      <div className="relative" onClick={(e) => e.stopPropagation()}>
-        <textarea
-          ref={textareaRef}
-          value={localText}
-          onChange={(e) => {
-            if (isFrozen) {
-              setShowOverwriteWarning(true);
-              return;
-            }
-            handleTextChange(e);
-          }}
-          onClick={handleTextareaClick}
-          onFocus={(e) => {
-            if (isFrozen) {
-              e.target.blur();
-              setShowOverwriteWarning(true);
-            }
-          }}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (isFrozen) {
-              e.preventDefault();
-              setShowOverwriteWarning(true);
-            }
-          }}
-          readOnly={isFrozen}
-          rows={3.5}
-          placeholder="Describe deterministic logic (e.g., parse rows, calculate tax, format output)..."
-          className={`nodrag nowheel w-full p-2.5 text-[11px] font-mono leading-relaxed resize-none rounded-xl border transition-all outline-none ${
-            isFrozen
-              ? isDarkMode
-                ? 'bg-[#141722]/80 border-[#2A2E3D] text-slate-300 cursor-pointer selection:bg-transparent'
-                : 'bg-slate-50 border-slate-200 text-slate-700 cursor-pointer selection:bg-transparent'
-              : isDarkMode 
-                ? 'bg-[#0E111A] border-[#2E3547] text-white placeholder-slate-500 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
-                : 'bg-white border-slate-300 text-[#0B0F19] placeholder-slate-400 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
-          }`}
-        />
       </div>
     </div>
   );
