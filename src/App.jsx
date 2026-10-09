@@ -17,6 +17,7 @@ import DeterministicWorkspaceModal from './components/DeterministicWorkspaceModa
 import AuditExplorerView from './components/screens/AuditExplorerView';
 import ObservabilityView from './components/screens/ObservabilityView';
 import PillarCatalogView from './components/screens/PillarCatalogView';
+import FrontendShowroomView from './components/screens/FrontendShowroomView';
 import { getActiveApiKey } from './services/geminiService';
 import { getAllConfiguredProviders } from './services/llmService';
 import { FRAMEWORKS } from './constants/frameworks';
@@ -1467,6 +1468,15 @@ export default function App() {
               setThresholds={setThresholds}
               evaluationResult={evaluationResult}
               setEvaluationResult={setEvaluationResult}
+            />
+          )}
+
+          {viewMode === 'frontend' && (
+            <FrontendShowroomView
+              activeUseCase={activeUseCase}
+              nodes={nodes}
+              edges={edges}
+              isDarkMode={isDarkMode}
             />
           )}
 

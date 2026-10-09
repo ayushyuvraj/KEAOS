@@ -33,6 +33,7 @@ export default function Header({
     { id: 'canvas', label: 'Editor' },
     { id: 'evaluation', label: 'Evaluations' },
     { id: 'simulator', label: 'Executions' },
+    { id: 'frontend', label: 'Frontend' },
     { id: 'code', label: 'Export Code' }
   ];
 
