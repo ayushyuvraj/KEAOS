@@ -276,11 +276,7 @@ export default function AgentCoreNode({ id, data, selected }) {
           dropdownPlacement="bottom"
         />
 
-        {/* Subtle Corner Hardware Rivets */}
-        <div className={`absolute top-2 left-2.5 w-1 h-1 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
-        <div className={`absolute top-2 right-2.5 w-1 h-1 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
-        <div className={`absolute bottom-2 left-2.5 w-1 h-1 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
-        <div className={`absolute bottom-2 right-2.5 w-1 h-1 rounded-full ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
+
 
         {/* ============================================================ */}
         {/* LEFT ARM: INPUT STREAM / A2A INGRESS (Position.Left, Centered) */}

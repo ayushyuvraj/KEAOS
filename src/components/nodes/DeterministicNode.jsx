@@ -271,11 +271,7 @@ export default function DeterministicNode({ id, data, selected }) {
       }`}
       style={{ padding: '8px 10px' }}
     >
-      {/* Subtle Corner Hardware Rivets (Matching Agent 1) */}
-      <div className={`absolute top-2 left-2.5 w-1 h-1 rounded-full pointer-events-none ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
-      <div className={`absolute top-2 right-2.5 w-1 h-1 rounded-full pointer-events-none ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
-      <div className={`absolute bottom-2 left-2.5 w-1 h-1 rounded-full pointer-events-none ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
-      <div className={`absolute bottom-2 right-2.5 w-1 h-1 rounded-full pointer-events-none ${isDarkMode ? 'bg-white/20' : 'bg-slate-400/40'}`} />
+
 
       {/* Floating Micro-Toolbar on Hover */}
       <NodeActionToolbar
