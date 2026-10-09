@@ -627,10 +627,18 @@ export default function CanvasExecutionDrawer({
     setExecutionSteps([]);
     setSimulationResult(null);
 
+    const activeTargetAgentId = activeAgentId || allAgentNodes[0]?.id || 'agent-core';
     if (onExecutionStateChange) {
-      onExecutionStateChange({ isExecuting: true, step: 'Starting', pillarType: 'tools' });
+      onExecutionStateChange({ 
+        isExecuting: true, 
+        step: 'Starting', 
+        pillarType: 'tools',
+        activeAgentId: activeTargetAgentId,
+        nodeId: activeTargetAgentId
+      });
     }
 
+    let executionSucceeded = false;
     try {
       const result = await runMeetingSimulation({
         transcript: activeTranscript,
@@ -643,19 +651,22 @@ export default function CanvasExecutionDrawer({
             onExecutionStateChange({ 
               isExecuting: true, 
               step: currentStep.step, 
-              pillarType: currentStep.pillarType 
+              pillarType: currentStep.pillarType,
+              activeAgentId: activeTargetAgentId,
+              nodeId: activeTargetAgentId
             });
           }
         }
       });
 
       setSimulationResult(result);
+      executionSucceeded = true;
 
       // Real-time Canvas Output Node broadcast
       try {
         window.dispatchEvent(new CustomEvent('keaos:agent-output', {
           detail: {
-            agentId: activeAgentId || allAgentNodes[0]?.id || 'agent-core',
+            agentId: activeTargetAgentId,
             output: result.rawOutput || (typeof result === 'string' ? result : JSON.stringify(result, null, 2)),
             auditHash: result.auditHash,
             observability: result.observability,
@@ -671,7 +682,7 @@ export default function CanvasExecutionDrawer({
     } finally {
       setIsRunning(false);
       if (onExecutionStateChange) {
-        onExecutionStateChange({ isExecuting: false, step: 'Complete' });
+        onExecutionStateChange({ isExecuting: false, step: executionSucceeded ? 'Complete' : 'Failed' });
       }
     }
   }, [
@@ -695,6 +706,7 @@ export default function CanvasExecutionDrawer({
       onExecutionStateChange({ isExecuting: true, step: 'Starting Multi-Agent Fleet Pipeline...' });
     }
 
+    let fleetSucceeded = false;
     try {
       const result = await executeMultiAgentWorkflow({
         nodes,
@@ -715,20 +727,20 @@ export default function CanvasExecutionDrawer({
       });
 
       setFleetResult(result);
+      fleetSucceeded = true;
 
-      // Real-time Canvas Output Node broadcast
+      // Dispatch fleet completion event for drawer & observability (do not overwrite individual agent nodes)
       try {
-        window.dispatchEvent(new CustomEvent('keaos:agent-output', {
+        window.dispatchEvent(new CustomEvent('keaos:fleet-complete', {
           detail: {
             title: `Fleet Deliverable (${result.completedStages} Stages • ${result.totalAgents} Agents)`,
             markdown: result.synthesizedDeliverable,
             output: result.synthesizedDeliverable,
-            result: result,
-            agentId: allAgentNodes[allAgentNodes.length - 1]?.id || allAgentNodes[0]?.id || 'agent-core'
+            result: result
           }
         }));
       } catch (e) {
-        console.warn('Canvas output broadcast failed:', e);
+        console.warn('Fleet completion broadcast failed:', e);
       }
     } catch (err) {
       console.error('Fleet execution failed:', err);
@@ -737,7 +749,7 @@ export default function CanvasExecutionDrawer({
       setIsFleetRunning(false);
       setCurrentFleetStage(null);
       if (onExecutionStateChange) {
-        onExecutionStateChange({ isExecuting: false, step: 'Complete' });
+        onExecutionStateChange({ isExecuting: false, step: fleetSucceeded ? 'Complete' : 'Failed' });
       }
     }
   }, [isFleetRunning, nodes, edges, transcriptText, onExecutionStateChange, setIsExpanded]);

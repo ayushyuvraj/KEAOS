@@ -6,7 +6,7 @@
  * Strictly zero hardcoding: completely general-purpose.
  */
 
-import { PROVIDERS, getProviderCredential } from './llmService';
+import { PROVIDERS, getProviderCredential, getAllConfiguredProviders } from './llmService';
 import { GoogleGenAI } from '@google/genai';
 
 /**
@@ -29,7 +29,7 @@ function extractCode(text, language = 'javascript') {
  * Offline / Instant fallback templates for common crude requests
  * when no LLM API key is connected.
  */
-function getOfflineFallbackCode(prompt, language, sampleInputs) {
+export function getOfflineFallbackCode(prompt, language, sampleInputs) {
   const p = (prompt || '').toLowerCase();
   const lang = (language || 'javascript').toLowerCase();
 
@@ -60,6 +60,31 @@ function getOfflineFallbackCode(prompt, language, sampleInputs) {
     return `function process(inputs) {\n  const rows = Array.isArray(inputs) ? inputs : (inputs.data || []);\n  return rows.filter(item => item.active !== false);\n}`;
   }
 
+  // 4. Generalized condition & classification rule parser (e.g. "high or low if tokens > 4000", "flag if score > 80", etc.)
+  const numMatch = p.match(/\b([0-9]+(?:,[0-9]+)*(?:\.[0-9]+)?)\b/);
+  const thresholdVal = numMatch ? Number(numMatch[1].replace(/,/g, '')) : null;
+  const isHighLow = p.includes('high') && p.includes('low');
+  const isPassFail = p.includes('pass') && p.includes('fail');
+  const hasComparison = p.includes('greater') || p.includes('more') || p.includes('above') || p.includes('exceed') || p.includes('over') || p.includes('>') || p.includes('less') || p.includes('below') || p.includes('under') || p.includes('<') || thresholdVal !== null || isHighLow || isPassFail;
+
+  if (hasComparison && (thresholdVal !== null || isHighLow || isPassFail)) {
+    const th = thresholdVal !== null ? thresholdVal : 4000;
+    const isLessThan = p.includes('less') || p.includes('below') || p.includes('under') || p.includes('<');
+    const labelTrue = isHighLow ? (isLessThan ? 'Low' : 'High') : isPassFail ? (isLessThan ? 'Pass' : 'Fail') : 'Flagged';
+    const labelFalse = isHighLow ? (isLessThan ? 'High' : 'Low') : isPassFail ? (isLessThan ? 'Fail' : 'Pass') : 'Normal';
+    
+    // Identify target property to inspect
+    let targetProp = 'tokens';
+    if (p.includes('cost') || p.includes('dollar') || p.includes('price')) targetProp = 'costUsd';
+    else if (p.includes('latency') || p.includes('time') || p.includes('speed')) targetProp = 'latencyMs';
+    else if (p.includes('score') || p.includes('sentiment')) targetProp = 'score';
+
+    if (lang === 'python') {
+      return `def process(inputs):\n    # Dynamic rule evaluation: ${prompt.replace(/\n/g, ' ')}\n    data_obj = inputs.get('data') or inputs\n    val = inputs.get('${targetProp}') or (data_obj.get('${targetProp}') if isinstance(data_obj, dict) else 0) or 0\n    threshold = ${th}\n    status = '${labelTrue}' if val ${isLessThan ? '<' : '>'} threshold else '${labelFalse}'\n    return {\n        'value': val,\n        'threshold': threshold,\n        'status': status,\n        'summary': f"${targetProp.toUpperCase()} is {status} ({val} vs threshold {threshold})"\n    }`;
+    }
+    return `function process(inputs) {\n  // Dynamic rule evaluation: ${prompt.replace(/\n/g, ' ')}\n  const dataObj = inputs.data || inputs;\n  const val = typeof inputs.${targetProp} === 'number' ? inputs.${targetProp} : (typeof dataObj?.${targetProp} === 'number' ? dataObj.${targetProp} : 0);\n  const threshold = ${th};\n  const status = val ${isLessThan ? '<' : '>'} threshold ? '${labelTrue}' : '${labelFalse}';\n  return {\n    value: val,\n    threshold: threshold,\n    status: status,\n    summary: \`${targetProp.toUpperCase()} is \${status} (\${val} vs threshold \${threshold})\`\n  };\n}`;
+  }
+
   // Default clean starter function
   if (lang === 'python') {
     return `def process(inputs):\n    # Process deterministic inputs\n    result = inputs\n    return result`;
@@ -77,7 +102,7 @@ export async function compileDeterministicLogic({
   prompt,
   language = 'javascript',
   sampleInputs = null,
-  provider = 'google',
+  provider = null,
   modelId = null
 }) {
   let effectiveLang = (language || 'auto').toLowerCase();
@@ -91,7 +116,19 @@ export async function compileDeterministicLogic({
       effectiveLang = 'javascript';
     }
   }
-  const credential = getProviderCredential(provider);
+
+  // Auto-detect which provider is configured
+  let effectiveProvider = provider;
+  if (!effectiveProvider || !getProviderCredential(effectiveProvider)) {
+    const configured = getAllConfiguredProviders();
+    if (configured.length > 0) {
+      effectiveProvider = configured[0];
+    } else {
+      effectiveProvider = 'google';
+    }
+  }
+
+  const credential = getProviderCredential(effectiveProvider);
 
   // If no credential configured, use resilient offline generator
   if (!credential) {
@@ -126,7 +163,7 @@ CRITICAL RULES:
     let rawOutput = '';
 
     // 1. Google GenAI
-    if (provider === 'google') {
+    if (effectiveProvider === 'google') {
       const ai = new GoogleGenAI({ apiKey: credential });
       const response = await ai.models.generateContent({
         model: modelId || 'gemini-2.0-flash',
@@ -139,7 +176,7 @@ CRITICAL RULES:
       rawOutput = response.text || '';
     }
     // 2. OpenAI
-    else if (provider === 'openai') {
+    else if (effectiveProvider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -147,7 +184,7 @@ CRITICAL RULES:
           Authorization: `Bearer ${credential}`
         },
         body: JSON.stringify({
-          model: modelId || 'gpt-4o',
+          model: modelId || 'gpt-4o-mini',
           messages: [
             { role: 'system', content: systemInstruction },
             { role: 'user', content: userPrompt }
@@ -160,7 +197,7 @@ CRITICAL RULES:
       rawOutput = json.choices[0]?.message?.content || '';
     }
     // 3. Anthropic
-    else if (provider === 'anthropic') {
+    else if (effectiveProvider === 'anthropic') {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {

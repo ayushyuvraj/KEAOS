@@ -190,42 +190,38 @@ function CanvasInner({
       setNodes((nds) => {
         // Collect prospective executing agent IDs
         const executingAgentIds = new Set();
-        if (detail.agentId) executingAgentIds.add(detail.agentId);
-        const allAgents = nds.filter((n) => n.type === 'agentCore');
-        if (allAgents.length === 1 || !detail.agentId) {
-          allAgents.forEach((a) => executingAgentIds.add(a.id));
+        if (detail.agentId) {
+          executingAgentIds.add(detail.agentId);
+        } else {
+          const allAgents = nds.filter((n) => n.type === 'agentCore' && !n.data?.isDeactivated);
+          if (allAgents.length === 1) {
+            executingAgentIds.add(allAgents[0].id);
+          }
         }
 
-        // 1. Identify all updated Output Nodes
+        // 1. Identify all Output Nodes directly connected to THIS specific executing Agent
+        // Strict Isolation: ONLY output nodes wired directly to this executing agent are updated.
+        // Never update an output node connected to a deterministic rule or another agent!
         const outputNodeIdsToUpdate = new Set();
         nds.forEach((n) => {
           if (n.type === 'outputNode' && !n.data?.isDeactivated) {
-            const isConnectedToAgent = (edges || []).some(
+            const isConnectedToExecutingAgent = (edges || []).some(
               (ed) => (executingAgentIds.has(ed.source) && ed.target === n.id) ||
                       (executingAgentIds.has(ed.target) && ed.source === n.id)
             );
-            const hasIncomingEdges = (edges || []).some((ed) => ed.target === n.id || ed.source === n.id);
-            const outputNodes = nds.filter((o) => o.type === 'outputNode');
-            if (isConnectedToAgent || !hasIncomingEdges || outputNodes.length === 1) {
+            if (isConnectedToExecutingAgent) {
               outputNodeIdsToUpdate.add(n.id);
             }
           }
         });
 
-        // 2. Identify all Deterministic Nodes that should execute:
-        //    a) Connected directly to executing Agent Core
-        //    b) Connected to an Output Node that is receiving this output!
+        // 2. Identify all Deterministic Nodes connected directly to this executing Agent Core
         const connectedDetNodes = nds.filter((n) => {
           if (n.type !== 'deterministicNode' || n.data?.isDeactivated) return false;
           return (edges || []).some((ed) => {
             // Direct Agent -> Deterministic Rule (either drag direction)
             if (executingAgentIds.has(ed.source) && ed.target === n.id) return true;
             if (executingAgentIds.has(ed.target) && ed.source === n.id) return true;
-
-            // Output Viewer -> Deterministic Rule (either drag direction)
-            if (outputNodeIdsToUpdate.has(ed.source) && ed.target === n.id) return true;
-            if (outputNodeIdsToUpdate.has(ed.target) && ed.source === n.id) return true;
-
             return false;
           });
         });
@@ -306,6 +302,10 @@ function CanvasInner({
           if (outputNodeIdsToUpdate.has(n.id)) {
             const strategy = n.data?.persistenceStrategy || 'append';
             const prevHistory = Array.isArray(n.data?.runsHistory) ? n.data.runsHistory : [];
+            const executingAgent = nds.find(a => executingAgentIds.has(a.id));
+            const agentName = executingAgent?.data?.name || 'Autonomous Agent';
+            const agentId = executingAgent?.id || detail.agentId || null;
+
             const newRun = {
               runNumber: strategy === 'overwrite' ? 1 : prevHistory.length + 1,
               timestamp: new Date().toLocaleTimeString(),
@@ -316,7 +316,8 @@ function CanvasInner({
               costUsd: detail.costUsd || 0,
               source: 'agent',
               sourceNodeType: 'agent',
-              sourceNodeName: nds.find(a => executingAgentIds.has(a.id))?.data?.name || 'Autonomous Agent'
+              sourceNodeId: agentId,
+              sourceNodeName: agentName
             };
             const nextHistory = strategy === 'overwrite' ? [newRun] : [...prevHistory, newRun];
 
@@ -327,7 +328,8 @@ function CanvasInner({
                 outputContent: agentRawOutput,
                 runsHistory: nextHistory,
                 sourceNodeType: 'agent',
-                sourceNodeName: nds.find(a => executingAgentIds.has(a.id))?.data?.name || 'Autonomous Agent',
+                sourceNodeId: agentId,
+                sourceNodeName: agentName,
                 auditHash: detail.auditHash || null,
                 observability: detail.observability || {
                   totalTokens: agentTokens,
@@ -369,10 +371,6 @@ function CanvasInner({
     const handleDeterministicExecuted = (e) => {
       const detail = e.detail;
       if (!detail || !detail.nodeId) return;
-
-      const formattedOutput = typeof detail.output === 'object' && detail.output !== null
-        ? JSON.stringify(detail.output, null, 2)
-        : String(detail.output ?? '');
 
       setNodes((nds) => {
         // Chaining: find any downstream deterministic nodes connected to this deterministic node
@@ -417,7 +415,26 @@ function CanvasInner({
         }
 
         const executingDetNode = nds.find((n) => n.id === detail.nodeId);
-        const ruleName = executingDetNode?.data?.name || 'Deterministic Rule';
+        const ruleName = detail.sourceAgentName || executingDetNode?.data?.name || 'Deterministic Rule';
+
+        // Format output cleanly: If it has structured summary/tableData, format as readable Markdown for viewer
+        let formattedOutput = '';
+        if (typeof detail.output === 'object' && detail.output !== null) {
+          if (detail.output.summary && detail.tableData && Array.isArray(detail.tableData) && detail.tableData.length > 0) {
+            const headers = Object.keys(detail.tableData[0] || {});
+            let tableMd = `| ${headers.join(' | ')} |\n| ${headers.map(() => '---').join(' | ')} |\n`;
+            detail.tableData.forEach((row) => {
+              tableMd += `| ${headers.map((h) => row[h] ?? '').join(' | ')} |\n`;
+            });
+            formattedOutput = `### ⚡ ${ruleName} Evaluation\n\n**Summary**: ${detail.output.summary}\n\n${tableMd}`;
+          } else if (detail.output.summary) {
+            formattedOutput = `### ⚡ ${ruleName} Result\n\n${detail.output.summary}\n\n\`\`\`json\n${JSON.stringify(detail.output, null, 2)}\n\`\`\``;
+          } else {
+            formattedOutput = JSON.stringify(detail.output, null, 2);
+          }
+        } else {
+          formattedOutput = String(detail.output ?? '');
+        }
 
         return nds.map((n) => {
           // 1. Update the executing deterministic node itself
@@ -469,6 +486,7 @@ function CanvasInner({
                   status: 'ready',
                   isExpanded: true,
                   sourceNodeType: 'deterministic',
+                  sourceNodeId: detail.nodeId,
                   sourceNodeName: ruleName,
                   observability: {
                     totalTokens: 0,
@@ -637,16 +655,27 @@ function CanvasInner({
   // Update output nodes state during execution and auto-reset when idle
   useEffect(() => {
     if (executionState.isExecuting) {
+      const activeNodeId = executionState.nodeId || executionState.activeAgentId;
       setNodes((nds) =>
         nds.map((n) => {
           if (n.type === 'outputNode') {
-            return {
-              ...n,
-              data: {
-                ...n.data,
-                status: 'generating'
-              }
-            };
+            // Only mark as generating if wired directly to the active executing node!
+            const isConnectedToActiveNode = activeNodeId
+              ? (edges || []).some(
+                  (ed) => (ed.source === activeNodeId && ed.target === n.id) ||
+                          (ed.target === activeNodeId && ed.source === n.id)
+                )
+              : false;
+
+            if (isConnectedToActiveNode) {
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  status: 'generating'
+                }
+              };
+            }
           }
           return n;
         })
@@ -668,7 +697,7 @@ function CanvasInner({
         })
       );
     }
-  }, [executionState.isExecuting, setNodes]);
+  }, [executionState.isExecuting, executionState.nodeId, executionState.activeAgentId, edges, setNodes]);
 
   // Global listener to stop streaming and cancel active execution
   useEffect(() => {
@@ -954,6 +983,23 @@ function CanvasInner({
 
     takeSnapshot();
     const newId = `${nodeToClone.data?.pillarType || nodeToClone.type || 'node'}-${Date.now().toString().slice(-4)}`;
+    const clonedData = { ...JSON.parse(JSON.stringify(nodeToClone.data || {})) };
+
+    // Strict Isolation: When duplicating an Output Node, ALWAYS start with a clean empty slate!
+    if (nodeToClone.type === 'outputNode') {
+      clonedData.runsHistory = [];
+      clonedData.outputContent = '';
+      clonedData.status = 'idle';
+      clonedData.sourceNodeType = null;
+      clonedData.sourceNodeId = null;
+      clonedData.sourceNodeName = null;
+      clonedData.auditHash = null;
+      clonedData.observability = { totalTokens: 0, latencyMs: 0 };
+      clonedData.isExpanded = false;
+      clonedData.name = 'Output Viewer';
+      clonedData.title = 'Output Viewer';
+    }
+
     const clonedNode = {
       ...JSON.parse(JSON.stringify(nodeToClone)),
       id: newId,
@@ -961,6 +1007,7 @@ function CanvasInner({
         x: nodeToClone.position.x + 50,
         y: nodeToClone.position.y + 50
       },
+      data: clonedData,
       selected: true
     };
 
@@ -1611,6 +1658,8 @@ function CanvasInner({
       let upstreamCount = 0;
       let upstreamPayload = null;
       let upstreamSources = [];
+      let resolvedSourceNodeType = n.data?.sourceNodeType || null;
+      let resolvedSourceNodeName = n.data?.sourceNodeName || null;
 
       if (n.type === 'pillar' && n.data?.pillarType === 'gateway') {
         disabledTools = Array.isArray(n.data?.disabledTools) ? n.data.disabledTools : [];
@@ -1765,6 +1814,25 @@ function CanvasInner({
         upstreamPayload = payload;
       }
 
+      if (n.type === 'outputNode') {
+        const incomingEdge = (edges || []).find(e => e.target === n.id);
+        if (incomingEdge) {
+          const upNode = nodeLookup[incomingEdge.source];
+          if (upNode) {
+            if (upNode.type === 'deterministicNode') {
+              resolvedSourceNodeType = 'deterministic';
+              resolvedSourceNodeName = upNode.data?.name || upNode.data?.ruleName || 'Deterministic Rule';
+            } else if (upNode.type === 'agentCore') {
+              resolvedSourceNodeType = 'agent';
+              resolvedSourceNodeName = upNode.data?.name || 'Autonomous Agent';
+            }
+          }
+        } else if (!n.data?.outputContent && (!n.data?.runsHistory || n.data.runsHistory.length === 0)) {
+          resolvedSourceNodeType = null;
+          resolvedSourceNodeName = null;
+        }
+      }
+
       return {
         ...n,
         data: {
@@ -1781,6 +1849,8 @@ function CanvasInner({
           upstreamCount,
           upstreamPayload,
           upstreamSources,
+          sourceNodeType: resolvedSourceNodeType,
+          sourceNodeName: resolvedSourceNodeName,
           onUpdateNodeData: handleUpdateDeterministicNode,
           routedTools,
           connectedMcpNodes,
@@ -1904,41 +1974,31 @@ function CanvasInner({
         </div>
       )}
 
-      {/* Top-Left Prominent Canvas Action Overlay: Execute Workflow & Cancel */}
-      <div className="absolute top-4 left-6 z-20 flex items-center gap-3">
+      {/* Top-Left Prominent Canvas Action Overlay: Minimalist Execute Workflow & Stop */}
+      <div className="absolute top-4 left-6 z-20 flex items-center gap-2">
         <button
           onClick={() => {
             window.dispatchEvent(new CustomEvent('keaos:execute-workflow'));
           }}
           disabled={executionState.isExecuting}
-          className={`btn-tactile px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2.5 shadow-2xl transition-all border cursor-pointer ${
+          className={`btn-tactile px-4 py-2 font-bold text-xs flex items-center gap-2 rounded-none shadow-md transition-all border cursor-pointer ${
             executionState.isExecuting
               ? 'bg-[#00338D] text-white border-[#0091DA] animate-pulse'
-              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#0091DA]/50 hover:border-[#0091DA] shadow-[0_4px_20px_rgba(0,51,141,0.35)]'
+              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#00338D] shadow-[0_2px_10px_rgba(0,51,141,0.3)]'
           }`}
-          title="Execute complete multi-pillar agent workflow (Ctrl + Enter)"
+          title="Execute workflow (Ctrl + Enter)"
         >
           {executionState.isExecuting ? (
             <>
-              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              <span className="font-mono tracking-tight text-white">Executing Graph...</span>
+              <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              <span className="font-mono tracking-tight text-white">Executing...</span>
             </>
           ) : (
             <>
-              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-                <Play className="w-3.5 h-3.5 fill-white text-white translate-x-0.5" />
-              </div>
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1.5">
-                  Execute Workflow
-                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-300 border border-emerald-400/30">
-                    READY
-                  </span>
-                </span>
-                <span className="text-[10px] font-mono text-slate-300">
-                  {activeUseCase?.framework?.name || 'Google ADK'} • {nodes.filter(n => !n.data?.isDeactivated).length} Active Nodes
-                </span>
-              </div>
+              <Play className="w-3.5 h-3.5 fill-white text-white" />
+              <span className="tracking-tight text-white text-xs font-bold">
+                Execute Workflow
+              </span>
             </>
           )}
         </button>
@@ -1947,11 +2007,11 @@ function CanvasInner({
         {(executionState.isExecuting || (nodes || []).some(n => n.type === 'outputNode' && n.data?.status === 'generating')) && (
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('keaos:cancel-execution'))}
-            className="btn-tactile px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2 shadow-2xl bg-red-600 hover:bg-red-700 text-white border border-red-400 cursor-pointer animate-in fade-in duration-150 active:scale-95"
-            title="Stop stream and cancel active execution"
+            className="btn-tactile px-3 py-2 rounded-none font-bold text-xs flex items-center gap-1.5 shadow-md bg-red-600 hover:bg-red-700 text-white border border-red-500 cursor-pointer animate-in fade-in duration-150 active:scale-95"
+            title="Stop active execution"
           >
-            <Square className="w-3.5 h-3.5 fill-white" />
-            <span>Stop / Close Stream</span>
+            <Square className="w-3 h-3 fill-white" />
+            <span>Stop</span>
           </button>
         )}
       </div>

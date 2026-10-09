@@ -1006,10 +1006,16 @@ export default function App() {
           type: 'outputNode',
           position: { x: xPos, y: yPos },
           data: {
-            title: item.name || 'Agent Output',
+            name: item.name || 'Output Viewer',
+            title: item.name || 'Output Viewer',
+            outputContent: '',
             content: '',
             status: 'idle',
             format: 'markdown',
+            runsHistory: [],
+            sourceNodeType: null,
+            sourceNodeId: null,
+            sourceNodeName: null,
             isExpanded: false
           }
         };
@@ -1017,10 +1023,10 @@ export default function App() {
         return [...nds, newNode];
       });
 
-      // Auto-wire from agent-core if output edge not yet present
+      // Auto-wire from agent-core only if this is the very first output node and no output edge exists
       setEdges((eds) => {
-        const hasAgentOutput = eds.some(e => e.source === 'agent-core' && e.sourceHandle === 'out');
-        if (!hasAgentOutput) {
+        const hasAnyOutputEdges = eds.some(e => e.targetHandle === 'data-in' || (e.source === 'agent-core' && e.sourceHandle === 'out'));
+        if (!hasAnyOutputEdges) {
           return [
             ...eds,
             {

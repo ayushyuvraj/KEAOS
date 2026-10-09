@@ -17,7 +17,7 @@ import {
   FileCode
 } from 'lucide-react';
 import { executeDeterministicTask } from '../../services/deterministicRunner';
-import { compileDeterministicLogic } from '../../services/deterministicCompiler';
+import { compileDeterministicLogic, getOfflineFallbackCode } from '../../services/deterministicCompiler';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
 export default function DeterministicNode({ id, data, selected }) {
@@ -38,12 +38,13 @@ export default function DeterministicNode({ id, data, selected }) {
   // Detect pre-existing logic / code
   const language = (data?.language || 'python').toLowerCase();
   const codeText = data?.code || '';
-  const hasCompiledCode = Boolean(
-    codeText && 
-    codeText.trim().length > 0 &&
-    !codeText.trim().startsWith('def process(inputs):\n    # Write') &&
-    codeText.trim() !== 'function process(inputs) {\n  return inputs;\n}'
-  );
+  const isStarterCode = !codeText || 
+    codeText.trim() === 'function process(inputs) {\n  return inputs;\n}' ||
+    codeText.trim() === 'function process(inputs) {\n  // Transform input data\n  return inputs;\n}' ||
+    codeText.trim().startsWith('function process(inputs) {\n  // Transform input data') ||
+    codeText.trim() === 'function process(inputs) { return inputs; }' ||
+    codeText.trim().startsWith('def process(inputs):\n    # Write');
+  const hasCompiledCode = Boolean(codeText && codeText.trim().length > 0 && !isStarterCode);
   const codeLines = codeText ? codeText.split('\n').filter(l => l.trim()).length : 0;
   const isStaged = Boolean(data?.isStaged && !isRunning);
 
@@ -116,9 +117,23 @@ export default function DeterministicNode({ id, data, selected }) {
     const val = e.target.value;
     setLocalText(val);
     if (data?.onUpdateNodeData) {
-      data.onUpdateNodeData(id, { prompt: val, ruleSummary: val, summary: val });
+      const updates = { prompt: val, ruleSummary: val, summary: val };
+      if (val && val.trim() && isStarterCode) {
+        updates.code = getOfflineFallbackCode(val, language, data?.lastUpstreamReceived || {});
+      }
+      data.onUpdateNodeData(id, updates);
     }
   };
+
+  // Auto-sync real transparent code if starter code exists alongside a directive
+  useEffect(() => {
+    if (isStarterCode && localText && localText.trim()) {
+      const generated = getOfflineFallbackCode(localText, language, data?.lastUpstreamReceived || {});
+      if (generated && generated !== codeText && data?.onUpdateNodeData) {
+        data.onUpdateNodeData(id, { code: generated });
+      }
+    }
+  }, [isStarterCode, localText, language, codeText, id, data?.lastUpstreamReceived, data?.onUpdateNodeData]);
 
   const hasPromptDirective = Boolean(localText && localText.trim().length > 0);
 

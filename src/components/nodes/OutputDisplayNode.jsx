@@ -134,6 +134,9 @@ export default function OutputDisplayNode({ id, data, selected }) {
   useEffect(() => {
     if (Array.isArray(data.runsHistory)) {
       setRunsHistory(data.runsHistory);
+      if (data.runsHistory.length === 0) {
+        lastProcessedContentRef.current = '';
+      }
     }
   }, [data.runsHistory]);
 
@@ -876,9 +879,9 @@ export default function OutputDisplayNode({ id, data, selected }) {
             <div className="flex items-center gap-1 font-bold text-amber-400 bg-amber-500/10 px-1 py-0.2 border border-amber-500/30">
               <span>⚡ FROM RULE: {data?.sourceNodeName || 'Deterministic'}</span>
             </div>
-          ) : data?.outputContent ? (
+          ) : data?.sourceNodeType === 'agent' || data?.outputContent ? (
             <div className="flex items-center gap-1 font-bold text-[#0091DA] bg-[#0091DA]/10 px-1 py-0.2 border border-[#0091DA]/30">
-              <span>🤖 FROM AGENT</span>
+              <span>🤖 FROM AGENT: {data?.sourceNodeName || 'Autonomous Agent'}</span>
             </div>
           ) : null}
 
@@ -941,10 +944,14 @@ export default function OutputDisplayNode({ id, data, selected }) {
             </div>
             <div className="space-y-1">
               <p className="font-mono text-xs font-bold text-[#10B981] animate-pulse">
-                Streaming Output from Connected Agent...
+                {data?.sourceNodeType === 'deterministic'
+                  ? `Computing Logic from ${data?.sourceNodeName || 'Deterministic Rule'}...`
+                  : `Streaming Output from ${data?.sourceNodeName || 'Connected Agent'}...`}
               </p>
               <p className={`text-[10px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                Compiling multi-pillar intelligence graph & applying guardrails
+                {data?.sourceNodeType === 'deterministic'
+                  ? 'Executing native logic isolate • 0 tokens consumed'
+                  : 'Compiling multi-pillar intelligence graph & applying guardrails'}
               </p>
             </div>
             <div className="flex items-center gap-2 mt-3">
@@ -975,10 +982,12 @@ export default function OutputDisplayNode({ id, data, selected }) {
           <div className="py-8 flex flex-col items-center justify-center gap-2 text-center select-none opacity-60">
             <Sparkles className="w-6 h-6 text-slate-400" />
             <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-              Awaiting Workflow Execution
+              Awaiting Upstream Execution
             </p>
             <p className={`text-[10px] max-w-[280px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              Wire an Agent or Deterministic Rule output port to this node and run the workflow to view and export real-time results.
+              {data?.sourceNodeName
+                ? `Connected to ${data.sourceNodeName}. Execute the workflow to capture dedicated output.`
+                : 'Wire an Agent or Deterministic Rule output port to this node and run the workflow to view its dedicated results.'}
             </p>
           </div>
         )}

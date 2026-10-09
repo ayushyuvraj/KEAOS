@@ -251,3 +251,21 @@ All agents and developers writing code in KEAOS MUST enforce the following integ
    - Never generate dummy tokens (`gho_oauth_...`) or fake verified responses that bypass genuine provider authentication.
    - If an OAuth Client ID or configuration is missing, fail transparently with a clear, honest setup prompt rather than pretending the connection succeeded.
 
+---
+
+## 10. Strict Generalization & Absolute Zero-Hardcoding Mandate
+
+All agents, subagents, and developers writing code or configuring KEAOS MUST enforce this absolute, non-negotiable directive:
+
+1. **Every User Example is Strictly a Use Case**:
+   - **MANDATE**: Every example, prompt, sample value, threshold, condition, or scenario provided by the user is **PURELY AN ILLUSTRATIVE USE CASE**.
+   - **UNDERSTAND THE UNDERLYING CONCEPT**: The agent must extract and understand the underlying concept, abstraction, and logic the user is trying to convey, rather than fixing or hardcoding the specific example values into the system.
+   - **CONFIRM AGAIN IF NEEDED & ACT ACCORDINGLY**: If an instruction or requirement is ambiguous or underspecified, clarify the underlying concept rather than making synthetic assumptions.
+   - **ABSOLUTE ZERO-HARDCODING RULE**: **NO HARDCODING AT ALL IN THE SYSTEM, FOR ANY USE CASE, UNLESS SPECIFICALLY AND EXPLICITLY MENTIONED BY THE USER.**
+
+2. **Zero Keyword Intercepts & Zero Synthetic Mock Responses**:
+   - **FORBIDDEN**: Never intercept natural language prompts with hardcoded keyword checks (e.g. never check `if (text.includes('token'))` or `if (text.includes('cost'))` to return static tables, mock statuses, or pre-baked numbers like `4000`, `2500`, or `NOMINAL`).
+   - **FORBIDDEN**: Never return synthetic mock outputs, dummy tables, fake audit rows, or canned templates.
+   - **REQUIRED**: All components (Deterministic Rules, Ingestion, Agents, Memory, Observability, Evaluators) MUST dynamically compile, parse, evaluate, and execute the user's actual logic, using real runtime data and real LLM compilation or real execution engines. If code compilation or evaluation is needed, it must be generated and executed dynamically based on the exact user directive.
+
+

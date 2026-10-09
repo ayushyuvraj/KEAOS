@@ -430,7 +430,7 @@ export async function executeDeterministicPython(pythonCode, inputData = {}, bac
  * Evaluates tokens and observability metrics, returning structured tabular status and analysis.
  * (Zero tokens consumed, high precision latency measurement)
  */
-export function executeTokenObservabilityEvaluation(inputData, startTime = performance.now()) {
+export function executeTokenObservabilityEvaluation(inputData, startTime = performance.now(), directive = '') {
   const norm = normalizeInputs(inputData);
   const dataObj = norm.data || norm;
 
@@ -462,18 +462,44 @@ export function executeTokenObservabilityEvaluation(inputData, startTime = perfo
     assessment = 'Standard enterprise multi-step synthesis profile.';
   }
 
-  const costEstimateUsd = Number(((tokens / 1000) * 0.00015).toFixed(5));
+  // Check if user directive explicitly asked for cost/pricing evaluation
+  const dirLower = String(directive || '').toLowerCase();
+  const userAskedForCost = dirLower.includes('cost') ||
+                           dirLower.includes('dollar') ||
+                           dirLower.includes('price') ||
+                           dirLower.includes('spend') ||
+                           dirLower.includes('money');
+
+  // If cost was explicitly requested, inherit the verified agent cost from upstream payload!
+  let actualCost = null;
+  if (typeof dataObj?.costUsd === 'number' && dataObj.costUsd > 0) actualCost = dataObj.costUsd;
+  else if (typeof inputData?.costUsd === 'number' && inputData.costUsd > 0) actualCost = inputData.costUsd;
+  else if (typeof dataObj?.economics?.costUsd === 'number' && dataObj.economics.costUsd > 0) actualCost = dataObj.economics.costUsd;
+  else actualCost = Number(((tokens / 1000) * 0.00015).toFixed(5));
+
   const latencyMs = Number((performance.now() - startTime).toFixed(2));
 
   const tableData = [
     { 'Metric': 'Total Tokens', 'Value': `${tokens.toLocaleString()} tok`, 'Threshold': '< 4,000 tok', 'Status': status },
-    { 'Metric': 'Reasoning Latency', 'Value': `${upstreamLatency} ms`, 'Threshold': '< 2,000 ms', 'Status': upstreamLatency > 2000 ? 'ELEVATED' : 'NOMINAL' },
-    { 'Metric': 'Inference Cost', 'Value': `$${costEstimateUsd}`, 'Threshold': '< $0.0100', 'Status': 'APPROVED' },
-    { 'Metric': 'Audit Readiness', 'Value': 'SHA-256 Passed', 'Threshold': 'W3C WebCrypto', 'Status': 'IMMUTABLE' },
-    { 'Metric': 'Governance Gate', 'Value': status.includes('HIGH') ? 'REVIEW' : 'CLEARED', 'Threshold': 'Policy Engine', 'Status': 'PASSED' }
+    { 'Metric': 'Reasoning Latency', 'Value': `${upstreamLatency} ms`, 'Threshold': '< 2,000 ms', 'Status': upstreamLatency > 2000 ? 'ELEVATED' : 'NOMINAL' }
   ];
 
-  const summary = `Token Evaluation: ${tokens.toLocaleString()} tokens (${status}). ${assessment} (Cost: $${costEstimateUsd})`;
+  if (userAskedForCost) {
+    tableData.push({
+      'Metric': 'Inference Cost',
+      'Value': `$${actualCost.toFixed(5)}`,
+      'Threshold': '< $0.0100',
+      'Status': actualCost < 0.01 ? 'APPROVED' : 'EXCEEDED'
+    });
+  }
+
+  tableData.push(
+    { 'Metric': 'Audit Readiness', 'Value': 'SHA-256 Passed', 'Threshold': 'W3C WebCrypto', 'Status': 'IMMUTABLE' },
+    { 'Metric': 'Governance Gate', 'Value': status.includes('HIGH') ? 'REVIEW' : 'CLEARED', 'Threshold': 'Policy Engine', 'Status': 'PASSED' }
+  );
+
+  const costSuffix = userAskedForCost ? ` (Cost: $${actualCost.toFixed(5)})` : '';
+  const summary = `Token Evaluation: ${tokens.toLocaleString()} tokens (${status}). ${assessment}${costSuffix}`;
 
   return {
     success: true,
@@ -484,7 +510,7 @@ export function executeTokenObservabilityEvaluation(inputData, startTime = perfo
       summary,
       tokenCount: tokens,
       latencyMs: upstreamLatency,
-      estimatedCostUsd: `$${costEstimateUsd}`,
+      estimatedCostUsd: userAskedForCost ? `$${actualCost.toFixed(5)}` : null,
       assessment,
       table: tableData
     },
@@ -592,45 +618,44 @@ export async function executeDeterministicTask({
   const startTime = performance.now();
   const effectiveDirective = (prompt || code || '').trim();
 
-  // 1. Natural Language Directive Pattern Matching
+  // 1. Natural Language Directive Dynamic Compilation
   const lowerDirective = effectiveDirective.toLowerCase();
-  const isNatural = isNaturalLanguageText(effectiveDirective) || !code || code.trim().startsWith('def process(inputs):\n    # Write');
+  const isCodeDef = code && !isNaturalLanguageText(code) && !code.trim().startsWith('def process(inputs):\n    # Write');
+  const isNatural = !isCodeDef && Boolean(effectiveDirective);
 
   if (isNatural) {
-    // Directive A: Token / Observability evaluation
+    // Check if user specifically requested an export action like spreadsheet/csv
     if (
-      lowerDirective.includes('token') ||
-      lowerDirective.includes('tokens') ||
-      lowerDirective.includes('observability') ||
-      lowerDirective.includes('status') && lowerDirective.includes('amount')
-    ) {
-      return executeTokenObservabilityEvaluation(inputData, startTime);
-    }
-
-    // Directive B: Excel / Spreadsheet export or append
-    if (
-      lowerDirective.includes('excel') ||
-      lowerDirective.includes('spreadsheet') ||
-      lowerDirective.includes('csv') ||
-      lowerDirective.includes('save') && lowerDirective.includes('output')
+      lowerDirective.includes('export to excel') ||
+      lowerDirective.includes('export to csv') ||
+      lowerDirective.includes('download csv') ||
+      lowerDirective.includes('download spreadsheet')
     ) {
       return executeSpreadsheetAppendDirective(inputData, nodeId, startTime);
     }
 
-    // Directive C: Auto-compile custom natural language directive if not matching standard heuristics
-    if (effectiveDirective && !code) {
-      try {
-        const compiled = await compileDeterministicLogic({
-          prompt: effectiveDirective,
-          language: language === 'auto' ? 'javascript' : language,
-          sampleInputs: inputData
-        });
-        if (compiled?.code) {
-          code = compiled.code;
+    // Auto-compile custom natural language directive dynamically based on the exact user logic
+    try {
+      const targetLang = (language === 'auto' || !language) ? 'javascript' : language;
+      const compiled = await compileDeterministicLogic({
+        prompt: effectiveDirective,
+        language: targetLang,
+        sampleInputs: inputData
+      });
+      if (compiled?.code) {
+        code = compiled.code;
+        if (compiled.language) {
+          language = compiled.language;
         }
-      } catch (compileErr) {
-        console.warn('Auto-compilation fallback:', compileErr);
       }
+    } catch (compileErr) {
+      console.warn('Auto-compilation error:', compileErr);
+      return {
+        success: false,
+        error: `Failed to compile natural language directive into deterministic code: ${compileErr.message || compileErr}`,
+        latencyMs: Number((performance.now() - startTime).toFixed(2)),
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
@@ -654,13 +679,7 @@ export async function executeDeterministicTask({
     return await executeDeterministicPython(code, inputData);
   } else {
     // Default to JavaScript / TypeScript
-    const jsRes = await executeDeterministicJS(code, inputData, nodeId);
-    // If JS execution failed with syntax error because code was a crude natural language prompt,
-    // gracefully route to the token observability evaluator or return clean structured output
-    if (!jsRes.success && isNaturalLanguageText(code)) {
-      return executeTokenObservabilityEvaluation(inputData, startTime);
-    }
-    return jsRes;
+    return await executeDeterministicJS(code, inputData, nodeId);
   }
 }
 

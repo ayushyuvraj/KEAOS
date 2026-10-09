@@ -104,6 +104,27 @@ export function saveOllamaConfig({ baseUrl, apiKey }) {
   }
 }
 
+/**
+ * Safely extracts the exact, official error message from a provider's API response
+ * without stream re-reading errors or loss of detail.
+ */
+export function extractResponseErrorMessage(errData, res, fallbackPrefix = 'HTTP Error') {
+  if (!errData && !res) return 'Unknown error';
+  const msg = errData?.error?.message 
+    || errData?.message 
+    || (typeof errData?.error === 'string' ? errData.error : null)
+    || (errData?.error?.code ? `Code: ${errData.error.code}` : null);
+  if (msg && typeof msg === 'string' && msg.trim()) {
+    return msg.trim();
+  }
+  const statusNum = res?.status;
+  const statusTxt = res?.statusText ? ` ${res.statusText}` : '';
+  if (statusNum) {
+    return `HTTP ${statusNum}${statusTxt}`;
+  }
+  return fallbackPrefix;
+}
+
 export function getProviderCredential(providerId) {
   const provider = PROVIDERS[providerId];
   if (!provider || provider.disabled) return null;
@@ -770,11 +791,14 @@ ${transcript}`;
       if (!res.ok && (errMsg.includes('system') || errMsg.includes('role'))) {
         console.warn(`[OpenAI] Model ${modelId} rejected 'system' role. Retrying with 'developer' role...`);
         res = await sendOpenAiRequest({ includeTemp: false, includeJsonFormat: false, useDeveloperRole: true });
+        if (!res.ok) {
+          errData = await res.json().catch(() => ({}));
+        }
       }
 
       if (!res.ok) {
-        const finalErr = await res.json().catch(() => ({}));
-        throw new Error(`OpenAI Error: ${finalErr.error?.message || res.statusText}`);
+        const errorText = extractResponseErrorMessage(errData, res, 'OpenAI Request Failed');
+        throw new Error(`OpenAI Error: ${errorText}`);
       }
     }
 
@@ -809,7 +833,8 @@ ${transcript}`;
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`Anthropic Error: ${err.error?.message || res.statusText}`);
+      const errorText = extractResponseErrorMessage(err, res, 'Anthropic Request Failed');
+      throw new Error(`Anthropic Error: ${errorText}`);
     }
     const json = await res.json();
     rawResponseText = json.content[0]?.text || '';
@@ -866,7 +891,8 @@ ${transcript}`;
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`Ollama Error: ${err.error?.message || res.statusText} at ${baseUrl}`);
+      const errorText = extractResponseErrorMessage(err, res, 'Ollama Request Failed');
+      throw new Error(`Ollama Error: ${errorText} at ${baseUrl}`);
     }
     const json = await res.json();
     rawResponseText = json.choices[0]?.message?.content || '';
@@ -899,7 +925,8 @@ ${transcript}`;
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`OpenRouter Error: ${err.error?.message || res.statusText}`);
+      const errorText = extractResponseErrorMessage(err, res, 'OpenRouter Request Failed');
+      throw new Error(`OpenRouter Error: ${errorText}`);
     }
     const json = await res.json();
     rawResponseText = json.choices[0]?.message?.content || '';
@@ -985,7 +1012,8 @@ export async function executeUniversalChat({
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`Anthropic Error: ${err.error?.message || res.statusText}`);
+      const errorText = extractResponseErrorMessage(err, res, 'Anthropic Request Failed');
+      throw new Error(`Anthropic Error: ${errorText}`);
     }
     const json = await res.json();
     responseText = json.content?.map(c => c.text).join('') || '';
@@ -1039,11 +1067,14 @@ export async function executeUniversalChat({
       // Retry with developer role if system role rejected
       if (!res.ok && (errMsg.includes('system') || errMsg.includes('role'))) {
         res = await sendOpenAiChat({ includeTemp: false, useDeveloperRole: true });
+        if (!res.ok) {
+          errData = await res.json().catch(() => ({}));
+        }
       }
 
       if (!res.ok) {
-        const finalErr = await res.json().catch(() => ({}));
-        throw new Error(`OpenAI Error: ${finalErr.error?.message || res.statusText}`);
+        const errorText = extractResponseErrorMessage(errData, res, 'OpenAI Request Failed');
+        throw new Error(`OpenAI Error: ${errorText}`);
       }
     }
     const json = await res.json();
@@ -1091,7 +1122,9 @@ export async function executeUniversalChat({
       })
     });
     if (!res.ok) {
-      throw new Error(`Ollama Error: ${res.statusText}. Target: ${baseUrl}`);
+      const err = await res.json().catch(() => ({}));
+      const errorText = extractResponseErrorMessage(err, res, 'Ollama Request Failed');
+      throw new Error(`Ollama Error: ${errorText}. Target: ${baseUrl}`);
     }
     const json = await res.json();
     responseText = json.choices[0]?.message?.content || '';
@@ -1121,7 +1154,8 @@ export async function executeUniversalChat({
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`OpenRouter Error: ${err.error?.message || res.statusText}`);
+      const errorText = extractResponseErrorMessage(err, res, 'OpenRouter Request Failed');
+      throw new Error(`OpenRouter Error: ${errorText}`);
     }
     const json = await res.json();
     responseText = json.choices[0]?.message?.content || '';

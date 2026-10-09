@@ -24,7 +24,7 @@ import {
   Cpu,
   MessageSquare
 } from 'lucide-react';
-import { compileDeterministicLogic } from '../services/deterministicCompiler';
+import { compileDeterministicLogic, getOfflineFallbackCode } from '../services/deterministicCompiler';
 import { executeDeterministicTask } from '../services/deterministicRunner';
 import { getAllConfiguredProviders } from '../services/llmService';
 
@@ -139,18 +139,32 @@ export default function DeterministicWorkspaceModal({
     }
   }, [inputTab, upstreamInfo.payload, uploadedData, manualInputText]);
 
-  // Set starter code if code is empty on language change
+  // Set starter code or auto-populate real code if prompt directive exists
   useEffect(() => {
-    if (!code) {
-      if (language === 'python') {
-        setCode('def process(inputs):\n    # Write your deterministic Python code here\n    result = inputs\n    return result');
-      } else if (language === 'sql') {
-        setCode('-- Write your deterministic SQL query here\nSELECT * FROM data;');
+    const isStarterOrEmpty = !code ||
+      code.trim() === 'function process(inputs) {\n  // Transform input data\n  return inputs;\n}' ||
+      code.trim() === 'function process(inputs) {\n  // Write your deterministic JavaScript code here\n  return inputs;\n}' ||
+      code.trim().startsWith('function process(inputs) {\n  // Transform input data') ||
+      code.trim() === 'function process(inputs) { return inputs; }';
+
+    if (isStarterOrEmpty) {
+      if (prompt && prompt.trim()) {
+        const compiled = getOfflineFallbackCode(prompt, language, upstreamInfo.payload);
+        setCode(compiled);
+        if (onUpdateNode) {
+          onUpdateNode(nodeId, { code: compiled });
+        }
       } else {
-        setCode('function process(inputs) {\n  // Write your deterministic JavaScript code here\n  return inputs;\n}');
+        if (language === 'python') {
+          setCode('def process(inputs):\n    # Write your deterministic Python code here\n    result = inputs\n    return result');
+        } else if (language === 'sql') {
+          setCode('-- Write your deterministic SQL query here\nSELECT * FROM data;');
+        } else {
+          setCode('function process(inputs) {\n  // Write your deterministic JavaScript code here\n  return inputs;\n}');
+        }
       }
     }
-  }, [language, code]);
+  }, [language, code, prompt, upstreamInfo.payload, nodeId, onUpdateNode]);
 
   // Handle Natural Language Compilation
   const handleCompile = async () => {
