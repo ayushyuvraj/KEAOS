@@ -81,6 +81,7 @@ export default function DeterministicWorkspaceModal({
   const [executionError, setExecutionError] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
+  const [isPayloadExpanded, setIsPayloadExpanded] = useState(false);
   const [outputSearch, setOutputSearch] = useState('');
   const [isFrozen, setIsFrozen] = useState(nodeData?.isFrozen || false);
 
