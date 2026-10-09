@@ -203,6 +203,46 @@ export const WIDGET_CATALOG = [
       }
     }
   },
+  {
+    type: 'parameter-slider',
+    category: 'inputs',
+    name: 'Precision Parameter Slider',
+    description: 'Fine-tune numeric thresholds like Confidence or Risk Tolerance',
+    defaultProps: {
+      label: 'Confidence Alignment Threshold',
+      description: 'Minimum alignment score required to auto-approve workflow directives',
+      min: 0,
+      max: 100,
+      step: 1,
+      value: 90,
+      unit: '%',
+      paramKey: 'confidenceThreshold'
+    }
+  },
+  {
+    type: 'segmented-switch',
+    category: 'inputs',
+    name: 'Segmented Pill Switcher',
+    description: 'Apple-style multi-option toggle for modes, markets, or jurisdictions',
+    defaultProps: {
+      label: 'Target Execution Jurisdiction',
+      options: ['APAC Sovereign', 'EU Compliance', 'Americas Standard'],
+      selectedIndex: 0,
+      paramKey: 'jurisdiction'
+    }
+  },
+  {
+    type: 'policy-toggle',
+    category: 'inputs',
+    name: 'Governance Policy Switch',
+    description: 'Instant toggle for institutional guardrails and privacy filters',
+    defaultProps: {
+      label: 'Enforce Cryptographic PII Masking',
+      description: 'Redacts employee salaries, SSNs, and executive contact data',
+      checked: true,
+      paramKey: 'enforcePiiMasking'
+    }
+  },
 
   // --- Category: Intelligence Displays & Outputs ---
   {

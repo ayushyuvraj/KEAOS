@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import { 
   Sparkles, 
   Play, 
@@ -734,6 +735,219 @@ export function LottiePulseWidget({ props, theme, isSelected, onClick }) {
   );
 }
 
+// 13. Precision Parameter Slider Widget
+export function ParameterSliderWidget({ props, theme, isSelected, onClick }) {
+  const [val, setVal] = useState(props.value !== undefined ? props.value : 75);
+  const min = props.min !== undefined ? props.min : 0;
+  const max = props.max !== undefined ? props.max : 100;
+  const step = props.step !== undefined ? props.step : 1;
+  const pct = Math.round(((val - min) / (max - min)) * 100);
+
+  return (
+    <div 
+      onClick={onClick}
+      className={`w-full p-4 rounded-xl border transition-all ${
+        isSelected ? 'ring-2 ring-blue-500/80 bg-blue-500/5' : ''
+      }`}
+      style={{
+        backgroundColor: theme.bgCard,
+        borderColor: theme.borderCard,
+        boxShadow: theme.cardShadow
+      }}
+    >
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+          {props.label || 'Parameter Tuning'}
+        </label>
+        <div 
+          className="px-2 py-0.5 rounded text-[11px] font-mono font-bold tracking-wider"
+          style={{ 
+            backgroundColor: theme.accentLight, 
+            color: theme.accentColor,
+            border: `1px solid ${theme.accentColor}30`
+          }}
+        >
+          {val}{props.unit || '%'}
+        </div>
+      </div>
+
+      {props.description && (
+        <p className="text-[11px] mb-3 leading-relaxed" style={{ color: theme.textMuted }}>
+          {props.description}
+        </p>
+      )}
+
+      <div className="relative flex items-center w-full">
+        <input 
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={val}
+          onChange={(e) => setVal(Number(e.target.value))}
+          className="w-full h-1.5 rounded-lg appearance-none cursor-pointer focus:outline-none"
+          style={{
+            background: `linear-gradient(to right, ${theme.accentColor} 0%, ${theme.accentColor} ${pct}%, ${theme.borderCard} ${pct}%, ${theme.borderCard} 100%)`
+          }}
+        />
+      </div>
+
+      <div className="flex justify-between items-center mt-2 text-[10px] font-mono" style={{ color: theme.textMuted }}>
+        <span>{min}{props.unit || '%'}</span>
+        <span className="opacity-60">Balanced</span>
+        <span>{max}{props.unit || '%'}</span>
+      </div>
+    </div>
+  );
+}
+
+// 14. Segmented Pill Switcher Widget
+export function SegmentedSwitchWidget({ props, theme, isSelected, onClick }) {
+  const options = props.options || ['Option A', 'Option B', 'Option C'];
+  const [selectedIdx, setSelectedIdx] = useState(props.selectedIndex !== undefined ? props.selectedIndex : 0);
+
+  return (
+    <div 
+      onClick={onClick}
+      className={`w-full p-4 rounded-xl border transition-all ${
+        isSelected ? 'ring-2 ring-blue-500/80 bg-blue-500/5' : ''
+      }`}
+      style={{
+        backgroundColor: theme.bgCard,
+        borderColor: theme.borderCard,
+        boxShadow: theme.cardShadow
+      }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-xs font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+          {props.label || 'Mode Selector'}
+        </label>
+        <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: theme.textMuted }}>
+          Active: {options[selectedIdx]}
+        </span>
+      </div>
+
+      <div 
+        className="p-1 rounded-xl flex items-center gap-1 border"
+        style={{
+          backgroundColor: theme.bgArtboard,
+          borderColor: theme.borderCard
+        }}
+      >
+        {options.map((opt, idx) => {
+          const isActive = idx === selectedIdx;
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedIdx(idx);
+              }}
+              className="flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-tight transition-all text-center relative"
+              style={{
+                backgroundColor: isActive ? theme.bgCard : 'transparent',
+                color: isActive ? theme.accentColor : theme.textMuted,
+                boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                border: isActive ? `1px solid ${theme.borderCard}` : '1px solid transparent'
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 15. Governance Policy Toggle Switch Widget
+export function PolicyToggleWidget({ props, theme, isSelected, onClick }) {
+  const [enabled, setEnabled] = useState(props.checked !== undefined ? props.checked : true);
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    const next = !enabled;
+    setEnabled(next);
+    if (next) {
+      try {
+        confetti({
+          particleCount: 25,
+          spread: 45,
+          origin: { y: 0.8 },
+          colors: [theme.accentColor, '#10B981', '#6366F1']
+        });
+      } catch (err) {
+        // graceful ignore
+      }
+    }
+  };
+
+  return (
+    <div 
+      onClick={onClick}
+      className={`w-full p-4 rounded-xl border flex items-center justify-between gap-4 transition-all ${
+        isSelected ? 'ring-2 ring-blue-500/80 bg-blue-500/5' : ''
+      }`}
+      style={{
+        backgroundColor: theme.bgCard,
+        borderColor: theme.borderCard,
+        boxShadow: theme.cardShadow
+      }}
+    >
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <div 
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border mt-0.5"
+          style={{
+            backgroundColor: enabled ? theme.accentLight : theme.bgArtboard,
+            borderColor: enabled ? theme.accentColor + '40' : theme.borderCard,
+            color: enabled ? theme.accentColor : theme.textMuted
+          }}
+        >
+          <ShieldCheck className="w-4 h-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h4 className="text-xs font-semibold tracking-tight" style={{ color: theme.textPrimary }}>
+              {props.label || 'Governance Rule'}
+            </h4>
+            <span 
+              className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase tracking-wider"
+              style={{
+                backgroundColor: enabled ? '#10B98115' : '#EF444415',
+                color: enabled ? '#10B981' : '#EF4444'
+              }}
+            >
+              {enabled ? 'Enforced' : 'Bypassed'}
+            </span>
+          </div>
+          {props.description && (
+            <p className="text-[11px] mt-0.5 leading-snug line-clamp-2" style={{ color: theme.textMuted }}>
+              {props.description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleToggle}
+        className="w-11 h-6 rounded-full relative transition-colors focus:outline-none shrink-0 cursor-pointer p-0.5 border"
+        style={{
+          backgroundColor: enabled ? theme.accentColor : theme.borderCard,
+          borderColor: enabled ? theme.accentColor : theme.borderCard
+        }}
+      >
+        <span 
+          className={`block w-4.5 h-4.5 rounded-full bg-white shadow-md transform transition-transform ${
+            enabled ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
 // Central Widget Renderer dispatcher
 export function RenderShowroomWidget({ 
   widget, 
@@ -756,6 +970,12 @@ export function RenderShowroomWidget({
       return <FileDropzoneWidget props={widget.props} theme={theme} isSelected={isSelected} onClick={onClick} onExecute={onExecute} isExecuting={isExecuting} />;
     case 'action-button':
       return <ActionButtonWidget props={widget.props} theme={theme} isSelected={isSelected} onClick={onClick} onExecute={onExecute} onNavigate={onNavigate} isExecuting={isExecuting} />;
+    case 'parameter-slider':
+      return <ParameterSliderWidget props={widget.props} theme={theme} isSelected={isSelected} onClick={onClick} />;
+    case 'segmented-switch':
+      return <SegmentedSwitchWidget props={widget.props} theme={theme} isSelected={isSelected} onClick={onClick} />;
+    case 'policy-toggle':
+      return <PolicyToggleWidget props={widget.props} theme={theme} isSelected={isSelected} onClick={onClick} />;
     case 'streaming-result':
       return <StreamingResultWidget props={widget.props} theme={theme} isSelected={isSelected} onClick={onClick} liveOutput={liveOutput} isExecuting={isExecuting} />;
     case 'kpi-grid':
