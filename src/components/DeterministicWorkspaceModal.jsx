@@ -477,65 +477,62 @@ export default function DeterministicWorkspaceModal({
   const codeLineCount = useMemo(() => (code || '').split('\n').length, [code]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xl animate-in fade-in duration-150">
       <div 
-        className="relative w-full max-w-7xl h-[94vh] flex flex-col bg-[#0B0F19] border border-[#222B3D] text-white shadow-2xl rounded-none overflow-hidden font-sans"
+        className="relative w-full max-w-7xl h-[94vh] flex flex-col bg-[#0B0F19]/80 backdrop-blur-2xl border border-white/10 text-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.12)] rounded-none overflow-hidden font-sans"
       >
-        {/* ========================================================================= */}
-        {/* TOP INSTITUTIONAL HEADER BAR                                              */}
-        {/* ========================================================================= */}
-        <div className="px-5 py-3 bg-[#001E50] border-b border-[#00338D] flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#EAAA00] text-[#001E50] flex items-center justify-center font-bold rounded-none shrink-0">
-              <Code2 className="w-5 h-5 font-bold" />
-            </div>
-            
-            <div className="flex items-center gap-2.5">
-              <input
-                type="text"
-                value={nodeName}
-                onChange={(e) => setNodeName(e.target.value)}
-                onBlur={() => onUpdateNode && nodeId && onUpdateNode(nodeId, { name: nodeName })}
-                className="bg-transparent text-sm font-bold text-white border-b border-transparent hover:border-white/40 focus:border-[#EAAA00] focus:outline-none px-1 py-0.5 rounded-none font-mono tracking-tight"
-                placeholder="Rule Title"
-              />
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-[#EAAA00]/20 text-[#EAAA00] border border-[#EAAA00]/40 rounded-none uppercase">
-                DETERMINISTIC RUNTIME
-              </span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 rounded-none">
-                <Zap className="w-3 h-3 text-emerald-400" /> 0 TOKENS • $0.00 INFERENCE
-              </span>
-            </div>
+        {/* Ambient subtle light glows behind frosted glass */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#00338D]/25 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#0091DA]/15 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Inherited Agent Brain Indicator */}
-            {connectedBrain && (
-              <div className="hidden md:flex items-center gap-1.5 ml-3 pl-3 border-l border-white/15 text-[11px] font-mono text-slate-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-slate-400">Brain:</span>
-                <span className="text-white font-bold">{connectedBrain.displayName}</span>
-                <span className="text-slate-400">({connectedBrain.agentName})</span>
-              </div>
-            )}
+        {/* ========================================================================= */}
+        {/* TOP BAR: NAME • BRAIN INFO • RUN BUTTON (Nothing Else)                     */}
+        {/* ========================================================================= */}
+        <div className="px-5 py-3 bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.08] flex items-center justify-between shrink-0 relative z-10">
+          {/* Left: Name */}
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              value={nodeName}
+              onChange={(e) => setNodeName(e.target.value)}
+              onBlur={() => onUpdateNode && nodeId && onUpdateNode(nodeId, { name: nodeName })}
+              className="bg-transparent text-sm font-semibold text-white/90 hover:text-white border-b border-transparent hover:border-white/20 focus:border-[#0091DA] focus:outline-none px-1 py-0.5 rounded-none font-mono tracking-tight transition-colors"
+              placeholder="Rule Title"
+            />
           </div>
 
-          {/* Header Action Buttons */}
+          {/* Center: Brain Info */}
+          {connectedBrain ? (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-none bg-white/[0.04] border border-white/10 backdrop-blur-md text-[11px] font-mono text-slate-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+              <span className="text-slate-400">Brain:</span>
+              <span className="text-white font-bold">{connectedBrain.displayName}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-none bg-white/[0.04] border border-white/10 backdrop-blur-md text-[11px] font-mono text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-slate-500" />
+              <span>Brain: Auto</span>
+            </div>
+          )}
+
+          {/* Right: RUN Button & Close */}
           <div className="flex items-center gap-2.5">
             <button
               onClick={handleExecute}
               disabled={isExecuting || isCompiling}
-              className="btn-tactile px-4 py-2 bg-[#00338D] hover:bg-[#005EB8] active:scale-[0.98] text-white text-xs font-mono font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer rounded-none border border-[#005EB8]"
+              className="px-4 py-1.5 bg-[#00338D]/85 hover:bg-[#0047BA] active:scale-[0.98] text-white text-xs font-mono font-bold flex items-center gap-2 shadow-[0_4px_16px_rgba(0,51,141,0.4)] backdrop-blur-md transition-all cursor-pointer rounded-none border border-[#005EB8]/70"
               title="Run deterministic logic in zero-latency browser isolate (Ctrl + Enter)"
             >
               {isExecuting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>EXECUTING...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                  <span>Running...</span>
                 </>
               ) : (
                 <>
                   <Play className="w-3.5 h-3.5 fill-current text-white" />
-                  <span>RUN LOGIC (0 TOKENS)</span>
-                  <span className="text-[10px] opacity-75 font-normal ml-1">Ctrl+Enter</span>
+                  <span>RUN</span>
+                  <span className="text-[10px] text-white/60 font-normal ml-0.5">Ctrl+Enter</span>
                 </>
               )}
             </button>
@@ -545,20 +542,20 @@ export default function DeterministicWorkspaceModal({
               className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-none transition-colors cursor-pointer"
               title="Close Workspace (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* MAIN 2-PANE STUDIO LAYOUT                                                 */}
+        {/* MAIN 2-PANE STUDIO LAYOUT WITH GLASSMORPHISM                              */}
         {/* ========================================================================= */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-[#0B0F19]">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-transparent relative z-10">
           
           {/* ----------------------------------------------------------------------- */}
           {/* LEFT PANE: Human Intent & Upstream Context (5 Columns)                   */}
           {/* ----------------------------------------------------------------------- */}
-          <div className="lg:col-span-5 border-r border-[#1E2536] bg-[#0E1321] flex flex-col overflow-y-auto">
+          <div className="lg:col-span-5 border-r border-white/[0.08] bg-white/[0.02] backdrop-blur-md flex flex-col overflow-y-auto">
             <div className="p-5 space-y-5">
               
               {/* 1. Human Language Directive Card */}
@@ -579,11 +576,11 @@ export default function DeterministicWorkspaceModal({
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Describe what this rule should do in plain words (e.g. 'Classify token consumption as High or Low given token count of 4000', or 'Filter rows where status is active and sum amount')..."
-                    className="w-full p-3 text-xs font-mono leading-relaxed bg-[#060911] border border-[#232B3E] text-white focus:border-[#0091DA] focus:ring-1 focus:ring-[#0091DA] rounded-none transition-all resize-none outline-none placeholder:text-slate-600"
+                    className="w-full p-3 text-xs font-mono leading-relaxed bg-black/40 border border-white/10 text-white focus:border-[#0091DA]/80 focus:bg-black/60 focus:ring-1 focus:ring-[#0091DA]/40 rounded-none transition-all resize-none outline-none placeholder:text-slate-500 backdrop-blur-sm"
                   />
                 </div>
 
-                {/* Compile Logic Button (Powered directly by the connected Agent Brain) */}
+                {/* Compile Logic Button */}
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     onClick={handleCompile}
@@ -591,7 +588,7 @@ export default function DeterministicWorkspaceModal({
                     className={`flex-1 py-2 px-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer rounded-none ${
                       isCompiling
                         ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                        : 'bg-[#EAAA00] hover:bg-[#D49800] text-[#001E50] border-[#EAAA00]'
+                        : 'bg-[#EAAA00]/90 hover:bg-[#EAAA00] text-[#001E50] border-amber-300/40 shadow-[0_4px_16px_rgba(234,170,0,0.25)]'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                     title={`Compile plain English into deterministic code using ${connectedBrain?.displayName || 'active model'}`}
                   >
@@ -615,7 +612,7 @@ export default function DeterministicWorkspaceModal({
               </div>
 
               {/* 2. Upstream Context & Variable Inspector */}
-              <div className="space-y-3 pt-4 border-t border-[#1E2536]">
+              <div className="space-y-3 pt-4 border-t border-white/[0.08]">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
                     <Database className="w-3.5 h-3.5 text-[#0091DA]" />
@@ -632,11 +629,11 @@ export default function DeterministicWorkspaceModal({
 
                 {/* Inherited Stream View */}
                 {!showCustomDataInput ? (
-                  <div className="p-3 bg-[#060911] border border-[#232B3E] space-y-3">
+                  <div className="p-3 bg-white/[0.02] border border-white/[0.08] backdrop-blur-sm space-y-3">
                     {/* Upstream Source Badge */}
                     <div className="flex items-center justify-between text-xs font-mono">
                       <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${upstreamInfo.sources.length > 0 ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        <span className={`w-2 h-2 rounded-full ${upstreamInfo.sources.length > 0 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]' : 'bg-amber-400'}`} />
                         <span className="font-bold text-white">
                           {upstreamInfo.sources.length > 0 
                             ? upstreamInfo.sources[0].name 
@@ -659,7 +656,7 @@ export default function DeterministicWorkspaceModal({
                             key={key}
                             type="button"
                             onClick={() => handleCopyVar(key)}
-                            className="px-2 py-0.5 text-[10px] font-mono border border-[#2A344A] bg-[#121726] hover:bg-[#1A2238] text-[#0091DA] hover:text-white flex items-center gap-1 rounded-none transition-colors cursor-pointer"
+                            className="px-2 py-0.5 text-[10px] font-mono border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-[#0091DA] hover:text-white flex items-center gap-1 rounded-none transition-colors cursor-pointer"
                             title={`Click to copy inputs.${key}`}
                           >
                             <span>inputs.{key}</span>
@@ -674,7 +671,7 @@ export default function DeterministicWorkspaceModal({
                     </div>
 
                     {/* Collapsible Input Payload Preview */}
-                    <div className="pt-2 border-t border-[#1E2536]">
+                    <div className="pt-2 border-t border-white/[0.08]">
                       <button
                         type="button"
                         onClick={() => setIsPayloadExpanded(!isPayloadExpanded)}
@@ -690,7 +687,7 @@ export default function DeterministicWorkspaceModal({
                       </button>
 
                       {isPayloadExpanded && (
-                        <pre className="mt-2 p-2.5 bg-[#030508] border border-[#1A2130] text-[10px] text-slate-300 font-mono max-h-40 overflow-y-auto whitespace-pre-wrap leading-tight">
+                        <pre className="mt-2 p-2.5 bg-black/50 border border-white/[0.06] text-[10px] text-slate-300 font-mono max-h-40 overflow-y-auto whitespace-pre-wrap leading-tight">
                           {JSON.stringify(currentActiveInput, null, 2)}
                         </pre>
                       )}
@@ -698,7 +695,7 @@ export default function DeterministicWorkspaceModal({
                   </div>
                 ) : (
                   /* Custom Test Data Mode (Upload or Paste) */
-                  <div className="p-3 bg-[#060911] border border-[#232B3E] space-y-3">
+                  <div className="p-3 bg-white/[0.02] border border-white/[0.08] backdrop-blur-sm space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">
                         Custom Test Input
@@ -719,7 +716,7 @@ export default function DeterministicWorkspaceModal({
                       value={manualInputText}
                       onChange={(e) => setManualInputText(e.target.value)}
                       placeholder='{\n  "customKey": "test value"\n}'
-                      className="w-full p-2 text-xs font-mono bg-[#030508] border border-[#1A2130] text-emerald-300 focus:outline-none rounded-none resize-none"
+                      className="w-full p-2 text-xs font-mono bg-black/50 border border-white/10 text-emerald-300 focus:outline-none rounded-none resize-none"
                     />
                   </div>
                 )}
@@ -731,16 +728,16 @@ export default function DeterministicWorkspaceModal({
           {/* ----------------------------------------------------------------------- */}
           {/* RIGHT PANE: Deterministic Logic & Live Output (7 Columns)               */}
           {/* ----------------------------------------------------------------------- */}
-          <div className="lg:col-span-7 flex flex-col h-full overflow-hidden bg-[#080C16]">
+          <div className="lg:col-span-7 flex flex-col h-full overflow-hidden bg-transparent">
             
             {/* 1. Code Inspector Header */}
-            <div className="px-4 py-2.5 bg-[#0D1220] border-b border-[#1E2536] flex items-center justify-between shrink-0">
+            <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.08] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <FileCode className="w-4 h-4 text-[#EAAA00]" />
                 <span className="text-xs font-mono font-bold text-white tracking-tight">
                   Deterministic Logic
                 </span>
-                <span className="text-[9px] font-mono text-[#0091DA] bg-[#0091DA]/10 border border-[#0091DA]/30 px-2 py-0.5 rounded-none font-bold uppercase">
+                <span className="text-[9px] font-mono text-[#0091DA] bg-[#0091DA]/15 border border-[#0091DA]/40 px-2 py-0.5 rounded-none font-bold uppercase backdrop-blur-sm">
                   {language} (Browser Isolate)
                 </span>
                 <span className="text-[9px] font-mono text-slate-500">
@@ -751,7 +748,7 @@ export default function DeterministicWorkspaceModal({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCopyCode}
-                  className="px-2.5 py-1 text-[11px] font-mono border border-[#2A344A] bg-[#121726] hover:bg-[#1A2238] text-slate-300 hover:text-white flex items-center gap-1 rounded-none transition-colors cursor-pointer"
+                  className="px-2.5 py-1 text-[11px] font-mono border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white flex items-center gap-1 rounded-none transition-colors cursor-pointer"
                   title="Copy code to clipboard"
                 >
                   {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
@@ -761,9 +758,9 @@ export default function DeterministicWorkspaceModal({
             </div>
 
             {/* 2. Clean Code Editor Surface */}
-            <div className="h-60 sm:h-64 border-b border-[#1E2536] shrink-0 flex overflow-hidden bg-[#05070D]">
+            <div className="h-60 sm:h-64 border-b border-white/[0.08] shrink-0 flex overflow-hidden bg-[#04060A]/90 backdrop-blur-md">
               {/* Line Numbers Gutter */}
-              <div className="select-none py-3 px-2 text-right text-slate-600 font-mono text-[11px] border-r border-[#151C2C] bg-[#04060A] min-w-[34px]">
+              <div className="select-none py-3 px-2 text-right text-slate-600 font-mono text-[11px] border-r border-white/[0.06] bg-black/40 min-w-[34px]">
                 {code.split('\n').map((_, i) => (
                   <div key={i} className="leading-relaxed">{i + 1}</div>
                 ))}
@@ -780,10 +777,10 @@ export default function DeterministicWorkspaceModal({
             </div>
 
             {/* 3. Execution Console & Output Viewer */}
-            <div className="flex-1 flex flex-col overflow-hidden bg-[#0A0E18]">
+            <div className="flex-1 flex flex-col overflow-hidden bg-transparent">
               
               {/* Output Sub-Header */}
-              <div className="px-4 py-2 bg-[#0E1322] border-b border-[#1E2536] flex items-center justify-between shrink-0">
+              <div className="px-4 py-2 bg-white/[0.02] border-b border-white/[0.08] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2.5">
                   <span className="text-xs font-mono font-bold text-slate-300">
                     Execution Output
@@ -811,7 +808,7 @@ export default function DeterministicWorkspaceModal({
                         value={outputSearch}
                         onChange={(e) => setOutputSearch(e.target.value)}
                         placeholder="Filter rows..."
-                        className="pl-7 pr-2 py-0.5 text-[11px] font-mono bg-black/40 border border-[#252E42] text-white focus:outline-none rounded-none"
+                        className="pl-7 pr-2 py-0.5 text-[11px] font-mono bg-black/40 border border-white/10 text-white focus:outline-none rounded-none"
                       />
                     </div>
                   )}
@@ -820,14 +817,14 @@ export default function DeterministicWorkspaceModal({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleExportOutput('json')}
-                        className="px-2 py-1 text-[10px] font-mono border border-[#2A344A] bg-[#121726] hover:bg-[#1A2238] text-slate-300 hover:text-white rounded-none transition-colors cursor-pointer"
+                        className="px-2 py-1 text-[10px] font-mono border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white rounded-none transition-colors cursor-pointer"
                         title="Download JSON output"
                       >
                         JSON
                       </button>
                       <button
                         onClick={() => handleExportOutput('csv')}
-                        className="px-2 py-1 text-[10px] font-mono border border-[#2A344A] bg-[#121726] hover:bg-[#1A2238] text-slate-300 hover:text-white rounded-none transition-colors cursor-pointer"
+                        className="px-2 py-1 text-[10px] font-mono border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white rounded-none transition-colors cursor-pointer"
                         title="Download CSV output"
                       >
                         CSV
@@ -840,7 +837,7 @@ export default function DeterministicWorkspaceModal({
               {/* Output Content Body */}
               <div className="flex-1 overflow-auto p-4">
                 {executionError ? (
-                  <div className="p-4 border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-mono space-y-1 rounded-none">
+                  <div className="p-4 border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-mono space-y-1 rounded-none backdrop-blur-sm">
                     <p className="font-bold flex items-center gap-1.5">
                       <AlertCircle className="w-4 h-4 text-red-400" />
                       Execution Error:
@@ -852,12 +849,12 @@ export default function DeterministicWorkspaceModal({
                     <Code2 className="w-8 h-8 text-slate-600" />
                     <p className="text-xs">No execution run yet.</p>
                     <p className="text-[11px] text-slate-600">
-                      Click "RUN LOGIC (0 TOKENS)" or press Ctrl+Enter to test your deterministic logic.
+                      Click "RUN" or press Ctrl+Enter to test your deterministic logic.
                     </p>
                   </div>
                 ) : isOutputPrimitive ? (
                   /* Decision Outcome Badge Card */
-                  <div className="p-5 border border-emerald-500/30 bg-emerald-500/10 rounded-none flex items-center justify-between">
+                  <div className="p-5 border border-emerald-500/30 bg-emerald-500/[0.08] backdrop-blur-md rounded-none flex items-center justify-between shadow-[0_4px_20px_rgba(16,185,129,0.08)]">
                     <div>
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 block mb-1">
                         Evaluated Output:
