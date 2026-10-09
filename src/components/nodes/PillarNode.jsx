@@ -19,7 +19,8 @@ import {
   Ban,
   ShieldAlert,
   Key,
-  Search
+  Search,
+  Mail
 } from 'lucide-react';
 import { PILLARS } from '../../constants/pillars';
 import { 
@@ -28,7 +29,8 @@ import {
   SLACK_OFFICIAL_ACTIONS,
   GITHUB_OFFICIAL_ACTIONS,
   JIRA_OFFICIAL_ACTIONS,
-  NEO4J_OFFICIAL_ACTIONS
+  NEO4J_OFFICIAL_ACTIONS,
+  OUTLOOK_OFFICIAL_ACTIONS
 } from '../../constants/mcpOfficialCatalogs';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
@@ -89,6 +91,8 @@ export default function PillarNode({ id, data, selected }) {
     tools = JIRA_OFFICIAL_ACTIONS;
   } else if (srv === 'neo4j' && tools.length < NEO4J_OFFICIAL_ACTIONS.length) {
     tools = NEO4J_OFFICIAL_ACTIONS;
+  } else if (srv === 'outlook' && tools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
+    tools = OUTLOOK_OFFICIAL_ACTIONS;
   }
   const allowedCount = routedTools.filter(t => !disabledTools.includes(t.name)).length;
 
@@ -165,6 +169,7 @@ export default function PillarNode({ id, data, selected }) {
   if (toolId === 'tool-audio-transcribe') IconComponent = Mic;
   if (toolId === 'tool-doc-parser') IconComponent = FileText;
   if (toolId === 'tool-text-box-ingest') IconComponent = Type;
+  if (srv === 'outlook') IconComponent = Mail;
 
   const handleBgColor = isDeactivated
     ? (isDarkMode ? '#475569' : '#94A3B8')

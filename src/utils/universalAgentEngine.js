@@ -137,7 +137,8 @@ export async function executeUniversalAgentChat({
   frameworkId = 'google-adk',
   agentConfig = {},
   attachedPillars = [],
-  onStepProgress
+  onStepProgress,
+  signal = null
 }) {
   const steps = [];
   const logStep = (stepName, detail, pillarType = null, nodeId = null, latencyMs = 120) => {
@@ -354,6 +355,36 @@ export async function executeUniversalAgentChat({
           console.warn('Live MCP list_repositories auto-query warning:', err);
         }
       }
+
+      // If this is an Outlook MCP, check if we need to pre-fetch recent mailbox context
+      const isOutlook = sName === 'outlook' || (m.name || '').toLowerCase().includes('outlook') || m.transport === 'outlook-api';
+      const isOutlookQuery = /(email|mail|inbox|outlook|meeting|calendar|schedule|appointment|contact|task)/i.test(userMessage) || 
+                            conversationHistory.some(c => /(email|mail|inbox|outlook|meeting|calendar|schedule)/i.test(c.content));
+
+      if (isOutlook && m.config?.token && !disabledTools.includes('list_messages') && isOutlookQuery && !m.basis?.recentMessages) {
+        try {
+          const recentMsg = await executeRealMcpTool({
+            toolName: 'list_messages',
+            server: m,
+            args: { limit: 5 },
+            options: { disabledTools }
+          });
+          if (recentMsg && Array.isArray(recentMsg.value)) {
+            m.basis = {
+              ...(m.basis || {}),
+              recentMessagesCount: recentMsg.value.length,
+              recentMessages: recentMsg.value.map(msg => ({
+                id: msg.id,
+                subject: msg.subject,
+                from: msg.from?.emailAddress?.address,
+                date: msg.receivedDateTime
+              }))
+            };
+          }
+        } catch (err) {
+          console.warn('Live Outlook MCP pre-query note:', err);
+        }
+      }
     }
 
     logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} MCP servers with ${availableToolsMap.size} total operational tools: ${mcpNodes.map(m => m.displayName || m.name).join(', ')}.`, 'mcp', mcpNodes[0]?.id, 80);
@@ -398,11 +429,19 @@ ${mcpNodes.map((m, idx) => {
   if (Array.isArray(b.relationshipTypes) && b.relationshipTypes.length > 0) {
     text += `  - RELATIONSHIP TYPES (${b.relationshipTypes.length}): ${b.relationshipTypes.join(', ')}\n`;
   }
+  if (b.accountEmail) text += `  - Account Mailbox: ${b.accountEmail}\n`;
   if (b.accessibleReposCount !== undefined) text += `  - Total Accessible Repositories: ${b.accessibleReposCount}\n`;
   if (Array.isArray(b.repositories) && b.repositories.length > 0) {
     text += `  - REPOSITORIES INVENTORY (${b.repositories.length}):\n${b.repositories.slice(0, 15).map((r, rIdx) => `    ${rIdx + 1}. [${r.fullName || r.name}](${r.htmlUrl}) — ${r.isPrivate ? 'Private' : 'Public'}, Default Branch: "${r.defaultBranch || 'main'}"`).join('\n')}\n`;
   }
-  text += `  - PERMITTED TOOLS (${activeTools.length} enabled at Gateway):\n${activeTools.map(t => `    • \`${t.name}\`: ${t.description || t.displayName || 'Tool action'}`).join('\n') || '    (None enabled)'}\n`;
+  if (Array.isArray(b.recentMessages) && b.recentMessages.length > 0) {
+    text += `  - RECENT INBOX MESSAGES (${b.recentMessages.length}):\n${b.recentMessages.map((msg, mIdx) => `    ${mIdx + 1}. Subject: "${msg.subject || '(No subject)'}" from ${msg.from || 'Unknown'} (${msg.date || 'Recent'}) [ID: ${msg.id}]`).join('\n')}\n`;
+  }
+  text += `  - PERMITTED TOOLS (${activeTools.length} enabled at Gateway):\n${activeTools.map(t => {
+    const props = t.inputSchema?.properties ? Object.keys(t.inputSchema.properties) : [];
+    const paramsStr = props.length > 0 ? ` [parameters: ${props.join(', ')}]` : '';
+    return `    • \`${t.name}\`${paramsStr}: ${t.description || t.displayName || 'Tool action'}`;
+  }).join('\n') || '    (None enabled)'}\n`;
   if (blockedTools.length > 0) {
     text += `  - BLOCKED TOOLS AT GATEWAY PERIMETER (${blockedTools.length} disabled by operator):\n${blockedTools.map(t => `    • \`${t.name}\`: BLOCKED by Gateway Zero-Trust policy`).join('\n')}\n`;
   }
@@ -425,11 +464,12 @@ Use your reasoning brain to differentiate between CAPABILITY INQUIRIES and TASK 
    - CASE C: The capability is NOT listed in any connected MCP server:
      Respond directly and honestly that you do NOT have access to that capability because it is not available in the currently connected MCP tools.
 
-2. TASK EXECUTION DIRECTIVES (e.g., "Create a repository named my-app", "Send 'Hello' to #general", "List my repositories"):
-   - The user is explicitly directing you to execute the action:
+2. TASK EXECUTION & REAL-TIME DATA INSPECTION DIRECTIVES (e.g., "Create a repository", "how many mails in inbox?", "summarize latest mail", "check my mail", "who emailed me?", "what meetings do I have?"):
+   - The user is explicitly directing you to execute an action or inspect real-time state from connected services (Outlook, GitHub, Slack, etc.):
    - Check Gateway: If the tool is BLOCKED at the Gateway, refuse with a clear explanation that it is blocked at the Gateway perimeter.
-   - Check Parameters: If essential parameters are missing (e.g., "Create a repo" without specifying a name), ask the user for the missing parameters in plain text. Do NOT invent names or invoke the tool with empty arguments.
-   - Execute: Once authorized and all required parameters are provided, execute the tool IMMEDIATELY using the <<<TOOL_CALL>>> protocol below.
+   - Check Parameters: If essential parameters are missing (e.g., "Create a repo" without specifying a name), ask the user for the missing parameters in plain text.
+   - Execute: If authorized and all parameters are ready (or if querying lists/inbox/calendar), issue the <<<TOOL_CALL>>> protocol IMMEDIATELY.
+   - MANDATORY INSTRUCTION: When the user asks about emails, messages, calendar, or repositories, NEVER output future promises like "I'll check your inbox and count the messages" or "Looking at it..." without the <<<TOOL_CALL>>> block! You MUST output the <<<TOOL_CALL>>> block in this turn to actually inspect the data.
 
 3. TOOL INVOCATION SYNTAX:
 When calling an authorized tool with all required arguments:
@@ -509,6 +549,12 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
 
   try {
     while (toolStepCount < MAX_TOOL_STEPS) {
+      if (signal?.aborted) {
+        const err = new Error('Execution stopped by user.');
+        err.name = 'AbortError';
+        throw err;
+      }
+
       toolStepCount++;
 
       const chatResult = await executeUniversalChat({
@@ -516,7 +562,8 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
         modelId,
         systemPrompt: fullSystemPrompt,
         messages: currentMessages,
-        temperature: agentConfig.temperature ?? 0.2
+        temperature: agentConfig.temperature ?? 0.2,
+        signal
       });
 
       rawResponseText = chatResult.text || '';

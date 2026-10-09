@@ -851,10 +851,628 @@ export const NEO4J_OFFICIAL_ACTIONS = [
   }
 ];
 
+export const OUTLOOK_OFFICIAL_ACTIONS = [
+  // --- MAIL OPERATIONS (12) ---
+  {
+    name: 'list_messages',
+    displayName: 'List Emails',
+    category: 'Mail Operations',
+    type: 'read',
+    description: 'Lists messages from the user mailbox or a specific folder (GET /me/messages).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        folder: { type: 'string', description: 'Folder name or ID (e.g., inbox, drafts, sentitems, archive)' },
+        limit: { type: 'number', description: 'Maximum number of messages to return (default: 10, max: 50)' },
+        filter: { type: 'string', description: 'OData filter query (e.g., isRead eq false or from/emailAddress/address eq \'exec@corp.com\')' },
+        search: { type: 'string', description: 'KQL search keyword across subject, body, or sender' }
+      }
+    }
+  },
+  {
+    name: 'get_message',
+    displayName: 'Get Email Details',
+    category: 'Mail Operations',
+    type: 'read',
+    description: 'Retrieves complete message content, HTML body, internet headers, and recipient arrays (GET /me/messages/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The unique Microsoft Graph ID of the message' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'search_messages',
+    displayName: 'Search Emails',
+    category: 'Mail Operations',
+    type: 'read',
+    description: 'Executes full-text keyword search across email subjects, sender addresses, and body text.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search term or keyword to search for' },
+        limit: { type: 'number', description: 'Maximum search results to return (default: 10)' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'send_mail',
+    displayName: 'Send Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Sends a new email message to recipients (POST /me/sendMail).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        to: { type: 'array', items: { type: 'string' }, description: 'List of recipient email addresses' },
+        cc: { type: 'array', items: { type: 'string' }, description: 'Optional CC recipient email addresses' },
+        bcc: { type: 'array', items: { type: 'string' }, description: 'Optional BCC recipient email addresses' },
+        subject: { type: 'string', description: 'Email subject line' },
+        body: { type: 'string', description: 'Email body text or HTML content' },
+        importance: { type: 'string', enum: ['low', 'normal', 'high'], description: 'Importance priority level' }
+      },
+      required: ['to', 'subject', 'body']
+    }
+  },
+  {
+    name: 'create_draft',
+    displayName: 'Create Draft Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Composes a new draft message in the Drafts folder without sending (POST /me/messages).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        to: { type: 'array', items: { type: 'string' }, description: 'Recipient email addresses' },
+        subject: { type: 'string', description: 'Draft subject line' },
+        body: { type: 'string', description: 'Draft body content' }
+      },
+      required: ['subject', 'body']
+    }
+  },
+  {
+    name: 'update_draft',
+    displayName: 'Update Draft Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Modifies subject, body, or recipients of an existing unsent draft message (PATCH /me/messages/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The draft message ID to update' },
+        to: { type: 'array', items: { type: 'string' }, description: 'Updated recipient list' },
+        subject: { type: 'string', description: 'Updated subject line' },
+        body: { type: 'string', description: 'Updated body content' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'send_draft',
+    displayName: 'Send Draft Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Dispatches an existing draft message to its specified recipients (POST /me/messages/{id}/send).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The draft message ID to send' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'reply_mail',
+    displayName: 'Reply to Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Sends a reply message to the original sender of an email (POST /me/messages/{id}/reply).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID being replied to' },
+        comment: { type: 'string', description: 'Reply text message to send' }
+      },
+      required: ['messageId', 'comment']
+    }
+  },
+  {
+    name: 'reply_all_mail',
+    displayName: 'Reply All to Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Sends a reply to all recipients and the sender of an email thread (POST /me/messages/{id}/replyAll).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID being replied to' },
+        comment: { type: 'string', description: 'Reply text message to send to all recipients' }
+      },
+      required: ['messageId', 'comment']
+    }
+  },
+  {
+    name: 'forward_mail',
+    displayName: 'Forward Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Forwards an email to specified recipients with optional forwarding commentary (POST /me/messages/{id}/forward).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID to forward' },
+        to: { type: 'array', items: { type: 'string' }, description: 'Recipient email addresses to forward to' },
+        comment: { type: 'string', description: 'Optional forward message body commentary' }
+      },
+      required: ['messageId', 'to']
+    }
+  },
+  {
+    name: 'delete_message',
+    displayName: 'Delete Email',
+    category: 'Mail Operations',
+    type: 'destructive',
+    description: 'Permanently deletes an email message or moves it to Deleted Items (DELETE /me/messages/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID to delete' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'move_message',
+    displayName: 'Move Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Moves an email message to a specified destination mail folder (POST /me/messages/{id}/move).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID to move' },
+        destinationId: { type: 'string', description: 'Destination folder ID or well-known name (e.g., archive, junkemail)' }
+      },
+      required: ['messageId', 'destinationId']
+    }
+  },
+
+  // --- MAIL FOLDERS & ATTACHMENTS (4) ---
+  {
+    name: 'list_mail_folders',
+    displayName: 'List Mail Folders',
+    category: 'Folders & Attachments',
+    type: 'read',
+    description: 'Lists all mail folders in the user mailbox (GET /me/mailFolders).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        includeHidden: { type: 'boolean', description: 'Whether to include system or hidden folders' }
+      }
+    }
+  },
+  {
+    name: 'create_mail_folder',
+    displayName: 'Create Mail Folder',
+    category: 'Folders & Attachments',
+    type: 'write',
+    description: 'Creates a new mail folder under root or a parent folder (POST /me/mailFolders).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        displayName: { type: 'string', description: 'Name of the new folder' },
+        parentFolderId: { type: 'string', description: 'Optional parent folder ID to create subfolder under' }
+      },
+      required: ['displayName']
+    }
+  },
+  {
+    name: 'list_message_attachments',
+    displayName: 'List Attachments',
+    category: 'Folders & Attachments',
+    type: 'read',
+    description: 'Retrieves all file attachments and metadata for a specific message (GET /me/messages/{id}/attachments).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID to fetch attachments from' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'add_message_attachment',
+    displayName: 'Add Attachment',
+    category: 'Folders & Attachments',
+    type: 'write',
+    description: 'Attaches a file to a draft message (POST /me/messages/{id}/attachments).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The draft message ID' },
+        name: { type: 'string', description: 'Filename of the attachment' },
+        contentType: { type: 'string', description: 'MIME type of the file (e.g., application/pdf)' },
+        contentBytes: { type: 'string', description: 'Base64-encoded file content' }
+      },
+      required: ['messageId', 'name', 'contentBytes']
+    }
+  },
+
+  // --- CALENDAR & SCHEDULING (10) ---
+  {
+    name: 'list_events',
+    displayName: 'List Calendar Events',
+    category: 'Calendar & Scheduling',
+    type: 'read',
+    description: 'Lists upcoming calendar events from the default calendar (GET /me/events).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Maximum events to return (default: 10)' },
+        filter: { type: 'string', description: 'OData filter query' }
+      }
+    }
+  },
+  {
+    name: 'get_calendar_view',
+    displayName: 'Get Calendar Schedule',
+    category: 'Calendar & Scheduling',
+    type: 'read',
+    description: 'Retrieves occurrences of events within a specific time window (GET /me/calendarView).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        startDateTime: { type: 'string', description: 'Start time ISO string (e.g., 2026-10-09T08:00:00Z)' },
+        endDateTime: { type: 'string', description: 'End time ISO string (e.g., 2026-10-09T18:00:00Z)' }
+      },
+      required: ['startDateTime', 'endDateTime']
+    }
+  },
+  {
+    name: 'get_event',
+    displayName: 'Get Event Details',
+    category: 'Calendar & Scheduling',
+    type: 'read',
+    description: 'Retrieves complete event metadata, location, attendees, and Teams meeting links (GET /me/events/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'The unique Microsoft Graph ID of the event' }
+      },
+      required: ['eventId']
+    }
+  },
+  {
+    name: 'create_event',
+    displayName: 'Schedule Event',
+    category: 'Calendar & Scheduling',
+    type: 'write',
+    description: 'Schedules a calendar event with attendees, agenda, and optional online Teams meeting (POST /me/events).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        subject: { type: 'string', description: 'Event title / meeting subject' },
+        start: { type: 'string', description: 'Start time ISO string (e.g., 2026-10-10T14:00:00)' },
+        end: { type: 'string', description: 'End time ISO string (e.g., 2026-10-10T15:00:00)' },
+        timeZone: { type: 'string', description: 'Time zone identifier (default: UTC)' },
+        attendees: { type: 'array', items: { type: 'string' }, description: 'List of attendee email addresses' },
+        body: { type: 'string', description: 'Meeting description / agenda notes' },
+        location: { type: 'string', description: 'Physical meeting location or room' },
+        isOnlineMeeting: { type: 'boolean', description: 'Whether to generate a Microsoft Teams online meeting link' }
+      },
+      required: ['subject', 'start', 'end']
+    }
+  },
+  {
+    name: 'update_event',
+    displayName: 'Update Event',
+    category: 'Calendar & Scheduling',
+    type: 'write',
+    description: 'Modifies timing, attendees, location, or agenda of an existing event (PATCH /me/events/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'The event ID to update' },
+        subject: { type: 'string', description: 'Updated subject' },
+        start: { type: 'string', description: 'Updated start time ISO string' },
+        end: { type: 'string', description: 'Updated end time ISO string' },
+        body: { type: 'string', description: 'Updated agenda notes' },
+        location: { type: 'string', description: 'Updated location' }
+      },
+      required: ['eventId']
+    }
+  },
+  {
+    name: 'delete_event',
+    displayName: 'Cancel / Delete Event',
+    category: 'Calendar & Scheduling',
+    type: 'destructive',
+    description: 'Cancels a meeting and removes it from the calendar (DELETE /me/events/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'The event ID to cancel / delete' }
+      },
+      required: ['eventId']
+    }
+  },
+  {
+    name: 'accept_event',
+    displayName: 'Accept Meeting',
+    category: 'Calendar & Scheduling',
+    type: 'write',
+    description: 'Formally accepts a calendar meeting invitation (POST /me/events/{id}/accept).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'The event ID to accept' },
+        comment: { type: 'string', description: 'Optional acceptance response message' }
+      },
+      required: ['eventId']
+    }
+  },
+  {
+    name: 'decline_event',
+    displayName: 'Decline Meeting',
+    category: 'Calendar & Scheduling',
+    type: 'write',
+    description: 'Declines a calendar meeting invitation (POST /me/events/{id}/decline).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'The event ID to decline' },
+        comment: { type: 'string', description: 'Optional decline reasoning comment' }
+      },
+      required: ['eventId']
+    }
+  },
+  {
+    name: 'tentatively_accept_event',
+    displayName: 'Tentative Accept Meeting',
+    category: 'Calendar & Scheduling',
+    type: 'write',
+    description: 'Tentatively accepts a calendar meeting invitation (POST /me/events/{id}/tentativelyAccept).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'The event ID to tentatively accept' },
+        comment: { type: 'string', description: 'Optional comment' }
+      },
+      required: ['eventId']
+    }
+  },
+  {
+    name: 'find_meeting_times',
+    displayName: 'Find Optimal Meeting Times',
+    category: 'Calendar & Scheduling',
+    type: 'read',
+    description: 'Checks free/busy availability of requested attendees and suggests optimal meeting slots (POST /me/findMeetingTimes).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        attendees: { type: 'array', items: { type: 'string' }, description: 'Attendee email addresses to coordinate' },
+        meetingDurationMinutes: { type: 'number', description: 'Duration of the proposed meeting in minutes (default: 30)' },
+        startWindow: { type: 'string', description: 'Start boundary ISO string' },
+        endWindow: { type: 'string', description: 'End boundary ISO string' }
+      },
+      required: ['attendees']
+    }
+  },
+
+  // --- CONTACTS & PEOPLE (5) ---
+  {
+    name: 'list_contacts',
+    displayName: 'List Contacts',
+    category: 'Contacts & People',
+    type: 'read',
+    description: 'Lists contacts from the user personal address book (GET /me/contacts).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Maximum contacts to return (default: 20)' },
+        filter: { type: 'string', description: 'OData filter expression' }
+      }
+    }
+  },
+  {
+    name: 'get_contact',
+    displayName: 'Get Contact Details',
+    category: 'Contacts & People',
+    type: 'read',
+    description: 'Retrieves complete profile, emails, phones, and job title of a contact (GET /me/contacts/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        contactId: { type: 'string', description: 'The unique contact ID' }
+      },
+      required: ['contactId']
+    }
+  },
+  {
+    name: 'create_contact',
+    displayName: 'Create Contact',
+    category: 'Contacts & People',
+    type: 'write',
+    description: 'Adds a new person to the address book (POST /me/contacts).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        givenName: { type: 'string', description: 'First name' },
+        surname: { type: 'string', description: 'Last name' },
+        emailAddress: { type: 'string', description: 'Primary email address' },
+        companyName: { type: 'string', description: 'Company or organization' },
+        jobTitle: { type: 'string', description: 'Job title' },
+        mobilePhone: { type: 'string', description: 'Mobile phone number' }
+      },
+      required: ['givenName', 'emailAddress']
+    }
+  },
+  {
+    name: 'update_contact',
+    displayName: 'Update Contact',
+    category: 'Contacts & People',
+    type: 'write',
+    description: 'Updates information for an existing contact (PATCH /me/contacts/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        contactId: { type: 'string', description: 'The contact ID to update' },
+        givenName: { type: 'string', description: 'Updated first name' },
+        surname: { type: 'string', description: 'Updated last name' },
+        emailAddress: { type: 'string', description: 'Updated email address' },
+        companyName: { type: 'string', description: 'Updated company' },
+        jobTitle: { type: 'string', description: 'Updated title' }
+      },
+      required: ['contactId']
+    }
+  },
+  {
+    name: 'delete_contact',
+    displayName: 'Delete Contact',
+    category: 'Contacts & People',
+    type: 'destructive',
+    description: 'Removes a contact from personal address book (DELETE /me/contacts/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        contactId: { type: 'string', description: 'The contact ID to remove' }
+      },
+      required: ['contactId']
+    }
+  },
+
+  // --- TASKS & MICROSOFT TO DO (5) ---
+  {
+    name: 'list_todo_lists',
+    displayName: 'List To Do Lists',
+    category: 'Tasks & To Do',
+    type: 'read',
+    description: 'Enumerates Microsoft To Do task lists and folders (GET /me/todo/lists).',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'list_tasks',
+    displayName: 'List Tasks',
+    category: 'Tasks & To Do',
+    type: 'read',
+    description: 'Lists tasks within a specific To Do list (GET /me/todo/lists/{id}/tasks).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        listId: { type: 'string', description: 'The To Do list ID (or default list if omitted)' },
+        status: { type: 'string', enum: ['notStarted', 'inProgress', 'completed'], description: 'Filter tasks by status' }
+      }
+    }
+  },
+  {
+    name: 'create_task',
+    displayName: 'Create Task',
+    category: 'Tasks & To Do',
+    type: 'write',
+    description: 'Creates a new task in Microsoft To Do (POST /me/todo/lists/{id}/tasks).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        listId: { type: 'string', description: 'Optional list ID (uses default task list if omitted)' },
+        title: { type: 'string', description: 'Task title / description' },
+        dueDateTime: { type: 'string', description: 'Due date ISO string (e.g., 2026-10-15T18:00:00Z)' },
+        importance: { type: 'string', enum: ['low', 'normal', 'high'], description: 'Task importance' },
+        body: { type: 'string', description: 'Task notes or checklist details' }
+      },
+      required: ['title']
+    }
+  },
+  {
+    name: 'update_task',
+    displayName: 'Update Task',
+    category: 'Tasks & To Do',
+    type: 'write',
+    description: 'Updates task title, completion status, or due date (PATCH /me/todo/lists/{id}/tasks/{taskId}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        listId: { type: 'string', description: 'The list ID containing the task' },
+        taskId: { type: 'string', description: 'The task ID to update' },
+        title: { type: 'string', description: 'Updated title' },
+        status: { type: 'string', enum: ['notStarted', 'inProgress', 'completed'], description: 'Updated status' },
+        dueDateTime: { type: 'string', description: 'Updated due date ISO string' }
+      },
+      required: ['taskId']
+    }
+  },
+  {
+    name: 'delete_task',
+    displayName: 'Delete Task',
+    category: 'Tasks & To Do',
+    type: 'destructive',
+    description: 'Permanently deletes a task from Microsoft To Do (DELETE /me/todo/lists/{id}/tasks/{taskId}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        listId: { type: 'string', description: 'The list ID containing the task' },
+        taskId: { type: 'string', description: 'The task ID to remove' }
+      },
+      required: ['taskId']
+    }
+  },
+
+  // --- MAILBOX RULES & SETTINGS (2) ---
+  {
+    name: 'list_message_rules',
+    displayName: 'List Inbox Rules',
+    category: 'Mailbox Settings',
+    type: 'read',
+    description: 'Lists automated inbox sorting, forwarding, and categorization rules (GET /me/mailFolders/inbox/messageRules).',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'get_mailbox_settings',
+    displayName: 'Get Mailbox Settings',
+    category: 'Mailbox Settings',
+    type: 'read',
+    description: 'Inspects user timezone, working hours, language, and automatic Out-of-Office (OOO) status (GET /me/mailboxSettings).',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  }
+];
+
 /**
  * Universal Authentication Specifications for All MCP Servers
  */
 export const MCP_AUTH_SPECS = {
+  outlook: {
+    id: 'outlook',
+    name: 'Microsoft Outlook',
+    supportedModes: ['token', 'oauth'],
+    defaultMode: 'oauth',
+    oauthProviderName: 'Microsoft Entra ID (Azure AD) OAuth 2.0',
+    scopes: [
+      'Mail.Read',
+      'Mail.ReadWrite',
+      'Mail.Send',
+      'Calendars.Read',
+      'Calendars.ReadWrite',
+      'Contacts.Read',
+      'Contacts.ReadWrite',
+      'Tasks.ReadWrite',
+      'MailboxSettings.Read',
+      'User.Read',
+      'offline_access'
+    ],
+    scopeDescription: 'Pre-authorizes all 38 Outlook Mail, Calendar, Contacts, Tasks, and Settings tools.',
+    totalDefaultTools: OUTLOOK_OFFICIAL_ACTIONS.length
+  },
   neo4j: {
     id: 'neo4j',
     name: 'Neo4j Graph Database',
@@ -913,7 +1531,7 @@ export const MCP_AUTH_SPECS = {
 };
 
 /**
- * Unambiguously identifies the external MCP service (slack, github, jira, google, neo4j)
+ * Unambiguously identifies the external MCP service (outlook, slack, github, jira, google, neo4j)
  * from any combination of properties, names, IDs, endpoints, or descriptors.
  */
 export function identifyMcpService(obj = {}, fallbackId = '') {
@@ -922,6 +1540,7 @@ export function identifyMcpService(obj = {}, fallbackId = '') {
   const target = typeof obj === 'object' && obj !== null ? obj : {};
   const combined = `${str} ${target.serviceName || ''} ${target.name || ''} ${target.displayName || ''} ${target.title || ''} ${target.transport || ''} ${target.basis?.provider || ''} ${target.endpoint || ''} ${target.serverUrl || ''} ${target.id || ''} ${fallbackId || ''}`.toLowerCase();
   
+  if (combined.includes('outlook') || combined.includes('graph.microsoft') || combined.includes('office365') || combined.includes('microsoft')) return 'outlook';
   if (combined.includes('neo4j') || combined.includes('cypher') || combined.includes('bolt') || combined.includes('auradb')) return 'neo4j';
   if (combined.includes('slack')) return 'slack';
   if (combined.includes('github')) return 'github';
@@ -934,10 +1553,11 @@ export function identifyMcpService(obj = {}, fallbackId = '') {
  * Returns the standardized official action catalog for a named service or MCP object.
  */
 export function getOfficialMcpTools(serviceOrObj = '') {
-  const service = typeof serviceOrObj === 'string' && !serviceOrObj.includes(' ') && ['slack', 'github', 'jira', 'google', 'neo4j'].includes(serviceOrObj.toLowerCase())
+  const service = typeof serviceOrObj === 'string' && !serviceOrObj.includes(' ') && ['outlook', 'slack', 'github', 'jira', 'google', 'neo4j'].includes(serviceOrObj.toLowerCase())
     ? serviceOrObj.toLowerCase()
     : identifyMcpService(serviceOrObj);
 
+  if (service === 'outlook') return OUTLOOK_OFFICIAL_ACTIONS;
   if (service === 'neo4j') return NEO4J_OFFICIAL_ACTIONS;
   if (service === 'github') return GITHUB_OFFICIAL_ACTIONS;
   if (service === 'slack') return SLACK_OFFICIAL_ACTIONS;

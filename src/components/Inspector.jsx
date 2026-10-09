@@ -39,7 +39,8 @@ import {
   NEO4J_OFFICIAL_ACTIONS,
   GITHUB_OFFICIAL_ACTIONS,
   SLACK_OFFICIAL_ACTIONS,
-  JIRA_OFFICIAL_ACTIONS
+  JIRA_OFFICIAL_ACTIONS,
+  OUTLOOK_OFFICIAL_ACTIONS
 } from '../constants/mcpOfficialCatalogs';
 import { 
   PROVIDERS, 
@@ -1512,6 +1513,8 @@ export default function Inspector({
                   tools = SLACK_OFFICIAL_ACTIONS;
                 } else if (srv === 'jira' && tools.length < JIRA_OFFICIAL_ACTIONS.length) {
                   tools = JIRA_OFFICIAL_ACTIONS;
+                } else if (srv === 'outlook' && tools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
+                  tools = OUTLOOK_OFFICIAL_ACTIONS;
                 }
                 tools.forEach(tool => routedTools.push({ ...tool, serverName: mcpNode.data?.name || 'MCP Server', serverId: mcpNode.id }));
               });

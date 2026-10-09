@@ -70,6 +70,21 @@ function keaosOAuthProxy() {
                 code,
                 redirect_uri: redirectUri
               };
+            } else if (provider.toLowerCase() === 'outlook' || provider.toLowerCase() === 'microsoft') {
+              tokenEndpoint = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+              requestHeaders = { 'Content-Type': 'application/x-www-form-urlencoded' };
+              const msClientId = (clientId || process.env.VITE_OUTLOOK_OAUTH_CLIENT_ID || process.env.VITE_MICROSOFT_OAUTH_CLIENT_ID || '').trim();
+              const msClientSecret = (clientSecret || process.env.VITE_OUTLOOK_OAUTH_CLIENT_SECRET || process.env.VITE_MICROSOFT_OAUTH_CLIENT_SECRET || '').trim();
+              const params = {
+                client_id: msClientId,
+                code,
+                redirect_uri: redirectUri || '',
+                grant_type: 'authorization_code'
+              };
+              if (msClientSecret) {
+                params.client_secret = msClientSecret;
+              }
+              requestBody = new URLSearchParams(params).toString();
             } else {
               res.statusCode = 400;
               res.setHeader('Content-Type', 'application/json');

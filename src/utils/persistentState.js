@@ -63,8 +63,12 @@ export function loadCanvasState() {
         // Sanitize on startup: ensure no zombie executing or generating states persist across reloads
         parsed.nodes = parsed.nodes.map(n => {
           let updatedData = { ...n.data };
-          if (n.type === 'outputNode' && updatedData.status === 'generating') {
-            updatedData.status = updatedData.outputContent ? 'ready' : 'idle';
+          if (n.type === 'outputNode') {
+            if (updatedData.status === 'generating') {
+              updatedData.status = updatedData.outputContent ? 'ready' : 'idle';
+            }
+            // By default on reload / refresh, output boxes must always be in circular badge form
+            updatedData.isExpanded = false;
           }
           if (updatedData.isExecuting) {
             updatedData.isExecuting = false;

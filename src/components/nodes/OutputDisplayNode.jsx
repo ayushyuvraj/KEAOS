@@ -215,8 +215,12 @@ export default function OutputDisplayNode({ id, data, selected }) {
   };
 
   const toggleExpand = (e) => {
-    e.stopPropagation();
-    setIsExpanded(!isExpanded);
+    if (e) e.stopPropagation();
+    const nextExpanded = !isExpanded;
+    setIsExpanded(nextExpanded);
+    if (data?.onUpdateNodeData) {
+      data.onUpdateNodeData(id, { isExpanded: nextExpanded });
+    }
   };
 
   const handleStopStream = (e) => {

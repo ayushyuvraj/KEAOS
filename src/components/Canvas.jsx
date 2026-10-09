@@ -16,6 +16,7 @@ import {
   SLACK_OFFICIAL_ACTIONS,
   JIRA_OFFICIAL_ACTIONS,
   NEO4J_OFFICIAL_ACTIONS,
+  OUTLOOK_OFFICIAL_ACTIONS,
   identifyMcpService
 } from '../constants/mcpOfficialCatalogs';
 import { 
@@ -338,7 +339,7 @@ function CanvasInner({
                 },
                 costUsd: detail.costUsd || 0,
                 status: 'ready',
-                isExpanded: true // Auto-expand when fresh output arrives so user sees it right away!
+                isExpanded: false // Maintain compact circle form by default; expands only on user click
               }
             };
           }
@@ -485,7 +486,7 @@ function CanvasInner({
                   outputContent: formattedOutput,
                   runsHistory: nextHistory,
                   status: 'ready',
-                  isExpanded: true,
+                  isExpanded: false, // Maintain compact circle form by default; expands only on user click
                   sourceNodeType: 'deterministic',
                   sourceNodeId: detail.nodeId,
                   sourceNodeName: ruleName,
@@ -1623,6 +1624,24 @@ function CanvasInner({
               ...n.data,
               serviceName: 'Jira',
               tools: JIRA_OFFICIAL_ACTIONS
+            }
+          };
+        } else if (srv === 'neo4j' && currentTools.length < NEO4J_OFFICIAL_ACTIONS.length) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              serviceName: 'Neo4j',
+              tools: NEO4J_OFFICIAL_ACTIONS
+            }
+          };
+        } else if (srv === 'outlook' && currentTools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              serviceName: 'Outlook',
+              tools: OUTLOOK_OFFICIAL_ACTIONS
             }
           };
         }

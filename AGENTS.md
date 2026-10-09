@@ -268,4 +268,21 @@ All agents, subagents, and developers writing code or configuring KEAOS MUST enf
    - **FORBIDDEN**: Never return synthetic mock outputs, dummy tables, fake audit rows, or canned templates.
    - **REQUIRED**: All components (Deterministic Rules, Ingestion, Agents, Memory, Observability, Evaluators) MUST dynamically compile, parse, evaluate, and execute the user's actual logic, using real runtime data and real LLM compilation or real execution engines. If code compilation or evaluation is needed, it must be generated and executed dynamically based on the exact user directive.
 
+---
+
+## 11. Strict Minimalist UI & Zero-Verbose Loading State Mandate
+
+All agents and developers writing code or designing UI in KEAOS MUST enforce this non-negotiable directive:
+
+1. **Zero Verbose Sentences During Loading / Thinking / Background Fetching**:
+   - **ABSOLUTELY FORBIDDEN**: Never write out explicit explanatory sentences (e.g. *"I'm looking at it"*, *"It is still working..."*, *"Reasoning through brain..."*, *"Executing connected peripheral tools..."*) or render nested card containers while an agent is thinking or fetching data in the background.
+   - **ABSOLUTELY FORBIDDEN**: Never render loud, hyperactive animations (such as jumping bouncing dots, spinning clocks, flashing warning banners, or rainbow progress shimmer bars).
+
+2. **Whispered, Minimalist Indicators Only (Gemini / Claude / ChatGPT Standard)**:
+   - When an agent is waiting, thinking, or running background tools, use ONLY a subtle, quiet, non-intrusive indicator:
+     - Three subtle pulsing dots or a gentle breathing sparkle with soft opacity easing (`0.4` to `0.9` opacity cycle).
+     - No giant card borders, no heavy dark frames, no multi-line progress blocks, and zero verbose text.
+   - Keep user controls (such as the ChatGPT-style Stop button) clean and minimal near the input bar without cluttering the conversation stream.
+
+
 

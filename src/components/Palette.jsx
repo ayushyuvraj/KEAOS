@@ -295,7 +295,7 @@ export default function Palette({ onAddNode }) {
                             Zero Simulation Policy
                           </span>
                           <p className="text-[11px] text-slate-500 font-sans leading-relaxed">
-                            No hardcoded mocks. Click above to connect a real external MCP URL, Slack, Jira, or GitHub.
+                            No hardcoded mocks. Click above to connect a real external MCP URL, Outlook, Slack, Jira, or GitHub.
                           </p>
                         </div>
                       ) : (

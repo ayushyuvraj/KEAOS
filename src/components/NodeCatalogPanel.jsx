@@ -54,6 +54,18 @@ function GithubIcon({ className = 'w-4 h-4' }) {
     </svg>
   );
 }
+
+function OutlookCatalogIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect width="24" height="24" rx="2" fill="#0078D4" />
+      <path d="M14 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H14V6Z" fill="#28A8EA" />
+      <path d="M4 8C4 7.44772 4.44772 7 5 7H14V17H5C4.44772 17 4 16.5523 4 16V8Z" fill="#0078D4" />
+      <circle cx="9" cy="12" r="3.2" fill="#FFFFFF" fillOpacity="0.2" />
+      <text x="9" y="15" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">O</text>
+    </svg>
+  );
+}
 import {
   GoogleLogo,
   AnthropicLogo,
@@ -220,7 +232,7 @@ const NODE_CATEGORIES = [
   {
     id: 'mcp',
     label: 'MCP (Model Context Protocol)',
-    subtitle: 'Live Universal Connectors (Claude Code-style URL, Slack, Jira, GitHub)',
+    subtitle: 'Live Universal Connectors (Claude Code-style URL, Outlook, Slack, Jira, GitHub)',
     icon: Layers,
     color: '#00A3A6', // Teal
     bgColor: '#E6F6F6',
@@ -1451,6 +1463,39 @@ export default function NodeCatalogPanel({
                         </div>
                       </div>
                       <span className="text-xs font-bold text-[#00A3A6] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                        Connect →
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Connector 6: Microsoft Outlook MCP */}
+                  {(!searchQuery.trim() || 'outlook microsoft graph 365 mail email calendar events tasks'.includes(searchQuery.toLowerCase())) && (
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                          detail: { tab: 'outlook' }
+                        }));
+                      }}
+                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
+                        isDarkMode 
+                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0078D4] hover:bg-[#252833]' 
+                          : 'bg-white border-[#E2E8F0] hover:border-[#0078D4] hover:bg-[#F0F6FA]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-7 h-7 rounded-lg bg-[#0078D4]/15 text-[#0078D4] flex items-center justify-center shrink-0 border border-[#0078D4]/30">
+                          <OutlookCatalogIcon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                            Microsoft Outlook MCP
+                          </h5>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#0078D4]/15 text-[#0078D4] border border-[#0078D4]/30">
+                            GRAPH API / OAUTH
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-[#0078D4] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
                         Connect →
                       </span>
                     </div>

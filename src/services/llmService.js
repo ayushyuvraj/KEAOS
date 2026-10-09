@@ -955,7 +955,8 @@ export async function executeUniversalChat({
   modelId = 'gemini-2.0-flash',
   systemPrompt = '',
   messages = [],
-  temperature = 0.3
+  temperature = 0.3,
+  signal = null
 }) {
   const credential = getProviderCredential(provider);
   const startTime = performance.now();
@@ -977,7 +978,8 @@ export async function executeUniversalChat({
       contents: formattedPrompt,
       config: {
         temperature: Number(temperature) || 0.3,
-        systemInstruction: systemPrompt || undefined
+        systemInstruction: systemPrompt || undefined,
+        abortSignal: signal || undefined
       }
     });
     responseText = response.text || '';
@@ -996,6 +998,7 @@ export async function executeUniversalChat({
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: signal || undefined,
       headers: {
         'x-api-key': credential,
         'anthropic-version': '2023-06-01',
@@ -1041,6 +1044,7 @@ export async function executeUniversalChat({
 
       return await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: signal || undefined,
         headers: {
           'Authorization': `Bearer ${credential}`,
           'Content-Type': 'application/json'
@@ -1114,6 +1118,7 @@ export async function executeUniversalChat({
 
     const res = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
+      signal: signal || undefined,
       headers,
       body: JSON.stringify({
         model: modelId,
@@ -1140,6 +1145,7 @@ export async function executeUniversalChat({
 
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
+      signal: signal || undefined,
       headers: {
         'Authorization': `Bearer ${credential}`,
         'Content-Type': 'application/json',

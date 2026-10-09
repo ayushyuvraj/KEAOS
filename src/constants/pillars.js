@@ -1,4 +1,4 @@
-import { NEO4J_OFFICIAL_ACTIONS } from './mcpOfficialCatalogs';
+import { NEO4J_OFFICIAL_ACTIONS, OUTLOOK_OFFICIAL_ACTIONS } from './mcpOfficialCatalogs';
 
 export const PILLARS = {
   model: {
@@ -179,6 +179,18 @@ export const PILLARS = {
           database: 'neo4j'
         },
         tools: NEO4J_OFFICIAL_ACTIONS
+      },
+      {
+        id: 'mcp-outlook',
+        name: 'Microsoft Outlook MCP',
+        description: 'Official Model Context Protocol integration for Microsoft Outlook & M365. Manages emails, scheduling calendar events, contacts, tasks, and mailbox rules via Microsoft Graph API.',
+        serviceName: 'Outlook',
+        transport: 'outlook-api',
+        config: {
+          connectionMode: 'oauth',
+          endpoint: 'https://graph.microsoft.com/v1.0'
+        },
+        tools: OUTLOOK_OFFICIAL_ACTIONS
       }
     ]
   },

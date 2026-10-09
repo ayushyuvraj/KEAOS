@@ -8,6 +8,7 @@
 
 import {
   NEO4J_OFFICIAL_ACTIONS,
+  OUTLOOK_OFFICIAL_ACTIONS,
   GITHUB_OFFICIAL_ACTIONS,
   SLACK_OFFICIAL_ACTIONS,
   JIRA_OFFICIAL_ACTIONS,
@@ -32,6 +33,14 @@ export function getRegisteredMcpServers() {
       if (Array.isArray(parsed)) {
         return parsed.map(server => {
           const service = identifyMcpService(server);
+          if (service === 'outlook' && (!server.tools || server.tools.length < OUTLOOK_OFFICIAL_ACTIONS.length)) {
+            return {
+              ...server,
+              serviceName: 'Outlook',
+              tools: OUTLOOK_OFFICIAL_ACTIONS,
+              description: `Official Enterprise Microsoft Outlook MCP with ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized tools.`
+            };
+          }
           if (service === 'github' && (!server.tools || server.tools.length < GITHUB_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
@@ -369,7 +378,105 @@ export async function verifyJiraMcpConnection({ domain, email, apiToken, project
 }
 
 /**
- * Real Production-Grade OAuth 2.0 Connection Handler for All MCPs (GitHub, Slack, Jira, Google Workspace).
+ * Verifies and configures a Real Microsoft Outlook / Graph API Connection using the official Outlook MCP action suite.
+ */
+export async function verifyOutlookMcpConnection({ token, mailboxEmail }) {
+  const cleanToken = (token || '').trim();
+  const cleanEmail = (mailboxEmail || '').trim();
+
+  if (!cleanToken) {
+    throw new Error('Please provide a Microsoft Graph API Bearer Token.');
+  }
+
+  // Ping live Microsoft Graph API to verify identity
+  let userProfile = { userPrincipalName: cleanEmail || 'Outlook Account', displayName: 'Microsoft 365 User' };
+  try {
+    const res = await fetch('https://graph.microsoft.com/v1.0/me', {
+      headers: {
+        'Authorization': `Bearer ${cleanToken}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (res.ok) {
+      userProfile = await res.json();
+    } else if (res.status === 401) {
+      throw new Error('Invalid or expired Microsoft Graph API token (HTTP 401 Unauthorized).');
+    }
+  } catch (err) {
+    if (err.message.includes('401')) throw err;
+    console.warn('Outlook verification ping note:', err);
+  }
+
+  const accountName = userProfile.displayName || userProfile.userPrincipalName || cleanEmail || 'Outlook Account';
+  const emailAddr = userProfile.mail || userProfile.userPrincipalName || cleanEmail || 'user@outlook.com';
+
+  // Decode JWT payload scopes if available
+  let scopesGranted = [];
+  try {
+    const parts = cleanToken.split('.');
+    if (parts.length === 3) {
+      const payloadStr = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+      const payload = JSON.parse(payloadStr);
+      if (payload.scp) {
+        scopesGranted = payload.scp.split(' ');
+      }
+    }
+  } catch {}
+
+  // Test live Mail access permission (GET /me/messages) to catch missing Mail.Read before runtime
+  let mailAccessVerified = false;
+  try {
+    const mailRes = await fetch('https://graph.microsoft.com/v1.0/me/messages?$top=1&$select=id', {
+      headers: {
+        'Authorization': `Bearer ${cleanToken}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (mailRes.ok) {
+      mailAccessVerified = true;
+    } else if (mailRes.status === 403) {
+      throw new Error(
+        `Token verified for ${accountName}, but Microsoft Graph rejected Mailbox access (HTTP 403 Forbidden: Missing Mail.Read scope).\n\n` +
+        `In Graph Explorer:\n` +
+        `1. On the left sidebar under "Getting Started", click "GET my mail"\n` +
+        `2. In the "Modify Permissions" tab, click "Consent" next to Mail.Read\n` +
+        `3. Switch to the "Access token" tab, copy the refreshed token, and paste it here.`
+      );
+    }
+  } catch (err) {
+    if (err.message.includes('HTTP 403 Forbidden')) throw err;
+    console.warn('Mail endpoint pre-flight check note:', err);
+  }
+
+  return {
+    id: `mcp-outlook-${Date.now().toString().slice(-4)}`,
+    name: `Outlook MCP (${accountName})`,
+    displayName: `Outlook MCP (${accountName})`,
+    serviceName: 'Outlook',
+    description: `Official Microsoft Outlook MCP with all ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized actions for Mail, Calendar, Contacts, and Tasks.`,
+    transport: 'outlook-api',
+    config: {
+      token: cleanToken,
+      authType: 'token',
+      email: emailAddr
+    },
+    basis: {
+      provider: 'Microsoft Graph API v1.0 / Official Outlook MCP Specification',
+      accountName,
+      accountEmail: emailAddr,
+      apiEndpoint: 'https://graph.microsoft.com/v1.0',
+      authType: 'Bearer Token (Graph API)',
+      scopesGranted: scopesGranted.length > 0 ? scopesGranted.join(', ') : (mailAccessVerified ? 'User.Read, Mail.Read' : 'User.Read'),
+      mailVerified: mailAccessVerified,
+      tokenMasked: cleanToken.length > 8 ? `${cleanToken.substring(0, 4)}...${cleanToken.substring(cleanToken.length - 4)}` : '••••••••'
+    },
+    tools: OUTLOOK_OFFICIAL_ACTIONS,
+    verifiedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Real Production-Grade OAuth 2.0 Connection Handler for All MCPs (GitHub, Slack, Jira, Google Workspace, Outlook).
  * Opens a real browser consent popup, captures the authorization code via callback postMessage,
  * exchanges the code for a live access token via local Vite proxy, and verifies the authenticated user with real APIs.
  * Zero simulation. Zero mock tokens. Zero hardcoded handles.
@@ -852,6 +959,133 @@ export async function connectMcpViaOAuth({
         tokenMasked: `${accessToken.substring(0, 4)}••••••••`
       },
       tools: GOOGLE_WORKSPACE_OFFICIAL_ACTIONS,
+      verifiedAt: new Date().toISOString()
+    };
+  }
+
+  // 5. MICROSOFT OUTLOOK OAUTH 2.0 (ENTRA ID)
+  if (norm.includes('outlook') || norm.includes('microsoft')) {
+    const scopes = customScopes.length > 0 ? customScopes : MCP_AUTH_SPECS.outlook.scopes;
+    const finalClientId = (
+      clientId || 
+      localStorage.getItem('keaos_microsoft_client_id') || 
+      import.meta.env.VITE_OUTLOOK_OAUTH_CLIENT_ID || 
+      import.meta.env.VITE_MICROSOFT_OAUTH_CLIENT_ID || 
+      ''
+    ).trim();
+    const finalClientSecret = (
+      clientSecret || 
+      localStorage.getItem('keaos_microsoft_client_secret') || 
+      import.meta.env.VITE_OUTLOOK_OAUTH_CLIENT_SECRET || 
+      import.meta.env.VITE_MICROSOFT_OAUTH_CLIENT_SECRET || 
+      ''
+    ).trim();
+
+    if (finalClientId) {
+      try { localStorage.setItem('keaos_microsoft_client_id', finalClientId); } catch {}
+    }
+    if (finalClientSecret) {
+      try { localStorage.setItem('keaos_microsoft_client_secret', finalClientSecret); } catch {}
+    }
+
+    if (!finalClientId) {
+      throw new Error(
+        `Microsoft Outlook OAuth requires an Application (Client) ID. Please provide your Azure App Registration Client ID (or set VITE_OUTLOOK_OAUTH_CLIENT_ID in .env). ` +
+        `Register in Microsoft Entra Admin Center -> App Registrations with Redirect URI: ${redirectUri}`
+      );
+    }
+
+    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(finalClientId)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes.join(' '))}&state=${state}&prompt=select_account`;
+
+    const width = 600;
+    const height = 750;
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+    const popup = window.open(authUrl, 'keaos-microsoft-oauth', `width=${width},height=${height},left=${left},top=${top}`);
+
+    if (!popup) {
+      throw new Error('OAuth popup window was blocked by your browser. Please allow popups for localhost and retry.');
+    }
+
+    const authCode = await new Promise((resolve, reject) => {
+      let settled = false;
+      const onMessage = (event) => {
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.type === 'KEAOS_OAUTH_RESPONSE') {
+          settled = true;
+          window.removeEventListener('message', onMessage);
+          if (event.data.error) reject(new Error(`Microsoft OAuth Error: ${event.data.errorDescription || event.data.error}`));
+          else if (event.data.code) resolve(event.data.code);
+          else reject(new Error('No authorization code was returned from Microsoft.'));
+        }
+      };
+      window.addEventListener('message', onMessage);
+      const interval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(interval);
+          window.removeEventListener('message', onMessage);
+          if (!settled) reject(new Error('Microsoft authorization popup was closed.'));
+        }
+      }, 800);
+    });
+
+    const tokenRes = await fetch('/api/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'outlook',
+        code: authCode,
+        clientId: finalClientId,
+        clientSecret: finalClientSecret,
+        redirectUri
+      })
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || tokenData.error) {
+      throw new Error(tokenData.error_description || tokenData.error || 'Microsoft token exchange rejected');
+    }
+
+    const accessToken = tokenData.access_token;
+    let userEmail = 'Outlook Account';
+    let displayName = 'Microsoft 365 User';
+
+    try {
+      const userRes = await fetch('https://graph.microsoft.com/v1.0/me', {
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' }
+      });
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        userEmail = userData.mail || userData.userPrincipalName || userEmail;
+        displayName = userData.displayName || displayName;
+      }
+    } catch (e) {
+      console.warn('Microsoft Graph userinfo fetch note:', e);
+    }
+
+    return {
+      id: `mcp-outlook-oauth-${Date.now().toString().slice(-4)}`,
+      name: `Outlook (${userEmail})`,
+      displayName: `Outlook (${userEmail})`,
+      serviceName: 'Outlook',
+      description: `Official Microsoft Outlook MCP with all ${OUTLOOK_OFFICIAL_ACTIONS.length} tools pre-authorized via live Microsoft Entra OAuth 2.0.`,
+      transport: 'outlook-api',
+      config: {
+        token: accessToken,
+        authType: 'oauth',
+        scopes,
+        email: userEmail
+      },
+      basis: {
+        provider: 'Microsoft Entra ID OAuth 2.0 (Live Authorized)',
+        accountName: displayName,
+        accountEmail: userEmail,
+        apiEndpoint: 'https://graph.microsoft.com/v1.0',
+        authType: 'OAuth 2.0 (Microsoft Identity v2.0)',
+        scopesGranted: tokenData.scope || scopes.join(', '),
+        tokenMasked: `${accessToken.substring(0, 4)}••••••••`
+      },
+      tools: OUTLOOK_OFFICIAL_ACTIONS,
       verifiedAt: new Date().toISOString()
     };
   }
@@ -2292,6 +2526,507 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
     }
   }
 
+  // 6. MICROSOFT OUTLOOK & GRAPH API LIVE DIRECT EXECUTION BRIDGE
+  if ((transport === 'outlook-api' || transport === 'microsoft-graph' || identifyMcpService(mcpServer) === 'outlook') && (config?.token || mcpServer.token)) {
+    const token = config?.token || mcpServer.token;
+    const baseGraphUrl = (config?.endpoint || 'https://graph.microsoft.com/v1.0').replace(/\/$/, '');
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    const graphFetch = async (url, options = {}) => {
+      const fullUrl = url.startsWith('http') ? url : `${baseGraphUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+      const res = await fetch(fullUrl, {
+        ...options,
+        headers: {
+          ...headers,
+          ...(options.headers || {})
+        }
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        let parsedErr = errText;
+        try {
+          const jsonErr = JSON.parse(errText);
+          parsedErr = jsonErr.error?.message || jsonErr.message || errText;
+        } catch {}
+        if (res.status === 403) {
+          parsedErr += ' (Permission Scope Missing: In Microsoft Graph Explorer, click the "Modify permissions" tab, search for "Mail.Read" or "Mail.ReadWrite", click "Consent", and copy the updated Access Token).';
+        }
+        throw new Error(`Microsoft Graph API error (${res.status} ${res.statusText}): ${parsedErr}`);
+      }
+      if (res.status === 204) return { success: true };
+      return await res.json().catch(() => ({ success: true }));
+    };
+
+    // --- MAIL OPERATIONS (12) ---
+    if (toolName === 'list_messages') {
+      const folder = args.folder ? `/me/mailFolders/${encodeURIComponent(args.folder)}/messages` : '/me/messages';
+      const params = new URLSearchParams();
+      params.set('$top', String(args.limit || 10));
+      if (args.filter) params.set('$filter', args.filter);
+      if (args.search) params.set('$search', `"${args.search}"`);
+      params.set('$select', 'id,subject,bodyPreview,from,toRecipients,receivedDateTime,hasAttachments,isRead,importance');
+      return await graphFetch(`${folder}?${params.toString()}`);
+    }
+
+    if (toolName === 'get_message' || toolName === 'get_email' || toolName === 'read_email' || toolName === 'read_message') {
+      let msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId || msgId === 'latest') {
+        const recent = await graphFetch('/me/messages?$top=1&$select=id,subject');
+        if (recent.value && recent.value.length > 0) {
+          msgId = recent.value[0].id;
+        }
+      }
+      if (!msgId) throw new Error('messageId is required to fetch email details.');
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`);
+    }
+
+    if (toolName === 'search_messages' || toolName === 'search_emails' || toolName === 'search_mail') {
+      const query = args.query || args.search || '';
+      const limit = args.limit || 10;
+      return await graphFetch(`/me/messages?$search="${encodeURIComponent(query)}"&$top=${limit}&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,importance`);
+    }
+
+    if (toolName === 'send_mail' || toolName === 'send_email') {
+      const recipients = Array.isArray(args.to) ? args.to : (Array.isArray(args.toRecipients) ? args.toRecipients : [args.to || args.recipient || args.email].filter(Boolean));
+      const ccRecipients = Array.isArray(args.cc) ? args.cc : (args.cc ? [args.cc] : []);
+      const bccRecipients = Array.isArray(args.bcc) ? args.bcc : (args.bcc ? [args.bcc] : []);
+
+      const payload = {
+        message: {
+          subject: args.subject || '(No Subject)',
+          body: {
+            contentType: args.body?.includes('<html') ? 'HTML' : 'Text',
+            content: args.body || args.content || args.message || ''
+          },
+          toRecipients: recipients.map(email => ({ emailAddress: { address: email } })),
+          ccRecipients: ccRecipients.map(email => ({ emailAddress: { address: email } })),
+          bccRecipients: bccRecipients.map(email => ({ emailAddress: { address: email } })),
+          importance: args.importance || 'normal'
+        },
+        saveToSentItems: 'true'
+      };
+      await graphFetch('/me/sendMail', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      return { success: true, message: `Email sent to ${recipients.join(', ')}`, subject: args.subject };
+    }
+
+    if (toolName === 'create_draft') {
+      const recipients = Array.isArray(args.to) ? args.to : (args.to ? [args.to] : []);
+      const payload = {
+        subject: args.subject || '',
+        body: {
+          contentType: args.body?.includes('<html') ? 'HTML' : 'Text',
+          content: args.body || args.content || ''
+        },
+        toRecipients: recipients.map(email => ({ emailAddress: { address: email } }))
+      };
+      return await graphFetch('/me/messages', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'update_draft') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId) throw new Error('messageId is required to update draft.');
+      const payload = {};
+      if (args.subject !== undefined) payload.subject = args.subject;
+      if (args.body !== undefined || args.content !== undefined) {
+        const bodyContent = args.body !== undefined ? args.body : args.content;
+        payload.body = {
+          contentType: bodyContent.includes('<html') ? 'HTML' : 'Text',
+          content: bodyContent
+        };
+      }
+      if (args.to !== undefined) {
+        const recipients = Array.isArray(args.to) ? args.to : [args.to];
+        payload.toRecipients = recipients.map(email => ({ emailAddress: { address: email } }));
+      }
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'send_draft') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId) throw new Error('messageId is required to send draft.');
+      await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/send`, { method: 'POST' });
+      return { success: true, message: `Draft ${msgId} sent successfully.` };
+    }
+
+    if (toolName === 'reply_mail' || toolName === 'reply_to_email' || toolName === 'reply_email') {
+      let msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId || msgId === 'latest') {
+        const recent = await graphFetch('/me/messages?$top=1&$select=id,subject');
+        if (recent.value && recent.value.length > 0) {
+          msgId = recent.value[0].id;
+        }
+      }
+      if (!msgId) throw new Error('messageId is required to reply to email.');
+      const replyComment = args.comment || args.body || args.message || args.reply || args.text || args.content || '';
+      await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ comment: replyComment })
+      });
+      return { success: true, message: `Reply sent successfully for message ${msgId}.`, comment: replyComment };
+    }
+
+    if (toolName === 'reply_all_mail' || toolName === 'reply_all_email' || toolName === 'reply_all') {
+      let msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId || msgId === 'latest') {
+        const recent = await graphFetch('/me/messages?$top=1&$select=id,subject');
+        if (recent.value && recent.value.length > 0) {
+          msgId = recent.value[0].id;
+        }
+      }
+      if (!msgId) throw new Error('messageId is required to reply-all to email.');
+      const replyComment = args.comment || args.body || args.message || args.reply || args.text || args.content || '';
+      await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/replyAll`, {
+        method: 'POST',
+        body: JSON.stringify({ comment: replyComment })
+      });
+      return { success: true, message: `Reply-All sent successfully for message ${msgId}.`, comment: replyComment };
+    }
+
+    if (toolName === 'forward_mail' || toolName === 'forward_email') {
+      let msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId || msgId === 'latest') {
+        const recent = await graphFetch('/me/messages?$top=1&$select=id,subject');
+        if (recent.value && recent.value.length > 0) {
+          msgId = recent.value[0].id;
+        }
+      }
+      if (!msgId) throw new Error('messageId is required to forward email.');
+      const recipients = Array.isArray(args.to) ? args.to : (Array.isArray(args.toRecipients) ? args.toRecipients : [args.to || args.recipient || args.email].filter(Boolean));
+      const payload = {
+        comment: args.comment || args.body || args.message || args.text || '',
+        toRecipients: recipients.map(email => ({ emailAddress: { address: email } }))
+      };
+      await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/forward`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      return { success: true, message: `Forwarded message ${msgId} to ${recipients.join(', ')}.` };
+    }
+
+    if (toolName === 'delete_message' || toolName === 'delete_email' || toolName === 'delete_mail') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId) throw new Error('messageId is required to delete email.');
+      await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`, { method: 'DELETE' });
+      return { success: true, message: `Message ${msgId} deleted successfully.` };
+    }
+
+    if (toolName === 'move_message' || toolName === 'move_email') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const destinationId = args.destinationId || args.destination_id || args.folderId || args.folder_id || args.targetFolderId;
+      if (!msgId || !destinationId) throw new Error('messageId and destinationId are required to move email.');
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/move`, {
+        method: 'POST',
+        body: JSON.stringify({ destinationId })
+      });
+    }
+
+    // --- FOLDERS & ATTACHMENTS (4) ---
+    if (toolName === 'list_mail_folders') {
+      return await graphFetch('/me/mailFolders?$top=50');
+    }
+
+    if (toolName === 'create_mail_folder') {
+      const url = args.parentFolderId ? `/me/mailFolders/${encodeURIComponent(args.parentFolderId)}/childFolders` : '/me/mailFolders';
+      return await graphFetch(url, {
+        method: 'POST',
+        body: JSON.stringify({ displayName: args.displayName || 'New Folder' })
+      });
+    }
+
+    if (toolName === 'list_message_attachments') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId) throw new Error('messageId is required to list attachments.');
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments`);
+    }
+
+    if (toolName === 'add_message_attachment') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId) throw new Error('messageId is required to attach file.');
+      const payload = {
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: args.name,
+        contentType: args.contentType || 'application/octet-stream',
+        contentBytes: args.contentBytes
+      };
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    // --- CALENDAR & SCHEDULING (10) ---
+    if (toolName === 'list_events') {
+      const limit = args.limit || 15;
+      const filter = args.filter ? `&$filter=${encodeURIComponent(args.filter)}` : '';
+      return await graphFetch(`/me/events?$top=${limit}&$select=id,subject,start,end,location,attendees,isOnlineMeeting,onlineMeetingUrl,organizer${filter}&$orderby=start/dateTime asc`);
+    }
+
+    if (toolName === 'get_calendar_view') {
+      const { startDateTime, endDateTime } = args;
+      if (!startDateTime || !endDateTime) throw new Error('startDateTime and endDateTime are required for calendar view.');
+      return await graphFetch(`/me/calendarView?startDateTime=${encodeURIComponent(startDateTime)}&endDateTime=${encodeURIComponent(endDateTime)}&$select=id,subject,start,end,location,attendees,isOnlineMeeting,onlineMeetingUrl`);
+    }
+
+    if (toolName === 'get_event') {
+      const eventId = args.eventId || args.event_id || args.eventID || args.id;
+      if (!eventId) throw new Error('eventId is required to get event details.');
+      return await graphFetch(`/me/events/${encodeURIComponent(eventId)}`);
+    }
+
+    if (toolName === 'create_event') {
+      const attendees = Array.isArray(args.attendees) ? args.attendees : (args.attendees ? [args.attendees] : []);
+      const payload = {
+        subject: args.subject,
+        start: {
+          dateTime: args.start || args.startTime || args.startDateTime,
+          timeZone: args.timeZone || 'UTC'
+        },
+        end: {
+          dateTime: args.end || args.endTime || args.endDateTime,
+          timeZone: args.timeZone || 'UTC'
+        },
+        body: args.body ? { contentType: 'HTML', content: args.body } : undefined,
+        location: args.location ? { displayName: args.location } : undefined,
+        attendees: attendees.map(email => ({
+          emailAddress: { address: email },
+          type: 'required'
+        })),
+        isOnlineMeeting: Boolean(args.isOnlineMeeting || args.is_online_meeting),
+        onlineMeetingProvider: (args.isOnlineMeeting || args.is_online_meeting) ? 'teamsForBusiness' : undefined
+      };
+      return await graphFetch('/me/events', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'update_event') {
+      const eventId = args.eventId || args.event_id || args.eventID || args.id;
+      if (!eventId) throw new Error('eventId is required to update event.');
+      const payload = {};
+      if (args.subject) payload.subject = args.subject;
+      if (args.start || args.startTime) payload.start = { dateTime: args.start || args.startTime, timeZone: args.timeZone || 'UTC' };
+      if (args.end || args.endTime) payload.end = { dateTime: args.end || args.endTime, timeZone: args.timeZone || 'UTC' };
+      if (args.body) payload.body = { contentType: 'HTML', content: args.body };
+      if (args.location) payload.location = { displayName: args.location };
+      return await graphFetch(`/me/events/${encodeURIComponent(eventId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'delete_event') {
+      const eventId = args.eventId || args.event_id || args.eventID || args.id;
+      if (!eventId) throw new Error('eventId is required to delete event.');
+      await graphFetch(`/me/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
+      return { success: true, message: `Event ${eventId} cancelled and removed from calendar.` };
+    }
+
+    if (toolName === 'accept_event') {
+      const eventId = args.eventId || args.event_id || args.eventID || args.id;
+      if (!eventId) throw new Error('eventId is required to accept event.');
+      const comment = args.comment || args.body || args.message || '';
+      await graphFetch(`/me/events/${encodeURIComponent(eventId)}/accept`, {
+        method: 'POST',
+        body: JSON.stringify({ comment, sendResponse: true })
+      });
+      return { success: true, message: `Accepted meeting invitation ${eventId}.` };
+    }
+
+    if (toolName === 'decline_event') {
+      const eventId = args.eventId || args.event_id || args.eventID || args.id;
+      if (!eventId) throw new Error('eventId is required to decline event.');
+      const comment = args.comment || args.body || args.message || '';
+      await graphFetch(`/me/events/${encodeURIComponent(eventId)}/decline`, {
+        method: 'POST',
+        body: JSON.stringify({ comment, sendResponse: true })
+      });
+      return { success: true, message: `Declined meeting invitation ${eventId}.` };
+    }
+
+    if (toolName === 'tentatively_accept_event') {
+      const eventId = args.eventId || args.event_id || args.eventID || args.id;
+      if (!eventId) throw new Error('eventId is required to tentatively accept event.');
+      const comment = args.comment || args.body || args.message || '';
+      await graphFetch(`/me/events/${encodeURIComponent(eventId)}/tentativelyAccept`, {
+        method: 'POST',
+        body: JSON.stringify({ comment, sendResponse: true })
+      });
+      return { success: true, message: `Tentatively accepted meeting invitation ${eventId}.` };
+    }
+
+    if (toolName === 'find_meeting_times') {
+      const attendees = Array.isArray(args.attendees) ? args.attendees : [args.attendees].filter(Boolean);
+      const payload = {
+        attendees: attendees.map(email => ({ emailAddress: { address: email }, type: 'required' })),
+        meetingDuration: `PT${args.meetingDurationMinutes || args.duration || 30}M`,
+        timeConstraint: {
+          activityDomain: 'work',
+          timeslots: args.startWindow && args.endWindow ? [{
+            start: { dateTime: args.startWindow, timeZone: 'UTC' },
+            end: { dateTime: args.endWindow, timeZone: 'UTC' }
+          }] : undefined
+        }
+      };
+      return await graphFetch('/me/findMeetingTimes', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    // --- CONTACTS & PEOPLE (5) ---
+    if (toolName === 'list_contacts') {
+      const limit = args.limit || 25;
+      const filter = args.filter ? `&$filter=${encodeURIComponent(args.filter)}` : '';
+      return await graphFetch(`/me/contacts?$top=${limit}${filter}&$select=id,displayName,givenName,surname,emailAddresses,mobilePhone,companyName,jobTitle`);
+    }
+
+    if (toolName === 'get_contact') {
+      const contactId = args.contactId || args.contact_id || args.id;
+      if (!contactId) throw new Error('contactId is required to fetch contact.');
+      return await graphFetch(`/me/contacts/${encodeURIComponent(contactId)}`);
+    }
+
+    if (toolName === 'create_contact') {
+      const payload = {
+        givenName: args.givenName || args.firstName || args.first_name,
+        surname: args.surname || args.lastName || args.last_name,
+        emailAddresses: (args.emailAddress || args.email) ? [{ address: args.emailAddress || args.email }] : undefined,
+        companyName: args.companyName || args.company,
+        jobTitle: args.jobTitle || args.title,
+        mobilePhone: args.mobilePhone || args.phone
+      };
+      return await graphFetch('/me/contacts', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'update_contact') {
+      const contactId = args.contactId || args.contact_id || args.id;
+      if (!contactId) throw new Error('contactId is required to update contact.');
+      const payload = {};
+      if (args.givenName || args.firstName) payload.givenName = args.givenName || args.firstName;
+      if (args.surname || args.lastName) payload.surname = args.surname || args.lastName;
+      if (args.companyName || args.company) payload.companyName = args.companyName || args.company;
+      if (args.jobTitle || args.title) payload.jobTitle = args.jobTitle || args.title;
+      if (args.mobilePhone || args.phone) payload.mobilePhone = args.mobilePhone || args.phone;
+      if (args.emailAddress || args.email) payload.emailAddresses = [{ address: args.emailAddress || args.email }];
+      return await graphFetch(`/me/contacts/${encodeURIComponent(contactId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'delete_contact') {
+      const contactId = args.contactId || args.contact_id || args.id;
+      if (!contactId) throw new Error('contactId is required to delete contact.');
+      await graphFetch(`/me/contacts/${encodeURIComponent(contactId)}`, { method: 'DELETE' });
+      return { success: true, message: `Contact ${contactId} removed from address book.` };
+    }
+
+    // --- TASKS & MICROSOFT TO DO (5) ---
+    if (toolName === 'list_todo_lists') {
+      return await graphFetch('/me/todo/lists');
+    }
+
+    if (toolName === 'list_tasks') {
+      let listId = args.listId || args.list_id;
+      if (!listId) {
+        const lists = await graphFetch('/me/todo/lists');
+        listId = lists.value?.[0]?.id;
+      }
+      if (!listId) throw new Error('No Microsoft To Do list found.');
+      const filter = args.status ? `?$filter=status eq '${args.status}'` : '';
+      return await graphFetch(`/me/todo/lists/${encodeURIComponent(listId)}/tasks${filter}`);
+    }
+
+    if (toolName === 'create_task') {
+      let listId = args.listId || args.list_id;
+      if (!listId) {
+        const lists = await graphFetch('/me/todo/lists');
+        listId = lists.value?.[0]?.id;
+      }
+      if (!listId) throw new Error('No Microsoft To Do list found.');
+      const payload = {
+        title: args.title || args.subject || args.name,
+        body: (args.body || args.content) ? { content: args.body || args.content, contentType: 'text' } : undefined,
+        importance: args.importance || 'normal',
+        dueDateTime: (args.dueDateTime || args.dueDate) ? { dateTime: args.dueDateTime || args.dueDate, timeZone: 'UTC' } : undefined
+      };
+      return await graphFetch(`/me/todo/lists/${encodeURIComponent(listId)}/tasks`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'update_task') {
+      let listId = args.listId || args.list_id;
+      const taskId = args.taskId || args.task_id || args.id;
+      if (!taskId) throw new Error('taskId is required to update task.');
+      if (!listId) {
+        const lists = await graphFetch('/me/todo/lists');
+        listId = lists.value?.[0]?.id;
+      }
+      const payload = {};
+      if (args.title) payload.title = args.title;
+      if (args.status) payload.status = args.status;
+      if (args.dueDateTime || args.dueDate) payload.dueDateTime = { dateTime: args.dueDateTime || args.dueDate, timeZone: 'UTC' };
+      return await graphFetch(`/me/todo/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'complete_task') {
+      let listId = args.listId || args.list_id;
+      const taskId = args.taskId || args.task_id || args.id;
+      if (!taskId) throw new Error('taskId is required to complete task.');
+      if (!listId) {
+        const lists = await graphFetch('/me/todo/lists');
+        listId = lists.value?.[0]?.id;
+      }
+      return await graphFetch(`/me/todo/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'completed' })
+      });
+    }
+
+    if (toolName === 'delete_task') {
+      let listId = args.listId || args.list_id;
+      const taskId = args.taskId || args.task_id || args.id;
+      if (!taskId) throw new Error('taskId is required to delete task.');
+      if (!listId) {
+        const lists = await graphFetch('/me/todo/lists');
+        listId = lists.value?.[0]?.id;
+      }
+      await graphFetch(`/me/todo/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
+      return { success: true, message: `Task ${taskId} deleted from list ${listId}.` };
+    }
+
+    // --- MAILBOX RULES & SETTINGS (2) ---
+    if (toolName === 'list_message_rules') {
+      return await graphFetch('/me/mailFolders/inbox/messageRules');
+    }
+
+    if (toolName === 'get_mailbox_settings') {
+      return await graphFetch('/me/mailboxSettings');
+    }
+  }
+
   // Final universal fallback: If the server has an endpoint of any kind, try JSON-RPC tools/call
   if (endpoint) {
     const payload = {
@@ -2332,4 +3067,32 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
   }
 
   throw new Error(`Execution handler for tool "${toolName}" on MCP server "${mcpServer.name || 'External'}" (transport: "${transport || 'unknown'}") is not configured.`);
+}
+
+export function getStoredMicrosoftOAuthCredentials() {
+  try {
+    return {
+      clientId: (
+        localStorage.getItem('keaos_microsoft_client_id') || 
+        import.meta.env.VITE_OUTLOOK_OAUTH_CLIENT_ID || 
+        import.meta.env.VITE_MICROSOFT_OAUTH_CLIENT_ID || 
+        ''
+      ).trim(),
+      clientSecret: (
+        localStorage.getItem('keaos_microsoft_client_secret') || 
+        import.meta.env.VITE_OUTLOOK_OAUTH_CLIENT_SECRET || 
+        import.meta.env.VITE_MICROSOFT_OAUTH_CLIENT_SECRET || 
+        ''
+      ).trim()
+    };
+  } catch {
+    return { clientId: '', clientSecret: '' };
+  }
+}
+
+export function saveStoredMicrosoftOAuthCredentials(clientId = '', clientSecret = '') {
+  try {
+    if (clientId) localStorage.setItem('keaos_microsoft_client_id', clientId.trim());
+    if (clientSecret) localStorage.setItem('keaos_microsoft_client_secret', clientSecret.trim());
+  } catch {}
 }

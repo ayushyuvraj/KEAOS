@@ -39,13 +39,30 @@ import { executeMultiAgentWorkflow, buildMultiAgentDAG } from '../utils/multiAge
 import { transcribeAudioUniversal, getProviderCredential, executeUniversalChat } from '../services/llmService';
 import { executeDeterministicTask } from '../services/deterministicRunner';
 import { getActiveApiKey } from '../services/geminiService';
-import { getRegisteredMcpServers } from '../services/mcpClientService';
+import { 
+  getRegisteredMcpServers,
+  connectMcpViaOAuth,
+  saveRegisteredMcpServer,
+  getStoredMicrosoftOAuthCredentials,
+  saveStoredMicrosoftOAuthCredentials
+} from '../services/mcpClientService';
 import { 
   GITHUB_OFFICIAL_ACTIONS, 
   SLACK_OFFICIAL_ACTIONS, 
   JIRA_OFFICIAL_ACTIONS,
   identifyMcpService
 } from '../constants/mcpOfficialCatalogs';
+
+function MicrosoftLogo({ className = 'w-4 h-4' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <rect x="2" y="2" width="9.5" height="9.5" rx="1" fill="#F25022" />
+      <rect x="12.5" y="2" width="9.5" height="9.5" rx="1" fill="#7FBA00" />
+      <rect x="2" y="12.5" width="9.5" height="9.5" rx="1" fill="#00A4EF" />
+      <rect x="12.5" y="12.5" width="9.5" height="9.5" rx="1" fill="#FFB900" />
+    </svg>
+  );
+}
 
 // Helper to render deterministic assistant message with interactive "Apply Code" buttons
 function renderDeterministicContent(msg, onApplyCode, isApplied) {
@@ -470,8 +487,24 @@ export default function CanvasExecutionDrawer({
   const [chatInput, setChatInput] = useState('');
   const [isChatRunning, setIsChatRunning] = useState(false);
   const [currentChatStep, setCurrentChatStep] = useState(null);
+  const [liveWorkingSeconds, setLiveWorkingSeconds] = useState(0);
+  const abortControllerRef = useRef(null);
   const chatBottomRef = useRef(null);
   const chatInputRef = useRef(null);
+
+  // Live timer while agent is reasoning / executing external tools
+  useEffect(() => {
+    let timer;
+    if (isChatRunning) {
+      setLiveWorkingSeconds(0);
+      timer = setInterval(() => {
+        setLiveWorkingSeconds(s => s + 1);
+      }, 1000);
+    } else {
+      setLiveWorkingSeconds(0);
+    }
+    return () => clearInterval(timer);
+  }, [isChatRunning]);
 
   const generateGreeting = useCallback((agent, modelPillar, pillars) => {
     const isBrainActive = Boolean(modelPillar);
@@ -531,6 +564,60 @@ export default function CanvasExecutionDrawer({
 
   // Persist conversation history per agent ID
   const [chatHistories, setChatHistories] = useState({});
+  const [isMsAuthorizing, setIsMsAuthorizing] = useState(false);
+  const [showInlineClientIdInput, setShowInlineClientIdInput] = useState(false);
+  const [inlineClientId, setInlineClientId] = useState('');
+
+  const handleExecuteMicrosoftOAuth = useCallback(async (overrideId) => {
+    const creds = getStoredMicrosoftOAuthCredentials();
+    const effectiveClientId = (overrideId || inlineClientId || creds.clientId || '').trim();
+
+    if (!effectiveClientId) {
+      setShowInlineClientIdInput(true);
+      return;
+    }
+
+    setIsMsAuthorizing(true);
+    setShowInlineClientIdInput(false);
+
+    try {
+      const result = await connectMcpViaOAuth({
+        provider: 'outlook',
+        clientId: effectiveClientId,
+        clientSecret: creds.clientSecret
+      });
+
+      saveRegisteredMcpServer(result);
+      saveStoredMicrosoftOAuthCredentials(effectiveClientId, creds.clientSecret);
+
+      window.dispatchEvent(new CustomEvent('keaos:mcp-registry-updated'));
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `✓ Connected Microsoft Outlook MCP for ${result.basis?.accountName || 'User'}` }
+      }));
+
+      // Post assistant confirmation in chat
+      const confirmMsg = {
+        id: `ast-auth-success-${Date.now()}`,
+        role: 'assistant',
+        content: `🎉 **Successfully authenticated Microsoft Account!**\n\n- **Authenticated Identity**: **${result.basis?.accountName || 'User'}** (${result.basis?.accountEmail || ''})\n- **Discovered Capabilities**: All 38 Outlook actions (Mail, Calendar, Contacts, Tasks) compiled.\n- **Zero-Trust Perimeter**: Protected and governed by your **MCP Egress Gateway**.\n\nYou can now ask me to check your unread emails, review your calendar, or compose messages!`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setChatHistories(prev => ({
+        ...prev,
+        [activeAgentId]: [...(prev[activeAgentId] || []), confirmMsg]
+      }));
+    } catch (err) {
+      console.error('Chat Microsoft login error:', err);
+      if (err.message && err.message.includes('requires an Application (Client) ID')) {
+        setShowInlineClientIdInput(true);
+      } else {
+        alert(`Microsoft Authentication: ${err.message}`);
+      }
+    } finally {
+      setIsMsAuthorizing(false);
+    }
+  }, [activeAgentId, inlineClientId]);
 
   const chatMessages = React.useMemo(() => {
     if (!activeAgentNode) return [];
@@ -805,6 +892,36 @@ export default function CanvasExecutionDrawer({
     }
   }, [isChatRunning, hasBrain, drawerMode, activeAgentId, isExpanded]);
 
+  // Stop / Cancel active chat generation (ChatGPT-style pause / stop)
+  const handleStopChat = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsChatRunning(false);
+    setCurrentChatStep(null);
+    setLiveWorkingSeconds(0);
+
+    const stoppedMsg = {
+      id: `ast-stopped-${Date.now()}`,
+      role: 'assistant',
+      content: '⏹️ _Response generation stopped by user._',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatHistories(prev => ({
+      ...prev,
+      [activeAgentId]: [...(prev[activeAgentId] || []), stoppedMsg]
+    }));
+
+    if (onExecutionStateChange) {
+      onExecutionStateChange({ isExecuting: false, step: 'Stopped' });
+    }
+    setTimeout(() => {
+      chatInputRef.current?.focus();
+    }, 50);
+  }, [activeAgentId, onExecutionStateChange]);
+
   // Handle Interactive Chat Submission
   const handleSendChat = async (e) => {
     if (e) e.preventDefault();
@@ -831,8 +948,32 @@ export default function CanvasExecutionDrawer({
     }));
 
     setChatInput('');
+
+    // Check for natural language intent to log in / connect Microsoft account
+    const isMsLoginIntent = /(log\s*in|sign\s*in|connect|link|authenticate).*(microsoft|outlook|m365|office)/i.test(promptText);
+    if (isMsLoginIntent) {
+      const registeredOutlook = getRegisteredMcpServers().find(m => identifyMcpService(m) === 'outlook');
+      const assistantMsg = {
+        id: `ast-auth-${Date.now()}`,
+        role: 'assistant',
+        content: registeredOutlook
+          ? `You are currently connected to Microsoft Outlook as **${registeredOutlook.basis?.accountName || registeredOutlook.name}** (${registeredOutlook.basis?.accountEmail || ''}). All 38 tools are active through your Zero-Trust MCP Egress Gateway.\n\nTo re-authorize or link a different Microsoft account, click below:`
+          : `To enable autonomous mailbox, calendar, contacts, and tasks tools governed by your Zero-Trust Gateway, click below to authorize your Microsoft account via browser popup:`,
+        actionCard: 'microsoft-login',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setChatHistories(prev => ({
+        ...prev,
+        [activeAgentId]: [...currentThread, newUserMsg, assistantMsg]
+      }));
+      return;
+    }
+
+    const abortCtrl = new AbortController();
+    abortControllerRef.current = abortCtrl;
+
     setIsChatRunning(true);
-    setCurrentChatStep({ step: 'Reasoning through Connected Brain', detail: `Invoking ${modelDisplayName}...` });
+    setCurrentChatStep({ step: 'I\'m looking at it...', detail: `Invoking ${modelDisplayName} and inspecting connected MCP tools...` });
 
     if (onExecutionStateChange) {
       onExecutionStateChange({ isExecuting: true, step: `Querying ${modelDisplayName}...` });
@@ -863,13 +1004,22 @@ export default function CanvasExecutionDrawer({
               pillarType: currStep.pillarType 
             });
           }
-        }
+        },
+        signal: abortCtrl.signal
       });
+
+      const isAuthIssue = result.response && (
+        result.response.includes('403 Forbidden') ||
+        result.response.includes('Access is denied') ||
+        result.response.includes('Permission Scope Missing') ||
+        result.response.includes('Check credentials')
+      );
 
       const assistantMsg = {
         id: `ast-${Date.now()}`,
         role: 'assistant',
         content: result.response,
+        actionCard: isAuthIssue ? 'microsoft-login' : undefined,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         auditHash: result.auditHash,
         tokens: result.observability?.totalTokens || 0,
@@ -899,11 +1049,24 @@ export default function CanvasExecutionDrawer({
         console.warn('Failed to dispatch keaos:agent-output:', evErr);
       }
     } catch (err) {
+      if (err.name === 'AbortError' || err.message?.includes('stopped by user') || err.message?.includes('aborted') || abortCtrl.signal.aborted) {
+        // Handled cleanly by handleStopChat
+        return;
+      }
       console.error('Chat execution failed:', err);
+      const isAuthErr = err.message && (
+        err.message.includes('403') || 
+        err.message.includes('401') || 
+        err.message.includes('Access is denied') || 
+        err.message.includes('Permission Scope Missing')
+      );
       const errorMsg = {
         id: `err-${Date.now()}`,
         role: 'assistant',
-        content: `⚠️ **Execution Error**: ${err.message}\n\nPlease check your foundation model API keys or endpoint configuration in the settings modal.`,
+        content: isAuthErr 
+          ? `⚠️ **Authentication / Permission Error**: ${err.message}\n\nYour session lacks delegated permissions to access this resource. Click below to sign in with your Microsoft account via browser popup or configure your credentials:`
+          : `⚠️ **Execution Error**: ${err.message}\n\nPlease check your foundation model API keys or endpoint configuration in the settings modal.`,
+        actionCard: isAuthErr ? 'microsoft-login' : undefined,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isError: true
       };
@@ -914,6 +1077,7 @@ export default function CanvasExecutionDrawer({
     } finally {
       setIsChatRunning(false);
       setCurrentChatStep(null);
+      abortControllerRef.current = null;
       if (onExecutionStateChange) {
         onExecutionStateChange({ isExecuting: false, step: 'Complete' });
       }
@@ -1719,6 +1883,98 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                           <div className="whitespace-pre-wrap font-sans text-xs">
                             {msg.content}
                           </div>
+                          {msg.actionCard === 'microsoft-login' && (
+                            <div className="mt-3 p-3 bg-[#171D26] border border-[#0078D4]/60 rounded space-y-2.5 text-left select-none">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <MicrosoftLogo className="w-4 h-4 shrink-0" />
+                                  <span className="font-bold text-xs text-white">Microsoft 365 / Outlook Account</span>
+                                </div>
+                                <span className="text-[9.5px] font-mono px-2 py-0.5 rounded bg-[#0078D4]/20 text-[#28A8EA] font-bold border border-[#0078D4]/40">
+                                  ZERO-TRUST GATEWAY
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                                Authorize delegated access for Mail, Calendar, Contacts, and Tasks via live browser popup. Governed by your MCP Egress Gateway.
+                              </p>
+
+                              {showInlineClientIdInput ? (
+                                <div className="p-2.5 bg-black/50 border border-slate-700 rounded space-y-2">
+                                  <label className="text-[10px] text-slate-300 font-mono block">
+                                    Azure / Entra App Client ID (Saved permanently):
+                                  </label>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={inlineClientId}
+                                      onChange={(e) => setInlineClientId(e.target.value)}
+                                      placeholder="00000000-0000-0000-0000-000000000000"
+                                      className="flex-1 bg-[#1A1F26] border border-slate-600 px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-[#0078D4]"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleExecuteMicrosoftOAuth(inlineClientId)}
+                                      className="px-3 py-1 bg-[#0078D4] hover:bg-[#006CBD] text-white text-xs font-bold font-mono cursor-pointer"
+                                    >
+                                      Authorize
+                                    </button>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px] font-sans">
+                                    <a
+                                      href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-[#28A8EA] hover:underline"
+                                    >
+                                      Register free app at entra.microsoft.com
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setShowInlineClientIdInput(false);
+                                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', { detail: { tab: 'outlook' } }));
+                                      }}
+                                      className="text-slate-400 hover:text-white cursor-pointer"
+                                    >
+                                      Use Graph Token instead →
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 pt-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleExecuteMicrosoftOAuth()}
+                                    disabled={isMsAuthorizing}
+                                    className="flex-1 py-2 px-3 bg-[#0078D4] hover:bg-[#006CBD] disabled:opacity-50 text-white text-xs font-bold font-mono rounded flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer active:scale-98"
+                                  >
+                                    {isMsAuthorizing ? (
+                                      <>
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Awaiting Microsoft Popup...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <MicrosoftLogo className="w-4 h-4 shrink-0" />
+                                        <span>Sign in with Microsoft</span>
+                                      </>
+                                    )}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', { detail: { tab: 'outlook' } }));
+                                    }}
+                                    className="py-2 px-3 bg-[#232730] hover:bg-[#2C323E] text-slate-300 hover:text-white text-xs font-mono border border-slate-700 rounded transition-all cursor-pointer"
+                                    title="Open modal to paste Graph Bearer token or configure settings"
+                                  >
+                                    Options
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Metadata Footer */}
@@ -1748,36 +2004,25 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                   );
                 })}
 
-                {/* Live Step Progress / Thinking & Tool Execution Indicator */}
+                {/* Minimalist Working / Thinking Indicator (Gemini/ChatGPT standard — zero verbose text) */}
                 {isChatRunning && (
-                  <div className="flex gap-3 mr-auto max-w-[85%] animate-apple-in">
-                    <div className={`w-8 h-8 rounded-none border flex items-center justify-center shrink-0 ${
-                      currentChatStep?.pillarType === 'mcp'
-                        ? 'bg-[#00A3A6]/20 border-[#00A3A6] text-[#00A3A6]'
-                        : 'bg-[#00338D]/20 border-[#0091DA] text-[#0091DA]'
-                    }`}>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    </div>
-                    <div className={`p-3.5 border rounded-none text-xs font-mono space-y-1.5 shadow-sm ${
+                  <div className="flex gap-3 mr-auto items-center py-2 animate-apple-in">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
                       isDarkMode 
-                        ? 'bg-[#18191E] border-[#2E313B] text-slate-200' 
-                        : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
+                        ? 'bg-[#00338D]/25 border border-[#0091DA]/40 text-[#0091DA]' 
+                        : 'bg-blue-50 border border-[#00338D]/30 text-[#00338D]'
                     }`}>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-none font-mono ${
-                          currentChatStep?.pillarType === 'mcp'
-                            ? 'bg-[#00A3A6] text-white'
-                            : 'bg-[#00338D] text-white'
-                        }`}>
-                          {currentChatStep?.pillarType === 'mcp' ? 'MCP TOOL EXECUTION' : 'SYSTEM REASONING'}
-                        </span>
-                        <span className="font-bold text-xs text-[#0091DA]">
-                          {currentChatStep?.step || 'The system is thinking...'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400">
-                        {currentChatStep?.detail || 'Executing connected peripheral tools and synthesizing response...'}
-                      </p>
+                      <Bot className="w-3.5 h-3.5" />
+                    </div>
+
+                    <div className={`flex items-center gap-1.5 px-3 py-2 rounded-none border ${
+                      isDarkMode
+                        ? 'bg-[#181B22]/80 border-[#2E313B]/80 text-slate-400'
+                        : 'bg-white border-[#CBD5E1] text-slate-500'
+                    }`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA] animate-pulse" style={{ animationDuration: '1.2s' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA] animate-pulse" style={{ animationDuration: '1.2s', animationDelay: '200ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA] animate-pulse" style={{ animationDuration: '1.2s', animationDelay: '400ms' }} />
                     </div>
                   </div>
                 )}
@@ -1835,7 +2080,7 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                 </div>
               )}
 
-              {/* Apple-style Interactive Chat Input Bar */}
+              {/* Apple-style Interactive Chat Input Bar with ChatGPT-style Stop/Pause */}
               <form onSubmit={handleSendChat} className={`p-3 border-t flex items-center gap-2 ${
                 isDarkMode ? 'bg-[#18191E] border-[#2E313B]' : 'bg-white border-[#CBD5E1]'
               }`}>
@@ -1849,37 +2094,54 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                       if (isChatRunning) {
                         e.preventDefault();
                       }
+                    } else if (e.key === 'Escape' && isChatRunning) {
+                      e.preventDefault();
+                      handleStopChat();
                     }
                   }}
                   placeholder={
                     !hasBrain
                       ? `Connect a Foundation Model to ${activeAgentNode?.data?.name || 'this agent'} to enable chat...`
                       : isChatRunning
-                        ? `${activeAgentNode?.data?.name || 'Agent'} is reasoning... (Type next message)`
+                        ? `${activeAgentNode?.data?.name || 'Agent'} is working... (Stop to send a new message)`
                         : `Ask ${activeAgentNode?.data?.name || 'Agent'} anything across tools, memory & guardrails... (Press Enter)`
                   }
-                  disabled={!hasBrain}
+                  disabled={!hasBrain || isChatRunning}
                   className={`flex-1 px-3 py-2 text-xs font-sans rounded-none border focus:outline-none transition-colors ${
-                    !hasBrain 
-                      ? 'bg-slate-800/30 border-slate-700 text-slate-500 cursor-not-allowed'
+                    !hasBrain || isChatRunning
+                      ? isDarkMode
+                        ? 'bg-slate-900/60 border-slate-800 text-slate-500 cursor-not-allowed select-none'
+                        : 'bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed select-none'
                       : isDarkMode 
                         ? 'bg-[#121316] border-[#383C4A] text-white focus:border-[#0091DA]' 
                         : 'bg-white border-[#CBD5E1] text-[#0B0F19] focus:border-[#00338D]'
                   }`}
                   autoFocus
                 />
-                <button
-                  type="submit"
-                  disabled={isChatRunning || !chatInput.trim() || !hasBrain}
-                  className={`px-4 py-2 text-xs font-bold font-mono rounded-none flex items-center gap-1.5 transition-all btn-tactile ${
-                    isChatRunning || !chatInput.trim() || !hasBrain
-                      ? 'opacity-40 bg-slate-700 text-slate-400 cursor-not-allowed'
-                      : 'bg-[#00338D] hover:bg-[#005EB8] text-white shadow-sm cursor-pointer'
-                  }`}
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send</span>
-                </button>
+                {isChatRunning ? (
+                  <button
+                    type="button"
+                    onClick={handleStopChat}
+                    className="px-4 py-2 text-xs font-bold font-mono rounded-none flex items-center gap-1.5 transition-all bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-sm cursor-pointer active:scale-95 animate-pulse shrink-0"
+                    title="Stop generation (or press Esc)"
+                  >
+                    <Square className="w-3.5 h-3.5 fill-white" />
+                    <span>Stop</span>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!chatInput.trim() || !hasBrain}
+                    className={`px-4 py-2 text-xs font-bold font-mono rounded-none flex items-center gap-1.5 transition-all btn-tactile shrink-0 ${
+                      !chatInput.trim() || !hasBrain
+                        ? 'opacity-40 bg-slate-700 text-slate-400 cursor-not-allowed'
+                        : 'bg-[#00338D] hover:bg-[#005EB8] text-white shadow-sm cursor-pointer'
+                    }`}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Send</span>
+                  </button>
+                )}
               </form>
             </div>
           )}

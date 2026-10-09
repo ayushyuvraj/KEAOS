@@ -23,9 +23,24 @@ import {
   verifyJiraMcpConnection, 
   verifyGitHubMcpConnection,
   verifyNeo4jMcpConnection,
+  verifyOutlookMcpConnection,
   connectMcpViaOAuth,
-  saveRegisteredMcpServer 
+  saveRegisteredMcpServer,
+  getStoredMicrosoftOAuthCredentials,
+  saveStoredMicrosoftOAuthCredentials
 } from '../services/mcpClientService';
+
+function OutlookLogo({ className = 'w-6 h-6' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect width="24" height="24" rx="2" fill="#0078D4" />
+      <path d="M14 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H14V6Z" fill="#28A8EA" />
+      <path d="M4 8C4 7.44772 4.44772 7 5 7H14V17H5C4.44772 17 4 16.5523 4 16V8Z" fill="#0078D4" />
+      <circle cx="9" cy="12" r="3.2" fill="#FFFFFF" fillOpacity="0.2" />
+      <text x="9" y="15" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">O</text>
+    </svg>
+  );
+}
 
 // Authentic GitHub Invertocat Logo (Matches Screenshots 1-4)
 function GitHubLogo({ className = 'w-6 h-6' }) {
@@ -137,6 +152,25 @@ const PROVIDERS_CONFIG = {
     directOAuthGenUrl: 'https://github.com/neo4j/mcp',
     directOAuthGenLabel: 'Neo4j Official Model Context Protocol Reference'
   },
+  outlook: {
+    id: 'outlook',
+    title: 'Microsoft Outlook account',
+    apiSubtitles: {
+      oauth: 'Microsoft Entra ID (Azure AD) OAuth2',
+      token: 'Microsoft Graph API (Bearer Token)'
+    },
+    icon: OutlookLogo,
+    defaultServer: 'https://graph.microsoft.com/v1.0',
+    authModes: [
+      { id: 'oauth', label: 'OAuth2 (Entra ID)' },
+      { id: 'token', label: 'Graph Bearer Token' }
+    ],
+    docsUrl: 'https://learn.microsoft.com/en-us/graph/api/resources/mail-api-overview',
+    directTokenGenUrl: 'https://developer.microsoft.com/en-us/graph/graph-explorer',
+    directTokenGenLabel: 'Copy Access Token at Microsoft Graph Explorer',
+    directOAuthGenUrl: 'https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade',
+    directOAuthGenLabel: 'Register App in Microsoft Entra Admin Center'
+  },
   url: {
     id: 'url',
     title: 'Universal MCP Server',
@@ -170,8 +204,8 @@ export default function ConnectMcpModal({
   useEffect(() => {
     if (initialTab && PROVIDERS_CONFIG[initialTab]) {
       setSelectedProvider(initialTab);
-      // Google only has OAuth2 mode
-      if (initialTab === 'google') {
+      // Google & Outlook default to OAuth2 mode
+      if (initialTab === 'google' || initialTab === 'outlook') {
         setAuthMode('oauth');
       } else if (initialTab === 'neo4j') {
         setAuthMode('credentials');
@@ -180,6 +214,15 @@ export default function ConnectMcpModal({
       }
     }
   }, [initialTab, isOpen]);
+
+  // Pre-fill stored credentials for Outlook when active
+  useEffect(() => {
+    if (selectedProvider === 'outlook') {
+      const ms = getStoredMicrosoftOAuthCredentials();
+      if (ms.clientId && !clientId) setClientId(ms.clientId);
+      if (ms.clientSecret && !clientSecret) setClientSecret(ms.clientSecret);
+    }
+  }, [selectedProvider, isOpen]);
 
   // Form Fields State
   const [serverUrl, setServerUrl] = useState('https://api.github.com');
@@ -344,6 +387,30 @@ export default function ConnectMcpModal({
       }
 
       // ==========================================
+      // 4.5 MICROSOFT OUTLOOK PROVIDER
+      // ==========================================
+      else if (selectedProvider === 'outlook') {
+        if (authMode === 'token') {
+          if (!accessToken.trim()) {
+            throw new Error('Please provide a Microsoft Graph API Bearer Token.');
+          }
+          result = await verifyOutlookMcpConnection({
+            token: accessToken.trim(),
+            mailboxEmail: ''
+          });
+        } else {
+          result = await connectMcpViaOAuth({
+            provider: 'outlook',
+            clientId: clientId.trim(),
+            clientSecret: clientSecret.trim()
+          });
+          if (clientId.trim()) {
+            saveStoredMicrosoftOAuthCredentials(clientId.trim(), clientSecret.trim());
+          }
+        }
+      }
+
+      // ==========================================
       // 5. NEO4J GRAPH DATABASE PROVIDER (All 3 Modes)
       // ==========================================
       else if (selectedProvider === 'neo4j') {
@@ -478,7 +545,7 @@ export default function ConnectMcpModal({
                 type="button"
                 onClick={() => {
                   setSelectedProvider(p.id);
-                  if (p.id === 'google') setAuthMode('oauth');
+                  if (p.id === 'google' || p.id === 'outlook') setAuthMode('oauth');
                   else if (p.id === 'neo4j') setAuthMode('credentials');
                   else setAuthMode('token');
                 }}
@@ -595,6 +662,26 @@ export default function ConnectMcpModal({
               })}
             </div>
           </div>
+
+          {/* ======================================================== */}
+          {/* OUTLOOK CAPABILITIES OVERVIEW PILL                      */}
+          {/* ======================================================== */}
+          {selectedProvider === 'outlook' && (
+            <div className="p-3 bg-[#1A1F26] border border-[#2D3748] rounded text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-white flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#00A3A6]" />
+                  <span>38 Official Microsoft Outlook & M365 Tools</span>
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00A3A6]/20 text-[#00A3A6] font-bold">
+                  Zero Simulation
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Connects directly to Microsoft Graph API v1.0. Full 6-suite integration covering <strong className="text-slate-200">Mail Operations</strong> (12 tools), <strong className="text-slate-200">Folders & Attachments</strong> (4 tools), <strong className="text-slate-200">Calendar & Scheduling</strong> (10 tools), <strong className="text-slate-200">Contacts</strong> (5 tools), <strong className="text-slate-200">Tasks / To Do</strong> (5 tools), and <strong className="text-slate-200">Mailbox Rules</strong> (2 tools).
+              </p>
+            </div>
+          )}
 
           {/* ======================================================== */}
           {/* FIELDS FOR NEO4J GRAPH DATABASE (ALL 3 MODES)            */}
@@ -782,13 +869,13 @@ export default function ConnectMcpModal({
               {/* Field 1: Server URL */}
               <div>
                 <label className="text-xs font-medium text-slate-300 block mb-1.5">
-                  {selectedProvider === 'github' ? 'Github Server' : 'Server Endpoint'}
+                  {selectedProvider === 'github' ? 'Github Server' : selectedProvider === 'outlook' ? 'Microsoft Graph Endpoint' : 'Server Endpoint'}
                 </label>
                 <input
                   type="text"
                   value={serverUrl}
                   onChange={(e) => setServerUrl(e.target.value)}
-                  placeholder="https://api.github.com"
+                  placeholder={selectedProvider === 'outlook' ? 'https://graph.microsoft.com/v1.0' : 'https://api.github.com'}
                   className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
                 />
               </div>
@@ -892,7 +979,7 @@ export default function ConnectMcpModal({
                     type={showAccessToken ? 'text' : 'password'}
                     value={accessToken}
                     onChange={(e) => setAccessToken(e.target.value)}
-                    placeholder={selectedProvider === 'github' ? 'ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' : 'Paste API Token'}
+                    placeholder={selectedProvider === 'github' ? 'ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' : selectedProvider === 'outlook' ? 'EwB... or Bearer Token from Microsoft Graph Explorer' : 'Paste API Token'}
                     className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded pl-3.5 pr-10 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
                   />
                   <button
@@ -904,6 +991,11 @@ export default function ConnectMcpModal({
                     {showAccessToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
+                {selectedProvider === 'outlook' && (
+                  <p className="mt-1.5 text-[11px] text-amber-400 font-sans leading-relaxed">
+                    💡 <strong>Important for Graph Explorer:</strong> By default, tokens only grant <code>User.Read</code> (which allows reading your profile name). To access messages or calendar, click the <strong>"Modify permissions"</strong> tab in Graph Explorer, search for <strong>Mail.Read</strong>, click <strong>Consent</strong>, and then copy the refreshed token.
+                  </p>
+                )}
               </div>
 
               {/* Field 4: Allowed HTTP Request Domains */}
@@ -933,6 +1025,69 @@ export default function ConnectMcpModal({
           {selectedProvider !== 'neo4j' && authMode === 'oauth' && (
             <div className="space-y-4">
               
+              {/* One-Click Sign In Banner for Microsoft */}
+              {selectedProvider === 'outlook' && (
+                <div className="p-3.5 bg-[#171D26] border border-[#0078D4]/50 rounded space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <OutlookLogo className="w-5 h-5 shrink-0" />
+                      <span className="font-bold text-xs text-white">One-Click Microsoft Account Authorization</span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0078D4]/20 text-[#28A8EA] font-bold border border-[#0078D4]/40">
+                      LIVE POPUP
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Opens the real Microsoft identity consent window, grants delegated access for Mail, Calendar, Contacts, and Tasks, and securely links the session to your Gateway.
+                  </p>
+
+                  {/* Inline Client ID input if not yet configured */}
+                  {!clientId.trim() && (
+                    <div className="p-2.5 bg-black/40 border border-slate-700 rounded space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-mono text-slate-300 font-medium">Azure / Entra App Client ID:</span>
+                        <a 
+                          href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="text-[#28A8EA] hover:underline flex items-center gap-1 text-[10px]"
+                        >
+                          <span>Get free ID at entra.microsoft.com</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+                      <input
+                        type="text"
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
+                        placeholder="00000000-0000-0000-0000-000000000000"
+                        className="w-full bg-[#1F2125] border border-slate-600 focus:border-[#0078D4] focus:outline-none rounded px-2.5 py-1.5 text-xs text-white font-mono placeholder-slate-500"
+                      />
+                      <div className="flex items-center justify-between pt-1 text-[10.5px]">
+                        <span className="text-slate-400">Don't have an Azure App ID?</span>
+                        <button
+                          type="button"
+                          onClick={() => setAuthMode('token')}
+                          className="text-[#FF6D5A] hover:underline font-medium cursor-pointer"
+                        >
+                          Use Graph Bearer Token instead (0 setup) →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="w-full py-2.5 px-3 bg-[#0078D4] hover:bg-[#006CBD] disabled:opacity-50 text-white text-xs font-bold font-mono rounded flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer active:scale-98"
+                  >
+                    <OutlookLogo className="w-4 h-4 shrink-0" />
+                    <span>{isSaving ? 'Awaiting Microsoft Consent Popup...' : 'Sign in with Microsoft'}</span>
+                  </button>
+                </div>
+              )}
+              
               {/* Field 1: OAuth Redirect URL (Read-only box with copy) */}
               <div>
                 <label className="text-xs font-medium text-slate-300 block mb-1.5">
@@ -961,10 +1116,28 @@ export default function ConnectMcpModal({
                 <div className="mt-1.5 p-2 bg-[#232529] border border-[#3E4148] rounded text-[11px] text-slate-300 font-sans space-y-1">
                   <div className="flex items-center gap-1.5 text-amber-400 font-medium">
                     <Info className="w-3 h-3 shrink-0" />
-                    <span>Important GitHub Configuration:</span>
+                    <span>
+                      {selectedProvider === 'outlook' 
+                        ? 'Important Microsoft Entra ID Configuration:' 
+                        : selectedProvider === 'google'
+                          ? 'Important Google Cloud Configuration:'
+                          : 'Important GitHub Configuration:'}
+                    </span>
                   </div>
                   <p className="text-slate-400 leading-relaxed">
-                    In your GitHub OAuth App settings (<a href="https://github.com/settings/developers" target="_blank" rel="noreferrer" className="text-[#FF6D5A] hover:underline">github.com/settings/developers</a>), the <strong className="text-slate-200">"Authorization callback URL"</strong> must match the URL above character-for-character. If it doesn't match, GitHub shows <em>"redirect_uri is not associated with this application"</em>.
+                    {selectedProvider === 'outlook' ? (
+                      <>
+                        In your Azure / Microsoft Entra app registration (<a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noreferrer" className="text-[#FF6D5A] hover:underline">entra.microsoft.com</a>), add a <strong className="text-slate-200">"Single-page application (SPA)"</strong> or <strong className="text-slate-200">"Web"</strong> platform with redirect URI matching the URL above. Supported scopes: Mail.ReadWrite, Calendars.ReadWrite, Contacts.ReadWrite, Tasks.ReadWrite.
+                      </>
+                    ) : selectedProvider === 'google' ? (
+                      <>
+                        In your Google Cloud Console OAuth 2.0 Client credentials, add the URL above to <strong className="text-slate-200">"Authorized redirect URIs"</strong>.
+                      </>
+                    ) : (
+                      <>
+                        In your GitHub OAuth App settings (<a href="https://github.com/settings/developers" target="_blank" rel="noreferrer" className="text-[#FF6D5A] hover:underline">github.com/settings/developers</a>), the <strong className="text-slate-200">"Authorization callback URL"</strong> must match the URL above character-for-character. If it doesn't match, GitHub shows <em>"redirect_uri is not associated with this application"</em>.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -982,7 +1155,7 @@ export default function ConnectMcpModal({
                       rel="noreferrer"
                       className="text-[11px] text-[#FF6D5A] hover:underline flex items-center gap-1"
                     >
-                      <span>register at {selectedProvider === 'github' ? 'github.com/settings/developers' : 'developer portal'}</span>
+                      <span>register at {selectedProvider === 'github' ? 'github.com/settings/developers' : selectedProvider === 'outlook' ? 'entra.microsoft.com' : 'developer portal'}</span>
                       <ExternalLink className="w-2.5 h-2.5" />
                     </a>
                   )}
@@ -991,7 +1164,7 @@ export default function ConnectMcpModal({
                   type="text"
                   value={clientId}
                   onChange={(e) => setClientId(e.target.value)}
-                  placeholder="e.g. Ov23liXXXXXXXXXXXXXX or Iv1.XXXXXXXXXXXX"
+                  placeholder={selectedProvider === 'outlook' ? 'Application (client) ID from Microsoft Entra (e.g. 00000000-0000-0000-0000-000000000000)' : selectedProvider === 'github' ? 'e.g. Ov23liXXXXXXXXXXXXXX or Iv1.XXXXXXXXXXXX' : 'Client ID'}
                   className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#FF6D5A] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
                 />
               </div>
@@ -999,7 +1172,7 @@ export default function ConnectMcpModal({
               {/* Field 3: Client Secret * */}
               <div>
                 <label className="text-xs font-medium text-slate-300 block mb-1.5">
-                  Client Secret <span className="text-[#FF6D5A]">*</span>
+                  Client Secret {selectedProvider === 'outlook' ? <span className="text-slate-400 font-normal text-[11px]">(Optional for SPA)</span> : <span className="text-[#FF6D5A]">*</span>}
                 </label>
                 <div className="relative">
                   <input
