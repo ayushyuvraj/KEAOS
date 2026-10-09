@@ -81,8 +81,18 @@ export default function DeterministicWorkspaceModal({
   const [executionError, setExecutionError] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
-  const [isPayloadExpanded, setIsPayloadExpanded] = useState(false);
   const [outputSearch, setOutputSearch] = useState('');
+  const [isFrozen, setIsFrozen] = useState(nodeData?.isFrozen || false);
+
+  const hasLogic = useMemo(() => {
+    return Boolean(code && !isStarterCode(code)) || Boolean(prompt && prompt.trim());
+  }, [code, prompt]);
+
+  useEffect(() => {
+    if (nodeData?.isFrozen !== undefined) {
+      setIsFrozen(nodeData.isFrozen);
+    }
+  }, [nodeData?.isFrozen]);
 
   // ---------------------------------------------------------------------------
   // 1. BRAIN RESOLVER: Automatically inherit the connected Agent's exact model
@@ -480,74 +490,119 @@ export default function DeterministicWorkspaceModal({
   const codeLineCount = useMemo(() => (code || '').split('\n').length, [code]);
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xl animate-in fade-in duration-150 ${
-      isDarkMode ? 'bg-black/70' : 'bg-[#001E50]/40'
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 backdrop-blur-md transition-all duration-300 ${
+      isDarkMode ? 'bg-black/75' : 'bg-[#001E50]/30'
     }`}>
+      {/* Expanded Deterministic Box chassis */}
       <div 
-        className={`relative w-full max-w-7xl h-[94vh] flex flex-col rounded-none overflow-hidden font-sans transition-colors ${
+        className={`relative w-full max-w-7xl h-[94vh] flex flex-col rounded-[22px] border-2 overflow-hidden font-sans shadow-2xl transition-all duration-200 animate-sandbox-expand ${
           isDarkMode 
-            ? 'bg-[#0B0F19]/95 backdrop-blur-2xl border border-white/10 text-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.12)]' 
-            : 'bg-white border border-[#CBD5E1] text-[#0B0F19] shadow-[0_25px_60px_-15px_rgba(0,30,80,0.25)]'
+            ? 'bg-[#1D2028] border-[#383C4A] text-white shadow-[0_30px_90px_rgba(0,0,0,0.75)]' 
+            : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] shadow-[0_25px_70px_rgba(0,30,80,0.16)]'
         }`}
       >
-        {/* Ambient subtle light glows behind frosted glass (Dark mode only) */}
-        {isDarkMode && (
-          <>
-            <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#00338D]/25 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#0091DA]/15 rounded-full blur-3xl pointer-events-none" />
-          </>
-        )}
-
         {/* ========================================================================= */}
-        {/* TOP BAR: NAME • BRAIN INFO • RUN BUTTON                                  */}
+        {/* TOP BAR: IDENTICAL LOOK & FEEL TO THE DETERMINISTIC BOX                  */}
         {/* ========================================================================= */}
-        <div className={`px-5 py-3 flex items-center justify-between shrink-0 relative z-10 border-b transition-colors ${
+        <div className={`px-6 py-3.5 flex items-center justify-between shrink-0 relative z-10 border-b transition-colors ${
           isDarkMode 
-            ? 'bg-white/[0.03] backdrop-blur-xl border-white/[0.08] text-white' 
-            : 'bg-[#001E50] border-[#00338D] text-white shadow-xs'
+            ? 'bg-[#1D2028] border-[#2C3242]' 
+            : 'bg-[#FFFFFF] border-[#E2E8F0]'
         }`}>
-          {/* Left: Name */}
-          <div className="flex items-center gap-3">
+          {/* Left: Code2 Icon + Rule Title + Brain Badge */}
+          <div className="flex items-center gap-3 min-w-0">
+            <Code2 className={`w-4 h-4 shrink-0 transition-transform ${
+              isExecuting || isCompiling ? 'text-amber-400 animate-spin' : executionResult?.success ? 'text-emerald-500' : 'text-[#EAAA00]'
+            }`} />
+            
             <input
               type="text"
               value={nodeName}
               onChange={(e) => setNodeName(e.target.value)}
               onBlur={() => onUpdateNode && nodeId && onUpdateNode(nodeId, { name: nodeName })}
-              className="bg-transparent text-sm font-semibold text-white/90 hover:text-white border-b border-transparent hover:border-white/20 focus:border-[#0091DA] focus:outline-none px-1 py-0.5 rounded-none font-mono tracking-tight transition-colors"
+              className="bg-transparent text-sm font-mono font-bold text-[#EAAA00] hover:underline decoration-dashed decoration-[#EAAA00]/60 focus:no-underline focus:border-b focus:border-[#EAAA00] focus:outline-none px-1 py-0.5 rounded-none tracking-tight transition-colors"
               placeholder="Rule Title"
+              title="Click to rename rule"
             />
+
+            {/* Brain Pill */}
+            {connectedBrain ? (
+              <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-mono transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#141720] border-[#383C4A] text-slate-300' 
+                  : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+                <span className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>Brain:</span>
+                <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>{connectedBrain.displayName}</span>
+              </div>
+            ) : (
+              <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-mono ${
+                isDarkMode ? 'bg-[#141720] border-[#383C4A] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+              }`}>
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+                <span>Brain: Auto</span>
+              </div>
+            )}
           </div>
 
-          {/* Center: Brain Info */}
-          {connectedBrain ? (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-none bg-white/[0.08] border border-white/15 backdrop-blur-md text-[11px] font-mono text-slate-200 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
-              <span className="text-slate-300">Brain:</span>
-              <span className="text-white font-bold">{connectedBrain.displayName}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-none bg-white/[0.08] border border-white/15 backdrop-blur-md text-[11px] font-mono text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-slate-400" />
-              <span>Brain: Auto</span>
-            </div>
-          )}
+          {/* Center: Small Circle Status Indicator (Mirroring Deterministic Box) */}
+          <div className="flex items-center gap-2">
+            <span
+              onClick={!isFrozen && hasLogic ? () => {
+                setIsFrozen(true);
+                if (onUpdateNode && nodeId) onUpdateNode(nodeId, { isFrozen: true });
+              } : undefined}
+              className={`w-2.5 h-2.5 rounded-full transition-all shrink-0 ${
+                !hasLogic
+                  ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]'
+                  : !isFrozen
+                    ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.7)] cursor-pointer hover:scale-125'
+                    : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]'
+              } ${isExecuting ? 'animate-ping' : ''}`}
+              title={
+                !hasLogic
+                  ? 'No logic defined'
+                  : !isFrozen
+                    ? 'Draft logic (Click to freeze)'
+                    : 'Logic frozen & active'
+              }
+            />
+            <span className={`text-[10px] font-mono font-bold tracking-wider uppercase hidden md:inline-block ${
+              !hasLogic
+                ? 'text-rose-500'
+                : !isFrozen
+                  ? 'text-amber-500'
+                  : 'text-emerald-500'
+            }`}>
+              {!hasLogic ? 'No Logic' : !isFrozen ? 'Draft Logic' : 'Frozen & Active'}
+            </span>
+          </div>
 
-          {/* Right: RUN Button, Theme Toggle & Close */}
-          <div className="flex items-center gap-2.5">
+          {/* Right: Theme Toggle, RUN, Close (Mirroring Node Action Buttons) */}
+          <div className="flex items-center gap-2">
             {onToggleTheme && (
               <button
                 onClick={onToggleTheme}
-                className="p-1.5 text-slate-300 hover:text-white hover:bg-white/10 rounded-none transition-colors cursor-pointer"
+                className={`p-1.5 rounded-[8px] transition-colors cursor-pointer ${
+                  isDarkMode 
+                    ? 'text-slate-400 hover:text-white hover:bg-white/10' 
+                    : 'text-slate-500 hover:text-black hover:bg-slate-100'
+                }`}
                 title={isDarkMode ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
               >
-                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-200" />}
+                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
               </button>
             )}
 
             <button
               onClick={handleExecute}
               disabled={isExecuting || isCompiling}
-              className="px-4 py-1.5 bg-[#00338D]/90 hover:bg-[#0047BA] active:scale-[0.98] text-white text-xs font-mono font-bold flex items-center gap-2 shadow-[0_4px_16px_rgba(0,51,141,0.4)] backdrop-blur-md transition-all cursor-pointer rounded-none border border-[#005EB8]/70"
+              className={`px-4 py-1.5 rounded-[10px] text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                isDarkMode
+                  ? 'bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#005EB8]/60 shadow-[0_2px_10px_rgba(0,51,141,0.3)]'
+                  : 'bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#00338D]'
+              }`}
               title="Run deterministic logic in zero-latency browser isolate (Ctrl + Enter)"
             >
               {isExecuting ? (
@@ -559,14 +614,18 @@ export default function DeterministicWorkspaceModal({
                 <>
                   <Play className="w-3.5 h-3.5 fill-current text-white" />
                   <span>RUN</span>
-                  <span className="text-[10px] text-white/60 font-normal ml-0.5">Ctrl+Enter</span>
+                  <span className="text-[10px] text-white/70 font-normal ml-0.5">Ctrl+Enter</span>
                 </>
               )}
             </button>
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-300 hover:text-white hover:bg-white/10 rounded-none transition-colors cursor-pointer"
+              className={`p-1.5 rounded-[8px] transition-colors cursor-pointer ${
+                isDarkMode 
+                  ? 'text-slate-400 hover:text-white hover:bg-white/10' 
+                  : 'text-slate-500 hover:text-black hover:bg-slate-100'
+              }`}
               title="Close Workspace (Esc)"
             >
               <X className="w-4 h-4" />
@@ -584,13 +643,15 @@ export default function DeterministicWorkspaceModal({
           {/* ----------------------------------------------------------------------- */}
           <div className={`lg:col-span-5 border-r flex flex-col overflow-y-auto transition-colors ${
             isDarkMode 
-              ? 'border-white/[0.08] bg-white/[0.02] backdrop-blur-md' 
+              ? 'border-[#2C3242] bg-[#141720]' 
               : 'border-slate-200 bg-[#F8FAFC]'
           }`}>
             <div className="p-5 space-y-5">
               
               {/* 1. Human Language Directive Card */}
-              <div className="space-y-2">
+              <div className={`p-4 rounded-[16px] border space-y-3 transition-colors ${
+                isDarkMode ? 'bg-[#1D2028] border-[#2C3242]' : 'bg-white border-slate-200 shadow-xs'
+              }`}>
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#0091DA] flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-[#0091DA]" />
@@ -607,10 +668,10 @@ export default function DeterministicWorkspaceModal({
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Describe what this rule should do in plain words (e.g. 'Classify token consumption as High or Low given token count of 4000', or 'Filter rows where status is active and sum amount')..."
-                    className={`w-full p-3 text-xs font-mono leading-relaxed rounded-none transition-all resize-none outline-none border ${
+                    className={`w-full p-3 text-xs font-mono leading-relaxed rounded-[12px] transition-all resize-none outline-none border ${
                       isDarkMode
-                        ? 'bg-black/40 border-white/10 text-white focus:border-[#0091DA]/80 focus:bg-black/60 focus:ring-1 focus:ring-[#0091DA]/40 placeholder:text-slate-500 backdrop-blur-sm'
-                        : 'bg-white border-slate-300 text-[#0B0F19] focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D]/20 placeholder:text-slate-400'
+                        ? 'bg-[#141720] border-[#2C3242] text-white focus:border-[#0091DA] placeholder:text-slate-500'
+                        : 'bg-slate-50 border-slate-200 text-[#0B0F19] focus:bg-white focus:border-[#00338D] placeholder:text-slate-400'
                     }`}
                   />
                 </div>
@@ -620,7 +681,7 @@ export default function DeterministicWorkspaceModal({
                   <button
                     onClick={handleCompile}
                     disabled={isCompiling || !prompt.trim()}
-                    className={`flex-1 py-2 px-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer rounded-none ${
+                    className={`flex-1 py-2 px-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer rounded-[12px] ${
                       isCompiling
                         ? isDarkMode
                           ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
@@ -650,8 +711,10 @@ export default function DeterministicWorkspaceModal({
                 </p>
               </div>
 
-              {/* 2. Upstream Context & Variable Inspector */}
-              <div className={`space-y-3 pt-4 border-t ${isDarkMode ? 'border-white/[0.08]' : 'border-slate-200'}`}>
+              {/* 2. Upstream Context & Variable Inspector Card */}
+              <div className={`p-4 rounded-[16px] border space-y-3 transition-colors ${
+                isDarkMode ? 'bg-[#1D2028] border-[#2C3242]' : 'bg-white border-slate-200 shadow-xs'
+              }`}>
                 <div className="flex items-center justify-between">
                   <label className={`text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 ${
                     isDarkMode ? 'text-slate-300' : 'text-slate-700'
@@ -670,10 +733,10 @@ export default function DeterministicWorkspaceModal({
 
                 {/* Inherited Stream View */}
                 {!showCustomDataInput ? (
-                  <div className={`p-3 border space-y-3 transition-colors ${
+                  <div className={`p-3 rounded-[12px] border space-y-3 transition-colors ${
                     isDarkMode 
-                      ? 'bg-white/[0.02] border-white/[0.08] backdrop-blur-sm' 
-                      : 'bg-white border-slate-200 shadow-xs'
+                      ? 'bg-[#141720] border-[#2C3242]' 
+                      : 'bg-slate-50 border-slate-200'
                   }`}>
                     {/* Upstream Source Badge */}
                     <div className="flex items-center justify-between text-xs font-mono">
@@ -703,10 +766,10 @@ export default function DeterministicWorkspaceModal({
                             key={key}
                             type="button"
                             onClick={() => handleCopyVar(key)}
-                            className={`px-2 py-0.5 text-[10px] font-mono border flex items-center gap-1 rounded-none transition-colors cursor-pointer ${
+                            className={`px-2 py-0.5 text-[10px] font-mono border flex items-center gap-1 rounded-full transition-colors cursor-pointer ${
                               isDarkMode
-                                ? 'border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-[#0091DA] hover:text-white'
-                                : 'border-slate-300 bg-slate-50 hover:bg-blue-50 text-[#005EB8] hover:text-[#00338D]'
+                                ? 'border-[#383C4A] bg-[#1D2028] hover:bg-[#2C3242] text-[#0091DA] hover:text-white'
+                                : 'border-slate-300 bg-white hover:bg-blue-50 text-[#005EB8] hover:text-[#00338D]'
                             }`}
                             title={`Click to copy inputs.${key}`}
                           >
@@ -722,7 +785,7 @@ export default function DeterministicWorkspaceModal({
                     </div>
 
                     {/* Collapsible Input Payload Preview */}
-                    <div className={`pt-2 border-t ${isDarkMode ? 'border-white/[0.08]' : 'border-slate-200'}`}>
+                    <div className={`pt-2 border-t ${isDarkMode ? 'border-[#2C3242]' : 'border-slate-200'}`}>
                       <button
                         type="button"
                         onClick={() => setIsPayloadExpanded(!isPayloadExpanded)}
@@ -740,10 +803,10 @@ export default function DeterministicWorkspaceModal({
                       </button>
 
                       {isPayloadExpanded && (
-                        <pre className={`mt-2 p-2.5 border text-[10px] font-mono max-h-40 overflow-y-auto whitespace-pre-wrap leading-tight ${
+                        <pre className={`mt-2 p-2.5 rounded-[10px] border text-[10px] font-mono max-h-40 overflow-y-auto whitespace-pre-wrap leading-tight ${
                           isDarkMode 
-                            ? 'bg-black/50 border-white/[0.06] text-slate-300' 
-                            : 'bg-slate-100 border-slate-200 text-slate-800'
+                            ? 'bg-black/50 border-[#2C3242] text-slate-300' 
+                            : 'bg-white border-slate-200 text-slate-800'
                         }`}>
                           {JSON.stringify(currentActiveInput, null, 2)}
                         </pre>
@@ -752,10 +815,10 @@ export default function DeterministicWorkspaceModal({
                   </div>
                 ) : (
                   /* Custom Test Data Mode (Upload or Paste) */
-                  <div className={`p-3 border space-y-3 transition-colors ${
+                  <div className={`p-3 rounded-[12px] border space-y-3 transition-colors ${
                     isDarkMode 
-                      ? 'bg-white/[0.02] border-white/[0.08] backdrop-blur-sm' 
-                      : 'bg-white border-slate-200 shadow-xs'
+                      ? 'bg-[#141720] border-[#2C3242]' 
+                      : 'bg-slate-50 border-slate-200'
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono font-bold text-amber-500 uppercase">
@@ -777,10 +840,10 @@ export default function DeterministicWorkspaceModal({
                       value={manualInputText}
                       onChange={(e) => setManualInputText(e.target.value)}
                       placeholder='{\n  "customKey": "test value"\n}'
-                      className={`w-full p-2 text-xs font-mono border rounded-none resize-none outline-none ${
+                      className={`w-full p-2.5 text-xs font-mono border rounded-[10px] resize-none outline-none ${
                         isDarkMode 
-                          ? 'bg-black/50 border-white/10 text-emerald-300' 
-                          : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-[#00338D]'
+                          ? 'bg-[#0B0F19] border-[#2C3242] text-emerald-300' 
+                          : 'bg-white border-slate-300 text-slate-800 focus:border-[#00338D]'
                       }`}
                     />
                   </div>
@@ -793,74 +856,76 @@ export default function DeterministicWorkspaceModal({
           {/* ----------------------------------------------------------------------- */}
           {/* RIGHT PANE: Deterministic Logic & Live Output (7 Columns)               */}
           {/* ----------------------------------------------------------------------- */}
-          <div className={`lg:col-span-7 flex flex-col h-full overflow-hidden transition-colors ${
-            isDarkMode ? 'bg-transparent' : 'bg-white'
+          <div className={`lg:col-span-7 p-5 space-y-4 flex flex-col h-full overflow-hidden transition-colors ${
+            isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
           }`}>
             
-            {/* 1. Code Inspector Header */}
-            <div className={`px-4 py-2.5 border-b flex items-center justify-between shrink-0 transition-colors ${
-              isDarkMode ? 'bg-white/[0.03] border-white/[0.08]' : 'bg-[#F1F5F9] border-slate-200'
+            {/* 1. Code Editor Card */}
+            <div className={`h-[280px] shrink-0 rounded-[16px] border flex flex-col overflow-hidden transition-colors ${
+              isDarkMode ? 'bg-[#1D2028] border-[#2C3242]' : 'bg-white border-slate-200 shadow-xs'
             }`}>
-              <div className="flex items-center gap-2">
-                <FileCode className="w-4 h-4 text-[#EAAA00]" />
-                <span className={`text-xs font-mono font-bold tracking-tight ${
-                  isDarkMode ? 'text-white' : 'text-[#0B0F19]'
-                }`}>
-                  Deterministic Logic
-                </span>
-                <span className="text-[9px] font-mono text-[#0091DA] bg-[#0091DA]/15 border border-[#0091DA]/40 px-2 py-0.5 rounded-none font-bold uppercase backdrop-blur-sm">
-                  {language} (Browser Isolate)
-                </span>
-                <span className="text-[9px] font-mono text-slate-500">
-                  {codeLineCount} lines
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopyCode}
-                  className={`px-2.5 py-1 text-[11px] font-mono border flex items-center gap-1 rounded-none transition-colors cursor-pointer ${
-                    isDarkMode
-                      ? 'border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white'
-                      : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700 hover:text-black shadow-xs'
-                  }`}
-                  title="Copy code to clipboard"
-                >
-                  {copiedCode ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                  <span>{copiedCode ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 2. Clean Code Editor Surface */}
-            <div className={`h-60 sm:h-64 border-b shrink-0 flex overflow-hidden transition-colors ${
-              isDarkMode ? 'border-white/[0.08] bg-[#04060A]/90 backdrop-blur-md' : 'border-slate-300 bg-[#0B0F19]'
-            }`}>
-              {/* Line Numbers Gutter */}
-              <div className={`select-none py-3 px-2 text-right font-mono text-[11px] border-r min-w-[34px] ${
-                isDarkMode ? 'text-slate-600 border-white/[0.06] bg-black/40' : 'text-slate-500 border-slate-800 bg-[#07090F]'
+              {/* Code Inspector Header */}
+              <div className={`px-4 py-2 border-b flex items-center justify-between shrink-0 transition-colors ${
+                isDarkMode ? 'bg-[#141720] border-[#2C3242]' : 'bg-[#F1F5F9] border-slate-200'
               }`}>
-                {code.split('\n').map((_, i) => (
-                  <div key={i} className="leading-relaxed">{i + 1}</div>
-                ))}
+                <div className="flex items-center gap-2">
+                  <FileCode className="w-4 h-4 text-[#EAAA00]" />
+                  <span className={`text-xs font-mono font-bold tracking-tight ${
+                    isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                  }`}>
+                    Deterministic Logic
+                  </span>
+                  <span className="text-[9px] font-mono text-[#0091DA] bg-[#0091DA]/15 border border-[#0091DA]/40 px-2 py-0.5 rounded-full font-bold uppercase">
+                    {language} (Browser Isolate)
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-500">
+                    {codeLineCount} lines
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCopyCode}
+                    className={`px-2.5 py-1 text-[11px] font-mono border flex items-center gap-1 rounded-[8px] transition-colors cursor-pointer ${
+                      isDarkMode
+                        ? 'border-[#383C4A] bg-[#141720] hover:bg-[#2C3242] text-slate-300 hover:text-white'
+                        : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700 hover:text-black shadow-xs'
+                    }`}
+                    title="Copy code to clipboard"
+                  >
+                    {copiedCode ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedCode ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Editable Codearea */}
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                spellCheck="false"
-                className="flex-1 p-3 font-mono text-xs text-emerald-400 bg-transparent resize-none focus:outline-none leading-relaxed selection:bg-blue-600/40"
-                placeholder="// Deterministic process(inputs) function..."
-              />
+              {/* Code Editor Surface */}
+              <div className="flex-1 flex overflow-hidden bg-[#0B0F19]">
+                {/* Line Numbers Gutter */}
+                <div className="select-none py-3 px-2 text-right font-mono text-[11px] border-r min-w-[36px] text-slate-500 border-slate-800 bg-[#07090F]">
+                  {code.split('\n').map((_, i) => (
+                    <div key={i} className="leading-relaxed">{i + 1}</div>
+                  ))}
+                </div>
+
+                {/* Editable Codearea */}
+                <textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  spellCheck="false"
+                  className="flex-1 p-3 font-mono text-xs text-emerald-400 bg-transparent resize-none focus:outline-none leading-relaxed selection:bg-blue-600/40"
+                  placeholder="// Deterministic process(inputs) function..."
+                />
+              </div>
             </div>
 
-            {/* 3. Execution Console & Output Viewer */}
-            <div className="flex-1 flex flex-col overflow-hidden bg-transparent">
-              
+            {/* 2. Execution Console & Output Card */}
+            <div className={`flex-1 rounded-[16px] border flex flex-col overflow-hidden transition-colors ${
+              isDarkMode ? 'bg-[#1D2028] border-[#2C3242]' : 'bg-white border-slate-200 shadow-xs'
+            }`}>
               {/* Output Sub-Header */}
               <div className={`px-4 py-2 border-b flex items-center justify-between shrink-0 transition-colors ${
-                isDarkMode ? 'bg-white/[0.02] border-white/[0.08]' : 'bg-[#F8FAFC] border-slate-200'
+                isDarkMode ? 'bg-[#141720] border-[#2C3242]' : 'bg-[#F1F5F9] border-slate-200'
               }`}>
                 <div className="flex items-center gap-2.5">
                   <span className={`text-xs font-mono font-bold ${
@@ -870,13 +935,13 @@ export default function DeterministicWorkspaceModal({
                   </span>
 
                   {executionResult?.success && (
-                    <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-none font-bold">
+                    <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
                       SUCCESS • {executionResult.latencyMs}ms • 0 TOKENS
                     </span>
                   )}
 
                   {executionError && (
-                    <span className="text-[10px] font-mono text-red-500 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-none font-bold flex items-center gap-1">
+                    <span className="text-[10px] font-mono text-red-500 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" /> FAILED
                     </span>
                   )}
@@ -891,9 +956,9 @@ export default function DeterministicWorkspaceModal({
                         value={outputSearch}
                         onChange={(e) => setOutputSearch(e.target.value)}
                         placeholder="Filter rows..."
-                        className={`pl-7 pr-2 py-0.5 text-[11px] font-mono border focus:outline-none rounded-none ${
+                        className={`pl-7 pr-2 py-0.5 text-[11px] font-mono border rounded-[8px] focus:outline-none ${
                           isDarkMode 
-                            ? 'bg-black/40 border-white/10 text-white' 
+                            ? 'bg-[#141720] border-[#383C4A] text-white' 
                             : 'bg-white border-slate-300 text-[#0B0F19]'
                         }`}
                       />
@@ -904,9 +969,9 @@ export default function DeterministicWorkspaceModal({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleExportOutput('json')}
-                        className={`px-2 py-1 text-[10px] font-mono border rounded-none transition-colors cursor-pointer ${
+                        className={`px-2.5 py-1 text-[10px] font-mono border rounded-[8px] transition-colors cursor-pointer ${
                           isDarkMode 
-                            ? 'border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white' 
+                            ? 'border-[#383C4A] bg-[#141720] hover:bg-[#2C3242] text-slate-300 hover:text-white' 
                             : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700 hover:text-black shadow-xs'
                         }`}
                         title="Download JSON output"
@@ -915,9 +980,9 @@ export default function DeterministicWorkspaceModal({
                       </button>
                       <button
                         onClick={() => handleExportOutput('csv')}
-                        className={`px-2 py-1 text-[10px] font-mono border rounded-none transition-colors cursor-pointer ${
+                        className={`px-2.5 py-1 text-[10px] font-mono border rounded-[8px] transition-colors cursor-pointer ${
                           isDarkMode 
-                            ? 'border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white' 
+                            ? 'border-[#383C4A] bg-[#141720] hover:bg-[#2C3242] text-slate-300 hover:text-white' 
                             : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700 hover:text-black shadow-xs'
                         }`}
                         title="Download CSV output"
@@ -932,7 +997,7 @@ export default function DeterministicWorkspaceModal({
               {/* Output Content Body */}
               <div className="flex-1 overflow-auto p-4">
                 {executionError ? (
-                  <div className={`p-4 border text-xs font-mono space-y-1 rounded-none ${
+                  <div className={`p-4 border text-xs font-mono space-y-1 rounded-[12px] ${
                     isDarkMode 
                       ? 'border-red-500/30 bg-red-500/10 text-red-300' 
                       : 'border-red-300 bg-red-50 text-red-700'
@@ -945,7 +1010,7 @@ export default function DeterministicWorkspaceModal({
                   </div>
                 ) : !executionResult ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 font-mono space-y-2">
-                    <Code2 className="w-8 h-8 text-slate-400" />
+                    <Code2 className="w-8 h-8 text-[#EAAA00] opacity-60" />
                     <p className="text-xs">No execution run yet.</p>
                     <p className="text-[11px] text-slate-400">
                       Click "RUN" or press Ctrl+Enter to test your deterministic logic.
@@ -953,7 +1018,7 @@ export default function DeterministicWorkspaceModal({
                   </div>
                 ) : isOutputPrimitive ? (
                   /* Decision Outcome Badge Card */
-                  <div className={`p-5 border rounded-none flex items-center justify-between transition-colors ${
+                  <div className={`p-5 border rounded-[14px] flex items-center justify-between transition-colors ${
                     isDarkMode 
                       ? 'border-emerald-500/30 bg-emerald-500/[0.08] text-white shadow-[0_4px_20px_rgba(16,185,129,0.08)]' 
                       : 'border-emerald-300 bg-emerald-50 text-[#0B0F19] shadow-xs'
@@ -991,9 +1056,9 @@ export default function DeterministicWorkspaceModal({
                       <span>Showing {outputRows.length} records:</span>
                     </div>
 
-                    <div className={`border overflow-x-auto ${isDarkMode ? 'border-[#20293B]' : 'border-slate-200'}`}>
-                      <table className={`w-full text-left text-xs font-mono divide-y ${isDarkMode ? 'divide-[#20293B]' : 'divide-slate-200'}`}>
-                        <thead className={isDarkMode ? 'bg-[#101524]' : 'bg-slate-100'}>
+                    <div className={`border rounded-[10px] overflow-hidden overflow-x-auto ${isDarkMode ? 'border-[#2C3242]' : 'border-slate-200'}`}>
+                      <table className={`w-full text-left text-xs font-mono divide-y ${isDarkMode ? 'divide-[#2C3242]' : 'divide-slate-200'}`}>
+                        <thead className={isDarkMode ? 'bg-[#141720]' : 'bg-slate-100'}>
                           <tr>
                             <th className={`py-2 px-3 text-[10px] font-bold uppercase ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>#</th>
                             {Object.keys(outputRows[0]).map(col => (
@@ -1003,7 +1068,7 @@ export default function DeterministicWorkspaceModal({
                             ))}
                           </tr>
                         </thead>
-                        <tbody className={`divide-y ${isDarkMode ? 'divide-[#151D2C]' : 'divide-slate-200'}`}>
+                        <tbody className={`divide-y ${isDarkMode ? 'divide-[#1A1F2C]' : 'divide-slate-200'}`}>
                           {outputRows
                             .filter(r => {
                               if (!outputSearch) return true;
@@ -1026,10 +1091,10 @@ export default function DeterministicWorkspaceModal({
                   </div>
                 ) : (
                   /* Formatted JSON View */
-                  <pre className={`text-xs font-mono whitespace-pre-wrap leading-relaxed p-3 border rounded-none ${
+                  <pre className={`text-xs font-mono whitespace-pre-wrap leading-relaxed p-3.5 border rounded-[12px] ${
                     isDarkMode 
-                      ? 'bg-black/40 border-white/10 text-emerald-400' 
-                      : 'bg-slate-50 border-slate-300 text-slate-800'
+                      ? 'bg-[#0B0F19] border-[#2C3242] text-emerald-400' 
+                      : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}>
                     {JSON.stringify(executionResult.output, null, 2)}
                   </pre>
