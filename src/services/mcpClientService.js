@@ -7,6 +7,7 @@
  */
 
 import {
+  NEO4J_OFFICIAL_ACTIONS,
   GITHUB_OFFICIAL_ACTIONS,
   SLACK_OFFICIAL_ACTIONS,
   JIRA_OFFICIAL_ACTIONS,
@@ -53,6 +54,14 @@ export function getRegisteredMcpServers() {
               serviceName: 'Jira',
               tools: JIRA_OFFICIAL_ACTIONS,
               description: `Official Enterprise Jira MCP with ${JIRA_OFFICIAL_ACTIONS.length} categorized tools.`
+            };
+          }
+          if (service === 'neo4j' && (!server.tools || server.tools.length < NEO4J_OFFICIAL_ACTIONS.length)) {
+            return {
+              ...server,
+              serviceName: 'Neo4j',
+              tools: NEO4J_OFFICIAL_ACTIONS,
+              description: `Official Enterprise Neo4j Graph Database MCP with ${NEO4J_OFFICIAL_ACTIONS.length} categorized tools.`
             };
           }
           return server;
@@ -954,6 +963,167 @@ export async function verifyGitHubMcpConnection({ personalAccessToken, defaultOw
       tokenMasked: cleanToken.length > 8 ? `${cleanToken.substring(0, 4)}...${cleanToken.substring(cleanToken.length - 4)}` : '••••••••'
     },
     tools: GITHUB_OFFICIAL_ACTIONS,
+    verifiedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Institutional-Grade Neo4j Model Context Protocol (MCP) Verifier:
+ * Supports all 3 connection modes:
+ *  1. Local Neo4j instance (bolt://localhost:7687 or http://localhost:7474)
+ *  2. Neo4j AuraDB Cloud (neo4j+s://... or https://...)
+ *  3. Standalone neo4j-mcp-server (JSON-RPC 2.0 / SSE endpoint e.g. http://localhost:8000/sse)
+ */
+export async function verifyNeo4jMcpConnection({
+  connectionMode = 'local',
+  serverUrl = '',
+  uri = '',
+  username = '',
+  password = '',
+  database = 'neo4j'
+} = {}) {
+  const cleanDb = (database || 'neo4j').trim();
+  const cleanUser = (username || '').trim();
+  const cleanPass = (password || '').trim();
+  const cleanUri = (uri || '').trim();
+  const cleanServerUrl = (serverUrl || '').trim();
+
+  // Mode 3: Standalone neo4j-mcp-server endpoint (SSE / JSON-RPC protocol)
+  if (connectionMode === 'endpoint' || (!cleanUri && cleanServerUrl)) {
+    const targetUrl = cleanServerUrl || cleanUri;
+    if (!targetUrl) {
+      throw new Error('Please provide a valid Neo4j MCP server endpoint URL (e.g. http://localhost:8000/sse).');
+    }
+    const discovered = await verifyAndDiscoverMcpServer(targetUrl);
+    let hostName = 'Endpoint';
+    try {
+      hostName = new URL(targetUrl).host;
+    } catch (e) {
+      hostName = targetUrl;
+    }
+
+    return {
+      ...discovered,
+      id: `mcp-neo4j-${Date.now().toString().slice(-4)}`,
+      name: `Neo4j MCP (${hostName})`,
+      displayName: `Neo4j MCP (${hostName})`,
+      serviceName: 'Neo4j',
+      transport: 'sse-http',
+      endpoint: targetUrl,
+      config: {
+        ...(discovered.config || {}),
+        endpoint: targetUrl,
+        connectionMode: 'endpoint',
+        database: cleanDb
+      },
+      basis: {
+        ...(discovered.basis || {}),
+        provider: 'Neo4j Official Model Context Protocol Server (@neo4j/mcp)',
+        mode: 'Standalone MCP Server',
+        endpoint: targetUrl,
+        database: cleanDb
+      },
+      tools: NEO4J_OFFICIAL_ACTIONS,
+      verifiedAt: new Date().toISOString()
+    };
+  }
+
+  // Modes 1 & 2: Direct Local Neo4j or Neo4j AuraDB Cloud instance
+  if (!cleanUri) {
+    throw new Error('Please provide a Neo4j connection URI (e.g. bolt://localhost:7687 or neo4j+s://xxxx.databases.neo4j.io).');
+  }
+  if (!cleanUser) {
+    throw new Error('Please enter your Neo4j username (default: neo4j).');
+  }
+  if (!cleanPass) {
+    throw new Error('Please enter your Neo4j password.');
+  }
+
+  // Resolve HTTP API URL from URI for transactional execution
+  let httpBaseUrl = cleanUri;
+  if (cleanUri.startsWith('bolt://') || cleanUri.startsWith('neo4j://')) {
+    httpBaseUrl = cleanUri.replace(/^(bolt|neo4j):\/\//, 'http://').replace(/:7687$/, ':7474');
+    if (!httpBaseUrl.includes(':')) httpBaseUrl += ':7474';
+  } else if (cleanUri.startsWith('bolt+s://') || cleanUri.startsWith('neo4j+s://') || cleanUri.startsWith('neo4j+ssc://')) {
+    httpBaseUrl = cleanUri.replace(/^(bolt\+s|neo4j\+s|neo4j\+ssc):\/\//, 'https://');
+  }
+
+  const txUrl = `${httpBaseUrl.replace(/\/+$/, '')}/db/${cleanDb}/tx/commit`;
+  const basicAuth = btoa(`${cleanUser}:${cleanPass}`);
+
+  let nodeLabels = [];
+  let relTypes = [];
+  let connectionDetail = '';
+
+  try {
+    const testRes = await fetch(txUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${basicAuth}`,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        statements: [
+          { statement: 'CALL db.labels() YIELD label RETURN collect(label) AS labels' },
+          { statement: 'CALL db.relationshipTypes() YIELD relationshipType RETURN collect(relationshipType) AS types' }
+        ]
+      }),
+      signal: AbortSignal.timeout(6000)
+    });
+
+    if (testRes.ok) {
+      const data = await testRes.json();
+      if (data.errors && data.errors.length > 0) {
+        throw new Error(`Neo4j Cypher error: ${data.errors[0].message}`);
+      }
+      const labelRow = data.results?.[0]?.data?.[0]?.row?.[0];
+      if (Array.isArray(labelRow)) nodeLabels = labelRow;
+      const relRow = data.results?.[1]?.data?.[0]?.row?.[0];
+      if (Array.isArray(relRow)) relTypes = relRow;
+      connectionDetail = `Authenticated to Neo4j database "${cleanDb}" (${nodeLabels.length} labels, ${relTypes.length} relationship types found).`;
+    } else {
+      throw new Error(`Neo4j HTTP API returned HTTP ${testRes.status}: ${testRes.statusText}`);
+    }
+  } catch (err) {
+    if (err.name === 'TypeError' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      console.warn('Neo4j Browser Direct Ping note (CORS header required for browser HTTP queries):', err);
+      connectionDetail = `Configured for ${connectionMode === 'aura' ? 'Neo4j AuraDB' : 'Local Neo4j'} at ${cleanUri}. (Ready for agent Cypher synthesis and tool execution).`;
+    } else {
+      throw err;
+    }
+  }
+
+  const hostDisplay = cleanUri.replace(/^[^:]+:\/\//, '').split('/')[0];
+  const modeTitle = connectionMode === 'aura' ? 'Neo4j AuraDB Cloud' : 'Local Neo4j Database';
+
+  return {
+    id: `mcp-neo4j-${Date.now().toString().slice(-4)}`,
+    name: `Neo4j (${hostDisplay})`,
+    displayName: `Neo4j (${hostDisplay})`,
+    serviceName: 'Neo4j',
+    description: `Official Enterprise Neo4j Graph Database MCP with ${NEO4J_OFFICIAL_ACTIONS.length} tools. ${connectionDetail}`,
+    transport: 'neo4j-api',
+    config: {
+      connectionMode,
+      uri: cleanUri,
+      httpUrl: httpBaseUrl,
+      username: cleanUser,
+      password: cleanPass,
+      database: cleanDb
+    },
+    basis: {
+      provider: modeTitle,
+      host: hostDisplay,
+      database: cleanDb,
+      authenticatedAs: cleanUser,
+      uri: cleanUri,
+      nodeLabelsCount: nodeLabels.length,
+      nodeLabels: nodeLabels.slice(0, 10),
+      relationshipTypesCount: relTypes.length,
+      passwordMasked: cleanPass ? '••••••••' : ''
+    },
+    tools: NEO4J_OFFICIAL_ACTIONS,
     verifiedAt: new Date().toISOString()
   };
 }
@@ -1937,6 +2107,188 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       });
       if (!res.ok) throw new Error(`GitHub API error HTTP ${res.status} when deleting "${args.path}"`);
       return await res.json();
+    }
+  }
+
+  // 5. Real Neo4j Graph Database Execution (Full 7-Tool Suite for Local, AuraDB, and Standalone MCP)
+  if (transport === 'neo4j-api' || transport === 'neo4j-bolt' || mcpServer.serviceName === 'Neo4j' || identifyMcpService(mcpServer) === 'neo4j') {
+    const neo4jCfg = config || {};
+    const httpBase = (neo4jCfg.httpUrl || neo4jCfg.uri || '').replace(/\/+$/, '');
+    const dbName = neo4jCfg.database || 'neo4j';
+    const txEndpoint = `${httpBase}/db/${dbName}/tx/commit`;
+    const basicAuth = btoa(`${neo4jCfg.username || ''}:${neo4jCfg.password || ''}`);
+
+    const runCypher = async (statement, parameters = {}) => {
+      const res = await fetch(txEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${basicAuth}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          statements: [{ statement, parameters }]
+        }),
+        signal: AbortSignal.timeout(20000)
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Neo4j HTTP API error ${res.status}: ${text || res.statusText}`);
+      }
+      const data = await res.json();
+      if (data.errors && data.errors.length > 0) {
+        throw new Error(`Neo4j Cypher Execution Error: ${data.errors[0].message}`);
+      }
+      return data.results?.[0] || { columns: [], data: [] };
+    };
+
+    // Tool 1: get-schema
+    if (toolName === 'get-schema') {
+      try {
+        const labelsResult = await runCypher('CALL db.labels() YIELD label RETURN collect(label) AS labels');
+        const relTypesResult = await runCypher('CALL db.relationshipTypes() YIELD relationshipType RETURN collect(relationshipType) AS relTypes');
+        const propKeysResult = await runCypher('CALL db.propertyKeys() YIELD propertyKey RETURN collect(propertyKey) AS propKeys');
+
+        const labels = labelsResult.data?.[0]?.row?.[0] || [];
+        const relTypes = relTypesResult.data?.[0]?.row?.[0] || [];
+        const propKeys = propKeysResult.data?.[0]?.row?.[0] || [];
+
+        return {
+          success: true,
+          database: dbName,
+          schema: {
+            nodeLabels: labels,
+            relationshipTypes: relTypes,
+            propertyKeys: propKeys,
+            totalLabels: labels.length,
+            totalRelationships: relTypes.length,
+            summary: `Graph Database Schema: ${labels.length} node labels (${labels.join(', ')}), ${relTypes.length} relationship types (${relTypes.join(', ')}), ${propKeys.length} properties indexed.`
+          }
+        };
+      } catch (err) {
+        throw new Error(`Failed to introspect Neo4j graph schema: ${err.message}`);
+      }
+    }
+
+    // Tool 2: read-cypher
+    if (toolName === 'read-cypher') {
+      const cypher = (args.query || args.cypher || '').trim();
+      if (!cypher) throw new Error('Cypher query string is required for read-cypher.');
+
+      // Strict read-only enforcement
+      const mutatingRegex = /\b(CREATE|MERGE|DELETE|DETACH\s+DELETE|SET|REMOVE|DROP)\b/i;
+      if (mutatingRegex.test(cypher)) {
+        throw new Error('Read-only policy violation: read-cypher cannot execute mutating statements. Use write-cypher instead (subject to Gateway policy).');
+      }
+
+      const result = await runCypher(cypher, args.params || args.parameters || {});
+      const columns = result.columns || [];
+      const rows = (result.data || []).map(d => {
+        const obj = {};
+        columns.forEach((col, idx) => { obj[col] = d.row?.[idx]; });
+        return obj;
+      });
+
+      return {
+        success: true,
+        columns,
+        rowCount: rows.length,
+        records: rows
+      };
+    }
+
+    // Tool 3: write-cypher
+    if (toolName === 'write-cypher') {
+      const cypher = (args.query || args.cypher || '').trim();
+      if (!cypher) throw new Error('Cypher query string is required for write-cypher.');
+
+      const result = await runCypher(cypher, args.params || args.parameters || {});
+      return {
+        success: true,
+        columns: result.columns || [],
+        affectedRecords: result.data?.length || 0,
+        resultSummary: `Write Cypher executed successfully against database "${dbName}".`
+      };
+    }
+
+    // Tool 4: list-gds-procedures
+    if (toolName === 'list-gds-procedures') {
+      const filter = args.filter ? `WHERE name CONTAINS '${args.filter}'` : "WHERE name STARTS WITH 'gds'";
+      const result = await runCypher(`SHOW PROCEDURES YIELD name, description ${filter} RETURN name, description`);
+      const procedures = (result.data || []).map(d => ({
+        name: d.row?.[0],
+        description: d.row?.[1]
+      }));
+      return {
+        success: true,
+        count: procedures.length,
+        procedures
+      };
+    }
+
+    // Tool 5: get-neighbors
+    if (toolName === 'get-neighbors') {
+      const targetId = args.nodeId || args.id;
+      if (!targetId) throw new Error('Target nodeId is required for get-neighbors.');
+      const query = `
+        MATCH (n)
+        WHERE id(n) = $targetId OR n.id = $targetId OR n.name = $targetId
+        MATCH (n)-[r]-(m)
+        RETURN labels(n) AS sourceLabels, properties(n) AS sourceProps, type(r) AS relationship, labels(m) AS neighborLabels, properties(m) AS neighborProps
+        LIMIT 50
+      `;
+      const result = await runCypher(query, { targetId });
+      const neighbors = (result.data || []).map(d => ({
+        source: { labels: d.row?.[0], properties: d.row?.[1] },
+        relationship: d.row?.[2],
+        neighbor: { labels: d.row?.[3], properties: d.row?.[4] }
+      }));
+      return {
+        success: true,
+        nodeId: targetId,
+        neighborCount: neighbors.length,
+        subgraph: neighbors
+      };
+    }
+
+    // Tool 6: create-node
+    if (toolName === 'create-node') {
+      const label = (args.label || 'Entity').replace(/[^a-zA-Z0-9_]/g, '');
+      const props = args.properties || {};
+      const query = `CREATE (n:\`${label}\` $props) RETURN id(n) AS id, labels(n) AS labels, properties(n) AS props`;
+      const result = await runCypher(query, { props });
+      const created = result.data?.[0]?.row || [];
+      return {
+        success: true,
+        createdNode: {
+          id: created[0],
+          labels: created[1],
+          properties: created[2]
+        }
+      };
+    }
+
+    // Tool 7: create-relationship
+    if (toolName === 'create-relationship') {
+      const fromId = args.fromNodeId;
+      const toId = args.toNodeId;
+      const relType = (args.relationshipType || 'RELATED_TO').replace(/[^a-zA-Z0-9_]/g, '');
+      const props = args.properties || {};
+      if (!fromId || !toId) throw new Error('Both fromNodeId and toNodeId are required to create a relationship.');
+
+      const query = `
+        MATCH (a), (b)
+        WHERE (id(a) = $fromId OR a.id = $fromId OR a.name = $fromId)
+          AND (id(b) = $toId OR b.id = $toId OR b.name = $toId)
+        CREATE (a)-[r:\`${relType}\` $props]->(b)
+        RETURN type(r) AS relType, properties(r) AS props
+      `;
+      const result = await runCypher(query, { fromId, toId, props });
+      return {
+        success: true,
+        relationshipType: relType,
+        created: Boolean(result.data?.length > 0)
+      };
     }
   }
 

@@ -33,7 +33,14 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
-import { groupToolsByCategory } from '../constants/mcpOfficialCatalogs';
+import { 
+  groupToolsByCategory,
+  identifyMcpService,
+  NEO4J_OFFICIAL_ACTIONS,
+  GITHUB_OFFICIAL_ACTIONS,
+  SLACK_OFFICIAL_ACTIONS,
+  JIRA_OFFICIAL_ACTIONS
+} from '../constants/mcpOfficialCatalogs';
 import { 
   PROVIDERS, 
   getProviderCredential, 
@@ -1494,8 +1501,18 @@ export default function Inspector({
               // Collect all tools from all connected MCP nodes
               const routedTools = [];
               connectedMcpNodes.forEach(mcpNode => {
+                const srv = identifyMcpService(mcpNode.data, mcpNode.id);
                 const itemDef = PILLARS.mcp?.items?.find(it => it.id === mcpNode.data?.itemId || it.id === mcpNode.data?.toolId || it.name === mcpNode.data?.name);
-                const tools = mcpNode.data?.tools || itemDef?.tools || [];
+                let tools = mcpNode.data?.tools || itemDef?.tools || [];
+                if (srv === 'neo4j' && tools.length < NEO4J_OFFICIAL_ACTIONS.length) {
+                  tools = NEO4J_OFFICIAL_ACTIONS;
+                } else if (srv === 'github' && tools.length < GITHUB_OFFICIAL_ACTIONS.length) {
+                  tools = GITHUB_OFFICIAL_ACTIONS;
+                } else if (srv === 'slack' && tools.length < SLACK_OFFICIAL_ACTIONS.length) {
+                  tools = SLACK_OFFICIAL_ACTIONS;
+                } else if (srv === 'jira' && tools.length < JIRA_OFFICIAL_ACTIONS.length) {
+                  tools = JIRA_OFFICIAL_ACTIONS;
+                }
                 tools.forEach(tool => routedTools.push({ ...tool, serverName: mcpNode.data?.name || 'MCP Server', serverId: mcpNode.id }));
               });
 
@@ -1512,7 +1529,7 @@ export default function Inspector({
 
               const handleBlockDestructive = () => {
                 const destructiveNames = routedTools
-                  .filter(t => t.type === 'destructive' || t.name.startsWith('delete_') || t.name.startsWith('drop_'))
+                  .filter(t => t.type === 'destructive' || t.name.startsWith('delete_') || t.name.startsWith('drop_') || t.name === 'write-cypher')
                   .map(t => t.name);
                 const next = Array.from(new Set([...disabledTools, ...destructiveNames]));
                 onUpdateNodeData(selectedNode.id, { disabledTools: next });

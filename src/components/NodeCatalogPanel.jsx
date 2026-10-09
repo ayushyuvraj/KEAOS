@@ -1422,6 +1422,39 @@ export default function NodeCatalogPanel({
                       </span>
                     </div>
                   )}
+
+                  {/* Connector 5: Neo4j Graph Database MCP */}
+                  {(!searchQuery.trim() || 'neo4j graph cypher bolt auradb database schema gds'.includes(searchQuery.toLowerCase())) && (
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                          detail: { tab: 'neo4j' }
+                        }));
+                      }}
+                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
+                        isDarkMode 
+                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#00A3A6] hover:bg-[#252833]' 
+                          : 'bg-white border-[#E2E8F0] hover:border-[#00A3A6] hover:bg-[#F0FAF9]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-7 h-7 rounded-lg bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center shrink-0 border border-[#00A3A6]/30">
+                          <Database className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                            Neo4j Graph Database
+                          </h5>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
+                            BOLT / AURA / MCP
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-[#00A3A6] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                        Connect →
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

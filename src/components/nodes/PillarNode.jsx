@@ -27,7 +27,8 @@ import {
   identifyMcpService,
   SLACK_OFFICIAL_ACTIONS,
   GITHUB_OFFICIAL_ACTIONS,
-  JIRA_OFFICIAL_ACTIONS
+  JIRA_OFFICIAL_ACTIONS,
+  NEO4J_OFFICIAL_ACTIONS
 } from '../../constants/mcpOfficialCatalogs';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
@@ -86,6 +87,8 @@ export default function PillarNode({ id, data, selected }) {
     tools = GITHUB_OFFICIAL_ACTIONS;
   } else if (srv === 'jira' && tools.length < JIRA_OFFICIAL_ACTIONS.length) {
     tools = JIRA_OFFICIAL_ACTIONS;
+  } else if (srv === 'neo4j' && tools.length < NEO4J_OFFICIAL_ACTIONS.length) {
+    tools = NEO4J_OFFICIAL_ACTIONS;
   }
   const allowedCount = routedTools.filter(t => !disabledTools.includes(t.name)).length;
 

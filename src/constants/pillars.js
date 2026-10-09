@@ -1,3 +1,5 @@
+import { NEO4J_OFFICIAL_ACTIONS } from './mcpOfficialCatalogs';
+
 export const PILLARS = {
   model: {
     id: 'model',
@@ -163,7 +165,22 @@ export const PILLARS = {
     badge: 'MCP SERVER',
     description: 'Real-time JSON-RPC & SSE client/server external resources',
     maxConnections: 10,
-    items: []
+    items: [
+      {
+        id: 'mcp-neo4j-graph',
+        name: 'Neo4j Graph Database MCP',
+        description: 'Official Model Context Protocol integration for Neo4j. Introspects schema, executes read/write Cypher queries, GDS algorithms, and traverses subgraphs.',
+        serviceName: 'Neo4j',
+        transport: 'neo4j-api',
+        config: {
+          connectionMode: 'local',
+          uri: 'bolt://localhost:7687',
+          httpUrl: 'http://localhost:7474',
+          database: 'neo4j'
+        },
+        tools: NEO4J_OFFICIAL_ACTIONS
+      }
+    ]
   },
   gateway: {
     id: 'gateway',

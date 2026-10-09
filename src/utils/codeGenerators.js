@@ -7,6 +7,11 @@ export function generateFrameworkCode(frameworkId, agentConfig, attachments) {
   const hasDocTool = attachments.tools?.some(t => t.id === 'tool-doc-parser');
   const hasPii = attachments.policies?.some(p => p.id === 'pol-pii-masker');
   const connectedMcpServers = Array.isArray(attachments.mcp) ? attachments.mcp : (attachments.mcp ? [attachments.mcp] : []);
+  const hasNeo4jMcp = connectedMcpServers.some(m => 
+    m.name?.toLowerCase().includes('neo4j') || 
+    m.serviceName?.toLowerCase().includes('neo4j') ||
+    m.id?.toLowerCase().includes('neo4j')
+  );
   const hasMemory = attachments.memory && (Array.isArray(attachments.memory) ? attachments.memory.length > 0 : Boolean(attachments.memory.id || attachments.memory.type));
 
   switch (frameworkId) {
@@ -61,6 +66,18 @@ def recall_episodic_memory() -> str:
     ]
     return "\\n".join(f"- {c}" for c in historical_commitments)
 ` : ''}
+${hasNeo4jMcp ? `# 5b. Neo4j Graph Database MCP Tools (Gateway Controlled)
+def query_neo4j_graph(cypher_query: str) -> str:
+    """Executes read-only Cypher query against connected Neo4j knowledge graph."""
+    import os
+    from neo4j import GraphDatabase
+    uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+    auth = (os.environ.get("NEO4J_USERNAME", "neo4j"), os.environ.get("NEO4J_PASSWORD", "password"))
+    with GraphDatabase.driver(uri, auth=auth) as driver:
+        with driver.session(database=os.environ.get("NEO4J_DATABASE", "neo4j")) as session:
+            result = session.run(cypher_query)
+            return str([record.data() for record in result])
+` : ''}
 ${hasPii ? `# 6. Gateway Policy Tool: PII Sanitization
 def apply_pii_sanitization(transcript: str) -> str:
     """Masks salaries, compensation, and confidential personal data."""
@@ -75,7 +92,7 @@ generation_config = types.GenerateContentConfig(
     max_output_tokens=8192,
     response_mime_type="application/json",
     response_schema=MeetingIntelligenceOutput,
-    system_instruction=SYSTEM_INSTRUCTION${hasMemory ? ',\n    tools=[recall_episodic_memory]' : ''}
+    system_instruction=SYSTEM_INSTRUCTION${(hasMemory || hasNeo4jMcp) ? `,\n    tools=[${[hasMemory ? 'recall_episodic_memory' : '', hasNeo4jMcp ? 'query_neo4j_graph' : ''].filter(Boolean).join(', ')}]` : ''}
 )
 
 # 8. Core Meeting Intelligence Agent Execution (Google ADK Pipeline)
@@ -109,12 +126,24 @@ if __name__ == "__main__":
 # KEAOS Generated Agent: Meeting Intelligence
 # Framework: LangGraph (Stateful Cyclic Multi-Agent Workflow)
 # =====================================================================
+import os
 import operator
 from typing import Annotated, TypedDict, List
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 ${hasMemory ? 'from langgraph.checkpoint.memory import MemorySaver' : ''}
+${hasNeo4jMcp ? 'from langchain_community.graphs import Neo4jGraph' : ''}
+
+${hasNeo4jMcp ? `# Neo4j Graph Database MCP Connection
+neo4j_graph = Neo4jGraph(
+    url=os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
+    username=os.environ.get("NEO4J_USERNAME", "neo4j"),
+    password=os.environ.get("NEO4J_PASSWORD", "password"),
+    database=os.environ.get("NEO4J_DATABASE", "neo4j")
+)
+neo4j_graph.refresh_schema()
+` : ''}
 
 # 1. Define Typed Agent State
 class MeetingState(TypedDict):
@@ -172,10 +201,12 @@ if __name__ == "__main__":
 # KEAOS Generated Agent: Meeting Intelligence
 # Framework: LangChain (LCEL Chains & Structured Output)
 # =====================================================================
+import os
 from pydantic import BaseModel, Field
 from typing import List
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
+${hasNeo4jMcp ? 'from langchain_community.graphs import Neo4jGraph' : ''}
 
 # 1. Structured Output Schema
 class ActionItem(BaseModel):
@@ -190,6 +221,16 @@ class MeetingSynthesis(BaseModel):
 
 # 2. Prompt & Model Chain
 llm = ChatGoogleGenerativeAI(model="${modelName}", temperature=${modelTemperature})
+
+${hasNeo4jMcp ? `# Neo4j Graph Database MCP Connection
+neo4j_graph = Neo4jGraph(
+    url=os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
+    username=os.environ.get("NEO4J_USERNAME", "neo4j"),
+    password=os.environ.get("NEO4J_PASSWORD", "password"),
+    database=os.environ.get("NEO4J_DATABASE", "neo4j")
+)
+neo4j_graph.refresh_schema()
+` : ''}
 ${hasMemory ? `prompt = ChatPromptTemplate.from_messages([
     ("system", """${systemPrompt}\\n\\nPRIOR EPISODIC MEMORY:\\n{memory_context}"""),
     ("human", "Meeting Transcript:\\n{transcript}")
@@ -214,7 +255,9 @@ if __name__ == "__main__":
 # KEAOS Generated Agent: Meeting Intelligence
 # Framework: Microsoft AutoGen (Conversational Multi-Agent Collaboration)
 # =====================================================================
+import os
 import autogen
+${hasNeo4jMcp ? 'from neo4j import GraphDatabase' : ''}
 
 config_list = [{
     "model": "gpt-4o",
@@ -243,6 +286,27 @@ action_item_auditor = autogen.AssistantAgent(
     llm_config={"config_list": config_list, "temperature": 0.0}
 )
 
+${hasNeo4jMcp ? `# Neo4j MCP Client Connection
+neo4j_driver = GraphDatabase.driver(
+    os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
+    auth=(os.environ.get("NEO4J_USERNAME", "neo4j"), os.environ.get("NEO4J_PASSWORD", "password"))
+)
+
+def query_neo4j_graph(cypher: str) -> str:
+    """Executes read-only Cypher query against connected Neo4j MCP graph database."""
+    with neo4j_driver.session(database=os.environ.get("NEO4J_DATABASE", "neo4j")) as session:
+        result = session.run(cypher)
+        return str([r.data() for r in result.fetch(25)])
+
+autogen.register_function(
+    query_neo4j_graph,
+    caller=meeting_analyst,
+    executor=user_proxy,
+    name="query_neo4j_graph",
+    description="Query knowledge graph nodes, relationships, and schema via Cypher"
+)
+` : ''}
+
 groupchat = autogen.GroupChat(
     agents=[user_proxy, meeting_analyst, action_item_auditor],
     messages=[],
@@ -262,7 +326,23 @@ if __name__ == "__main__":
 # KEAOS Generated Agent: Meeting Intelligence
 # Framework: CrewAI (Role-Based Multi-Agent Team)
 # =====================================================================
+import os
 from crewai import Agent, Crew, Process, Task
+${hasNeo4jMcp ? `from crewai.tools import tool
+from neo4j import GraphDatabase
+
+# Neo4j MCP Tool Definition
+neo4j_driver = GraphDatabase.driver(
+    os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
+    auth=(os.environ.get("NEO4J_USERNAME", "neo4j"), os.environ.get("NEO4J_PASSWORD", "password"))
+)
+
+@tool("Query Neo4j Knowledge Graph")
+def query_neo4j_graph(query: str) -> str:
+    """Execute Cypher query to retrieve graph schema, entity nodes, and relationship connections."""
+    with neo4j_driver.session(database=os.environ.get("NEO4J_DATABASE", "neo4j")) as session:
+        return str([r.data() for r in session.run(query).fetch(25)])
+` : ''}
 
 # 1. Define Agents
 meeting_scribe = Agent(
@@ -270,7 +350,7 @@ meeting_scribe = Agent(
     goal="Extract high-impact takeaways, executive summaries, and formal decisions",
     backstory="You have 15 years experience synthesizing C-level board meetings with pinpoint precision.",
     verbose=True,
-    allow_delegation=False
+    allow_delegation=False${hasNeo4jMcp ? ',\n    tools=[query_neo4j_graph]' : ''}
 )
 
 action_item_officer = Agent(

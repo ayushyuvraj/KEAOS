@@ -14,13 +14,15 @@ import {
   Layers,
   MessageSquare,
   Mail,
-  ChevronDown
+  ChevronDown,
+  Database
 } from 'lucide-react';
 import { 
   verifyAndDiscoverMcpServer, 
   verifySlackMcpConnection, 
   verifyJiraMcpConnection, 
   verifyGitHubMcpConnection,
+  verifyNeo4jMcpConnection,
   connectMcpViaOAuth,
   saveRegisteredMcpServer 
 } from '../services/mcpClientService';
@@ -116,6 +118,25 @@ const PROVIDERS_CONFIG = {
     directOAuthGenUrl: 'https://console.cloud.google.com/apis/credentials',
     directOAuthGenLabel: 'Configure Google Cloud OAuth Client ID at console.cloud.google.com'
   },
+  neo4j: {
+    id: 'neo4j',
+    title: 'Neo4j Graph Database',
+    apiSubtitles: {
+      credentials: 'Neo4j Bolt / AuraDB / HTTP Cypher API',
+      endpoint: 'Neo4j MCP Server (JSON-RPC 2.0 / SSE)'
+    },
+    icon: Database,
+    defaultServer: 'bolt://localhost:7687',
+    authModes: [
+      { id: 'credentials', label: 'Bolt / AuraDB / HTTP' },
+      { id: 'endpoint', label: 'MCP Server Endpoint' }
+    ],
+    docsUrl: 'https://github.com/neo4j/mcp',
+    directTokenGenUrl: 'https://neo4j.com/docs/operations-manual/current/authentication-authorization/',
+    directTokenGenLabel: 'Neo4j Database Security & Credentials Guide',
+    directOAuthGenUrl: 'https://github.com/neo4j/mcp',
+    directOAuthGenLabel: 'Neo4j Official Model Context Protocol Reference'
+  },
   url: {
     id: 'url',
     title: 'Universal MCP Server',
@@ -152,6 +173,8 @@ export default function ConnectMcpModal({
       // Google only has OAuth2 mode
       if (initialTab === 'google') {
         setAuthMode('oauth');
+      } else if (initialTab === 'neo4j') {
+        setAuthMode('credentials');
       } else {
         setAuthMode('token');
       }
@@ -164,6 +187,14 @@ export default function ConnectMcpModal({
   const [accessToken, setAccessToken] = useState('');
   const [showAccessToken, setShowAccessToken] = useState(false);
   const [allowedDomains, setAllowedDomains] = useState('All');
+
+  // Neo4j Specific State (All 3 connection modes: Local, AuraDB, Standalone MCP)
+  const [neo4jUri, setNeo4jUri] = useState('bolt://localhost:7687');
+  const [neo4jUsername, setNeo4jUsername] = useState('neo4j');
+  const [neo4jPassword, setNeo4jPassword] = useState('');
+  const [showNeo4jPassword, setShowNeo4jPassword] = useState(false);
+  const [neo4jDatabase, setNeo4jDatabase] = useState('neo4j');
+  const [neo4jMode, setNeo4jMode] = useState('local'); // 'local' | 'aura'
 
   // OAuth2 Fields State
   const [clientId, setClientId] = useState('');
@@ -301,6 +332,7 @@ export default function ConnectMcpModal({
       }
 
       // ==========================================
+      // ==========================================
       // 4. GOOGLE WORKSPACE PROVIDER
       // ==========================================
       else if (selectedProvider === 'google') {
@@ -312,7 +344,41 @@ export default function ConnectMcpModal({
       }
 
       // ==========================================
-      // 5. UNIVERSAL URL / SSE PROVIDER
+      // 5. NEO4J GRAPH DATABASE PROVIDER (All 3 Modes)
+      // ==========================================
+      else if (selectedProvider === 'neo4j') {
+        if (authMode === 'endpoint') {
+          if (!serverUrl.trim()) {
+            throw new Error('Please enter a valid Neo4j MCP server endpoint URL (e.g. http://localhost:8000/sse).');
+          }
+          result = await verifyNeo4jMcpConnection({
+            connectionMode: 'endpoint',
+            serverUrl: serverUrl.trim(),
+            database: neo4jDatabase.trim() || 'neo4j'
+          });
+        } else {
+          // Direct Credentials mode (Local or AuraDB)
+          if (!neo4jUri.trim()) {
+            throw new Error('Please enter your Neo4j connection URI (e.g. bolt://localhost:7687 or neo4j+s://xxxx.databases.neo4j.io).');
+          }
+          if (!neo4jUsername.trim()) {
+            throw new Error('Please enter your Neo4j username (default: neo4j).');
+          }
+          if (!neo4jPassword.trim()) {
+            throw new Error('Please enter your Neo4j password.');
+          }
+          result = await verifyNeo4jMcpConnection({
+            connectionMode: neo4jMode,
+            uri: neo4jUri.trim(),
+            username: neo4jUsername.trim(),
+            password: neo4jPassword.trim(),
+            database: neo4jDatabase.trim() || 'neo4j'
+          });
+        }
+      }
+
+      // ==========================================
+      // 6. UNIVERSAL URL / SSE PROVIDER
       // ==========================================
       else if (selectedProvider === 'url') {
         if (!serverUrl.trim()) {
@@ -399,6 +465,34 @@ export default function ConnectMcpModal({
               <X className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        {/* Provider Switcher Tabs (Allows seamless switching between all 6 MCP servers) */}
+        <div className="px-6 py-2 bg-[#232529] border-b border-[#383A40] flex items-center gap-1.5 overflow-x-auto">
+          {Object.values(PROVIDERS_CONFIG).map((p) => {
+            const isPActive = selectedProvider === p.id;
+            const Icon = p.icon;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setSelectedProvider(p.id);
+                  if (p.id === 'google') setAuthMode('oauth');
+                  else if (p.id === 'neo4j') setAuthMode('credentials');
+                  else setAuthMode('token');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-all cursor-pointer whitespace-nowrap ${
+                  isPActive
+                    ? 'bg-[#00A3A6]/20 text-[#00A3A6] border border-[#00A3A6]/40 shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span>{p.title.replace(' account', '').replace(' Server', '')}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* ======================================================== */}
@@ -503,9 +597,186 @@ export default function ConnectMcpModal({
           </div>
 
           {/* ======================================================== */}
+          {/* FIELDS FOR NEO4J GRAPH DATABASE (ALL 3 MODES)            */}
+          {/* ======================================================== */}
+          {selectedProvider === 'neo4j' && (
+            <div className="space-y-4">
+              {authMode === 'credentials' ? (
+                <>
+                  {/* Environment Selector: Local vs AuraDB */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                      Target Neo4j Environment
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNeo4jMode('local');
+                          if (neo4jUri.includes('databases.neo4j.io')) {
+                            setNeo4jUri('bolt://localhost:7687');
+                          }
+                        }}
+                        className={`p-2.5 rounded border text-left transition-all cursor-pointer ${
+                          neo4jMode === 'local'
+                            ? 'border-[#00A3A6] bg-[#00A3A6]/10 text-white'
+                            : 'border-[#383A40] bg-[#1F2125] text-slate-400 hover:border-slate-500'
+                        }`}
+                      >
+                        <div className="font-semibold text-xs flex items-center gap-1.5 text-white">
+                          <span className={`w-2 h-2 rounded-full ${neo4jMode === 'local' ? 'bg-[#00A3A6]' : 'bg-slate-500'}`} />
+                          <span>Local Neo4j Instance</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                          bolt://localhost:7687 or http://localhost:7474
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNeo4jMode('aura');
+                          if (neo4jUri === 'bolt://localhost:7687') {
+                            setNeo4jUri('neo4j+s://');
+                          }
+                        }}
+                        className={`p-2.5 rounded border text-left transition-all cursor-pointer ${
+                          neo4jMode === 'aura'
+                            ? 'border-[#00A3A6] bg-[#00A3A6]/10 text-white'
+                            : 'border-[#383A40] bg-[#1F2125] text-slate-400 hover:border-slate-500'
+                        }`}
+                      >
+                        <div className="font-semibold text-xs flex items-center gap-1.5 text-white">
+                          <span className={`w-2 h-2 rounded-full ${neo4jMode === 'aura' ? 'bg-[#00A3A6]' : 'bg-slate-500'}`} />
+                          <span>Neo4j AuraDB Cloud</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                          neo4j+s://xxxx.databases.neo4j.io
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* URI & Database Name */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                        Neo4j Connection URI <span className="text-[#FF6D5A]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={neo4jUri}
+                        onChange={(e) => setNeo4jUri(e.target.value)}
+                        placeholder={neo4jMode === 'aura' ? 'neo4j+s://xxxx.databases.neo4j.io' : 'bolt://localhost:7687'}
+                        className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#00A3A6] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                        Database Name
+                      </label>
+                      <input
+                        type="text"
+                        value={neo4jDatabase}
+                        onChange={(e) => setNeo4jDatabase(e.target.value)}
+                        placeholder="neo4j"
+                        className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#00A3A6] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Username & Password */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                        Username <span className="text-[#FF6D5A]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={neo4jUsername}
+                        onChange={(e) => setNeo4jUsername(e.target.value)}
+                        placeholder="neo4j"
+                        className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#00A3A6] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                        Password <span className="text-[#FF6D5A]">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showNeo4jPassword ? 'text' : 'password'}
+                          value={neo4jPassword}
+                          onChange={(e) => setNeo4jPassword(e.target.value)}
+                          placeholder="Database password"
+                          className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#00A3A6] focus:outline-none rounded pl-3.5 pr-10 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNeo4jPassword(!showNeo4jPassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                        >
+                          {showNeo4jPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Standalone MCP Server Endpoint */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                      Neo4j MCP Server Endpoint URL <span className="text-[#FF6D5A]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={serverUrl}
+                      onChange={(e) => setServerUrl(e.target.value)}
+                      placeholder="http://localhost:8000/sse or http://localhost:8000/mcp"
+                      className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#00A3A6] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Runs via standard JSON-RPC 2.0 / SSE protocol. Install with <code className="text-[#00A3A6]">pip install neo4j-mcp-server</code>.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                      Target Database Name
+                    </label>
+                    <input
+                      type="text"
+                      value={neo4jDatabase}
+                      onChange={(e) => setNeo4jDatabase(e.target.value)}
+                      placeholder="neo4j"
+                      className="w-full bg-[#1F2125] border border-[#383A40] focus:border-[#00A3A6] focus:outline-none rounded px-3.5 py-2 text-xs text-white placeholder-slate-500 font-mono transition-colors"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Pre-Authorized Tools Inventory Pill */}
+              <div className="p-3 bg-[#1A1F26] border border-[#2D3748] rounded text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-white flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#00A3A6]" />
+                    <span>7 Pre-Authorized Graph Database Actions</span>
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00A3A6]/20 text-[#00A3A6] font-bold">
+                    Gateway Controllable
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Includes <code className="text-[#00A3A6]">get-schema</code>, <code className="text-[#00A3A6]">read-cypher</code>, <code className="text-[#00A3A6]">write-cypher</code>, <code className="text-[#00A3A6]">list-gds-procedures</code>, <code className="text-[#00A3A6]">get-neighbors</code>, <code className="text-[#00A3A6]">create-node</code>, and <code className="text-[#00A3A6]">create-relationship</code>. Each action can be individually enabled or blocked in the MCP Gateway.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
           {/* FIELDS FOR ACCESS TOKEN MODE (Screenshots 1 & 2)         */}
           {/* ======================================================== */}
-          {authMode === 'token' && (
+          {selectedProvider !== 'neo4j' && authMode === 'token' && (
             <div className="space-y-4">
               
               {/* Field 1: Server URL */}
@@ -659,7 +930,7 @@ export default function ConnectMcpModal({
           {/* ======================================================== */}
           {/* FIELDS FOR OAUTH2 MODE (Screenshots 3 & 4)               */}
           {/* ======================================================== */}
-          {authMode === 'oauth' && (
+          {selectedProvider !== 'neo4j' && authMode === 'oauth' && (
             <div className="space-y-4">
               
               {/* Field 1: OAuth Redirect URL (Read-only box with copy) */}

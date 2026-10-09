@@ -230,7 +230,7 @@ export default function Palette({ onAddNode }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-[#F8F9FB] border border-[#CBD5E1] text-slate-600">
-                    {pillarKey === 'mcp' ? registeredMcps.length : pillar.items.length}
+                    {pillarKey === 'mcp' ? (registeredMcps.length + (pillar.items?.length || 0)) : pillar.items.length}
                   </span>
                   {isOpen ? (
                     <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
@@ -254,7 +254,42 @@ export default function Palette({ onAddNode }) {
                         <span>Connect Live MCP Server</span>
                       </button>
 
-                      {registeredMcps.length === 0 ? (
+                      {/* Built-in MCP Servers (e.g. Neo4j Graph Database MCP) */}
+                      {pillar.items?.map((item) => {
+                        const isAlreadyRegistered = registeredMcps.some(m => m.id === item.id || m.name === item.name);
+                        if (isAlreadyRegistered) return null;
+                        return (
+                          <div
+                            key={item.id}
+                            className="p-2.5 border border-[#E0E0E0] bg-[#FFFFFF] hover:border-[#00A3A6] transition-all flex items-start justify-between gap-2 shadow-xs"
+                          >
+                            <div className="flex-1 overflow-hidden">
+                              <div className="flex items-center gap-1.5">
+                                <Database className="w-3.5 h-3.5 shrink-0 text-[#00A3A6]" />
+                                <h5 className="text-xs font-bold text-[#0B0F19] truncate tracking-tight">{item.name}</h5>
+                              </div>
+                              <p className="text-[11px] text-[#475569] mt-0.5 line-clamp-1">
+                                {item.tools?.length || 0} tools • {item.description}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => onAddNode('mcp', {
+                                id: item.id,
+                                name: item.name,
+                                description: item.description,
+                                config: item.config || {},
+                                tools: item.tools || []
+                              })}
+                              className="btn-tactile w-7 h-7 bg-[#00A3A6] hover:bg-[#008D90] text-white flex items-center justify-center shrink-0 border border-[#007D80] shadow-xs cursor-pointer"
+                              title="Add to visual canvas"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+
+                      {registeredMcps.length === 0 && (!pillar.items || pillar.items.length === 0) ? (
                         <div className="p-3 bg-white border border-dashed border-[#00A3A6]/40 text-center space-y-1">
                           <span className="text-[10px] font-mono font-bold text-[#00A3A6] block uppercase tracking-wider">
                             Zero Simulation Policy

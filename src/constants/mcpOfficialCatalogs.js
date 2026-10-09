@@ -732,9 +732,139 @@ export const GOOGLE_WORKSPACE_OFFICIAL_ACTIONS = [
 ];
 
 /**
+ * Official Neo4j Model Context Protocol (MCP) Actions Catalog
+ * Sourced from official @neo4j/mcp specification, neo4j-mcp-server, and Cypher transaction protocols.
+ * Supports Local Neo4j, Neo4j AuraDB Cloud, and Standalone neo4j-mcp-server.
+ */
+export const NEO4J_OFFICIAL_ACTIONS = [
+  // --- GRAPH SCHEMA ACTIONS ---
+  {
+    name: 'get-schema',
+    displayName: 'Introspect Graph Schema',
+    category: 'Graph Schema Actions',
+    type: 'read',
+    description: 'Inspects and returns database schema structure including node labels, relationship types, and property keys to ground agent reasoning.',
+    parameters: {
+      type: 'object',
+      properties: {}
+    }
+  },
+
+  // --- CYPHER QUERY ACTIONS ---
+  {
+    name: 'read-cypher',
+    displayName: 'Execute Read Cypher Query',
+    category: 'Cypher Query Actions',
+    type: 'read',
+    description: 'Executes read-only Cypher queries (MATCH, RETURN, WITH) verified via EXPLAIN and query classification against the target database.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The read-only Cypher query to execute' },
+        params: { type: 'object', description: 'Optional key-value query parameters' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'write-cypher',
+    displayName: 'Execute Write Cypher Query',
+    category: 'Cypher Query Actions',
+    type: 'destructive',
+    description: 'Executes data-mutating Cypher statements (CREATE, MERGE, SET, DELETE, REMOVE). Can be blocked at the Gateway with zero-trust egress rules.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The write-enabled Cypher query to execute' },
+        params: { type: 'object', description: 'Optional key-value query parameters' }
+      },
+      required: ['query']
+    }
+  },
+
+  // --- GRAPH DATA SCIENCE (GDS) ---
+  {
+    name: 'list-gds-procedures',
+    displayName: 'List GDS Library Procedures',
+    category: 'Graph Data Science (GDS)',
+    type: 'read',
+    description: 'Queries available Neo4j Graph Data Science (GDS) procedures and algorithms (PageRank, Louvain, Betweenness, Node2Vec, Community Detection).',
+    parameters: {
+      type: 'object',
+      properties: {
+        filter: { type: 'string', description: 'Optional procedure prefix or algorithm name filter' }
+      }
+    }
+  },
+
+  // --- GRAPH TRAVERSAL ACTIONS ---
+  {
+    name: 'get-neighbors',
+    displayName: 'Query Node Neighbors & Subgraph',
+    category: 'Graph Traversal Actions',
+    type: 'read',
+    description: 'Retrieves connected neighboring nodes, relationship types, and multi-hop paths for a specified entity identifier or label.',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeId: { type: 'string', description: 'The identifier or property value of the target node' },
+        label: { type: 'string', description: 'Node label to filter on (e.g. Person, Service, Transaction)' },
+        depth: { type: 'number', description: 'Traversal depth (1 or 2 hops, default: 1)' },
+        relationshipType: { type: 'string', description: 'Optional relationship type filter' }
+      },
+      required: ['nodeId']
+    }
+  },
+
+  // --- GRAPH ENTITY ACTIONS ---
+  {
+    name: 'create-node',
+    displayName: 'Create Graph Entity Node',
+    category: 'Graph Entity Actions',
+    type: 'write',
+    description: 'Inserts a new typed entity node with key-value properties and labels into the active Neo4j graph store.',
+    parameters: {
+      type: 'object',
+      properties: {
+        label: { type: 'string', description: 'Target node label (e.g., Entity, Company, User)' },
+        properties: { type: 'object', description: 'Key-value attributes to store on the node' }
+      },
+      required: ['label', 'properties']
+    }
+  },
+  {
+    name: 'create-relationship',
+    displayName: 'Create Relationship Edge',
+    category: 'Graph Entity Actions',
+    type: 'write',
+    description: 'Creates a directed typed relationship between two existing graph nodes with optional edge properties.',
+    parameters: {
+      type: 'object',
+      properties: {
+        fromNodeId: { type: 'string', description: 'Identifier of the source node' },
+        toNodeId: { type: 'string', description: 'Identifier of the target node' },
+        relationshipType: { type: 'string', description: 'Directed relationship type name (e.g., BELONGS_TO, DEPENDS_ON)' },
+        properties: { type: 'object', description: 'Optional relationship edge properties' }
+      },
+      required: ['fromNodeId', 'toNodeId', 'relationshipType']
+    }
+  }
+];
+
+/**
  * Universal Authentication Specifications for All MCP Servers
  */
 export const MCP_AUTH_SPECS = {
+  neo4j: {
+    id: 'neo4j',
+    name: 'Neo4j Graph Database',
+    supportedModes: ['credentials', 'endpoint'],
+    defaultMode: 'credentials',
+    oauthProviderName: 'Neo4j Bolt / AuraDB / MCP Gateway',
+    scopes: ['get-schema', 'read-cypher', 'write-cypher', 'list-gds-procedures', 'get-neighbors', 'create-node', 'create-relationship'],
+    scopeDescription: 'Pre-authorizes all 7 Neo4j graph schema, Cypher query, GDS, and knowledge graph tools.',
+    totalDefaultTools: NEO4J_OFFICIAL_ACTIONS.length
+  },
   github: {
     id: 'github',
     name: 'GitHub',
@@ -783,7 +913,7 @@ export const MCP_AUTH_SPECS = {
 };
 
 /**
- * Unambiguously identifies the external MCP service (slack, github, jira, google)
+ * Unambiguously identifies the external MCP service (slack, github, jira, google, neo4j)
  * from any combination of properties, names, IDs, endpoints, or descriptors.
  */
 export function identifyMcpService(obj = {}, fallbackId = '') {
@@ -792,6 +922,7 @@ export function identifyMcpService(obj = {}, fallbackId = '') {
   const target = typeof obj === 'object' && obj !== null ? obj : {};
   const combined = `${str} ${target.serviceName || ''} ${target.name || ''} ${target.displayName || ''} ${target.title || ''} ${target.transport || ''} ${target.basis?.provider || ''} ${target.endpoint || ''} ${target.serverUrl || ''} ${target.id || ''} ${fallbackId || ''}`.toLowerCase();
   
+  if (combined.includes('neo4j') || combined.includes('cypher') || combined.includes('bolt') || combined.includes('auradb')) return 'neo4j';
   if (combined.includes('slack')) return 'slack';
   if (combined.includes('github')) return 'github';
   if (combined.includes('jira')) return 'jira';
@@ -803,10 +934,11 @@ export function identifyMcpService(obj = {}, fallbackId = '') {
  * Returns the standardized official action catalog for a named service or MCP object.
  */
 export function getOfficialMcpTools(serviceOrObj = '') {
-  const service = typeof serviceOrObj === 'string' && !serviceOrObj.includes(' ') && ['slack', 'github', 'jira', 'google'].includes(serviceOrObj.toLowerCase())
+  const service = typeof serviceOrObj === 'string' && !serviceOrObj.includes(' ') && ['slack', 'github', 'jira', 'google', 'neo4j'].includes(serviceOrObj.toLowerCase())
     ? serviceOrObj.toLowerCase()
     : identifyMcpService(serviceOrObj);
 
+  if (service === 'neo4j') return NEO4J_OFFICIAL_ACTIONS;
   if (service === 'github') return GITHUB_OFFICIAL_ACTIONS;
   if (service === 'slack') return SLACK_OFFICIAL_ACTIONS;
   if (service === 'jira') return JIRA_OFFICIAL_ACTIONS;

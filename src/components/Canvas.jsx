@@ -15,6 +15,7 @@ import {
   GITHUB_OFFICIAL_ACTIONS,
   SLACK_OFFICIAL_ACTIONS,
   JIRA_OFFICIAL_ACTIONS,
+  NEO4J_OFFICIAL_ACTIONS,
   identifyMcpService
 } from '../constants/mcpOfficialCatalogs';
 import { 
@@ -1682,6 +1683,8 @@ function CanvasInner({
             tools = SLACK_OFFICIAL_ACTIONS;
           } else if (srv === 'jira' && tools.length < JIRA_OFFICIAL_ACTIONS.length) {
             tools = JIRA_OFFICIAL_ACTIONS;
+          } else if (srv === 'neo4j' && tools.length < NEO4J_OFFICIAL_ACTIONS.length) {
+            tools = NEO4J_OFFICIAL_ACTIONS;
           }
 
           tools.forEach(tool => {

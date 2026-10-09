@@ -10,7 +10,8 @@ import {
   identifyMcpService,
   GITHUB_OFFICIAL_ACTIONS, 
   SLACK_OFFICIAL_ACTIONS, 
-  JIRA_OFFICIAL_ACTIONS 
+  JIRA_OFFICIAL_ACTIONS,
+  NEO4J_OFFICIAL_ACTIONS
 } from '../constants/mcpOfficialCatalogs';
 
 /**
@@ -270,6 +271,8 @@ export async function executeUniversalAgentChat({
         m.tools = SLACK_OFFICIAL_ACTIONS;
       } else if (sName === 'jira' && (!m.tools || m.tools.length < JIRA_OFFICIAL_ACTIONS.length)) {
         m.tools = JIRA_OFFICIAL_ACTIONS;
+      } else if (sName === 'neo4j' && (!m.tools || m.tools.length < NEO4J_OFFICIAL_ACTIONS.length)) {
+        m.tools = NEO4J_OFFICIAL_ACTIONS;
       } else if (!m.tools || m.tools.length === 0) {
         const official = getOfficialMcpTools(m);
         if (official.length > 0) {
@@ -287,6 +290,36 @@ export async function executeUniversalAgentChat({
           mcpServer: m,
           isBlocked
         });
+      }
+
+      // If this is a Neo4j MCP, check if we need to pre-fetch get-schema
+      const isNeo4j = sName === 'neo4j' || (m.name || '').toLowerCase().includes('neo4j');
+      const isGraphQuery = /(graph|schema|cypher|node|relationship|label|property|neo4j|database)/i.test(userMessage) || 
+                          conversationHistory.some(c => /(graph|schema|cypher|node|relationship|neo4j)/i.test(c.content));
+
+      if (isNeo4j && !disabledTools.includes('get-schema') && (!m.basis?.schema || isGraphQuery)) {
+        try {
+          logStep('Live MCP Tool Execution', `Inspecting Neo4j graph schema for active labels & relationships...`, 'mcp', m.id, 180);
+
+          const liveSchema = await executeRealMcpTool({
+            toolName: 'get-schema',
+            server: m,
+            args: {},
+            options: { disabledTools }
+          });
+
+          if (liveSchema && liveSchema.schema) {
+            m.basis = {
+              ...(m.basis || {}),
+              schema: liveSchema.schema,
+              nodeLabels: liveSchema.schema.nodeLabels,
+              relationshipTypes: liveSchema.schema.relationshipTypes
+            };
+            logStep('Live MCP Tool Complete', `Introspected Neo4j schema: ${liveSchema.schema.totalLabels} labels, ${liveSchema.schema.totalRelationships} relationship types.`, 'mcp', m.id, 140);
+          }
+        } catch (err) {
+          console.warn('Live MCP get-schema auto-query warning:', err);
+        }
       }
 
       // If this is a GitHub MCP, check if we need to pre-fetch list_repositories
@@ -358,6 +391,13 @@ ${mcpNodes.map((m, idx) => {
   if (b.provider) text += `  - Provider: ${b.provider}\n`;
   if (b.authenticatedAs || b.username) text += `  - Authenticated Identity: ${b.authenticatedAs || b.username}${b.username ? ` (@${b.username})` : ''}\n`;
   if (b.repository) text += `  - Target Scope: ${b.repository}\n`;
+  if (b.database) text += `  - Database: ${b.database}\n`;
+  if (Array.isArray(b.nodeLabels) && b.nodeLabels.length > 0) {
+    text += `  - GRAPH NODE LABELS (${b.nodeLabels.length}): ${b.nodeLabels.join(', ')}\n`;
+  }
+  if (Array.isArray(b.relationshipTypes) && b.relationshipTypes.length > 0) {
+    text += `  - RELATIONSHIP TYPES (${b.relationshipTypes.length}): ${b.relationshipTypes.join(', ')}\n`;
+  }
   if (b.accessibleReposCount !== undefined) text += `  - Total Accessible Repositories: ${b.accessibleReposCount}\n`;
   if (Array.isArray(b.repositories) && b.repositories.length > 0) {
     text += `  - REPOSITORIES INVENTORY (${b.repositories.length}):\n${b.repositories.slice(0, 15).map((r, rIdx) => `    ${rIdx + 1}. [${r.fullName || r.name}](${r.htmlUrl}) — ${r.isPrivate ? 'Private' : 'Public'}, Default Branch: "${r.defaultBranch || 'main'}"`).join('\n')}\n`;
