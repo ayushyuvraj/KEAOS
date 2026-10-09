@@ -1522,6 +1522,8 @@ export default function App() {
       <ClusterDiagnosticsModal
         isOpen={isClusterModalOpen}
         onClose={() => setIsClusterModalOpen(false)}
+        isDarkMode={isDarkMode}
+        onToggleTheme={() => setIsDarkMode(!isDarkMode)}
       />
 
       {/* Claude Code-style Universal MCP Connection Engine */}
@@ -1543,6 +1545,7 @@ export default function App() {
         onClose={() => setIsDeterministicModalOpen(false)}
         onUpdateNode={handleUpdateDeterministicNode}
         isDarkMode={isDarkMode}
+        onToggleTheme={() => setIsDarkMode(!isDarkMode)}
       />
     </div>
   );
