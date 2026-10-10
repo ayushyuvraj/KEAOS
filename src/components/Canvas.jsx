@@ -2296,39 +2296,29 @@ function CanvasInner({
         />
       </ReactFlow>
 
-      {/* Blank Canvas Genesis Watermark & Starter Guide */}
+      {/* Blank Canvas Empty State Placeholder (Matching Reference Image) */}
       {nodes.length === 0 && (
-        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-10 select-none p-4">
-          <div className={`p-8 max-w-md text-center border rounded-none pointer-events-auto shadow-2xl backdrop-blur-md transition-all ${
-            isDarkMode 
-              ? 'bg-[#18191E]/95 border-[#2E313C] text-white' 
-              : 'bg-white/95 border-[#CBD5E1] text-[#0B0F19]'
-          }`}>
-            <div className="w-12 h-12 mx-auto mb-3.5 flex items-center justify-center rounded-full bg-[#00338D]/20 border border-[#0091DA]/40 text-[#0091DA]">
-              <Layers className="w-6 h-6" />
+        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-10 select-none">
+          <button
+            onClick={() => {
+              if (setIsInspectorOpen) setIsInspectorOpen(false);
+              setIsAddMenuOpen(true);
+            }}
+            className={`group pointer-events-auto flex flex-col items-center gap-2 cursor-pointer transition-all`}
+          >
+            <div className={`w-16 h-16 rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${
+              isDarkMode 
+                ? 'border-slate-600 bg-white/[0.02] group-hover:border-[#0091DA] group-hover:bg-[#0091DA]/10 text-slate-300 group-hover:text-[#0091DA]' 
+                : 'border-slate-400 bg-black/[0.02] group-hover:border-[#00338D] group-hover:bg-[#00338D]/10 text-slate-600 group-hover:text-[#00338D]'
+            }`}>
+              <Plus className="w-8 h-8 transition-transform group-hover:scale-110" />
             </div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-[#0091DA]">
-              BLANK CANVAS GENESIS
+            <span className={`text-xs font-medium tracking-tight transition-colors ${
+              isDarkMode ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-800'
+            }`}>
+              Add first step...
             </span>
-            <h3 className="text-base font-bold mt-1 tracking-tight">
-              {activeUseCase?.name || 'Untitled Workflow'}
-            </h3>
-            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-              Pristine canvas ready for orchestration. Drag a <strong>Foundation Model</strong>, <strong>Agent Core</strong>, or <strong>Skills</strong> from the left palette to begin.
-            </p>
-            <div className="mt-4 pt-3 border-t border-slate-700/30 flex items-center justify-center">
-              <button
-                onClick={() => {
-                  if (setIsInspectorOpen) setIsInspectorOpen(false);
-                  setIsAddMenuOpen(true);
-                }}
-                className="btn-tactile w-10 h-10 flex items-center justify-center rounded-full bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#0091DA]/50 shadow-md transition-all hover:scale-105 cursor-pointer"
-                title="Open Component Panel"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+          </button>
         </div>
       )}
     </div>
