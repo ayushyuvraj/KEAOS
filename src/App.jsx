@@ -180,7 +180,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       targetHandle: 'model-in',
       type: 'deletable',
       animated: false,
-      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#00338D', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-ingest-1',
@@ -200,7 +200,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       targetHandle: 'tools-in',
       type: 'deletable',
       animated: false,
-      style: { stroke: '#005EB8', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     // MCP Egress Gateway -> Agent Core
     {
@@ -211,7 +211,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       targetHandle: 'mcp-in',
       type: 'deletable',
       animated: false,
-      style: { stroke: '#EAAA00', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#00A3A6', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-policy',
@@ -221,7 +221,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       targetHandle: 'policy-in',
       type: 'deletable',
       animated: false,
-      style: { stroke: '#EC4899', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#470A68', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-memory',
@@ -231,7 +231,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       targetHandle: 'memory-in',
       type: 'deletable',
       animated: false,
-      style: { stroke: '#8B5CF6', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#483698', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-skill-1',
@@ -241,7 +241,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       targetHandle: 'skill-in',
       type: 'deletable',
       animated: false,
-      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#6D2077', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-output-1',
@@ -428,7 +428,7 @@ function getMultiAgentTriadNodesAndEdges() {
       target: 'agent-scribe',
       targetHandle: 'model-in',
       type: 'deletable',
-      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#00338D', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-scribe-tool',
@@ -437,7 +437,7 @@ function getMultiAgentTriadNodesAndEdges() {
       target: 'agent-scribe',
       targetHandle: 'tools-in',
       type: 'deletable',
-      style: { stroke: '#005EB8', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-scribe-policy',
@@ -446,7 +446,7 @@ function getMultiAgentTriadNodesAndEdges() {
       target: 'agent-scribe',
       targetHandle: 'policy-in',
       type: 'deletable',
-      style: { stroke: '#EC4899', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#470A68', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
 
     // Agent 2 Pillar Wires
@@ -457,7 +457,7 @@ function getMultiAgentTriadNodesAndEdges() {
       target: 'agent-orchestrator',
       targetHandle: 'model-in',
       type: 'deletable',
-      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#00338D', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-orchestrator-skill',
@@ -466,7 +466,7 @@ function getMultiAgentTriadNodesAndEdges() {
       target: 'agent-orchestrator',
       targetHandle: 'skill-in',
       type: 'deletable',
-      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#6D2077', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
 
     // Agent 3 Pillar Wires
@@ -477,7 +477,7 @@ function getMultiAgentTriadNodesAndEdges() {
       target: 'agent-auditor',
       targetHandle: 'model-in',
       type: 'deletable',
-      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#00338D', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-auditor-memory',
@@ -486,7 +486,7 @@ function getMultiAgentTriadNodesAndEdges() {
       target: 'agent-auditor',
       targetHandle: 'memory-in',
       type: 'deletable',
-      style: { stroke: '#8B5CF6', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#483698', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-auditor-skill',
@@ -495,7 +495,7 @@ function getMultiAgentTriadNodesAndEdges() {
       target: 'agent-auditor',
       targetHandle: 'skill-in',
       type: 'deletable',
-      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+      style: { stroke: '#6D2077', strokeWidth: 1.8, strokeDasharray: '4 4' }
     },
     {
       id: 'edge-auditor-output',

@@ -223,8 +223,8 @@ const NODE_CATEGORIES = [
     label: 'Skills',
     subtitle: 'Executive Summarizer, Action Items, Sentiment Analysis, Decisions Register',
     icon: Sparkles,
-    color: '#009A44', // Green
-    bgColor: '#E6F5EC',
+    color: '#6D2077', // Tech / Innovation Magenta
+    bgColor: '#F2E9F4',
     badge: 'SKILL',
     socketId: 'skill-in',
     items: PILLARS.skills?.items || []
@@ -245,8 +245,8 @@ const NODE_CATEGORIES = [
     label: 'Tools',
     subtitle: 'Audio Transcription (Whisper), Document Parser, Text Box Ingest',
     icon: Wrench,
-    color: '#005EB8', // Pacific Blue
-    bgColor: '#E6EFF8',
+    color: '#0091DA', // Pacific Blue
+    bgColor: '#E6F4FC',
     badge: 'TOOL',
     socketId: 'tool-in',
     items: PILLARS.tools?.items || []
@@ -267,8 +267,8 @@ const NODE_CATEGORIES = [
     label: 'Policies & Guardrails',
     subtitle: 'Real-time PII & salary redaction, enterprise NDA trade secret safety controls',
     icon: ShieldCheck,
-    color: '#6D2077', // Magenta
-    bgColor: '#F2E9F4',
+    color: '#470A68', // Leadership / Governance Deep Purple
+    bgColor: '#F3E8FA',
     badge: 'POLICY',
     socketId: 'policy-in',
     items: PILLARS.policies?.items || []

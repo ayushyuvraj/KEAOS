@@ -1443,16 +1443,24 @@ function CanvasInner({
         strokeDasharray = '5 4';
       } else if (targetNode?.type === 'outputNode' || sourceNode?.type === 'outputNode') {
         strokeColor = '#10B981'; // Emerald accent for data/output pipelines
-      } else if (sourceNode?.type === 'ingestionNode') {
-        strokeColor = '#0091DA'; // Pacific Blue for data ingestion stream
+      } else if (sourceNode?.type === 'ingestionNode' || params.targetHandle === 'tools-in' || params.targetHandle === 'tool-in' || sourceNode?.data?.pillarType === 'tools') {
+        strokeColor = '#0091DA'; // Pacific Blue for data ingestion stream & tools
       } else if (sourceNode?.type === 'agentCore' && targetNode?.type === 'agentCore') {
         strokeColor = '#6366F1'; // Electric Indigo for A2A Inter-Agent channel
         strokeWidth = 2.2;
         strokeDasharray = '6 4';
-      } else if (sourceNode?.data?.pillarType === 'gateway' && targetNode?.type === 'agentCore') {
-        strokeColor = '#EAAA00'; // Amber for Gateway to Agent Core
+      } else if (sourceNode?.data?.pillarType === 'model' || params.targetHandle === 'model-in') {
+        strokeColor = '#00338D'; // Royal Brand Blue for Model
+      } else if (sourceNode?.data?.pillarType === 'mcp' || sourceNode?.data?.pillarType === 'gateway' || params.targetHandle === 'mcp-in' || params.targetHandle === 'gateway-in') {
+        strokeColor = '#00A3A6'; // Cyber Teal for MCP & Gateway
         strokeWidth = 2.0;
         strokeDasharray = '4 4';
+      } else if (sourceNode?.data?.pillarType === 'policies' || params.targetHandle === 'policy-in' || params.targetHandle === 'policies-in') {
+        strokeColor = '#470A68'; // Leadership Deep Purple for Policies & Guardrails
+      } else if (sourceNode?.data?.pillarType === 'memory' || params.targetHandle === 'memory-in') {
+        strokeColor = '#483698'; // Transformation Violet for Memory
+      } else if (sourceNode?.data?.pillarType === 'skills' || params.targetHandle === 'skill-in' || params.targetHandle === 'skills-in') {
+        strokeColor = '#6D2077'; // Tech Magenta for Skills
       } else if (sourceNode?.type === 'deterministicNode' || targetNode?.type === 'deterministicNode') {
         strokeColor = '#EAAA00'; // Amber Gold for Deterministic Stream
         strokeWidth = 2.0;
@@ -1954,23 +1962,46 @@ function CanvasInner({
         (sourceNode?.data?.pillarType === 'model' && targetNode?.type === 'agentCore')
       )) || Boolean(isDetActive);
 
-      const activeColor = isDetEdge 
-        ? '#EAAA00' 
-        : sourceNode?.data?.pillarType 
-          ? (PILLARS[sourceNode.data.pillarType]?.color || '#0091DA') 
-          : (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') 
-            ? '#10B981' 
-            : '#0091DA';
+      // Resolve authoritative pillar color for this edge
+      let resolvedColor = '#0091DA';
+      const targetHandle = edge.targetHandle;
+      const sourceHandle = edge.sourceHandle;
+      const sourcePillar = sourceNode?.data?.pillarType;
+      const targetPillar = targetNode?.data?.pillarType;
+
+      if (sourceNode?.type === 'ingestionNode' || sourcePillar === 'tools' || targetHandle === 'tools-in' || targetHandle === 'tool-in' || sourceHandle === 'tools-in') {
+        resolvedColor = '#0091DA'; // Pacific Blue for tools and data ingestion stream
+      } else if (sourcePillar === 'model' || targetPillar === 'model' || targetHandle === 'model-in' || sourceHandle === 'model-in') {
+        resolvedColor = '#00338D'; // Royal Brand Blue for Model
+      } else if (sourcePillar === 'mcp' || sourcePillar === 'gateway' || targetPillar === 'mcp' || targetPillar === 'gateway' || targetHandle === 'mcp-in' || targetHandle === 'gateway-in' || sourceHandle === 'mcp-in') {
+        resolvedColor = '#00A3A6'; // Cyber Teal for MCP & Gateway
+      } else if (sourcePillar === 'policies' || targetPillar === 'policies' || targetHandle === 'policy-in' || targetHandle === 'policies-in' || sourceHandle === 'policy-in') {
+        resolvedColor = '#470A68'; // Leadership Deep Purple for Policies & Guardrails
+      } else if (sourcePillar === 'memory' || targetPillar === 'memory' || targetHandle === 'memory-in' || sourceHandle === 'memory-in') {
+        resolvedColor = '#483698'; // Transformation Violet for Memory
+      } else if (sourcePillar === 'skills' || targetPillar === 'skills' || targetHandle === 'skill-in' || targetHandle === 'skills-in' || sourceHandle === 'skill-in') {
+        resolvedColor = '#6D2077'; // Tech Magenta for Skills
+      } else if (isDetEdge) {
+        resolvedColor = '#EAAA00';
+      } else if (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') {
+        resolvedColor = '#10B981';
+      } else if (sourceNode?.type === 'agentCore' && targetNode?.type === 'agentCore') {
+        resolvedColor = '#6366F1';
+      } else if (edge.style?.stroke) {
+        resolvedColor = edge.style.stroke;
+      }
+
+      const activeColor = resolvedColor;
 
       return {
         ...edge,
         animated: isDeactivated ? false : Boolean(isEdgeStreaming),
         style: {
           ...edge.style,
-          stroke: isSourceActive ? activeColor : (isDeactivated ? deactivatedStroke : originalStroke),
+          stroke: isSourceActive ? activeColor : (isDeactivated ? deactivatedStroke : resolvedColor),
           strokeWidth: isSourceActive ? 3.4 : (isDeactivated ? 1.4 : (edge.style?.strokeWidth || 1.8)),
           strokeDasharray: isSourceActive ? '5 5' : (isDeactivated ? '3 3' : (edge.style?.strokeDasharray || '4 4')),
-          filter: isSourceActive ? `drop-shadow(0 0 8px ${activeColor})` : undefined,
+          filter: isSourceActive ? `drop-shadow(0 0 10px ${activeColor})` : undefined,
           opacity: isDeactivated ? 0.35 : 1,
           transition: 'stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease'
         },

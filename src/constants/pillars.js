@@ -98,9 +98,9 @@ export const PILLARS = {
     id: 'skills',
     label: 'Skills',
     socketId: 'skill-in',
-    color: '#009A44', // ESG / Sustainability Green
-    bgColor: '#E6F5EC',
-    borderColor: '#009A44',
+    color: '#6D2077', // Tech / Innovation Magenta
+    bgColor: '#F2E9F4',
+    borderColor: '#6D2077',
     badge: 'SKILL',
     description: 'Specialized behavioral reasoning capabilities',
     maxConnections: 10,
@@ -254,9 +254,9 @@ export const PILLARS = {
     id: 'policies',
     label: 'Policies & Guardrails',
     socketId: 'policy-in',
-    color: '#6D2077', // Tech / Regulatory Magenta
-    bgColor: '#F2E9F4',
-    borderColor: '#6D2077',
+    color: '#470A68', // Leadership / Governance Deep Purple
+    bgColor: '#F3E8FA',
+    borderColor: '#470A68',
     badge: 'POLICY',
     description: 'Compliance, PII redaction, and safety controls',
     maxConnections: 5,
@@ -336,9 +336,9 @@ export const PILLARS = {
     id: 'tools',
     label: 'Tools & Ingestion',
     socketId: 'tool-in',
-    color: '#005EB8', // Medium Blue
-    bgColor: '#E6EFF8',
-    borderColor: '#005EB8',
+    color: '#0091DA', // Pacific Blue
+    bgColor: '#E6F4FC',
+    borderColor: '#0091DA',
     badge: 'TOOL',
     description: 'Input processors, parsers, and custom utilities',
     maxConnections: 10,

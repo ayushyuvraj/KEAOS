@@ -448,7 +448,7 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* ============================================================ */}
         <div className="w-full flex items-center justify-between px-1.5 pt-0.5 pb-0 text-[8px] font-mono font-bold tracking-wider mt-0.5 -mb-0.5">
           <span className={`transition-colors ${hasPolicies ? 'text-[#470A68] dark:text-[#E879F9] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            GUARD
+            GUARDRAILS
           </span>
           <span className={`transition-colors ${hasMemory ? 'text-[#483698] dark:text-[#A78BFA] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             MEMORY

@@ -25,51 +25,23 @@ import {
 } from 'lucide-react';
 import { transcribeAudioUniversal, getProviderCredential } from '../../services/llmService';
 
-// Map file extension to human label and icon
+// Map file extension to human label and icon (all adhering to Tools Pacific Blue #0091DA)
 function getFileFormatMeta(fileName = '', mimeType = '') {
   const ext = fileName.split('.').pop().toLowerCase();
+  let Icon = FileText;
   if (['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac'].includes(ext) || mimeType.startsWith('audio/')) {
-    return {
-      type: 'audio',
-      label: ext.toUpperCase() || 'AUDIO',
-      color: '#0091DA', // Pacific Blue
-      bgColor: '#E6F4FC',
-      Icon: FileAudio
-    };
-  }
-  if (['csv', 'xlsx', 'xls'].includes(ext) || mimeType.includes('spreadsheet') || mimeType.includes('csv')) {
-    return {
-      type: 'spreadsheet',
-      label: ext.toUpperCase() || 'DATA',
-      color: '#009A44', // Green
-      bgColor: '#E6F5EC',
-      Icon: FileSpreadsheet
-    };
-  }
-  if (['json', 'yaml', 'yml'].includes(ext)) {
-    return {
-      type: 'code',
-      label: ext.toUpperCase(),
-      color: '#EAAA00', // Amber
-      bgColor: '#FDF7E6',
-      Icon: FileCode
-    };
-  }
-  if (['pdf', 'docx', 'doc', 'pptx'].includes(ext)) {
-    return {
-      type: 'document',
-      label: ext.toUpperCase(),
-      color: '#6D2077', // Magenta
-      bgColor: '#F2E9F4',
-      Icon: FileText
-    };
+    Icon = FileAudio;
+  } else if (['csv', 'xlsx', 'xls'].includes(ext) || mimeType.includes('spreadsheet') || mimeType.includes('csv')) {
+    Icon = FileSpreadsheet;
+  } else if (['json', 'yaml', 'yml'].includes(ext)) {
+    Icon = FileCode;
   }
   return {
-    type: 'text',
-    label: (ext || 'TXT').toUpperCase(),
-    color: '#00338D', // Navy
-    bgColor: '#E6EDF7',
-    Icon: FileText
+    type: ext || 'file',
+    label: (ext || 'DATA').toUpperCase(),
+    color: '#0091DA', // Tools Pacific Blue
+    bgColor: '#E6F4FC',
+    Icon
   };
 }
 
@@ -332,14 +304,14 @@ export default function IngestionNode({ id, data = {}, selected }) {
           onClick={() => setIsExpanded(true)}
           className={`w-15 h-15 rounded-full flex flex-col items-center justify-center border-2 transition-all duration-200 cursor-pointer shadow-lg relative group-hover:scale-105 active:scale-95 ${
             isExecuting || isProcessing
-              ? 'border-[#0091DA] ring-4 ring-[#0091DA]/30 animate-pulse shadow-[0_0_24px_rgba(0,145,218,0.7)] scale-105'
+              ? 'border-[#0091DA] ring-4 ring-[#0091DA]/40 animate-pulse shadow-[0_0_24px_rgba(0,145,218,0.85)] scale-105'
               : isReady
-                ? 'border-[#10B981] ring-2 ring-[#10B981]/40 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-                : 'border-amber-500/60 ring-2 ring-amber-500/20'
+                ? 'border-[#0091DA] ring-2 ring-[#0091DA]/30 shadow-[0_0_16px_rgba(0,145,218,0.3)]'
+                : 'border-[#0091DA]/70 ring-2 ring-[#0091DA]/20'
           } ${
             isDarkMode
-              ? 'bg-[#181920] text-white'
-              : 'bg-white text-slate-800'
+              ? 'bg-[#181920] text-white hover:border-[#0091DA]'
+              : 'bg-white text-slate-800 hover:border-[#0091DA]'
           } ${selected ? 'ring-4 ring-[#0091DA]' : ''}`}
         >
           {/* Bottom Socket: data-out (feeds directly downward to agent tools-in) */}
@@ -354,7 +326,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
               width: '10px',
               height: '10px',
               borderRadius: '2px',
-              backgroundColor: meta.color,
+              backgroundColor: '#0091DA',
               borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
               borderWidth: '2px',
               zIndex: 10
@@ -383,8 +355,8 @@ export default function IngestionNode({ id, data = {}, selected }) {
               isProcessing
                 ? 'bg-[#0091DA] animate-ping'
                 : isReady
-                  ? 'bg-[#10B981]'
-                  : 'bg-amber-500'
+                  ? 'bg-[#0091DA]'
+                  : 'bg-[#0091DA]/70'
             }`}
           />
 
@@ -393,8 +365,8 @@ export default function IngestionNode({ id, data = {}, selected }) {
             <Loader2 className="w-6 h-6 animate-spin text-[#0091DA]" />
           ) : (
             <IconComponent 
-              className="w-6 h-6 transition-transform group-hover:scale-110" 
-              style={{ color: meta.color }} 
+              className="w-6 h-6 transition-transform group-hover:scale-110 text-[#0091DA]" 
+              style={{ color: '#0091DA' }} 
             />
           )}
 
@@ -402,8 +374,8 @@ export default function IngestionNode({ id, data = {}, selected }) {
           <span 
             className="text-[7.5px] font-mono font-bold uppercase tracking-tight px-1 rounded-full mt-0.5"
             style={{ 
-              backgroundColor: `${meta.color}20`, 
-              color: meta.color 
+              backgroundColor: '#0091DA20', 
+              color: '#0091DA' 
             }}
           >
             {isReady ? meta.label : 'INGEST'}
@@ -426,9 +398,11 @@ export default function IngestionNode({ id, data = {}, selected }) {
         minHeight: '240px'
       }}
       className={`nowheel relative flex flex-col rounded-2xl border-2 transition-colors duration-200 shadow-2xl select-none morph-apple-motion ${
-        isDarkMode 
-          ? 'bg-[#14161F] border-[#2C3142] text-white shadow-[0_20px_50px_rgba(0,0,0,0.7)]' 
-          : 'bg-white border-[#CBD5E1] text-[#0B0F19] shadow-[0_16px_36px_rgba(0,30,80,0.12)]'
+        isExecuting || isProcessing
+          ? 'border-[#0091DA] ring-4 ring-[#0091DA]/40 shadow-[0_0_32px_rgba(0,145,218,0.6)]'
+          : isDarkMode 
+            ? 'bg-[#14161F] border-[#0091DA]/50 text-white shadow-[0_20px_50px_rgba(0,0,0,0.7)]' 
+            : 'bg-white border-[#0091DA]/50 text-[#0B0F19] shadow-[0_16px_36px_rgba(0,30,80,0.12)]'
       } ${selected ? 'ring-2 ring-[#0091DA]' : ''}`}>
       
       {/* Dynamic Boundary Resizer Controls */}
