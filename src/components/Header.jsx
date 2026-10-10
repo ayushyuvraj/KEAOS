@@ -1,18 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Layers, 
-  Play, 
-  FileCheck2, 
-  Code2, 
   PanelLeft, 
   Sun, 
   Moon,
-  Cpu,
-  Share2,
-  Bookmark,
   Edit3,
-  X,
-  Check
+  X
 } from 'lucide-react';
 
 import { FRAMEWORKS } from '../constants/frameworks';
@@ -23,13 +15,8 @@ export default function Header({
   activeUseCase,
   onUpdateUseCase,
   onSelectFramework,
-  hasApiKey,
-  configuredCount,
-  onOpenClusterModal,
   isSidebarClosed = false,
   onToggleSidebarClosed,
-  isSidebarCollapsed = false,
-  onToggleSidebarCollapsed,
   isDarkMode = true,
   onToggleTheme
 }) {
@@ -267,53 +254,8 @@ export default function Header({
         })}
       </div>
 
-      {/* Right: Minimal Actions & Status (Matching Reference Image) */}
-      <div className="flex items-center gap-3">
-        {/* Active/Inactive Live Status Pill */}
-        <div className="flex items-center gap-2 text-xs font-mono">
-          <span className="text-slate-400 text-[11px]">Active</span>
-          <span className={`w-2 h-2 rounded-full ${hasApiKey ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-        </div>
-
-        {/* Cluster Fleet Button */}
-        <button
-          onClick={onOpenClusterModal}
-          className={`p-1.5 rounded-lg border border-transparent transition-colors ${
-            isDarkMode 
-              ? 'text-slate-400 hover:text-white hover:bg-white/10' 
-              : 'text-slate-500 hover:text-black hover:bg-black/5'
-          }`}
-          title="Cluster Fleet Diagnostics"
-        >
-          <Cpu className="w-4 h-4" />
-        </button>
-
-        {/* Share Button */}
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(window.location.href);
-            alert('Workflow share link copied to clipboard!');
-          }}
-          className={`px-3 py-1 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 ${
-            isDarkMode 
-              ? 'bg-[#22242B] border-[#363944] text-slate-300 hover:text-white hover:bg-[#2A2C35]' 
-              : 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <Share2 className="w-3.5 h-3.5" />
-          <span>Share</span>
-        </button>
-
-        {/* Accent Save / Deploy Button (Coral accent matching reference) */}
-        <button
-          onClick={() => alert('Workflow snapshot saved successfully!')}
-          className="px-3.5 py-1 text-xs font-bold rounded-lg bg-[#FF6D5A] hover:bg-[#FF5A45] text-white shadow-sm transition-colors flex items-center gap-1.5"
-        >
-          <Bookmark className="w-3.5 h-3.5 fill-current" />
-          <span>Save</span>
-        </button>
-
-        {/* Light / Dark Mode Toggle */}
+      {/* Right: Clean & Minimal Theme Toggle */}
+      <div className="flex items-center gap-2">
         <button
           onClick={onToggleTheme}
           className={`p-1.5 rounded-lg border border-transparent transition-colors ${
