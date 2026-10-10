@@ -266,13 +266,14 @@ export default function IngestionNode({ id, data = {}, selected }) {
     }
   };
 
+  const isReady = localStatus === 'ready' && Boolean(fileContent);
+  const isProcessing = Boolean(isTranscribing || localStatus === 'transcribing');
+  const isExecuting = Boolean(data?.isExecuting);
+
   // -------------------------------------------------------------
   // 1. COLLAPSED CIRCULAR BADGE (Default Canvas Representation)
   // -------------------------------------------------------------
   if (!isExpanded) {
-    const isReady = localStatus === 'ready' && fileContent;
-    const isProcessing = isTranscribing || localStatus === 'transcribing';
-    const isExecuting = data.isExecuting;
 
     return (
       <div className="relative group flex flex-col items-center select-none">
