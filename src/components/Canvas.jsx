@@ -2316,40 +2316,16 @@ function CanvasInner({
             <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
               Pristine canvas ready for orchestration. Drag a <strong>Foundation Model</strong>, <strong>Agent Core</strong>, or <strong>Skills</strong> from the left palette to begin.
             </p>
-            <div className="mt-4 pt-3 border-t border-slate-700/30 flex items-center justify-center gap-2">
+            <div className="mt-4 pt-3 border-t border-slate-700/30 flex items-center justify-center">
               <button
                 onClick={() => {
-                  takeSnapshot();
-                  const agentNode = {
-                    id: `agent-core-${Date.now().toString().slice(-4)}`,
-                    type: 'agentCore',
-                    position: { x: 500, y: 250 },
-                    data: {
-                      name: activeUseCase?.name || 'Primary Agent',
-                      framework: activeUseCase?.framework || { id: 'google-adk', name: 'Google ADK' },
-                      prompt: 'You are an autonomous enterprise AI agent configured to execute domain workflows.',
-                      temperature: 0.2,
-                      topP: 0.95,
-                      attachedCounts: {
-                        model: 0,
-                        skills: 0,
-                        mcp: 0,
-                        tools: 0,
-                        gateway: 0,
-                        memory: 0,
-                        policies: 0,
-                        audit: 0,
-                        observability: 0,
-                        'cost-benefit': 0
-                      }
-                    }
-                  };
-                  setNodes([agentNode]);
+                  if (setIsInspectorOpen) setIsInspectorOpen(false);
+                  setIsAddMenuOpen(true);
                 }}
-                className="btn-tactile px-3.5 py-1.5 text-xs font-bold rounded-none bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#0091DA]/50 flex items-center gap-1.5 transition-all"
+                className="btn-tactile w-10 h-10 flex items-center justify-center rounded-full bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#0091DA]/50 shadow-md transition-all hover:scale-105 cursor-pointer"
+                title="Open Component Panel"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Insert Core Agent</span>
+                <Plus className="w-5 h-5" />
               </button>
             </div>
           </div>
