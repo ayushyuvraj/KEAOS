@@ -84,7 +84,7 @@ export default function AgentCoreNode({ id, data, selected }) {
             />
           </div>
           {/* Stem line down to chassis */}
-          <div className={`w-[1.5px] h-3 transition-colors ${
+          <div className={`w-[1.5px] h-1.5 transition-colors ${
             hasTools ? 'bg-[#0091DA]' : isDarkMode ? 'bg-[#0091DA]/50' : 'bg-[#0091DA]/60'
           }`} />
         </div>
@@ -146,7 +146,7 @@ export default function AgentCoreNode({ id, data, selected }) {
             )}
           </div>
           {/* Stem line down to chassis */}
-          <div className={`w-[1.5px] h-3 transition-colors ${
+          <div className={`w-[1.5px] h-1.5 transition-colors ${
             hasModel ? 'bg-[#00338D]' : isSharedBrain ? 'bg-[#483698]' : isDarkMode ? 'bg-[#005EB8]/50' : 'bg-[#00338D]/60'
           }`} />
         </div>
@@ -184,7 +184,7 @@ export default function AgentCoreNode({ id, data, selected }) {
             />
           </div>
           {/* Stem line down to chassis */}
-          <div className={`w-[1.5px] h-3 transition-colors ${
+          <div className={`w-[1.5px] h-1.5 transition-colors ${
             hasMcp ? 'bg-[#00A3A6]' : isDarkMode ? 'bg-[#00A3A6]/50' : 'bg-[#00A3A6]/60'
           }`} />
         </div>
@@ -208,7 +208,7 @@ export default function AgentCoreNode({ id, data, selected }) {
               ? 'border-[#0091DA] ring-2 ring-[#0091DA]'
               : isDarkMode ? 'hover:border-[#525769]' : 'hover:border-[#94A3B8]'
         }`}
-        style={{ padding: '6px 10px 8px 10px' }}
+        style={{ padding: '2px 10px 3px 10px' }}
       >
         {/* Floating Micro-Toolbar on Hover */}
         <NodeActionToolbar
@@ -232,7 +232,7 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* ============================================================ */}
         {/* TOP INTERNAL LABELS (TOOLS, MODEL, MCP)                      */}
         {/* ============================================================ */}
-        <div className="w-full flex items-center justify-between px-1 pt-0.5 pb-1 text-[8px] font-mono font-bold tracking-wider">
+        <div className="w-full flex items-center justify-between px-1.5 pt-0 pb-0.5 -mt-0.5 text-[8px] font-mono font-bold tracking-wider">
           <span className={`transition-colors ${hasTools ? 'text-[#0091DA] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             TOOLS
           </span>
@@ -446,7 +446,7 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* ============================================================ */}
         {/* BOTTOM INTERNAL LABELS (GUARD, MEMORY, SKILLS)               */}
         {/* ============================================================ */}
-        <div className="w-full flex items-center justify-between px-1 pt-1.5 pb-0.5 text-[8px] font-mono font-bold tracking-wider border-t border-slate-700/20 mt-1">
+        <div className="w-full flex items-center justify-between px-1.5 pt-0.5 pb-0 text-[8px] font-mono font-bold tracking-wider mt-0.5 -mb-0.5">
           <span className={`transition-colors ${hasPolicies ? 'text-[#470A68] dark:text-[#E879F9] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             GUARD
           </span>
@@ -467,7 +467,7 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* BOTTOM-LEFT: GUARD PORT (Position.Bottom) - Leadership Purple #470A68 */}
         <div className="flex flex-col items-center group/socket">
           {/* Stem line down from chassis */}
-          <div className={`w-[1.5px] h-3 transition-colors ${
+          <div className={`w-[1.5px] h-1.5 transition-colors ${
             hasPolicies ? 'bg-[#470A68]' : isDarkMode ? 'bg-[#470A68]/50' : 'bg-[#470A68]/60'
           }`} />
           <div
@@ -505,7 +505,7 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* BOTTOM-CENTER: MEMORY PORT (Position.Bottom) - Transformation Violet #483698 */}
         <div className="flex flex-col items-center group/socket">
           {/* Stem line down from chassis */}
-          <div className={`w-[1.5px] h-3 transition-colors ${
+          <div className={`w-[1.5px] h-1.5 transition-colors ${
             hasMemory ? 'bg-[#483698]' : isDarkMode ? 'bg-[#483698]/50' : 'bg-[#483698]/60'
           }`} />
           <div
@@ -543,7 +543,7 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* BOTTOM-RIGHT: SKILLS PORT (Position.Bottom) - Tech Magenta #6D2077 */}
         <div className="flex flex-col items-center group/socket">
           {/* Stem line down from chassis */}
-          <div className={`w-[1.5px] h-3 transition-colors ${
+          <div className={`w-[1.5px] h-1.5 transition-colors ${
             hasSkills ? 'bg-[#6D2077]' : isDarkMode ? 'bg-[#6D2077]/50' : 'bg-[#6D2077]/60'
           }`} />
           <div
