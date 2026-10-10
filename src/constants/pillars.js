@@ -198,9 +198,9 @@ export const PILLARS = {
     id: 'gateway',
     label: 'Gateway & Routing',
     socketId: 'gateway-in',
-    color: '#EAAA00', // Tax & Advisory Amber
-    bgColor: '#FDF7E6',
-    borderColor: '#EAAA00',
+    color: '#00A3A6', // Cyber Teal (MCP / Gateway)
+    bgColor: '#E6F6F6',
+    borderColor: '#00A3A6',
     badge: 'GATEWAY',
     description: 'Traffic ingress, rate limiting, and fallbacks',
     maxConnections: 5,

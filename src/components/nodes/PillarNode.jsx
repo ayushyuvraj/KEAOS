@@ -522,10 +522,10 @@ export default function PillarNode({ id, data, selected }) {
           ref={gatewayFlyoutRef}
           className={`nowheel nodrag nopan absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-96 p-3.5 shadow-2xl border rounded-none text-left animate-in fade-in duration-150 ${
             isDarkMode 
-              ? 'bg-[#0B0F19] border-[#EAAA00] text-white shadow-[0_16px_48px_rgba(0,0,0,0.9)]' 
-              : 'bg-white border-[#EAAA00] text-[#0B0F19] shadow-[0_16px_48px_rgba(0,30,80,0.2)]'
+              ? 'bg-[#0B0F19] border-[#00A3A6] text-white shadow-[0_16px_48px_rgba(0,0,0,0.9)]' 
+              : 'bg-white border-[#00A3A6] text-[#0B0F19] shadow-[0_16px_48px_rgba(0,30,80,0.2)]'
           }`}
-          style={{ borderTop: '4px solid #EAAA00' }}
+          style={{ borderTop: '4px solid #00A3A6' }}
           onClick={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
@@ -535,12 +535,12 @@ export default function PillarNode({ id, data, selected }) {
             isDarkMode ? 'border-slate-800' : 'border-slate-200'
           }`}>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-[#EAAA00] text-slate-900 flex items-center justify-center font-bold text-xs">
+              <div className="w-5 h-5 bg-[#00A3A6] text-white flex items-center justify-center font-bold text-xs">
                 <GitFork className="w-3 h-3" />
               </div>
               <div>
                 <span className={`text-[11px] font-mono font-bold uppercase tracking-wider block ${
-                  isDarkMode ? 'text-[#EAAA00]' : 'text-amber-700'
+                  isDarkMode ? 'text-[#00A3A6]' : 'text-[#00A3A6]'
                 }`}>
                   Gateway Control Plane
                 </span>
@@ -574,8 +574,8 @@ export default function PillarNode({ id, data, selected }) {
               onChange={(e) => setGatewaySearchQuery(e.target.value)}
               className={`w-full pl-8 pr-7 py-1.5 text-xs font-sans rounded-none transition-colors focus:outline-none ${
                 isDarkMode 
-                  ? 'bg-black/60 border border-slate-700/70 text-white placeholder:text-slate-500 focus:border-[#EAAA00]' 
-                  : 'bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#EAAA00] focus:bg-white'
+                  ? 'bg-black/60 border border-slate-700/70 text-white placeholder:text-slate-500 focus:border-[#00A3A6]' 
+                  : 'bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#00A3A6] focus:bg-white'
               }`}
             />
             {gatewaySearchQuery && (
@@ -905,7 +905,7 @@ export default function PillarNode({ id, data, selected }) {
           </div>
 
           <div className={`mt-2.5 pt-2 border-t flex items-center justify-between text-[9px] font-mono ${
-            isDarkMode ? 'border-slate-800 text-[#EAAA00]' : 'border-slate-200 text-amber-700'
+            isDarkMode ? 'border-slate-800 text-[#00A3A6]' : 'border-slate-200 text-[#00A3A6]'
           }`}>
             <div className="flex items-center gap-1">
               <GitFork className="w-3 h-3" />

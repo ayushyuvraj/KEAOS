@@ -230,17 +230,17 @@ export default function AgentCoreNode({ id, data, selected }) {
         />
 
         {/* ============================================================ */}
-        {/* TOP INTERNAL LABELS (TOOLS, MODEL, MCP)                      */}
+        {/* TOP INTERNAL LABELS (TOOLS, MODEL, GATEWAY/MCP)              */}
         {/* ============================================================ */}
         <div className="w-full flex items-center justify-between px-1.5 pt-0 pb-0.5 -mt-0.5 text-[8px] font-mono font-bold tracking-wider">
           <span className={`transition-colors ${hasTools ? 'text-[#0091DA] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             TOOLS
           </span>
-          <span className={`transition-colors ${hasModel ? 'text-[#005EB8] dark:text-[#38BDF8] font-extrabold' : isSharedBrain ? 'text-indigo-400 font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span className={`transition-colors ${hasModel ? 'text-[#00338D] dark:text-[#60A5FA] font-extrabold' : isSharedBrain ? 'text-indigo-400 font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             {hasModel ? 'MODEL' : isSharedBrain ? 'SHARED' : 'MODEL'}
           </span>
           <span className={`transition-colors ${hasMcp ? 'text-[#00A3A6] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            MCP
+            Gateway/MCP
           </span>
         </div>
 

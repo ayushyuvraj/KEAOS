@@ -278,8 +278,8 @@ const NODE_CATEGORIES = [
     label: 'Gateway',
     subtitle: 'Ingress rate limiters, token budget caps, circuit breakers & model fallback router',
     icon: GitFork,
-    color: '#EAAA00', // Amber
-    bgColor: '#FDF7E6',
+    color: '#00A3A6', // Cyber Teal
+    bgColor: '#E6F6F6',
     badge: 'GATEWAY',
     socketId: 'gateway-in',
     items: PILLARS.gateway?.items || []
