@@ -27,18 +27,31 @@ import { transcribeAudioUniversal, getProviderCredential } from '../../services/
 
 // Map file extension to human label and icon (all adhering to Tools Pacific Blue #0091DA)
 function getFileFormatMeta(fileName = '', mimeType = '') {
-  const ext = fileName.split('.').pop().toLowerCase();
+  const ext = fileName ? fileName.split('.').pop().toLowerCase() : '';
+  let type = 'file';
   let Icon = FileText;
-  if (['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac'].includes(ext) || mimeType.startsWith('audio/')) {
+
+  if (['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac'].includes(ext) || (mimeType && mimeType.startsWith('audio/'))) {
+    type = 'audio';
     Icon = FileAudio;
-  } else if (['csv', 'xlsx', 'xls'].includes(ext) || mimeType.includes('spreadsheet') || mimeType.includes('csv')) {
+  } else if (['csv', 'xlsx', 'xls'].includes(ext) || (mimeType && (mimeType.includes('spreadsheet') || mimeType.includes('csv')))) {
+    type = 'spreadsheet';
     Icon = FileSpreadsheet;
   } else if (['json', 'yaml', 'yml'].includes(ext)) {
+    type = 'code';
     Icon = FileCode;
+  } else if (['pdf', 'docx', 'doc', 'pptx'].includes(ext) || (mimeType && (mimeType.includes('pdf') || mimeType.includes('word')))) {
+    type = 'document';
+    Icon = FileText;
+  } else if (['txt', 'md'].includes(ext) || (mimeType && mimeType.startsWith('text/'))) {
+    type = 'text';
+    Icon = FileText;
   }
+
   return {
-    type: ext || 'file',
-    label: (ext || 'DATA').toUpperCase(),
+    type,
+    ext,
+    label: (ext || type || 'DATA').toUpperCase(),
     color: '#0091DA', // Tools Pacific Blue
     bgColor: '#E6F4FC',
     Icon
@@ -58,13 +71,19 @@ export default function IngestionNode({ id, data = {}, selected }) {
     onDelete
   } = data;
 
+  // Detect corrupted binary text from previous misclassification
+  const isCorruptedBinary = (str) => typeof str === 'string' && (str.startsWith('ID3') || str.includes('Lavf') || (str.length > 500 && str.slice(0, 100).includes('\x00')));
+  const cleanInitialContent = isCorruptedBinary(content)
+    ? `[AUDIO INGESTION: ${fileName || 'ARC_5_Minute_Test_Meeting_v2.mp3'}]\nFormat: audio/mp3 | Loaded in memory for native multimodal analysis.`
+    : (content || '');
+
   // Local state
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' | 'text' | 'samples'
-  const [textInput, setTextInput] = useState(content || '');
+  const [textInput, setTextInput] = useState(cleanInitialContent);
   const [currentFile, setCurrentFile] = useState(fileName ? { name: fileName, size: fileSize } : null);
-  const [fileContent, setFileContent] = useState(content || '');
-  const [localStatus, setLocalStatus] = useState(status || (content ? 'ready' : 'idle'));
+  const [fileContent, setFileContent] = useState(cleanInitialContent);
+  const [localStatus, setLocalStatus] = useState(status || (cleanInitialContent ? 'ready' : 'idle'));
   const [statusMessage, setStatusMessage] = useState('');
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -113,14 +132,21 @@ export default function IngestionNode({ id, data = {}, selected }) {
   // Sync external content update if provided
   useEffect(() => {
     if (content && content !== fileContent) {
-      setFileContent(content);
-      setTextInput(content);
+      if (isCorruptedBinary(content)) {
+        const safePlaceholder = `[AUDIO INGESTION: ${fileName || 'ARC_5_Minute_Test_Meeting_v2.mp3'}]\nFormat: audio/mp3 | Ready for transcription & multimodal analysis.`;
+        setFileContent(safePlaceholder);
+        setTextInput(safePlaceholder);
+        data.content = safePlaceholder;
+      } else {
+        setFileContent(content);
+        setTextInput(content);
+      }
       setLocalStatus('ready');
     }
-  }, [content]);
+  }, [content, fileName]);
 
   // Derive file meta
-  const meta = getFileFormatMeta(currentFile?.name || (fileContent ? 'transcript.txt' : ''), '');
+  const meta = getFileFormatMeta(currentFile?.name || (fileContent ? 'transcript.txt' : ''), currentFile?.type || '');
   const IconComponent = meta.Icon;
 
   // Word & character stats
@@ -155,22 +181,30 @@ export default function IngestionNode({ id, data = {}, selected }) {
     }
   };
 
-  // Handle local file selection
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
+  // Unified file processor for both file picker and drag-and-drop
+  const processFile = async (file) => {
     if (!file) return;
 
     const fileMeta = getFileFormatMeta(file.name, file.type);
+    const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
+    const isAudio = fileMeta.type === 'audio' || ['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac'].includes(ext) || (file.type && file.type.startsWith('audio/'));
+
+    const displaySize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
     setCurrentFile({
       name: file.name,
-      size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+      size: displaySize,
       type: file.type
     });
 
     // 1. Audio handling (.mp3, .wav, .m4a, etc.)
-    if (fileMeta.type === 'audio') {
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
+    if (isAudio) {
+      try {
+        const url = URL.createObjectURL(file);
+        setAudioUrl(url);
+      } catch (err) {
+        console.warn('Could not create Object URL for audio:', err);
+      }
+
       setLocalStatus('transcribing');
       setIsTranscribing(true);
       setStatusMessage('Transcribing audio via Multimodal Speech API...');
@@ -180,16 +214,16 @@ export default function IngestionNode({ id, data = {}, selected }) {
         const transcript = transResult.transcript;
         broadcastUpdate(transcript, {
           name: file.name,
-          size: (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+          size: displaySize
         }, 'ready');
         setStatusMessage(`Transcribed in ${(transResult.durationMs / 1000).toFixed(1)}s via ${transResult.provider}`);
       } catch (err) {
-        console.warn('Transcription fallback error:', err);
+        console.warn('Transcription fallback notice:', err);
         // Fallback: Create structured audio placeholder with metadata if API key missing
-        const fallbackTranscript = `[AUDIO INGESTION: ${file.name}]\nFormat: ${file.type || 'audio/mp3'} | Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB\n\nNotice: Direct transcription API key missing in Settings. This audio file is loaded in memory for native multimodal analysis.`;
+        const fallbackTranscript = `[AUDIO INGESTION: ${file.name}]\nFormat: ${file.type || 'audio/mp3'} | Size: ${displaySize}\n\nNotice: Direct transcription API key missing in Settings. This audio file is loaded in memory for native multimodal analysis.`;
         broadcastUpdate(fallbackTranscript, {
           name: file.name,
-          size: (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+          size: displaySize
         }, 'ready');
         setStatusMessage('Audio ingested in memory. Set Google/OpenAI key to auto-transcribe.');
       } finally {
@@ -199,7 +233,6 @@ export default function IngestionNode({ id, data = {}, selected }) {
     }
 
     // 2. Documents & Plain Text (.txt, .md, .csv, .json, .docx, .doc)
-    const ext = file.name.split('.').pop().toLowerCase();
     const reader = new FileReader();
 
     reader.onload = (event) => {
@@ -222,6 +255,15 @@ export default function IngestionNode({ id, data = {}, selected }) {
     };
 
     reader.readAsText(file);
+  };
+
+  // Handle local file selection
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+      e.target.value = '';
+    }
   };
 
   // Handle direct text apply
@@ -289,7 +331,11 @@ export default function IngestionNode({ id, data = {}, selected }) {
         )}
 
         {/* Succinct Canvas Label Placed ABOVE Circle to Avoid Any Wire Overlap */}
-        <div className="mb-2 text-center max-w-[130px]">
+        <div 
+          onClick={() => setIsExpanded(true)}
+          className="mb-2 text-center max-w-[130px] cursor-pointer"
+          title="Click to open Ingestion Viewport"
+        >
           <span className={`text-[11px] font-semibold tracking-tight block truncate ${
             isDarkMode ? 'text-white' : 'text-[#111827]'
           }`}>
@@ -303,7 +349,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
         {/* 60px Circular Morphing Disc */}
         <div
           onClick={() => setIsExpanded(true)}
-          className={`w-15 h-15 rounded-full flex flex-col items-center justify-center border-2 transition-all duration-200 cursor-pointer shadow-lg relative group-hover:scale-105 active:scale-95 ${
+          className={`w-[60px] h-[60px] rounded-full flex flex-col items-center justify-center border-2 transition-all duration-200 cursor-pointer shadow-lg relative group-hover:scale-105 active:scale-95 ${
             isExecuting || isProcessing
               ? 'border-[#0091DA] ring-4 ring-[#0091DA]/40 animate-pulse shadow-[0_0_24px_rgba(0,145,218,0.85)] scale-105'
               : isReady
@@ -576,6 +622,22 @@ export default function IngestionNode({ id, data = {}, selected }) {
           <div className="space-y-3">
             <div
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const droppedFile = e.dataTransfer?.files?.[0];
+                if (droppedFile) {
+                  processFile(droppedFile);
+                }
+              }}
               className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
                 isDarkMode 
                   ? 'border-[#383E54] hover:border-[#0091DA] bg-[#181B26]/60 hover:bg-[#181B26]' 

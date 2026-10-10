@@ -35,6 +35,18 @@ export async function testGeminiApiKey(apiKey) {
   }
 }
 
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  const chunkSize = 0x8000;
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return btoa(binary);
+}
+
 /**
  * Real Multimodal Audio Transcription via Gemini 2.0 Flash
  */
@@ -44,11 +56,9 @@ export async function transcribeAudioReal(audioFile, apiKey) {
 
   const ai = new GoogleGenAI({ apiKey: key });
 
-  // Convert File to base64
+  // Convert File to base64 safely
   const arrayBuffer = await audioFile.arrayBuffer();
-  const base64Data = btoa(
-    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-  );
+  const base64Data = arrayBufferToBase64(arrayBuffer);
 
   const mimeType = audioFile.type || 'audio/mp3';
 

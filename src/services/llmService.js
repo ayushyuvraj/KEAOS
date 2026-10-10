@@ -1181,6 +1181,21 @@ export async function executeUniversalChat({
 }
 
 /**
+ * Fast chunked ArrayBuffer to Base64 encoder (safe for multi-megabyte audio files)
+ */
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  const chunkSize = 0x8000; // 32KB chunks to prevent stack limits
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return btoa(binary);
+}
+
+/**
  * Universal Multi-LLM Audio Transcription
  * Uses Google Gemini 2.0 Flash Multimodal Audio or OpenAI Whisper
  */
@@ -1194,9 +1209,7 @@ export async function transcribeAudioUniversal(audioFile) {
   if (googleKey) {
     const ai = new GoogleGenAI({ apiKey: googleKey });
     const arrayBuffer = await audioFile.arrayBuffer();
-    const base64Audio = btoa(
-      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
+    const base64Audio = arrayBufferToBase64(arrayBuffer);
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash',
