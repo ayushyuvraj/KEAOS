@@ -59,7 +59,15 @@ export default function Header({
         </button>
 
         <div className="flex items-center gap-2 text-xs font-medium">
-          <span className={`font-mono text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Workspace</span>
+          <button
+            onClick={() => setViewMode && setViewMode('home')}
+            className={`font-mono text-[11px] hover:underline cursor-pointer transition-colors ${
+              isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-black'
+            }`}
+            title="Go to Home Workflows"
+          >
+            Workspace
+          </button>
           <span className={isDarkMode ? 'text-slate-600' : 'text-slate-400'}>/</span>
           <span className={`font-semibold tracking-tight ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             {activeUseCase?.name || 'My Agent Workflow'}

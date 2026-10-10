@@ -18,6 +18,14 @@ import AuditExplorerView from './components/screens/AuditExplorerView';
 import ObservabilityView from './components/screens/ObservabilityView';
 import PillarCatalogView from './components/screens/PillarCatalogView';
 import FrontendShowroomView from './components/screens/FrontendShowroomView';
+import HomeWorkflowsView from './components/screens/HomeWorkflowsView';
+import {
+  loadAllWorkflows,
+  getActiveWorkflowId,
+  setActiveWorkflowId,
+  getWorkflowById,
+  saveWorkflow
+} from './utils/workflowStorage';
 import { getActiveApiKey } from './services/geminiService';
 import { getAllConfiguredProviders } from './services/llmService';
 import { FRAMEWORKS } from './constants/frameworks';
@@ -531,9 +539,13 @@ export default function App() {
   // Load persistent UI state & Canvas topology state from localStorage
   const initialUI = useMemo(() => loadUIState(), []);
   const initialCanvas = useMemo(() => loadCanvasState(), []);
+  const initialActiveWorkflow = useMemo(() => {
+    const activeId = getActiveWorkflowId();
+    return getWorkflowById(activeId);
+  }, []);
 
   const [activeUseCase, setActiveUseCase] = useState(
-    initialCanvas?.activeUseCase || {
+    initialActiveWorkflow?.activeUseCase || initialCanvas?.activeUseCase || {
       id: 'uc-autonomous-agent',
       name: 'Enterprise Autonomous Agent',
       description: 'Adaptive multi-pillar workflow orchestration with live MCP tools, model reasoning, and zero-trust policies.',
@@ -553,7 +565,9 @@ export default function App() {
 
   // Sanitize initial nodes to ensure legacy saved meeting prompts seamlessly upgrade
   const sanitizedInitialNodes = useMemo(() => {
-    const rawNodes = initialCanvas?.nodes || initialNodes;
+    const rawNodes = initialActiveWorkflow?.nodes !== undefined
+      ? initialActiveWorkflow.nodes
+      : (initialCanvas?.nodes || initialNodes);
     return (rawNodes || []).map(n => {
       let nodeData = n.data || {};
       let prompt = nodeData.prompt;
@@ -608,7 +622,11 @@ export default function App() {
 
   // Nodes & Edges (restore from persistent storage if available)
   const [nodes, setNodes, onNodesChange] = useNodesState(sanitizedInitialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialCanvas?.edges || initialEdges);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(
+    initialActiveWorkflow?.edges !== undefined
+      ? initialActiveWorkflow.edges
+      : (initialCanvas?.edges || initialEdges)
+  );
 
   // Persistent UI States
   const [isDarkMode, setIsDarkModeState] = useState(initialUI.isDarkMode);
@@ -748,9 +766,27 @@ export default function App() {
     });
   }, [setNodes]);
 
-  // Save Canvas Topology automatically to localStorage on change
+  // Save Canvas Topology automatically to localStorage on change and sync to active workflow record
   useEffect(() => {
     saveCanvasState({ nodes, edges, activeUseCase });
+    const activeId = getActiveWorkflowId();
+    if (activeId) {
+      const currentWf = getWorkflowById(activeId);
+      if (currentWf) {
+        saveWorkflow({
+          ...currentWf,
+          name: activeUseCase?.name || currentWf.name,
+          description: activeUseCase?.description || currentWf.description,
+          framework: activeUseCase?.framework || currentWf.framework,
+          nodes,
+          edges,
+          activeUseCase: {
+            ...currentWf.activeUseCase,
+            ...activeUseCase
+          }
+        });
+      }
+    }
   }, [nodes, edges, activeUseCase]);
 
   // Synchronize document dark class & propagate isDarkMode to node datasets
@@ -1304,6 +1340,38 @@ export default function App() {
     }
   };
 
+  // Handle Open Saved Workflow from Home Dashboard
+  const handleOpenWorkflow = useCallback((workflow) => {
+    if (!workflow) return;
+    setActiveWorkflowId(workflow.id);
+    setActiveUseCase(workflow.activeUseCase || {
+      id: `uc-${workflow.id}`,
+      name: workflow.name,
+      description: workflow.description,
+      framework: workflow.framework,
+      agent: {
+        prompt: 'You are an autonomous enterprise AI agent configured to execute domain workflows.',
+        temperature: 0.2,
+        topP: 0.95
+      }
+    });
+    setNodes(workflow.nodes || []);
+    setEdges(workflow.edges || []);
+    setSelectedNode(null);
+    setViewMode('canvas');
+  }, [setViewMode, setNodes, setEdges, setSelectedNode]);
+
+  // Handle Create Blank Workflow from Home Dashboard
+  const handleCreateBlankWorkflow = useCallback((newWf) => {
+    if (!newWf) return;
+    setActiveWorkflowId(newWf.id);
+    setActiveUseCase(newWf.activeUseCase);
+    setNodes([]);
+    setEdges([]);
+    setSelectedNode(null);
+    setViewMode('canvas');
+  }, [setViewMode, setNodes, setEdges, setSelectedNode]);
+
   return (
     <div className={`w-screen h-screen flex ${isDarkMode ? 'bg-[#0D111A] text-white' : 'bg-[#F5F6F8] text-[#0B0F19]'} overflow-hidden select-none transition-colors duration-200`}>
       {/* Unified Left Collapsible Sidebar */}
@@ -1500,6 +1568,15 @@ export default function App() {
             <ObservabilityView
               activeUseCase={activeUseCase}
               nodes={nodes}
+            />
+          )}
+
+          {viewMode === 'home' && (
+            <HomeWorkflowsView
+              activeUseCase={activeUseCase}
+              onOpenWorkflow={handleOpenWorkflow}
+              onCreateBlankWorkflow={handleCreateBlankWorkflow}
+              isDarkMode={isDarkMode}
             />
           )}
 

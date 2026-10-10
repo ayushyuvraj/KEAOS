@@ -15,7 +15,7 @@ import {
   PanelLeftOpen,
   Rocket,
   CheckCircle2,
-  Lock,
+  Home,
   X
 } from 'lucide-react';
 
@@ -39,8 +39,8 @@ export default function Sidebar({
     return null;
   }
 
-
   const tabs = [
+    { id: 'home', label: 'Home', icon: Home },
     { id: 'canvas', label: 'Visual Canvas & Run', icon: Layers },
     { id: 'audit', label: 'Audit Ledger', icon: ShieldCheck },
     { id: 'observability', label: 'Observability', icon: Activity },

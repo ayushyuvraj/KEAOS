@@ -2295,6 +2295,66 @@ function CanvasInner({
           style={{ backgroundColor: isDarkMode ? '#16171B' : '#F9FAFB' }}
         />
       </ReactFlow>
+
+      {/* Blank Canvas Genesis Watermark & Starter Guide */}
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-10 select-none p-4">
+          <div className={`p-8 max-w-md text-center border rounded-none pointer-events-auto shadow-2xl backdrop-blur-md transition-all ${
+            isDarkMode 
+              ? 'bg-[#18191E]/95 border-[#2E313C] text-white' 
+              : 'bg-white/95 border-[#CBD5E1] text-[#0B0F19]'
+          }`}>
+            <div className="w-12 h-12 mx-auto mb-3.5 flex items-center justify-center rounded-full bg-[#00338D]/20 border border-[#0091DA]/40 text-[#0091DA]">
+              <Layers className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-[#0091DA]">
+              BLANK CANVAS GENESIS
+            </span>
+            <h3 className="text-base font-bold mt-1 tracking-tight">
+              {activeUseCase?.name || 'Untitled Workflow'}
+            </h3>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              Pristine canvas ready for orchestration. Drag a <strong>Foundation Model</strong>, <strong>Agent Core</strong>, or <strong>Skills</strong> from the left palette to begin.
+            </p>
+            <div className="mt-4 pt-3 border-t border-slate-700/30 flex items-center justify-center gap-2">
+              <button
+                onClick={() => {
+                  takeSnapshot();
+                  const agentNode = {
+                    id: `agent-core-${Date.now().toString().slice(-4)}`,
+                    type: 'agentCore',
+                    position: { x: 500, y: 250 },
+                    data: {
+                      name: activeUseCase?.name || 'Primary Agent',
+                      framework: activeUseCase?.framework || { id: 'google-adk', name: 'Google ADK' },
+                      prompt: 'You are an autonomous enterprise AI agent configured to execute domain workflows.',
+                      temperature: 0.2,
+                      topP: 0.95,
+                      attachedCounts: {
+                        model: 0,
+                        skills: 0,
+                        mcp: 0,
+                        tools: 0,
+                        gateway: 0,
+                        memory: 0,
+                        policies: 0,
+                        audit: 0,
+                        observability: 0,
+                        'cost-benefit': 0
+                      }
+                    }
+                  };
+                  setNodes([agentNode]);
+                }}
+                className="btn-tactile px-3.5 py-1.5 text-xs font-bold rounded-none bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#0091DA]/50 flex items-center gap-1.5 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Insert Core Agent</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
