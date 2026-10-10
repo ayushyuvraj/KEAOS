@@ -50,14 +50,6 @@ export default function AgentCoreNode({ id, data, selected }) {
     window.dispatchEvent(new CustomEvent('keaos:spawn-downstream-agent', { detail: { sourceAgentId: id } }));
   };
 
-  const handleOpenCatalogAction = (e) => {
-    if (e && e.stopPropagation) e.stopPropagation();
-    if (onOpenCatalog) {
-      onOpenCatalog();
-    }
-    window.dispatchEvent(new CustomEvent('keaos:open-node-catalog', { detail: { agentId: id } }));
-  };
-
   return (
     <div className="relative group select-none flex flex-col items-center">
       {/* ============================================================ */}
@@ -376,27 +368,6 @@ export default function AgentCoreNode({ id, data, selected }) {
         </div>
 
         {/* ============================================================ */}
-        {/* CENTER (+) ACTION BUTTON: Opens Right Node Catalog Panel     */}
-        {/* ============================================================ */}
-        <div className="flex items-center justify-center pt-0.5 pb-1.5">
-          <button
-            type="button"
-            onClick={handleOpenCatalogAction}
-            className={`group/plus relative px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-bold flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow-xs active:scale-95 ${
-              isDarkMode
-                ? 'bg-[#181B24] hover:bg-[#0091DA]/20 border-[#383C4A] hover:border-[#0091DA] text-slate-300 hover:text-[#38BDF8]'
-                : 'bg-slate-50 hover:bg-blue-50 border-[#CBD5E1] hover:border-[#005EB8] text-slate-700 hover:text-[#00338D]'
-            }`}
-            title="Add Block / Capability (Opens Node Catalog Panel on the right)"
-          >
-            <span className="w-3.5 h-3.5 rounded-full bg-[#0091DA] text-white flex items-center justify-center transition-transform group-hover/plus:rotate-90">
-              <Plus className="w-2.5 h-2.5 stroke-[3]" />
-            </span>
-            <span className="tracking-wider uppercase text-[8px]">Add Block</span>
-          </button>
-        </div>
-
-        {/* ============================================================ */}
         {/* ROBOT VISOR / DIGITAL FACE SCREEN                            */}
         {/* ============================================================ */}
         <div className="relative w-full h-[40px] rounded-xl bg-[#0B0E14] border border-[#2B303C] flex items-center justify-center px-3 overflow-hidden shadow-inner">
@@ -475,14 +446,6 @@ export default function AgentCoreNode({ id, data, selected }) {
             }`}>
               {isDeactivated ? 'Deactivated' : (framework?.name || 'Workflow Orchestrator')}
             </span>
-
-            {hasUpstreamA2A && !isDeactivated && (
-              <span className={`text-[7px] font-mono font-bold px-1 py-0.2 rounded border ${
-                isDarkMode ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-              }`} title="Receives input stream from upstream agent">
-                A2A IN
-              </span>
-            )}
 
             {/* Compact Chat Symbol */}
             <button
