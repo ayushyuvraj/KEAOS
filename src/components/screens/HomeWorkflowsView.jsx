@@ -58,6 +58,11 @@ export default function HomeWorkflowsView({
   const fileInputRef = useRef(null);
   const activeWorkflowId = useMemo(() => getActiveWorkflowId(), [workflows]);
 
+  // Synchronize workflows registry when activeUseCase changes
+  useEffect(() => {
+    setWorkflows(loadAllWorkflows());
+  }, [activeUseCase]);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);

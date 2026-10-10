@@ -1401,6 +1401,12 @@ export default function App() {
           viewMode={viewMode}
           setViewMode={setViewMode}
           activeUseCase={activeUseCase}
+          onUpdateUseCase={(updates) => {
+            setActiveUseCase((prev) => ({
+              ...prev,
+              ...updates
+            }));
+          }}
           onSelectFramework={handleSelectFramework}
           hasApiKey={hasApiKey}
           configuredCount={configuredCount}
