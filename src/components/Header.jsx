@@ -63,6 +63,8 @@ export default function Header({
     { id: 'code', label: 'Export Code' }
   ];
 
+  const isWorkflowView = ['canvas', 'evaluation', 'frontend', 'code'].includes(viewMode);
+
   return (
     <header className={`relative h-12 px-5 flex items-center justify-between shrink-0 z-20 select-none border-b transition-colors ${
       isDarkMode 
@@ -224,29 +226,31 @@ export default function Header({
         </div>
       </div>
 
-      {/* Center: Exactly Centered Segmented Pill View Switcher */}
-      <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center p-0.5 rounded-xl border pointer-events-auto z-10 ${
-        isDarkMode ? 'bg-[#121316] border-[#2E313B]' : 'bg-gray-100 border-gray-200'
-      }`}>
-        {tabs.map((tab) => {
-          const isActive = viewMode === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setViewMode && setViewMode(tab.id)}
-              className={`px-3.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                isActive
-                  ? isDarkMode 
-                    ? 'bg-[#292C36] text-white shadow-sm' 
-                    : 'bg-white text-black shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Center: Exactly Centered Segmented Pill View Switcher (Only visible when inside a workflow workspace) */}
+      {isWorkflowView && (
+        <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center p-0.5 rounded-xl border pointer-events-auto z-10 ${
+          isDarkMode ? 'bg-[#121316] border-[#2E313B]' : 'bg-gray-100 border-gray-200'
+        }`}>
+          {tabs.map((tab) => {
+            const isActive = viewMode === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setViewMode && setViewMode(tab.id)}
+                className={`px-3.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                  isActive
+                    ? isDarkMode 
+                      ? 'bg-[#292C36] text-white shadow-sm' 
+                      : 'bg-white text-black shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Right: Clean & Minimal Theme Toggle */}
       <div className="flex items-center gap-2 ml-auto">
