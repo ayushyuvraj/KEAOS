@@ -620,7 +620,9 @@ export default function App() {
   const [isInspectorOpen, setIsInspectorOpenState] = useState(initialUI.isInspectorOpen);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isEnforcerActive, setIsEnforcerActiveState] = useState(initialUI.isEnforcerActive);
-  const [viewMode, setViewModeState] = useState(initialUI.viewMode);
+  const [viewMode, setViewModeState] = useState(
+    initialUI.viewMode === 'simulator' ? 'frontend' : initialUI.viewMode
+  );
 
   // Wrapped State Setters with localStorage Persistence
   const setIsDarkMode = useCallback((val) => {
