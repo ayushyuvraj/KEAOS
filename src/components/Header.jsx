@@ -64,13 +64,13 @@ export default function Header({
   ];
 
   return (
-    <header className={`h-12 px-5 flex items-center justify-between shrink-0 z-20 select-none border-b transition-colors ${
+    <header className={`relative h-12 px-5 flex items-center justify-between shrink-0 z-20 select-none border-b transition-colors ${
       isDarkMode 
         ? 'bg-[#18191E] border-[#2B2D36] text-white' 
         : 'bg-white border-[#E5E7EB] text-[#111827]'
     }`}>
       {/* Left: Minimal Breadcrumb & Framework Target Selector */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onToggleSidebarClosed}
           className={`p-1.5 rounded-lg border transition-colors ${
@@ -224,8 +224,8 @@ export default function Header({
         </div>
       </div>
 
-      {/* Center: Segmented Pill View Switcher (Matching Reference Image) */}
-      <div className={`flex items-center p-0.5 rounded-xl border ${
+      {/* Center: Exactly Centered Segmented Pill View Switcher */}
+      <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center p-0.5 rounded-xl border pointer-events-auto z-10 ${
         isDarkMode ? 'bg-[#121316] border-[#2E313B]' : 'bg-gray-100 border-gray-200'
       }`}>
         {tabs.map((tab) => {
@@ -249,7 +249,7 @@ export default function Header({
       </div>
 
       {/* Right: Clean & Minimal Theme Toggle */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ml-auto">
         <button
           onClick={onToggleTheme}
           className={`p-1.5 rounded-lg border border-transparent transition-colors ${
