@@ -6,14 +6,13 @@ import {
   Code2, 
   ShieldCheck, 
   Activity, 
-  Cpu, 
   Key, 
-  PanelLeftClose,
-  PanelLeftOpen,
-  Rocket,
-  CheckCircle2,
-  Home,
-  X
+  PanelLeftClose, 
+  PanelLeftOpen, 
+  Rocket, 
+  CheckCircle2, 
+  Home, 
+  X 
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -39,8 +38,7 @@ export default function Sidebar({
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'audit', label: 'Audit Ledger', icon: ShieldCheck },
-    { id: 'observability', label: 'Observability', icon: Activity },
-    { id: 'catalog', label: 'Pillars Catalog', icon: Cpu }
+    { id: 'observability', label: 'Observability', icon: Activity }
   ];
 
   if (isCollapsed) {

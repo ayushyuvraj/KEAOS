@@ -16,7 +16,6 @@ import ConnectMcpModal from './components/ConnectMcpModal';
 import DeterministicWorkspaceModal from './components/DeterministicWorkspaceModal';
 import AuditExplorerView from './components/screens/AuditExplorerView';
 import ObservabilityView from './components/screens/ObservabilityView';
-import PillarCatalogView from './components/screens/PillarCatalogView';
 import FrontendShowroomView from './components/screens/FrontendShowroomView';
 import HomeWorkflowsView from './components/screens/HomeWorkflowsView';
 import {
@@ -1622,12 +1621,6 @@ export default function App() {
               onOpenWorkflow={handleOpenWorkflow}
               onCreateBlankWorkflow={handleCreateBlankWorkflow}
               isDarkMode={isDarkMode}
-            />
-          )}
-
-          {viewMode === 'catalog' && (
-            <PillarCatalogView
-              onSelectPillar={() => setViewMode('canvas')}
             />
           )}
         </main>
