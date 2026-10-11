@@ -236,12 +236,11 @@ export default function DeterministicNode({ id, data, selected }) {
     }));
   };
 
-  // Clicking the box selects it or opens Inspector
-  const handleBoxClick = () => {
+  // Double-clicking the box opens Inspector / Sandbox
+  const handleBoxDoubleClick = (e) => {
+    e.stopPropagation();
     if (data?.onOpenInspector) {
       data.onOpenInspector(id);
-    } else {
-      window.dispatchEvent(new CustomEvent('keaos:select-node', { detail: { nodeId: id } }));
     }
   };
 
@@ -255,7 +254,7 @@ export default function DeterministicNode({ id, data, selected }) {
 
   return (
     <div
-      onClick={handleBoxClick}
+      onDoubleClick={handleBoxDoubleClick}
       className={`relative group w-[228px] h-[136px] rounded-[18px] border-2 transition-all duration-200 select-none flex flex-col justify-between cursor-pointer shadow-xl ${
         isDeactivated
           ? 'opacity-45 grayscale border-dashed border-slate-500 bg-slate-800/40'

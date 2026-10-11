@@ -1434,10 +1434,6 @@ export default function App() {
                   onEdgesChange={onEdgesChange}
                   onSelectNode={(node) => {
                     setSelectedNode(node);
-                    if (node) {
-                      setIsInspectorOpen(true);
-                      setIsAddMenuOpen(false);
-                    }
                   }}
                   invalidConnectionAlert={invalidConnectionAlert}
                   setInvalidConnectionAlert={setInvalidConnectionAlert}

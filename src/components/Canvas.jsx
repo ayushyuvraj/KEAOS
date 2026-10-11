@@ -2289,8 +2289,11 @@ function CanvasInner({
         fitViewOptions={{ padding: 0.2 }}
         onNodeClick={(_, node) => {
           if (isConnectingRef.current) return;
-          setIsAddMenuOpen(false);
           if (onSelectNode) onSelectNode(node);
+        }}
+        onNodeDoubleClick={(_, node) => {
+          if (isConnectingRef.current) return;
+          handleOpenInspector(node.id);
         }}
         onNodeMouseEnter={(_, node) => {
           hoveredNodeIdRef.current = node.id;

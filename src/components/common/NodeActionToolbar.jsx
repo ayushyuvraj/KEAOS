@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Play, 
   Power, 
   Trash2, 
   MoreHorizontal, 
@@ -116,21 +115,23 @@ export default function NodeActionToolbar({
           </button>
         )}
 
-        {/* 1. Play / Execute Step */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onExecute) onExecute(nodeId);
-          }}
-          className={`p-1 rounded-md transition-all ${
-            isDarkMode
-              ? 'hover:text-[#0091DA] hover:bg-white/10 active:scale-95'
-              : 'hover:text-[#005EB8] hover:bg-black/5 active:scale-95'
-          }`}
-          title="Execute step"
-        >
-          <Play className="w-3 h-3 fill-current" />
-        </button>
+        {/* 1. Open Inspector / Configure */}
+        {onOpenInspector && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenInspector(nodeId);
+            }}
+            className={`p-1 rounded-md transition-all ${
+              isDarkMode
+                ? 'hover:text-[#0091DA] hover:bg-white/10 active:scale-95 text-slate-400'
+                : 'hover:text-[#005EB8] hover:bg-black/5 active:scale-95 text-slate-500'
+            }`}
+            title={`Configure & Inspect ${nodeName || 'node'}`}
+          >
+            <Sliders className="w-3 h-3 stroke-[2.2]" />
+          </button>
+        )}
 
         {/* 2. Deactivate / Activate Toggle */}
         <button
@@ -263,22 +264,6 @@ export default function NodeActionToolbar({
                 </button>
               )}
 
-              {/* Execute Step */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsMenuOpen(false);
-                  if (onExecute) onExecute(nodeId);
-                }}
-                className={`w-full px-3 py-1.5 flex items-center justify-between text-left transition-colors ${
-                  isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Play className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Execute step</span>
-                </div>
-              </button>
 
               {/* Deactivate / Activate */}
               <button
