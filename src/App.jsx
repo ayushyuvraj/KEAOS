@@ -1581,6 +1581,8 @@ export default function App() {
               setThresholds={setThresholds}
               evaluationResult={evaluationResult}
               setEvaluationResult={setEvaluationResult}
+              setViewMode={setViewMode}
+              isDarkMode={isDarkMode}
             />
           )}
 

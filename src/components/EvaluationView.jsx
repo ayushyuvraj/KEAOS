@@ -1,424 +1,762 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileCheck2, 
   Upload, 
   Play, 
   CheckCircle2, 
   XCircle, 
-  Sliders,
-  ShieldCheck,
-  Activity,
-  Award,
-  Lock,
-  ArrowRight,
-  TrendingUp,
-  Cpu
+  Sliders, 
+  ShieldCheck, 
+  Activity, 
+  Award, 
+  Lock, 
+  ArrowRight, 
+  TrendingUp, 
+  Cpu, 
+  Plus, 
+  Database, 
+  Eye, 
+  Layers, 
+  Clock, 
+  GitCompare, 
+  Check, 
+  Trash2, 
+  AlertTriangle 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { INITIAL_GOLDEN_DATASET } from '../constants/goldenDataset';
+import { 
+  INITIAL_GOLDEN_DATASET, 
+  DEFAULT_EVALUATORS, 
+  DEFAULT_THRESHOLDS,
+  loadWorkflowEvalSuite,
+  saveWorkflowEvalSuite 
+} from '../constants/goldenDataset';
 import { runEvaluationSuite } from '../utils/evaluationEngine';
+import CustomEvaluatorModal from './evaluations/CustomEvaluatorModal';
+import DatasetDrawer from './evaluations/DatasetDrawer';
+import TestCaseDetailModal from './evaluations/TestCaseDetailModal';
+import ModelRoiCard from './evaluations/ModelRoiCard';
 
 export default function EvaluationView({
   activeUseCase,
-  nodes,
+  nodes = [],
   thresholds,
   setThresholds,
   evaluationResult,
-  setEvaluationResult
+  setEvaluationResult,
+  setViewMode = null,
+  isDarkMode = true
 }) {
-  const [dataset, setDataset] = useState(INITIAL_GOLDEN_DATASET);
+  const workflowId = activeUseCase?.id || 'default';
+
+  // Load persisted workflow-scoped suite
+  const [suite, setSuite] = useState(() => loadWorkflowEvalSuite(workflowId));
+  const [dataset, setDataset] = useState(suite.dataset || INITIAL_GOLDEN_DATASET);
+  const [evaluators, setEvaluators] = useState(suite.evaluators || DEFAULT_EVALUATORS);
+  const [runs, setRuns] = useState(suite.runs || []);
+  const [selectedRunId, setSelectedRunId] = useState(null);
+  const [compareRunId, setCompareRunId] = useState(null);
+  const [isCompareMode, setIsCompareMode] = useState(false);
+
+  // Modals & Drawers
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [isDatasetDrawerOpen, setIsDatasetDrawerOpen] = useState(false);
+  const [selectedTestCaseForDetail, setSelectedTestCaseForDetail] = useState(null);
+
+  // Runtime State
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalProgress, setEvalProgress] = useState(null);
 
-  const attachedPillars = nodes
-    .filter(n => n.type === 'pillar')
-    .map(n => ({
-      id: n.data.toolId || n.id,
-      name: n.data.name,
-      type: n.data.pillarType,
-      config: n.data.config
-    }));
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const parsed = JSON.parse(event.target.result);
-        if (Array.isArray(parsed)) {
-          setDataset(parsed);
-        } else {
-          alert('Uploaded JSON must be an array of test cases.');
-        }
-      } catch (err) {
-        alert('Invalid JSON format. Please upload a valid JSON array.');
+  // Sync state whenever workflow changes
+  useEffect(() => {
+    const loaded = loadWorkflowEvalSuite(workflowId);
+    setSuite(loaded);
+    setDataset(loaded.dataset || INITIAL_GOLDEN_DATASET);
+    setEvaluators(loaded.evaluators || DEFAULT_EVALUATORS);
+    setRuns(loaded.runs || []);
+    if (loaded.runs && loaded.runs.length > 0) {
+      setSelectedRunId(loaded.runs[loaded.runs.length - 1].id);
+      if (loaded.runs.length > 1) {
+        setCompareRunId(loaded.runs[loaded.runs.length - 2].id);
       }
+    }
+  }, [workflowId]);
+
+  // Persist suite updates
+  const persistSuite = (updatedFields) => {
+    const updated = {
+      ...suite,
+      dataset,
+      evaluators,
+      runs,
+      thresholds,
+      ...updatedFields
     };
-    reader.readAsText(file);
+    setSuite(updated);
+    saveWorkflowEvalSuite(workflowId, updated);
   };
 
+  const attachedPillars = useMemo(() => {
+    return nodes
+      .filter(n => n.type === 'pillar')
+      .map(n => ({
+        id: n.data.toolId || n.id,
+        name: n.data.name,
+        type: n.data.pillarType,
+        config: n.data.config
+      }));
+  }, [nodes]);
+
+  // Current active run and compare run
+  const activeRun = useMemo(() => {
+    if (selectedRunId) {
+      const found = runs.find(r => r.id === selectedRunId);
+      if (found) return found;
+    }
+    if (runs.length > 0) return runs[runs.length - 1];
+    return evaluationResult || null;
+  }, [runs, selectedRunId, evaluationResult]);
+
+  const compareRun = useMemo(() => {
+    if (!isCompareMode || !compareRunId) return null;
+    return runs.find(r => r.id === compareRunId) || null;
+  }, [runs, compareRunId, isCompareMode]);
+
+  // Handle Evaluator Toggle / Update
+  const handleToggleEvaluator = (evalId) => {
+    const updated = evaluators.map(ev => 
+      ev.id === evalId ? { ...ev, isActive: !ev.isActive } : ev
+    );
+    setEvaluators(updated);
+    persistSuite({ evaluators: updated });
+  };
+
+  const handleUpdateEvaluatorThreshold = (evalId, newThreshold) => {
+    const updated = evaluators.map(ev => 
+      ev.id === evalId ? { ...ev, threshold: Number(newThreshold) } : ev
+    );
+    setEvaluators(updated);
+    persistSuite({ evaluators: updated });
+  };
+
+  const handleDeleteEvaluator = (evalId) => {
+    const updated = evaluators.filter(ev => ev.id !== evalId);
+    setEvaluators(updated);
+    persistSuite({ evaluators: updated });
+  };
+
+  const handleSaveCustomEvaluator = (newEvaluator) => {
+    const updated = [...evaluators, newEvaluator];
+    setEvaluators(updated);
+    persistSuite({ evaluators: updated });
+  };
+
+  const handleUpdateDataset = (newDataset) => {
+    setDataset(newDataset);
+    persistSuite({ dataset: newDataset });
+  };
+
+  // Run Benchmark Suite
   const handleRunEvaluation = async () => {
     setIsEvaluating(true);
-    setEvalProgress({ current: 0, total: dataset.length, currentCase: 'Initializing...' });
+    setEvalProgress({ current: 0, total: dataset.length, currentCase: 'Initializing runner...' });
 
-    const result = await runEvaluationSuite({
-      dataset,
-      thresholds,
-      frameworkId: activeUseCase.framework.id,
-      agentPrompt: activeUseCase.agent.prompt,
-      attachedPillars,
-      onProgress: (prog) => {
-        setEvalProgress(prog);
-      }
-    });
+    const nextRunNumber = runs.length + 1;
 
-    setEvaluationResult(result);
-    setIsEvaluating(false);
-    setEvalProgress(null);
-
-    if (result.allPassed) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
+    try {
+      const runResult = await runEvaluationSuite({
+        dataset,
+        thresholds,
+        evaluators,
+        frameworkId: activeUseCase?.framework?.id || 'google-adk',
+        agentPrompt: activeUseCase?.agent?.prompt || '',
+        attachedPillars,
+        laborRateHr: suite.laborRateHr ?? 75,
+        reviewMinsSaved: suite.reviewMinsSaved ?? 15,
+        runNumber: nextRunNumber,
+        onProgress: (prog) => {
+          setEvalProgress(prog);
+        }
       });
+
+      const updatedRuns = [...runs, runResult];
+      setRuns(updatedRuns);
+      setSelectedRunId(runResult.id);
+      if (updatedRuns.length > 1) {
+        setCompareRunId(updatedRuns[updatedRuns.length - 2].id);
+      }
+      setEvaluationResult(runResult);
+      persistSuite({ runs: updatedRuns });
+
+      if (runResult.allPassed) {
+        confetti({
+          particleCount: 80,
+          spread: 60,
+          origin: { y: 0.55 }
+        });
+      }
+    } catch (err) {
+      alert(`Evaluation failed: ${err.message}`);
+    } finally {
+      setIsEvaluating(false);
+      setEvalProgress(null);
     }
   };
 
   return (
-    <div className="flex-1 h-full bg-[#F5F6F8] flex overflow-hidden select-none">
-      {/* Left Column: Golden Dataset & Threshold Settings */}
-      <div className="w-[450px] h-full border-r border-[#CBD5E1] flex flex-col shrink-0 bg-[#FFFFFF] shadow-sm">
-        {/* Header */}
-        <div className="p-4 border-b border-[#E0E0E0] bg-[#F8F9FB]">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-bold text-[#0B0F19] tracking-tight">Golden Dataset & Criteria</h3>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E6EDF7] text-[#00338D] border border-[#00338D]/20 font-bold">
-              GOVERNANCE
+    <div className={`flex-1 h-full flex flex-col overflow-hidden select-none ${
+      isDarkMode ? 'bg-[#0D111A] text-white' : 'bg-[#F5F6F8] text-[#0B0F19]'
+    }`}>
+      {/* Institutional Sub-Header: Active Workflow, Runs History & Roundtrip Action */}
+      <div className={`h-11 px-5 border-b flex items-center justify-between shrink-0 ${
+        isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-[#FFFFFF] border-[#E0E0E0]'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#00338D]/20 text-[#0091DA] border border-[#00338D]/30">
+              ALIGNMENT LAB
+            </span>
+            <span className={`text-xs font-bold tracking-tight ${
+              isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+            }`}>
+              {activeUseCase?.name || 'Enterprise Autonomous Agent'}
             </span>
           </div>
-          <p className="text-xs text-slate-500">
-            Upload verified ground truth transcripts and set alignment thresholds.
-          </p>
-        </div>
 
-        {/* Dataset Upload Area */}
-        <div className="p-4 border-b border-[#E0E0E0] space-y-3 bg-[#FFFFFF]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#0B0F19] tracking-tight">Benchmark Golden Dataset</span>
-            <span className="text-[11px] font-mono font-bold text-[#00338D]">{dataset.length} cases active</span>
-          </div>
-
-          <div className="p-3 border border-[#CBD5E1] bg-[#F8F9FB] flex items-center justify-between shadow-inner">
-            <div className="flex items-center gap-2.5">
-              <Upload className="w-4 h-4 text-[#00338D]" />
-              <div>
-                <span className="text-xs font-bold text-[#0B0F19] block tracking-tight">Upload Dataset File</span>
-                <span className="text-[10px] text-slate-500 font-mono">Supports .json, .jsonl</span>
+          {runs.length > 0 && (
+            <div className={`flex items-center gap-2 pl-3 border-l ${
+              isDarkMode ? 'border-white/10' : 'border-slate-300'
+            }`}>
+              <span className={`text-[10px] font-mono ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Run History:</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto max-w-md">
+                {runs.map((r) => {
+                  const isSelected = r.id === (activeRun?.id || selectedRunId);
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => setSelectedRunId(r.id)}
+                      className={`px-2 py-0.5 text-[10px] font-mono font-bold border transition-colors ${
+                        isSelected
+                          ? 'bg-[#00338D] border-[#0091DA] text-white'
+                          : (isDarkMode ? 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-white' : 'bg-slate-100 border-slate-300 text-slate-700 hover:text-black')
+                      }`}
+                    >
+                      Run #{r.runNumber} ({r.aggregates?.overallMatchRate ?? r.aggregates?.faithfulness}%)
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <input
-              type="file"
-              accept=".json,.jsonl"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="dataset-upload-input"
-            />
-            <label
-              htmlFor="dataset-upload-input"
-              className="btn-tactile px-3 py-1.5 bg-[#FFFFFF] hover:bg-[#E6EDF7] text-xs font-bold text-[#00338D] border border-[#00338D] cursor-pointer transition-colors rounded-none shadow-sm"
+          )}
+        </div>
+
+        {/* Right Sub-Header Controls */}
+        <div className="flex items-center gap-2.5">
+          {runs.length > 1 && (
+            <button
+              onClick={() => setIsCompareMode(!isCompareMode)}
+              className={`px-2.5 py-1 text-xs font-mono font-bold border flex items-center gap-1.5 transition-colors ${
+                isCompareMode
+                  ? 'bg-[#0091DA]/20 border-[#0091DA] text-[#0091DA]'
+                  : (isDarkMode ? 'border-slate-600 text-slate-400 hover:text-white' : 'border-slate-300 text-slate-600 hover:text-black')
+              }`}
+              title="Compare current run side-by-side with previous run"
             >
-              Browse
-            </label>
-          </div>
-        </div>
+              <GitCompare className="w-3.5 h-3.5" />
+              <span>{isCompareMode ? 'Exit Diff View' : 'Compare with Run #1'}</span>
+            </button>
+          )}
 
-        {/* Threshold Configuration Form */}
-        <div className="p-4 flex-1 overflow-y-auto space-y-4 bg-[#FFFFFF]">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#0B0F19] font-mono">
-            <Sliders className="w-3.5 h-3.5 text-[#00338D]" />
-            <span>Pass/Fail Alignment Thresholds</span>
-          </div>
-
-          {/* Slider 1: Faithfulness */}
-          <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1] space-y-2">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-[#0B0F19]">Min Summary Faithfulness</span>
-              <span className="font-mono font-bold text-[#009A44]">{thresholds.minFaithfulness}%</span>
-            </div>
-            <input
-              type="range"
-              min="50"
-              max="100"
-              value={thresholds.minFaithfulness}
-              onChange={(e) => setThresholds({ ...thresholds, minFaithfulness: Number(e.target.value) })}
-              className="w-full accent-[#009A44] cursor-pointer"
-            />
-            <p className="text-[10px] text-slate-500">Hallucination check against source meeting transcript.</p>
-          </div>
-
-          {/* Slider 2: Action Item F1 */}
-          <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1] space-y-2">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-[#0B0F19]">Min Action Item F1 Score</span>
-              <span className="font-mono font-bold text-[#00A3A6]">{thresholds.minActionItemF1}%</span>
-            </div>
-            <input
-              type="range"
-              min="50"
-              max="100"
-              value={thresholds.minActionItemF1}
-              onChange={(e) => setThresholds({ ...thresholds, minActionItemF1: Number(e.target.value) })}
-              className="w-full accent-[#00A3A6] cursor-pointer"
-            />
-            <p className="text-[10px] text-slate-500">Precision & recall on Assignee, Task, and Deadline extraction.</p>
-          </div>
-
-          {/* Slider 3: PII Redaction */}
-          <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1] space-y-2">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-[#0B0F19]">PII Redaction Compliance</span>
-              <span className="font-mono font-bold text-[#6D2077]">{thresholds.minPiiCompliance}%</span>
-            </div>
-            <input
-              type="range"
-              min="70"
-              max="100"
-              value={thresholds.minPiiCompliance}
-              onChange={(e) => setThresholds({ ...thresholds, minPiiCompliance: Number(e.target.value) })}
-              className="w-full accent-[#6D2077] cursor-pointer"
-            />
-            <p className="text-[10px] text-slate-500">Redaction rate on compensation, phone numbers, and secrets.</p>
-          </div>
-
-          {/* Max Latency */}
-          <div className="p-3 bg-[#F8F9FB] border border-[#CBD5E1] flex justify-between items-center text-xs">
-            <span className="font-bold text-[#0B0F19]">Max Latency Budget</span>
-            <span className="font-mono font-bold text-[#EAAA00]">{thresholds.maxLatencySec}s</span>
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <div className="p-4 border-t border-[#CBD5E1] bg-[#F8F9FB]">
+          {/* Primary Roundtrip CTA: Tune on Canvas */}
           <button
-            onClick={handleRunEvaluation}
-            disabled={isEvaluating}
-            className="btn-tactile w-full py-3 bg-[#00338D] hover:bg-[#005EB8] disabled:bg-slate-400 text-white font-bold text-xs flex items-center justify-center gap-2 rounded-none shadow-sm transition-all"
+            onClick={() => {
+              if (setViewMode) setViewMode('canvas');
+            }}
+            className="btn-tactile px-3.5 py-1 bg-[#001E50] hover:bg-[#00338D] text-white text-xs font-bold font-mono border border-[#0091DA]/40 flex items-center gap-1.5 shadow-sm transition-colors"
+            title="Switch to visual graph to adjust models, prompts, skills, or policies"
           >
-            {isEvaluating ? (
-              <>
-                <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                <span>Evaluating Cases ({evalProgress?.current || 0}/{evalProgress?.total || dataset.length})...</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 fill-white" />
-                <span>Run Benchmark & Alignment Suite</span>
-              </>
-            )}
+            <Sliders className="w-3.5 h-3.5 text-[#0091DA]" />
+            <span>Tune on Canvas ↗</span>
           </button>
         </div>
       </div>
 
-      {/* Right Column: Benchmark Results or Pre-Evaluation Rubric */}
-      <div className="flex-1 h-full overflow-y-auto p-6 space-y-6">
-        {evaluationResult ? (
-          <div className="space-y-6">
-            {/* Gate Decision Banner */}
-            <div className={`p-6 border-t-4 shadow-sm text-white flex items-center justify-between ${
-              evaluationResult.allPassed
-                ? 'bg-[#001E50] border-[#009A44]'
-                : 'bg-[#001E50] border-[#6D2077]'
+      {/* 2-Column Main Workspace */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Column (w-96): Dataset & Evaluator Pointers */}
+        <div className={`w-96 h-full border-r flex flex-col shrink-0 ${
+          isDarkMode ? 'bg-[#0F131D] border-[#222736]' : 'bg-[#FFFFFF] border-[#CBD5E1]'
+        }`}>
+          {/* Section 1: Golden Dataset Ingestion */}
+          <div className={`p-4 border-b space-y-2.5 ${isDarkMode ? 'border-[#222736]' : 'border-[#E0E0E0]'}`}>
+            <div className="flex items-center justify-between">
+              <span className={`text-xs font-bold uppercase font-mono tracking-tight ${
+                isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+              }`}>
+                Golden Benchmark Dataset
+              </span>
+              <span className="text-[11px] font-mono font-bold text-[#0091DA]">
+                {dataset.length} cases loaded
+              </span>
+            </div>
+
+            <div className={`p-2.5 border flex items-center justify-between ${
+              isDarkMode ? 'bg-[#141824] border-[#222736]' : 'bg-[#F8F9FB] border-[#E0E0E0]'
             }`}>
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 flex items-center justify-center shadow-inner ${
-                  evaluationResult.allPassed ? 'bg-[#009A44] text-white' : 'bg-[#6D2077] text-white'
-                }`}>
-                  {evaluationResult.allPassed ? (
-                    <CheckCircle2 className="w-7 h-7" />
-                  ) : (
-                    <XCircle className="w-7 h-7" />
-                  )}
-                </div>
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-[#0091DA]" />
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#0091DA] font-mono">
-                    Alignment Gatekeeper Decision
+                  <span className={`text-xs font-bold block ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                    Ground Truth Ledger
                   </span>
-                  <h3 className="text-lg font-bold text-white tracking-tight mt-0.5">
-                    {evaluationResult.allPassed
-                      ? 'PASS: Certified for Production Deployment'
-                      : 'FAIL: Alignment Standards Not Met'}
-                  </h3>
-                  <p className="text-xs text-slate-300 mt-1">
-                    {evaluationResult.allPassed
-                      ? 'All golden dataset test cases met or exceeded your institutional threshold SLAs.'
-                      : 'One or more test cases violated fidelity, PII compliance, or latency thresholds.'}
-                  </p>
+                  <span className={`text-[10px] font-mono ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Multi-scenario fixtures
+                  </span>
                 </div>
               </div>
-
-              <div className="text-right">
-                <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${
-                  evaluationResult.allPassed
-                    ? 'bg-[#009A44] text-white'
-                    : 'bg-[#6D2077] text-white'
-                }`}>
-                  {evaluationResult.aggregates.passedCases} / {evaluationResult.aggregates.totalCases} PASSED
-                </span>
-              </div>
-            </div>
-
-            {/* Aggregate Scorecards */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="p-4 bg-[#FFFFFF] border border-[#CBD5E1] shadow-sm">
-                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">Avg Faithfulness</span>
-                <span className="text-2xl font-extrabold text-[#009A44] font-mono block mt-1">
-                  {evaluationResult.aggregates.faithfulness}%
-                </span>
-                <span className="text-[10px] text-slate-500 mt-1 block">Target: {thresholds.minFaithfulness}%</span>
-              </div>
-
-              <div className="p-4 bg-[#FFFFFF] border border-[#CBD5E1] shadow-sm">
-                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">Action Item F1</span>
-                <span className="text-2xl font-extrabold text-[#00A3A6] font-mono block mt-1">
-                  {evaluationResult.aggregates.actionItemF1}%
-                </span>
-                <span className="text-[10px] text-slate-500 mt-1 block">Target: {thresholds.minActionItemF1}%</span>
-              </div>
-
-              <div className="p-4 bg-[#FFFFFF] border border-[#CBD5E1] shadow-sm">
-                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">PII Redaction</span>
-                <span className="text-2xl font-extrabold text-[#6D2077] font-mono block mt-1">
-                  {evaluationResult.aggregates.piiCompliance}%
-                </span>
-                <span className="text-[10px] text-slate-500 mt-1 block">Target: {thresholds.minPiiCompliance}%</span>
-              </div>
-
-              <div className="p-4 bg-[#FFFFFF] border border-[#CBD5E1] shadow-sm">
-                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">Avg Latency</span>
-                <span className="text-2xl font-extrabold text-[#001E50] font-mono block mt-1">
-                  {evaluationResult.aggregates.avgLatencySec}s
-                </span>
-                <span className="text-[10px] text-slate-500 mt-1 block">Budget: {thresholds.maxLatencySec}s</span>
-              </div>
-            </div>
-
-            {/* Test Case Breakdown Table */}
-            <div className="bg-[#FFFFFF] border border-[#CBD5E1] shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-[#E0E0E0] bg-[#F8F9FB] flex items-center justify-between">
-                <h4 className="text-xs font-bold text-[#0B0F19] tracking-tight uppercase font-mono">
-                  Ground Truth Test Case Ledger
-                </h4>
-                <span className="text-xs font-mono text-slate-500">{dataset.length} Evaluations</span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-[#F8F9FB] border-b border-[#CBD5E1] text-[10px] font-mono font-bold text-slate-600">
-                      <th className="py-2.5 px-3">Case ID</th>
-                      <th className="py-2.5 px-3">Test Scenario</th>
-                      <th className="py-2.5 px-3">Faithfulness</th>
-                      <th className="py-2.5 px-3">Action F1</th>
-                      <th className="py-2.5 px-3">PII Redact</th>
-                      <th className="py-2.5 px-3">Latency</th>
-                      <th className="py-2.5 px-3">Gate Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E0E0E0]">
-                    {(evaluationResult.caseResults || evaluationResult.results || []).map((res, idx) => (
-                      <tr key={idx} className="hover:bg-[#F8F9FB] transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-[#00338D]">{res.caseId}</td>
-                        <td className="py-3 px-3 text-[#0B0F19] font-medium">{res.name}</td>
-                        <td className="py-3 px-3 font-mono font-bold text-[#009A44]">{res.faithfulness}%</td>
-                        <td className="py-3 px-3 font-mono font-bold text-[#00A3A6]">{res.actionItemF1}%</td>
-                        <td className="py-3 px-3 font-mono font-bold text-[#6D2077]">{res.piiRate}%</td>
-                        <td className="py-3 px-3 font-mono text-slate-500">{res.latencySec}s</td>
-                        <td className="py-3 px-3">
-                          <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-full ${
-                            res.passed
-                              ? 'bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30'
-                              : 'bg-[#F2E9F4] text-[#6D2077] border border-[#6D2077]/30'
-                          }`}>
-                            {res.passed ? 'PASSED' : 'FAILED'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <button
+                onClick={() => setIsDatasetDrawerOpen(true)}
+                className="btn-tactile px-2.5 py-1 border border-[#00338D] hover:bg-[#00338D] text-xs font-bold text-white transition-colors"
+              >
+                Manage
+              </button>
             </div>
           </div>
-        ) : (
-          /* Institutional Pre-Evaluation Benchmark Specification (NO EMPTY VOID!) */
-          <div className="space-y-6">
-            <div className="p-5 bg-[#FFFFFF] border border-[#CBD5E1] shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-[#E0E0E0] pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-[#00338D] text-white flex items-center justify-center shadow-inner">
-                    <FileCheck2 className="w-5 h-5 text-white" />
+
+          {/* Section 2: Active Evaluators & Threshold Pointers */}
+          <div className="p-4 flex-1 overflow-y-auto space-y-3">
+            <div className="flex items-center justify-between">
+              <span className={`text-xs font-bold uppercase font-mono tracking-tight ${
+                isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+              }`}>
+                Evaluator Pointers ({evaluators.filter(e => e.isActive !== false).length})
+              </span>
+              <button
+                onClick={() => setIsCustomModalOpen(true)}
+                className="text-xs font-bold font-mono text-[#0091DA] hover:underline flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Evaluator</span>
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {evaluators.map((ev) => {
+                const isActive = ev.isActive !== false;
+                return (
+                  <div
+                    key={ev.id}
+                    className={`p-3 border transition-all ${
+                      isActive 
+                        ? (isDarkMode ? 'bg-[#141824] border-[#222736]' : 'bg-[#F8F9FB] border-[#CBD5E1]')
+                        : (isDarkMode ? 'opacity-50 bg-transparent border-dashed border-slate-700' : 'opacity-50 bg-slate-100 border-dashed border-slate-300')
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <button
+                          onClick={() => handleToggleEvaluator(ev.id)}
+                          className={`w-3.5 h-3.5 border flex items-center justify-center shrink-0 ${
+                            isActive ? 'bg-[#00338D] border-[#0091DA]' : 'border-slate-400'
+                          }`}
+                        >
+                          {isActive && <Check className="w-2.5 h-2.5 text-white" />}
+                        </button>
+                        <span className={`text-xs font-bold truncate ${
+                          isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                        }`} title={ev.name}>
+                          {ev.shortName || ev.name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {ev.isHardGate && (
+                          <span className="text-[9px] font-mono px-1 py-0.2 bg-[#001E50] text-[#0091DA] border border-[#0091DA]/30 font-bold">
+                            HARD GATE
+                          </span>
+                        )}
+                        <span className="text-xs font-mono font-bold text-[#009A44]">
+                          {ev.type === 'latency-sla' ? `${ev.threshold}s` : `${ev.threshold}%`}
+                        </span>
+                        {ev.category === 'custom' && (
+                          <button
+                            onClick={() => handleDeleteEvaluator(ev.id)}
+                            className="text-slate-400 hover:text-red-500 p-0.5 ml-1"
+                            title="Remove custom evaluator"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isActive && (
+                      <div className="pt-1">
+                        <input
+                          type="range"
+                          min={ev.type === 'latency-sla' ? 1.0 : 50}
+                          max={ev.type === 'latency-sla' ? 10.0 : 100}
+                          step={ev.type === 'latency-sla' ? 0.2 : 1}
+                          value={ev.threshold}
+                          onChange={(e) => handleUpdateEvaluatorThreshold(ev.id, e.target.value)}
+                          className="w-full accent-[#0091DA] cursor-pointer h-1"
+                        />
+                        <p className={`text-[10px] mt-1 leading-snug truncate ${
+                          isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                        }`}>
+                          {ev.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 3: Primary CTA Execute Benchmark */}
+          <div className={`p-4 border-t ${
+            isDarkMode ? 'bg-[#141824] border-[#222736]' : 'bg-[#F8F9FB] border-[#E0E0E0]'
+          }`}>
+            <button
+              onClick={handleRunEvaluation}
+              disabled={isEvaluating}
+              className="btn-tactile w-full py-3 bg-[#00338D] hover:bg-[#005EB8] disabled:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 rounded-none shadow-sm transition-all"
+            >
+              {isEvaluating ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse delay-75" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse delay-150" />
+                  </div>
+                  <span className="font-mono">
+                    Benchmarking ({evalProgress?.current || 0}/{evalProgress?.total || dataset.length})...
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>Execute Benchmark (Run #{runs.length + 1})</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Right Main Column: Results, Scorecards, ROI & Ledger */}
+        <div className="flex-1 h-full overflow-y-auto p-6 space-y-6">
+          {activeRun ? (
+            <div className="space-y-6">
+              {/* Gate Decision Banner */}
+              <div className={`p-5 border-t-4 shadow-sm flex items-center justify-between ${
+                activeRun.allPassed
+                  ? (isDarkMode ? 'bg-[#0E1B2E] border-[#009A44]' : 'bg-[#E6F5EC] border-[#009A44]')
+                  : (isDarkMode ? 'bg-[#201124] border-[#6D2077]' : 'bg-[#F9EFF6] border-[#6D2077]')
+              }`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-11 h-11 flex items-center justify-center text-white ${
+                    activeRun.allPassed ? 'bg-[#009A44]' : 'bg-[#6D2077]'
+                  }`}>
+                    {activeRun.allPassed ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-[#0B0F19] tracking-tight">
-                      Institutional Alignment Gatekeeper Specification
-                    </h4>
-                    <p className="text-xs text-slate-500">
-                      Evaluates agent faithfulness, hallucination risk, and extraction precision against human ground truth.
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0091DA]">
+                        Institutional Alignment Gatekeeper
+                      </span>
+                      {activeRun.sha256Hash && (
+                        <span className={`text-[9px] font-mono ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {activeRun.sha256Hash.slice(0, 18)}...
+                        </span>
+                      )}
+                    </div>
+                    <h3 className={`text-base font-bold tracking-tight mt-0.5 ${
+                      isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                    }`}>
+                      {activeRun.allPassed
+                        ? 'PASS: Certified for Production Deployment'
+                        : 'FAIL: Alignment Standards Not Met'}
+                    </h3>
+                    <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      {activeRun.allPassed
+                        ? `All ${activeRun.aggregates?.totalCases} test cases passed institutional thresholds. Ready for multi-agent export.`
+                        : `${activeRun.aggregates?.failedCases || 1} case failed alignment constraints. Tune prompts or guardrails on Canvas.`}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-[#E6EDF7] text-[#00338D] border border-[#00338D]/30 font-mono text-xs font-bold">
-                    3 BENCHMARKS LOADED
+                <div className="text-right flex items-center gap-3">
+                  <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${
+                    activeRun.allPassed
+                      ? 'bg-[#009A44] text-white'
+                      : 'bg-[#6D2077] text-white'
+                  }`}>
+                    {activeRun.aggregates?.passedCases} / {activeRun.aggregates?.totalCases} PASSED
+                  </span>
+
+                  {!activeRun.allPassed && (
+                    <button
+                      onClick={() => {
+                        if (setViewMode) setViewMode('canvas');
+                      }}
+                      className="btn-tactile px-3 py-1 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-bold font-mono"
+                    >
+                      Tune on Canvas ↗
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Aggregate Metric Scorecards with Delta Badges */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className={`p-4 border shadow-sm ${
+                  isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-white border-[#CBD5E1]'
+                }`}>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                    }`}>Composite Match</span>
+                    {compareRun && (
+                      <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                        (activeRun.aggregates?.overallMatchRate || 85) >= (compareRun.aggregates?.overallMatchRate || 85)
+                          ? 'bg-[#009A44]/20 text-[#009A44]'
+                          : 'bg-red-500/20 text-red-500'
+                      }`}>
+                        {(activeRun.aggregates?.overallMatchRate || 85) - (compareRun.aggregates?.overallMatchRate || 85) >= 0 ? '+' : ''}
+                        {(activeRun.aggregates?.overallMatchRate || 85) - (compareRun.aggregates?.overallMatchRate || 85)}%
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-2xl font-extrabold text-[#0091DA] font-mono block mt-1">
+                    {activeRun.aggregates?.overallMatchRate ?? activeRun.aggregates?.faithfulness}%
+                  </span>
+                  <span className={`text-[10px] mt-1 block ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Target: ≥ 85% SLA
+                  </span>
+                </div>
+
+                <div className={`p-4 border shadow-sm ${
+                  isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-white border-[#CBD5E1]'
+                }`}>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                    }`}>Faithfulness</span>
+                    {compareRun && (
+                      <span className="text-[10px] font-mono font-bold text-[#009A44]">
+                        {(activeRun.aggregates?.faithfulness || 90) - (compareRun.aggregates?.faithfulness || 90) >= 0 ? '+' : ''}
+                        {(activeRun.aggregates?.faithfulness || 90) - (compareRun.aggregates?.faithfulness || 90)}%
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-2xl font-extrabold text-[#009A44] font-mono block mt-1">
+                    {activeRun.aggregates?.faithfulness}%
+                  </span>
+                  <span className={`text-[10px] mt-1 block ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Zero Hallucinations
+                  </span>
+                </div>
+
+                <div className={`p-4 border shadow-sm ${
+                  isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-white border-[#CBD5E1]'
+                }`}>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                    }`}>Action Item F1</span>
+                    {compareRun && (
+                      <span className="text-[10px] font-mono font-bold text-[#00A3A6]">
+                        {(activeRun.aggregates?.actionItemF1 || 90) - (compareRun.aggregates?.actionItemF1 || 90) >= 0 ? '+' : ''}
+                        {(activeRun.aggregates?.actionItemF1 || 90) - (compareRun.aggregates?.actionItemF1 || 90)}%
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-2xl font-extrabold text-[#00A3A6] font-mono block mt-1">
+                    {activeRun.aggregates?.actionItemF1}%
+                  </span>
+                  <span className={`text-[10px] mt-1 block ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Entity Overlap
+                  </span>
+                </div>
+
+                <div className={`p-4 border shadow-sm ${
+                  isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-white border-[#CBD5E1]'
+                }`}>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                    }`}>Avg Latency</span>
+                    {compareRun && (
+                      <span className={`text-[10px] font-mono font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {((activeRun.aggregates?.avgLatencySec || 1.5) - (compareRun.aggregates?.avgLatencySec || 1.5)).toFixed(1)}s
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-2xl font-extrabold text-[#EAAA00] font-mono block mt-1">
+                    {activeRun.aggregates?.avgLatencySec || activeRun.aggregates?.latencySec}s
+                  </span>
+                  <span className={`text-[10px] mt-1 block ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Budget: ≤ 4.0s
                   </span>
                 </div>
               </div>
 
-              {/* 3 Benchmark Cards Preview */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3.5 border border-[#CBD5E1] bg-[#F8F9FB]">
-                  <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#00338D] mb-1">
-                    <span>CASE-01</span>
-                    <span>STRATEGY</span>
+              {/* "Is the Model Worth It?" ROI & Pareto Economics Card */}
+              <ModelRoiCard
+                roi={activeRun.roi || {}}
+                overallMatchRate={activeRun.aggregates?.overallMatchRate || activeRun.aggregates?.faithfulness || 90}
+                laborRateHr={suite.laborRateHr ?? 75}
+                reviewMinsSaved={suite.reviewMinsSaved ?? 15}
+                onUpdateEconomics={({ laborRateHr, reviewMinsSaved }) => {
+                  persistSuite({ laborRateHr, reviewMinsSaved });
+                }}
+                isDarkMode={isDarkMode}
+              />
+
+              {/* Deep Ground Truth Test Case Ledger Table */}
+              <div className={`border shadow-sm overflow-hidden ${
+                isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-white border-[#CBD5E1]'
+              }`}>
+                <div className={`p-3.5 border-b flex items-center justify-between ${
+                  isDarkMode ? 'bg-[#161B29] border-[#222736]' : 'bg-[#F8F9FB] border-[#E0E0E0]'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <h4 className={`text-xs font-bold uppercase font-mono tracking-tight ${
+                      isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                    }`}>
+                      Ground Truth Test Case Ledger ({activeRun.caseResults?.length || 0} Test Runs)
+                    </h4>
                   </div>
-                  <h5 className="font-bold text-xs text-[#0B0F19]">Q3 Executive Alignment</h5>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Evaluates multi-speaker budget allocation ($45,000 GPU cluster) and latency sign-offs.
-                  </p>
+                  <span className={`text-[11px] font-mono ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Click row for full diff & reasoning
+                  </span>
                 </div>
 
-                <div className="p-3.5 border border-[#CBD5E1] bg-[#F8F9FB]">
-                  <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#00338D] mb-1">
-                    <span>CASE-02</span>
-                    <span>SECURITY</span>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className={`border-b text-[10px] font-mono font-bold uppercase ${
+                        isDarkMode ? 'bg-[#0B0E16] border-[#222736] text-slate-400' : 'bg-[#F8F9FB] border-[#E0E0E0] text-slate-600'
+                      }`}>
+                        <th className="py-2.5 px-3">Case ID</th>
+                        <th className="py-2.5 px-3">Scenario Name</th>
+                        <th className="py-2.5 px-3">Composite Match</th>
+                        <th className="py-2.5 px-3">Faithfulness</th>
+                        <th className="py-2.5 px-3">Action F1</th>
+                        <th className="py-2.5 px-3">PII Redact</th>
+                        <th className="py-2.5 px-3">Latency</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3 text-right">Inspect</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${isDarkMode ? 'divide-[#222736]' : 'divide-[#E0E0E0]'}`}>
+                      {(activeRun.caseResults || activeRun.results || []).map((res, idx) => (
+                        <tr
+                          key={idx}
+                          onClick={() => setSelectedTestCaseForDetail(res)}
+                          className={`cursor-pointer transition-colors ${
+                            isDarkMode ? 'hover:bg-white/[0.04]' : 'hover:bg-[#E6EDF7]/50'
+                          }`}
+                        >
+                          <td className="py-3 px-3 font-mono font-bold text-[#0091DA]">{res.caseId}</td>
+                          <td className={`py-3 px-3 font-medium max-w-xs truncate ${
+                            isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                          }`}>{res.name || res.caseName}</td>
+                          <td className={`py-3 px-3 font-mono font-bold ${
+                            isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                          }`}>
+                            {res.compositeScore ?? res.faithfulness}%
+                          </td>
+                          <td className="py-3 px-3 font-mono text-[#009A44] font-bold">{res.faithfulness}%</td>
+                          <td className="py-3 px-3 font-mono text-[#00A3A6] font-bold">{res.actionItemF1}%</td>
+                          <td className="py-3 px-3 font-mono text-[#6D2077] font-bold">{res.piiRate}%</td>
+                          <td className={`py-3 px-3 font-mono ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{res.latencySec}s</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-full ${
+                              res.passed
+                                ? 'bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30'
+                                : 'bg-[#6D2077]/15 text-[#6D2077] border border-[#6D2077]/30'
+                            }`}>
+                              {res.passed ? 'PASSED' : 'FAILED'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTestCaseForDetail(res);
+                              }}
+                              className="text-xs text-[#0091DA] hover:underline font-mono"
+                            >
+                              Details ↗
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Pre-Evaluation Institutional Specification */
+            <div className={`p-6 border shadow-sm space-y-5 ${
+              isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-white border-[#CBD5E1]'
+            }`}>
+              <div className={`flex items-center justify-between border-b pb-4 ${
+                isDarkMode ? 'border-[#222736]' : 'border-[#E0E0E0]'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#00338D] text-white flex items-center justify-center">
+                    <FileCheck2 className="w-5 h-5 text-white" />
                   </div>
-                  <h5 className="font-bold text-xs text-[#0B0F19]">Auth Latency Postmortem</h5>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Tests high-risk PII redaction (session tokens, keys) and deadline assignments.
-                  </p>
+                  <div>
+                    <h4 className={`text-sm font-bold tracking-tight ${
+                      isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                    }`}>
+                      Institutional Alignment Gatekeeper Specification
+                    </h4>
+                    <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Evaluates agent faithfulness, extraction precision, PII guardrails, and custom rubrics against human ground truth.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-3.5 border border-[#CBD5E1] bg-[#F8F9FB]">
-                  <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#00338D] mb-1">
-                    <span>CASE-03</span>
-                    <span>ARCHITECTURE</span>
+                <span className="px-3 py-1 rounded-full bg-[#00338D]/20 text-[#0091DA] border border-[#00338D]/40 font-mono text-xs font-bold">
+                  {dataset.length} FIXTURES LOADED
+                </span>
+              </div>
+
+              {/* Preview Cards */}
+              <div className="grid grid-cols-3 gap-3.5">
+                {dataset.slice(0, 3).map((cs, idx) => (
+                  <div key={idx} className={`p-3.5 border ${
+                    isDarkMode ? 'bg-[#161B29] border-[#222736]' : 'bg-[#F8F9FB] border-[#CBD5E1]'
+                  }`}>
+                    <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#0091DA] mb-1">
+                      <span>{cs.id}</span>
+                      <span>{cs.category}</span>
+                    </div>
+                    <h5 className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>{cs.caseName}</h5>
+                    <p className={`text-[11px] mt-1 leading-relaxed line-clamp-2 ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                    }`}>
+                      {cs.groundTruth?.keyDecision || 'Benchmark ground truth fixture.'}
+                    </p>
                   </div>
-                  <h5 className="font-bold text-xs text-[#0B0F19]">Architecture Review Board</h5>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Validates complex technical decision extraction and multi-agent dependency mapping.
-                  </p>
-                </div>
+                ))}
               </div>
 
               {/* Ready Trigger Bar */}
-              <div className="p-4 bg-[#E6EDF7] border border-[#00338D]/30 flex items-center justify-between mt-3">
-                <div className="text-xs text-[#00338D]">
-                  <span className="font-bold block">Ready for Alignment Gate</span>
-                  <span className="text-[11px] text-slate-600">Click to execute full regression suite against the LLM-as-a-Judge engine.</span>
+              <div className={`p-4 border flex items-center justify-between ${
+                isDarkMode ? 'bg-[#161B29] border-[#00338D]/40' : 'bg-[#E6EDF7] border-[#00338D]/30'
+              }`}>
+                <div className="text-xs">
+                  <span className={`font-bold block ${isDarkMode ? 'text-white' : 'text-[#001E50]'}`}>Ready for Regression Benchmark</span>
+                  <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Executes multi-evaluator suite across all test cases with cryptographic audit fingerprinting.
+                  </span>
                 </div>
                 <button
                   onClick={handleRunEvaluation}
@@ -430,9 +768,37 @@ export default function EvaluationView({
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Modals & Drawers */}
+      <CustomEvaluatorModal
+        isOpen={isCustomModalOpen}
+        onClose={() => setIsCustomModalOpen(false)}
+        onSaveEvaluator={handleSaveCustomEvaluator}
+        isDarkMode={isDarkMode}
+      />
+
+      <DatasetDrawer
+        isOpen={isDatasetDrawerOpen}
+        onClose={() => setIsDatasetDrawerOpen(false)}
+        dataset={dataset}
+        onUpdateDataset={handleUpdateDataset}
+        isDarkMode={isDarkMode}
+      />
+
+      <TestCaseDetailModal
+        isOpen={Boolean(selectedTestCaseForDetail)}
+        onClose={() => setSelectedTestCaseForDetail(null)}
+        testCase={selectedTestCaseForDetail}
+        evaluators={evaluators}
+        onTuneOnCanvas={() => {
+          setSelectedTestCaseForDetail(null);
+          if (setViewMode) setViewMode('canvas');
+        }}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }
