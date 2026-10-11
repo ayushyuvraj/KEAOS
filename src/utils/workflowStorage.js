@@ -332,14 +332,36 @@ export function loadAllWorkflows() {
     if (raw) {
       let parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Check if Meeting Intelligence workflow exists
-        const hasMeetingIntel = parsed.some(
+        // Find Meeting Intelligence workflow
+        const miIndex = parsed.findIndex(
           (w) => (w.name && w.name.toLowerCase().includes('meeting intelligence')) ||
                  (w.id === 'wf-meeting-intelligence') ||
                  (w.activeUseCase?.name && w.activeUseCase.name.toLowerCase().includes('meeting intelligence'))
         );
 
-        if (!hasMeetingIntel) {
+        if (miIndex >= 0) {
+          const miWf = parsed[miIndex];
+          // If nodes array is empty or corrupt, restore canonical 9 nodes and 8 edges immediately
+          if (!miWf.nodes || miWf.nodes.length === 0) {
+            const canonical = createMeetingIntelligenceWorkflow();
+            parsed[miIndex] = {
+              ...miWf,
+              id: 'wf-meeting-intelligence',
+              name: 'Meeting Intelligence Agent',
+              description: canonical.description,
+              activeUseCase: canonical.activeUseCase,
+              nodes: canonical.nodes,
+              edges: canonical.edges,
+              stats: canonical.stats,
+              isStarred: true
+            };
+            try {
+              localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(parsed));
+            } catch (e) {
+              console.warn('Failed to update workflow registry:', e);
+            }
+          }
+        } else {
           // Check if an existing workflow was accidentally renamed to 'Enterprise Autonomous Agent'
           const autoRenamedIndex = parsed.findIndex(
             (w) => w.id === 'wf-enterprise-autonomous-agent' ||
@@ -348,38 +370,16 @@ export function loadAllWorkflows() {
 
           if (autoRenamedIndex >= 0) {
             const existing = parsed[autoRenamedIndex];
+            const canonical = createMeetingIntelligenceWorkflow();
             parsed[autoRenamedIndex] = {
               ...existing,
-              id: existing.id || 'wf-meeting-intelligence',
+              id: 'wf-meeting-intelligence',
               name: 'Meeting Intelligence Agent',
-              description: 'Autonomous multi-speaker meeting intelligence: transcript & audio ingestion, executive summarization, action item extraction, PII redaction, and episodic sync.',
-              activeUseCase: {
-                ...(existing.activeUseCase || {}),
-                id: existing.activeUseCase?.id || 'uc-meeting-intel',
-                name: 'Meeting Intelligence Agent',
-                description: 'Autonomous multi-speaker synthesis, action items, and task sync.',
-                agent: {
-                  ...(existing.activeUseCase?.agent || {}),
-                  prompt: existing.activeUseCase?.agent?.prompt?.includes('Analyze meeting transcripts')
-                    ? existing.activeUseCase.agent.prompt
-                    : 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.'
-                }
-              },
-              nodes: (existing.nodes || []).map((n) => {
-                if (n.type === 'agentCore') {
-                  return {
-                    ...n,
-                    data: {
-                      ...n.data,
-                      name: 'Meeting Intelligence Agent',
-                      prompt: n.data?.prompt?.includes('Analyze meeting transcripts')
-                        ? n.data.prompt
-                        : 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.'
-                    }
-                  };
-                }
-                return n;
-              }),
+              description: canonical.description,
+              activeUseCase: canonical.activeUseCase,
+              nodes: (existing.nodes && existing.nodes.length > 0) ? existing.nodes : canonical.nodes,
+              edges: (existing.edges && existing.edges.length > 0) ? existing.edges : canonical.edges,
+              stats: canonical.stats,
               isStarred: true
             };
           } else {
@@ -443,7 +443,18 @@ export function setActiveWorkflowId(id) {
  */
 export function getWorkflowById(id) {
   const all = loadAllWorkflows();
-  return all.find((wf) => wf.id === id) || all[0] || null;
+  let found = all.find((wf) => wf.id === id) || all[0] || null;
+  if (found && (!found.nodes || found.nodes.length === 0) && (found.id === 'wf-meeting-intelligence' || found.name?.toLowerCase().includes('meeting intelligence'))) {
+    const canonical = createMeetingIntelligenceWorkflow();
+    found = {
+      ...found,
+      nodes: canonical.nodes,
+      edges: canonical.edges,
+      stats: canonical.stats,
+      activeUseCase: canonical.activeUseCase
+    };
+  }
+  return found;
 }
 
 /**

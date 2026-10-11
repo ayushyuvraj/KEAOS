@@ -566,14 +566,19 @@ export default function App() {
 
   const { initialNodes, initialEdges } = useMemo(
     () => getInitialNodesAndEdges(activeUseCase.framework),
-    []
+    [activeUseCase.framework]
   );
 
   // Sanitize initial nodes to ensure MCP nodes upgrade, and preserve Meeting Intelligence prompts
   const sanitizedInitialNodes = useMemo(() => {
-    const rawNodes = initialActiveWorkflow?.nodes !== undefined
+    let rawNodes = (initialActiveWorkflow?.nodes && initialActiveWorkflow.nodes.length > 0)
       ? initialActiveWorkflow.nodes
-      : (initialCanvas?.nodes || initialNodes);
+      : ((initialCanvas?.nodes && initialCanvas.nodes.length > 0) ? initialCanvas.nodes : initialNodes);
+
+    if (!rawNodes || rawNodes.length === 0) {
+      rawNodes = initialNodes;
+    }
+
     return (rawNodes || []).map(n => {
       let nodeData = n.data || {};
       let prompt = nodeData.prompt;
@@ -627,15 +632,23 @@ export default function App() {
 
       return { ...n, data: nodeData };
     });
-  }, [initialCanvas, initialNodes]);
+  }, [initialCanvas, initialNodes, initialActiveWorkflow]);
 
   // Nodes & Edges (restore from persistent storage if available)
   const [nodes, setNodes, onNodesChange] = useNodesState(sanitizedInitialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(
-    initialActiveWorkflow?.edges !== undefined
+    (initialActiveWorkflow?.edges && initialActiveWorkflow.edges.length > 0)
       ? initialActiveWorkflow.edges
-      : (initialCanvas?.edges || initialEdges)
+      : ((initialCanvas?.edges && initialCanvas.edges.length > 0) ? initialCanvas.edges : initialEdges)
   );
+
+  // Auto-heal empty Meeting Intelligence workflow
+  useEffect(() => {
+    if (nodes.length === 0 && (!activeUseCase?.name || activeUseCase?.name.includes('Meeting Intelligence') || activeUseCase?.id === 'uc-meeting-intel' || activeUseCase?.id === 'wf-meeting-intelligence')) {
+      setNodes(initialNodes);
+      setEdges(initialEdges);
+    }
+  }, [nodes.length, activeUseCase, initialNodes, initialEdges, setNodes, setEdges]);
 
   // Persistent UI States
   const [isDarkMode, setIsDarkModeState] = useState(initialUI.isDarkMode);
@@ -1357,16 +1370,27 @@ export default function App() {
       description: workflow.description,
       framework: workflow.framework,
       agent: {
-        prompt: 'You are an autonomous enterprise AI agent configured to execute domain workflows.',
+        prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
         temperature: 0.2,
         topP: 0.95
       }
     });
-    setNodes(workflow.nodes || []);
-    setEdges(workflow.edges || []);
+    const isMeetingIntel = workflow.id === 'wf-meeting-intelligence' || workflow.name?.toLowerCase().includes('meeting intelligence');
+    const targetNodes = (workflow.nodes && workflow.nodes.length > 0)
+      ? workflow.nodes
+      : isMeetingIntel
+        ? initialNodes
+        : (workflow.nodes || []);
+    const targetEdges = (workflow.edges && workflow.edges.length > 0)
+      ? workflow.edges
+      : isMeetingIntel
+        ? initialEdges
+        : (workflow.edges || []);
+    setNodes(targetNodes);
+    setEdges(targetEdges);
     setSelectedNode(null);
     setViewMode('canvas');
-  }, [setViewMode, setNodes, setEdges, setSelectedNode]);
+  }, [setViewMode, setNodes, setEdges, setSelectedNode, initialNodes, initialEdges]);
 
   // Handle Create Blank Workflow from Home Dashboard
   const handleCreateBlankWorkflow = useCallback((newWf) => {
