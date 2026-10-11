@@ -77,8 +77,15 @@ export default function IngestionNode({ id, data = {}, selected }) {
     ? `[AUDIO INGESTION: ${fileName || 'ARC_5_Minute_Test_Meeting_v2.mp3'}]\nFormat: audio/mp3 | Loaded in memory for native multimodal analysis.`
     : (content || '');
 
-  // Local state
-  const [isExpanded, setIsExpanded] = useState(initialExpanded);
+  // Local state - default to compact circular badge form
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Synchronize when data.isExpanded explicitly changes from Canvas
+  useEffect(() => {
+    if (data.isExpanded !== undefined) {
+      setIsExpanded(Boolean(data.isExpanded));
+    }
+  }, [data.isExpanded]);
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' | 'text' | 'samples'
   const [textInput, setTextInput] = useState(cleanInitialContent);
   const [currentFile, setCurrentFile] = useState(fileName ? { name: fileName, size: fileSize } : null);

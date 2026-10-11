@@ -641,7 +641,7 @@ function CanvasInner({
           title: 'Data & Audio Ingestion',
           content: '',
           status: 'idle',
-          isExpanded: true
+          isExpanded: false
         }
       };
 

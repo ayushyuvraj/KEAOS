@@ -595,6 +595,10 @@ export default function App() {
         }
       }
 
+      if (n.type === 'ingestionNode' || n.type === 'outputNode') {
+        nodeData = { ...nodeData, isExpanded: false };
+      }
+
       if (n.type === 'deterministicNode') {
         if (prompt && (prompt.includes('I am okay with') || prompt.includes('implement now') || prompt.includes('proceed with'))) {
           const cleanSummary = nodeData.ruleSummary || 'Appends incoming records into stateful Excel workbook';
@@ -1125,7 +1129,7 @@ export default function App() {
             title: item.name || 'Data & Audio Ingestion',
             content: '',
             status: 'idle',
-            isExpanded: true
+            isExpanded: false
           }
         };
         setSelectedNode(newNode);
@@ -1376,11 +1380,17 @@ export default function App() {
       }
     });
     const isMeetingIntel = workflow.id === 'wf-meeting-intelligence' || workflow.name?.toLowerCase().includes('meeting intelligence');
-    const targetNodes = (workflow.nodes && workflow.nodes.length > 0)
+    const rawTargetNodes = (workflow.nodes && workflow.nodes.length > 0)
       ? workflow.nodes
       : isMeetingIntel
         ? initialNodes
         : (workflow.nodes || []);
+    const targetNodes = rawTargetNodes.map(n => {
+      if (n.type === 'ingestionNode' || n.type === 'outputNode') {
+        return { ...n, data: { ...n.data, isExpanded: false } };
+      }
+      return n;
+    });
     const targetEdges = (workflow.edges && workflow.edges.length > 0)
       ? workflow.edges
       : isMeetingIntel
