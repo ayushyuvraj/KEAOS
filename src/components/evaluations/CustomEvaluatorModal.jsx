@@ -3,13 +3,13 @@ import {
   X, 
   Plus, 
   Sparkles, 
-  ShieldAlert, 
   Cpu, 
   Code2, 
   CheckCircle2, 
   Sliders, 
   Clock, 
-  FileText 
+  FileText,
+  ShieldAlert
 } from 'lucide-react';
 import { EVALUATOR_PRESET_TEMPLATES } from '../../constants/goldenDataset';
 
@@ -19,7 +19,7 @@ export default function CustomEvaluatorModal({
   onSaveEvaluator,
   isDarkMode = true
 }) {
-  const [activeTab, setActiveTab] = useState('llm-judge'); // 'llm-judge' | 'deterministic' | 'preset'
+  const [activeTab, setActiveTab] = useState('llm-judge'); // 'llm-judge' | 'deterministic' | 'templates'
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
   const [threshold, setThreshold] = useState(85);
@@ -27,22 +27,28 @@ export default function CustomEvaluatorModal({
   const [weight, setWeight] = useState(25);
   const [description, setDescription] = useState('');
   const [promptRubric, setPromptRubric] = useState(
-    'Evaluate whether the agent output adheres to institutional quality standards. Score from 0 to 100 with clear reasoning.'
+    'Evaluate whether the agent output strictly adheres to instructions and achieves the ground truth objective. Score from 0 to 100 with clear reasoning.'
   );
+  const [ruleType, setRuleType] = useState('regex-check'); // 'regex-check' | 'json-schema' | 'contains-check'
   const [ruleExpression, setRuleExpression] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSelectPreset = (preset) => {
-    setName(preset.name);
-    setShortName(preset.shortName);
-    setThreshold(preset.threshold);
-    setIsHardGate(preset.isHardGate);
-    setWeight(preset.weight);
-    setDescription(preset.description);
-    if (preset.promptRubric) setPromptRubric(preset.promptRubric);
-    if (preset.ruleExpression) setRuleExpression(preset.ruleExpression);
-    setActiveTab(preset.type === 'regex-check' || preset.type === 'json-schema' ? 'deterministic' : 'llm-judge');
+  const handleSelectTemplate = (tpl) => {
+    setName(tpl.name);
+    setShortName(tpl.shortName);
+    setThreshold(tpl.threshold);
+    setIsHardGate(tpl.isHardGate);
+    setWeight(tpl.weight);
+    setDescription(tpl.description);
+    if (tpl.promptRubric) setPromptRubric(tpl.promptRubric);
+    if (tpl.ruleExpression) setRuleExpression(tpl.ruleExpression);
+    if (tpl.type === 'regex-check' || tpl.type === 'json-schema' || tpl.type === 'contains-check') {
+      setActiveTab('deterministic');
+      setRuleType(tpl.type);
+    } else {
+      setActiveTab('llm-judge');
+    }
   };
 
   const handleSave = (e) => {
@@ -52,9 +58,9 @@ export default function CustomEvaluatorModal({
     const newEvaluator = {
       id: `eval-custom-${Date.now().toString().slice(-4)}`,
       name: name.trim(),
-      shortName: shortName.trim() || name.trim().slice(0, 12),
+      shortName: shortName.trim() || name.trim().slice(0, 14),
       category: 'custom',
-      type: activeTab === 'deterministic' ? (ruleExpression ? 'regex-check' : 'json-schema') : 'llm-judge',
+      type: activeTab === 'deterministic' ? ruleType : 'llm-judge',
       targetField: 'all',
       threshold: Number(threshold),
       unit: '%',
@@ -93,7 +99,7 @@ export default function CustomEvaluatorModal({
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Define any custom evaluation pointer, LLM judge rubric, or deterministic assertion.
+                Define any custom evaluation pointer, dynamic LLM judge rubric, or deterministic assertion.
               </p>
             </div>
           </div>
@@ -134,32 +140,32 @@ export default function CustomEvaluatorModal({
             <span>Deterministic Rule / Regex</span>
           </button>
           <button
-            onClick={() => setActiveTab('preset')}
+            onClick={() => setActiveTab('templates')}
             className={`flex-1 py-2.5 px-4 text-center border-b-2 transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'preset'
+              activeTab === 'templates'
                 ? 'border-[#00338D] text-[#0091DA] bg-white/[0.04]'
                 : (isDarkMode ? 'border-transparent text-slate-400 hover:text-white' : 'border-transparent text-slate-600 hover:text-black')
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Preset Catalog</span>
+            <span>Architectural Templates</span>
           </button>
         </div>
 
         {/* Form Body */}
         <div className="p-5 flex-1 overflow-y-auto space-y-4">
-          {activeTab === 'preset' ? (
+          {activeTab === 'templates' ? (
             <div className="space-y-3">
               <span className={`text-xs font-bold uppercase font-mono block ${
                 isDarkMode ? 'text-slate-400' : 'text-slate-600'
               }`}>
-                Select an Industry-Standard Template
+                Select an Architectural Template
               </span>
               <div className="grid grid-cols-2 gap-3">
                 {EVALUATOR_PRESET_TEMPLATES.map((tpl) => (
                   <div
                     key={tpl.id}
-                    onClick={() => handleSelectPreset(tpl)}
+                    onClick={() => handleSelectTemplate(tpl)}
                     className={`p-3.5 border cursor-pointer transition-all hover:border-[#00338D] ${
                       isDarkMode ? 'bg-[#141824] border-[#222736]' : 'bg-[#F8F9FB] border-[#CBD5E1]'
                     }`}
@@ -188,7 +194,7 @@ export default function CustomEvaluatorModal({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Tax Variance Rigor"
+                    placeholder="e.g. Factual Consistency"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className={`w-full px-3 py-2 text-xs border rounded-none focus:outline-none focus:border-[#00338D] ${
@@ -200,11 +206,11 @@ export default function CustomEvaluatorModal({
                   <label className={`text-xs font-bold uppercase font-mono block mb-1 ${
                     isDarkMode ? 'text-slate-400' : 'text-slate-600'
                   }`}>
-                    Short Tag / Column Code
+                    Short Code / Column Tag
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Tax Rigor"
+                    placeholder="e.g. Consistency"
                     value={shortName}
                     onChange={(e) => setShortName(e.target.value)}
                     className={`w-full px-3 py-2 text-xs border rounded-none focus:outline-none focus:border-[#00338D] ${
@@ -252,24 +258,68 @@ export default function CustomEvaluatorModal({
                   />
                 </div>
               ) : (
-                <div>
-                  <label className={`text-xs font-bold uppercase font-mono block mb-1 ${
-                    isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                  }`}>
-                    Regex Pattern or Assertion Expression
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. (?i)(confidential|ssn|unauthorized)"
-                    value={ruleExpression}
-                    onChange={(e) => setRuleExpression(e.target.value)}
-                    className={`w-full px-3 py-2 text-xs font-mono border rounded-none focus:outline-none focus:border-[#00338D] ${
-                      isDarkMode ? 'bg-[#0B0E16] border-[#2B2F40] text-white' : 'bg-white border-[#CBD5E1] text-black'
-                    }`}
-                  />
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Evaluates to 100% when input passes pattern test, 0% when violated.
-                  </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className={`text-xs font-bold uppercase font-mono block mb-1 ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                    }`}>
+                      Deterministic Rule Engine Type
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRuleType('regex-check')}
+                        className={`flex-1 py-1.5 px-2 border text-xs font-mono font-bold transition-colors ${
+                          ruleType === 'regex-check'
+                            ? 'bg-[#00338D] text-white border-[#0091DA]'
+                            : (isDarkMode ? 'bg-white/[0.03] border-white/10 text-slate-400' : 'bg-white border-slate-300 text-slate-700')
+                        }`}
+                      >
+                        Regex Guard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRuleType('json-schema')}
+                        className={`flex-1 py-1.5 px-2 border text-xs font-mono font-bold transition-colors ${
+                          ruleType === 'json-schema'
+                            ? 'bg-[#00338D] text-white border-[#0091DA]'
+                            : (isDarkMode ? 'bg-white/[0.03] border-white/10 text-slate-400' : 'bg-white border-slate-300 text-slate-700')
+                        }`}
+                      >
+                        Strict JSON
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRuleType('contains-check')}
+                        className={`flex-1 py-1.5 px-2 border text-xs font-mono font-bold transition-colors ${
+                          ruleType === 'contains-check'
+                            ? 'bg-[#00338D] text-white border-[#0091DA]'
+                            : (isDarkMode ? 'bg-white/[0.03] border-white/10 text-slate-400' : 'bg-white border-slate-300 text-slate-700')
+                        }`}
+                      >
+                        Key Term Inclusion
+                      </button>
+                    </div>
+                  </div>
+
+                  {ruleType !== 'json-schema' && (
+                    <div>
+                      <label className={`text-xs font-bold uppercase font-mono block mb-1 ${
+                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                      }`}>
+                        {ruleType === 'regex-check' ? 'Regex Pattern Expression' : 'Comma-Separated Mandatory Terms'}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={ruleType === 'regex-check' ? 'e.g. (?i)(confidential|secret|apikey)' : 'e.g. status, confirmation, transactionId'}
+                        value={ruleExpression}
+                        onChange={(e) => setRuleExpression(e.target.value)}
+                        className={`w-full px-3 py-2 text-xs font-mono border rounded-none focus:outline-none focus:border-[#00338D] ${
+                          isDarkMode ? 'bg-[#0B0E16] border-[#2B2F40] text-white' : 'bg-white border-[#CBD5E1] text-black'
+                        }`}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

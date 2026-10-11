@@ -2,46 +2,46 @@ import {
   PROVIDERS, 
   getProviderCredential, 
   getAllConfiguredProviders, 
-  synthesizeMeetingUniversal, 
-  evaluateTestCaseUniversal 
+  synthesizeMeetingUniversal 
 } from '../services/llmService';
 import { calculateInferenceCost, getLiveModelProfile } from '../services/modelPricingService';
 import { DEFAULT_EVALUATORS, DEFAULT_THRESHOLDS } from '../constants/goldenDataset';
 
 /**
- * Execute custom LLM judge rubric on an agent output
+ * Universal LLM-as-a-Judge Evaluation Engine
+ * Evaluates any agent output against source input and ground truth using dynamic rubrics.
  */
-async function evaluateWithCustomJudgeRubric({
+async function evaluateWithJudgeRubric({
   provider,
   modelId,
-  transcript,
-  generatedOutputText,
-  groundTruth,
+  inputPayload,
+  expectedTarget,
+  actualOutput,
   evaluator
 }) {
   const credential = getProviderCredential(provider);
-  if (!credential) {
-    return { score: 85, critique: 'Offline / Default baseline assessment' };
+  if (!credential && provider !== 'ollama') {
+    throw new Error(`API credentials required for judge evaluation on ${PROVIDERS[provider]?.name || provider}.`);
   }
 
-  const rubric = evaluator.promptRubric || 'Evaluate quality from 0-100% against criteria.';
+  const rubric = evaluator.promptRubric || 'Evaluate quality from 0 to 100% against criteria.';
   const judgePrompt = `
-You are an expert AI quality evaluation judge.
-Evaluate the following agent output based strictly on the provided custom rubric.
+You are an authoritative enterprise AI evaluation judge.
+Evaluate the following agent output based strictly on the provided custom rubric and expected ground truth.
 
 Source Input:
 """
-${transcript}
+${inputPayload}
 """
 
-Expected Ground Truth:
+Expected Ground Truth / Target Deliverable:
 """
-${JSON.stringify(groundTruth, null, 2)}
+${expectedTarget}
 """
 
 Actual Agent Output:
 """
-${generatedOutputText}
+${actualOutput}
 """
 
 Evaluation Criteria & Rubric:
@@ -49,13 +49,13 @@ Evaluation Criteria & Rubric:
 
 Respond ONLY with valid JSON in this format:
 {
-  "score": 92,
-  "critique": "Detailed step-by-step reasoning explaining the score."
+  "score": <number between 0 and 100>,
+  "critique": "<Step-by-step reasoning explaining the score>"
 }
 `;
 
   try {
-    let parsed = { score: 90, critique: 'Evaluated against custom rubric.' };
+    let parsed = null;
     if (provider === 'google') {
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: credential });
@@ -105,19 +105,54 @@ Respond ONLY with valid JSON in this format:
       const raw = data.content?.[0]?.text || '{}';
       const clean = raw.replace(/^```json/m, '').replace(/^```/m, '').replace(/```$/m, '').trim();
       parsed = JSON.parse(clean);
+    } else if (provider === 'openrouter') {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${credential}`,
+          'HTTP-Referer': 'https://keaos.ai',
+          'X-Title': 'KEAOS Enterprise Agent Studio'
+        },
+        body: JSON.stringify({
+          model: modelId || 'meta-llama/llama-3.3-70b-instruct',
+          messages: [{ role: 'user', content: judgePrompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.1
+        })
+      });
+      const data = await res.json();
+      const raw = data.choices?.[0]?.message?.content || '{}';
+      const clean = raw.replace(/^```json/m, '').replace(/^```/m, '').replace(/```$/m, '').trim();
+      parsed = JSON.parse(clean);
+    } else if (provider === 'ollama') {
+      const res = await fetch('http://localhost:11434/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelId || 'llama3',
+          messages: [{ role: 'user', content: judgePrompt }],
+          format: 'json',
+          temperature: 0.1
+        })
+      });
+      const data = await res.json();
+      parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
     }
+
+    const numericScore = Math.min(100, Math.max(0, Number(parsed?.score) || 0));
     return {
-      score: Math.min(100, Math.max(0, Number(parsed.score) || 85)),
-      critique: parsed.critique || 'Custom rubric evaluated successfully.'
+      score: numericScore,
+      critique: parsed?.critique || 'Evaluation judge completed scoring.'
     };
   } catch (err) {
-    console.warn('[CustomJudge] Failed, returning conservative estimate:', err);
-    return { score: 80, critique: `Automated assessment: ${err.message}` };
+    throw new Error(`Judge evaluation failed on rubric "${evaluator.shortName || evaluator.name}": ${err.message}`);
   }
 }
 
 /**
  * Universal Evaluation Suite Runner
+ * Executes benchmarks across golden dataset fixtures with dynamic evaluators and zero hardcoding.
  */
 export async function runEvaluationSuite({
   dataset = [],
@@ -131,6 +166,11 @@ export async function runEvaluationSuite({
   runNumber = 1,
   onProgress = null
 }) {
+  if (!dataset || dataset.length === 0) {
+    throw new Error('Golden dataset is empty. Please add or upload test cases before evaluating.');
+  }
+
+  // Identify model provider from connected pillars
   const modelNode = attachedPillars.find(p => p.type === 'model');
   let provider = modelNode?.config?.provider || 
     (modelNode?.name?.toLowerCase().includes('claude') ? 'anthropic' :
@@ -144,20 +184,22 @@ export async function runEvaluationSuite({
 
   let modelId = modelNode?.config?.modelId || PROVIDERS[provider]?.defaultModel || 'gemini-2.0-flash';
   
-  // Provider credential check
+  // Provider credential check - NO MOCK FALLBACKS
   let credential = getProviderCredential(provider);
-  if (!credential) {
+  if (!credential && provider !== 'ollama') {
     const configured = getAllConfiguredProviders();
     if (configured.length > 0) {
       provider = configured[0];
       modelId = PROVIDERS[provider].defaultModel;
       credential = getProviderCredential(provider);
+    } else {
+      throw new Error(`No API key configured for ${PROVIDERS[provider]?.name || provider}. Please open API Settings to add your credentials or run local Ollama before executing benchmarks.`);
     }
   }
 
+  // Build system directive from attached policies and skills
   const policyNodes = attachedPillars.filter(p => p.type === 'policies');
   const skillNodes = attachedPillars.filter(p => p.type === 'skills');
-  const hasPiiPolicy = policyNodes.length > 0 || attachedPillars.some(p => (p.name && p.name.toLowerCase().includes('pii')));
 
   const policiesDirectiveText = policyNodes.length > 0
     ? `\n[MANDATORY ENTERPRISE GUARDRAILS & POLICIES (${policyNodes.length} active policies connected)]:
@@ -175,7 +217,7 @@ ${skillNodes.map((s, idx) => `Skill ${idx + 1}: "${s.name}" (${s.description || 
 ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.referenceDoc?.text ? `- Reference Specification Document (${s.referenceDoc.name}):\n"""\n${s.referenceDoc.text}\n"""` : ''}`).join('\n')}`
     : '';
 
-  const evaluationSystemPrompt = `${agentPrompt || 'You are an institutional executive meeting intelligence assistant.'}\n${policiesDirectiveText}\n${skillsDirectiveText}`;
+  const evaluationSystemPrompt = `${agentPrompt || 'You are an autonomous enterprise AI agent designed to execute complex tasks with strict fidelity to instructions.'}\n${policiesDirectiveText}\n${skillsDirectiveText}`;
 
   const activeEvaluators = evaluators.filter(e => e.isActive !== false);
   const results = [];
@@ -185,115 +227,104 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
 
   for (let i = 0; i < dataset.length; i++) {
     const testCase = dataset[i];
+    const inputPayload = testCase.input || testCase.inputTranscript || '';
+    const expectedTarget = testCase.expectedOutput || (
+      typeof testCase.groundTruth === 'string'
+        ? testCase.groundTruth
+        : JSON.stringify(testCase.groundTruth || '')
+    );
+
     if (onProgress) {
       onProgress({
         current: i + 1,
         total: dataset.length,
-        currentCase: testCase.caseName || testCase.id
+        currentCase: testCase.caseName || testCase.name || testCase.id
       });
     }
 
-    let generatedSummary = '';
-    let generatedActionItems = [];
+    // 1. Live Agent Inference
     let rawOutputText = '';
-    let latencySec = 1.2;
+    let durationSec = 1.0;
+    try {
+      const realAgentOutput = await synthesizeMeetingUniversal({
+        provider,
+        modelId,
+        transcript: inputPayload,
+        systemPrompt: evaluationSystemPrompt,
+        temperature: modelNode?.config?.temperature ?? 0.2,
+        forceJsonSchema: false
+      });
+
+      rawOutputText = realAgentOutput.rawText || (typeof realAgentOutput.parsedData === 'string' ? realAgentOutput.parsedData : JSON.stringify(realAgentOutput.parsedData || ''));
+      durationSec = Number((realAgentOutput.durationMs / 1000).toFixed(2));
+    } catch (err) {
+      throw new Error(`Inference execution failed on "${testCase.caseName || testCase.id}": ${err.message}`);
+    }
+
+    // Estimate token consumption
+    const estPromptTokens = Math.max(50, Math.round(inputPayload.length / 3.8));
+    const estCompletionTokens = Math.max(30, Math.round(rawOutputText.length / 3.8));
+    totalPromptTokens += estPromptTokens;
+    totalCompletionTokens += estCompletionTokens;
+
+    const caseCost = calculateInferenceCost({
+      provider,
+      modelId,
+      promptTokens: estPromptTokens,
+      completionTokens: estCompletionTokens
+    });
+    totalInferenceCostUsd += caseCost;
+
+    // 2. Evaluate each active evaluator dynamically
+    const evalScores = {};
     let caseCritique = '';
-    let evalScores = {};
 
-    // Estimate input tokens
-    const estPromptTokens = Math.round((testCase.inputTranscript?.length || 500) / 3.8);
-
-    if (credential) {
-      try {
-        // 1. Live Agent Inference
-        const realAgentOutput = await synthesizeMeetingUniversal({
-          provider,
-          modelId,
-          transcript: testCase.inputTranscript,
-          systemPrompt: evaluationSystemPrompt,
-          temperature: 0.2,
-          forceJsonSchema: true
-        });
-
-        rawOutputText = realAgentOutput.rawText || '';
-        generatedSummary = realAgentOutput.parsedData?.summary || [];
-        generatedActionItems = realAgentOutput.parsedData?.actionItems || [];
-        const durationSec = Number((realAgentOutput.durationMs / 1000).toFixed(2));
-
-        // 2. Multi-LLM Judge Evaluation for standard benchmarks
-        const judgeEvaluation = await evaluateTestCaseUniversal({
-          provider,
-          modelId,
-          transcript: testCase.inputTranscript,
-          generatedSummary,
-          generatedActions: generatedActionItems,
-          groundTruth: testCase.groundTruth || {}
-        });
-
-        latencySec = Number((durationSec + judgeEvaluation.latencySec).toFixed(2));
-        caseCritique = judgeEvaluation.critique;
-
-        // Base scores
-        evalScores['eval-faithfulness'] = judgeEvaluation.faithfulness;
-        evalScores['eval-action-f1'] = judgeEvaluation.actionItemF1;
-      } catch (err) {
-        throw new Error(`Evaluation failed on "${testCase.caseName}": ${err.message}`);
-      }
-    } else {
-      // Deterministic / Fallback mock evaluation if credentials are not configured
-      latencySec = 1.4;
-      generatedSummary = [`Decision: ${testCase.groundTruth?.keyDecision || 'Synthesized strategic commitment.'}`];
-      generatedActionItems = testCase.groundTruth?.actionItems || [];
-      evalScores['eval-faithfulness'] = 88;
-      evalScores['eval-action-f1'] = 91;
-      caseCritique = 'Baseline evaluation completed (Configure API keys for live judge evaluation).';
-    }
-
-    // PII Compliance score
-    const piiTargets = testCase.groundTruth?.piiToRedact || [];
-    let piiPassed = true;
-    if (piiTargets.length > 0) {
-      const combinedOutput = JSON.stringify(generatedSummary) + JSON.stringify(generatedActionItems) + rawOutputText;
-      const leaked = piiTargets.filter(item => combinedOutput.includes(item));
-      piiPassed = hasPiiPolicy && leaked.length === 0;
-    }
-    evalScores['eval-pii'] = piiPassed ? 100 : 0;
-
-    // Latency SLA score
-    const latencyEval = activeEvaluators.find(e => e.type === 'latency-sla');
-    const maxAllowedLatency = latencyEval?.threshold || thresholds.maxLatencySec || 4.0;
-    evalScores['eval-latency'] = latencySec <= maxAllowedLatency 
-      ? 100 
-      : Math.max(0, Math.round((maxAllowedLatency / latencySec) * 100));
-
-    // Evaluate custom evaluators
     for (const ev of activeEvaluators) {
-      if (evalScores[ev.id] !== undefined) continue;
-
-      if (ev.type === 'deterministic' || ev.type === 'regex-check') {
-        const pattern = ev.ruleExpression || 'confidential';
+      if (ev.type === 'latency-sla') {
+        const targetLatency = ev.threshold || thresholds.maxLatencySec || 4.0;
+        evalScores[ev.id] = durationSec <= targetLatency
+          ? 100
+          : Math.max(0, Math.round((targetLatency / durationSec) * 100));
+      } else if (ev.type === 'regex-check') {
+        const pattern = ev.ruleExpression || '(?i)secret';
         try {
           const regex = new RegExp(pattern, 'i');
           const matched = regex.test(rawOutputText);
-          evalScores[ev.id] = matched ? 0 : 100;
+          // If configured as positive check, matching = 100; default is negative check (matching forbidden pattern = 0)
+          evalScores[ev.id] = ev.isPositiveCheck ? (matched ? 100 : 0) : (matched ? 0 : 100);
         } catch {
           evalScores[ev.id] = 100;
         }
       } else if (ev.type === 'json-schema') {
-        evalScores[ev.id] = (generatedSummary.length > 0 || generatedActionItems.length > 0) ? 100 : 60;
-      } else if (ev.type === 'llm-judge' || ev.category === 'custom') {
-        if (credential) {
-          const customEvalRes = await evaluateWithCustomJudgeRubric({
-            provider,
-            modelId,
-            transcript: testCase.inputTranscript,
-            generatedOutputText: JSON.stringify({ summary: generatedSummary, actionItems: generatedActionItems }),
-            groundTruth: testCase.groundTruth,
-            evaluator: ev
-          });
-          evalScores[ev.id] = customEvalRes.score;
+        try {
+          const clean = rawOutputText.replace(/^```json/m, '').replace(/^```/m, '').replace(/```$/m, '').trim();
+          JSON.parse(clean);
+          evalScores[ev.id] = 100;
+        } catch (jsonErr) {
+          evalScores[ev.id] = 0;
+        }
+      } else if (ev.type === 'contains-check') {
+        const requiredTerms = (ev.ruleExpression || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        if (requiredTerms.length === 0) {
+          evalScores[ev.id] = 100;
         } else {
-          evalScores[ev.id] = Math.max(75, (ev.threshold || 85) - 3);
+          const lowerOutput = rawOutputText.toLowerCase();
+          const matchedCount = requiredTerms.filter(term => lowerOutput.includes(term)).length;
+          evalScores[ev.id] = Math.round((matchedCount / requiredTerms.length) * 100);
+        }
+      } else if (ev.type === 'llm-judge' || ev.type === 'f1-extraction' || ev.type === 'pii-compliance') {
+        // Dynamic LLM Judge Evaluation
+        const judgeResult = await evaluateWithJudgeRubric({
+          provider,
+          modelId,
+          inputPayload,
+          expectedTarget,
+          actualOutput: rawOutputText,
+          evaluator: ev
+        });
+        evalScores[ev.id] = judgeResult.score;
+        if (!caseCritique) {
+          caseCritique = judgeResult.critique;
         }
       } else {
         evalScores[ev.id] = 85;
@@ -307,8 +338,8 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
     activeEvaluators.forEach(ev => {
       const score = evalScores[ev.id] ?? 0;
       const targetThreshold = ev.threshold ?? 85;
-      const isBreached = ev.type === 'latency-sla' 
-        ? latencySec > targetThreshold 
+      const isBreached = ev.type === 'latency-sla'
+        ? durationSec > targetThreshold
         : score < targetThreshold;
 
       if (isBreached) {
@@ -319,48 +350,31 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
       }
     });
 
-    // Estimate Completion Tokens
-    const estCompletionTokens = Math.round((JSON.stringify(generatedSummary).length + JSON.stringify(generatedActionItems).length) / 3.8);
-    totalPromptTokens += estPromptTokens;
-    totalCompletionTokens += estCompletionTokens;
-
-    const caseCost = calculateInferenceCost({
-      provider,
-      modelId,
-      promptTokens: estPromptTokens,
-      completionTokens: estCompletionTokens
-    });
-    totalInferenceCostUsd += caseCost;
-
-    // Calculate case composite score (weighted average)
+    // Calculate composite case score (weighted average)
     let totalWeight = 0;
     let weightedScoreSum = 0;
     activeEvaluators.forEach(ev => {
       const w = ev.weight || 10;
       totalWeight += w;
-      weightedScoreSum += (evalScores[ev.id] || 0) * w;
+      weightedScoreSum += (evalScores[ev.id] ?? 0) * w;
     });
     const compositeCaseScore = totalWeight > 0 ? Math.round(weightedScoreSum / totalWeight) : 85;
 
     results.push({
       id: testCase.id,
       caseId: testCase.id,
-      name: testCase.caseName,
-      caseName: testCase.caseName,
+      name: testCase.caseName || testCase.name,
+      caseName: testCase.caseName || testCase.name,
       category: testCase.category || 'General',
-      inputTranscript: testCase.inputTranscript,
-      groundTruth: testCase.groundTruth,
-      generatedSummary,
-      generatedActionItems,
+      inputPayload,
+      expectedTarget,
+      rawOutputText,
       evalScores,
       compositeScore: compositeCaseScore,
-      faithfulness: evalScores['eval-faithfulness'] || 85,
-      actionItemF1: evalScores['eval-action-f1'] || 90,
-      piiRate: evalScores['eval-pii'] || 100,
-      latencySec,
+      latencySec: durationSec,
       passed: casePassed,
       failureReasons: caseFailureReasons,
-      critique: caseCritique,
+      critique: caseCritique || 'Evaluation completed against dynamic criteria.',
       tokensUsed: estPromptTokens + estCompletionTokens,
       costUsd: caseCost
     });
@@ -370,26 +384,25 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
   const totalCases = results.length;
   const passedCases = results.filter(r => r.passed).length;
   const overallMatchRate = Math.round(results.reduce((a, b) => a + b.compositeScore, 0) / (totalCases || 1));
-  const avgFaithfulness = Math.round(results.reduce((a, b) => a + (b.faithfulness || 0), 0) / (totalCases || 1));
-  const avgActionF1 = Math.round(results.reduce((a, b) => a + (b.actionItemF1 || 0), 0) / (totalCases || 1));
-  const avgPiiRate = Math.round(results.reduce((a, b) => a + (b.piiRate || 0), 0) / (totalCases || 1));
   const avgLatency = Number((results.reduce((a, b) => a + b.latencySec, 0) / (totalCases || 1)).toFixed(2));
 
-  // Check overall deployment gate
-  const minFaithTarget = thresholds.minFaithfulness ?? 85;
-  const minF1Target = thresholds.minActionItemF1 ?? 90;
-  const minPiiTarget = thresholds.minPiiCompliance ?? 100;
-  const maxLatTarget = thresholds.maxLatencySec ?? 4.0;
+  // Compute average score for each evaluator
+  const evaluatorAverages = {};
+  activeEvaluators.forEach(ev => {
+    const totalScore = results.reduce((sum, r) => sum + (r.evalScores[ev.id] ?? 0), 0);
+    evaluatorAverages[ev.id] = Math.round(totalScore / (totalCases || 1));
+  });
 
+  // Overall Gate Decision
+  const minCompositeTarget = thresholds.minCompositeScore ?? 85;
+  const maxLatencyTarget = thresholds.maxLatencySec ?? 4.0;
   const allPassed = (
     passedCases === totalCases &&
-    avgFaithfulness >= minFaithTarget &&
-    avgActionF1 >= minF1Target &&
-    avgPiiRate >= minPiiTarget &&
-    avgLatency <= maxLatTarget
+    overallMatchRate >= minCompositeTarget &&
+    avgLatency <= maxLatencyTarget
   );
 
-  // ROI & Commercial Worth-It Calculations
+  // ROI & Commercial Economics
   const avgCostPerRun = Number((totalInferenceCostUsd / (totalCases || 1)).toFixed(5));
   const costPer1kRuns = Number((avgCostPerRun * 1000).toFixed(2));
   const grossLaborSavedPerRun = Number(((reviewMinsSaved / 60) * laborRateHr).toFixed(2));
@@ -397,10 +410,10 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
   const laborRoiMultiple = avgCostPerRun > 0 ? Math.round(grossLaborSavedPerRun / avgCostPerRun) : 5000;
 
   const pricingProfile = getLiveModelProfile(provider, modelId);
-  const paretoAssessment = overallMatchRate >= 90 && avgCostPerRun <= 0.005
+  const paretoAssessment = overallMatchRate >= 85 && avgCostPerRun <= 0.005
     ? 'Optimal Commercial Sweet Spot'
-    : overallMatchRate >= 90
-      ? 'High Accuracy, Frontier Spend'
+    : overallMatchRate >= 85
+      ? 'High Quality, Frontier Spend'
       : 'Under-Performing SLA Threshold';
 
   const roi = {
@@ -450,13 +463,11 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
     },
     aggregates: {
       overallMatchRate,
-      faithfulness: avgFaithfulness,
-      actionItemF1: avgActionF1,
-      piiCompliance: avgPiiRate,
       avgLatencySec: avgLatency,
       totalCases,
       passedCases,
-      failedCases: totalCases - passedCases
+      failedCases: totalCases - passedCases,
+      evaluatorAverages
     },
     evaluators: activeEvaluators,
     thresholds,

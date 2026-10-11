@@ -25,6 +25,20 @@ export default function TestCaseDetailModal({
 
   if (!isOpen || !testCase) return null;
 
+  const actualOutputText = testCase.rawOutputText || (
+    typeof testCase.generatedSummary === 'string'
+      ? testCase.generatedSummary
+      : (testCase.generatedSummary ? JSON.stringify(testCase.generatedSummary, null, 2) : '')
+  );
+
+  const expectedTargetText = testCase.expectedTarget || testCase.expectedOutput || (
+    typeof testCase.groundTruth === 'string'
+      ? testCase.groundTruth
+      : (testCase.groundTruth ? JSON.stringify(testCase.groundTruth, null, 2) : '')
+  );
+
+  const inputPayloadText = testCase.inputPayload || testCase.input || testCase.inputTranscript || '';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in select-none">
       <div className={`w-full max-w-5xl h-[88vh] border shadow-2xl flex flex-col overflow-hidden ${
@@ -57,7 +71,7 @@ export default function TestCaseDetailModal({
                 </span>
               </div>
               <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                Composite Alignment Score: <strong className="font-mono text-[#0091DA]">{testCase.compositeScore || testCase.faithfulness}%</strong> | Latency: <span className="font-mono">{testCase.latencySec}s</span>
+                Composite Alignment Score: <strong className="font-mono text-[#0091DA]">{testCase.compositeScore}%</strong> | Latency: <span className="font-mono">{testCase.latencySec}s</span>
               </p>
             </div>
           </div>
@@ -84,7 +98,7 @@ export default function TestCaseDetailModal({
           </div>
         </div>
 
-        {/* Evaluator Score Breakdown Row */}
+        {/* Dynamic Evaluator Score Ledger Row */}
         <div className={`px-5 py-3 border-b flex items-center gap-4 overflow-x-auto text-xs font-mono ${
           isDarkMode ? 'bg-[#0B0E16] border-[#222736]' : 'bg-[#F1F3F7] border-[#E0E0E0]'
         }`}>
@@ -92,11 +106,7 @@ export default function TestCaseDetailModal({
             isDarkMode ? 'text-slate-400' : 'text-slate-600'
           }`}>Score Ledger:</span>
           {evaluators.map(ev => {
-            const score = testCase.evalScores?.[ev.id] ?? (
-              ev.id === 'eval-faithfulness' ? testCase.faithfulness :
-              ev.id === 'eval-action-f1' ? testCase.actionItemF1 :
-              ev.id === 'eval-pii' ? testCase.piiRate : 90
-            );
+            const score = testCase.evalScores?.[ev.id] ?? (ev.type === 'latency-sla' ? testCase.latencySec : 85);
             const isPassed = ev.type === 'latency-sla' 
               ? testCase.latencySec <= (ev.threshold || 4.0) 
               : score >= (ev.threshold || 85);
@@ -142,7 +152,7 @@ export default function TestCaseDetailModal({
                 : (isDarkMode ? 'border-transparent text-slate-400 hover:text-white' : 'border-transparent text-slate-500 hover:text-black')
             }`}
           >
-            Output vs Ground Truth
+            Output vs Expected Target
           </button>
           <button
             onClick={() => setActiveTab('judge')}
@@ -184,44 +194,14 @@ export default function TestCaseDetailModal({
                   <span className="text-[10px] font-mono text-slate-500">Live Synthesis</span>
                 </div>
 
-                <div className={`flex-1 overflow-y-auto space-y-3 font-mono text-xs leading-relaxed ${
+                <div className={`flex-1 overflow-y-auto font-mono text-xs leading-relaxed whitespace-pre-wrap ${
                   isDarkMode ? 'text-slate-200' : 'text-slate-800'
                 }`}>
-                  {testCase.generatedSummary ? (
-                    <div>
-                      <span className={`text-[10px] font-bold uppercase block mb-1 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      }`}>
-                        Synthesized Summary Highlights:
-                      </span>
-                      <div className={`p-2.5 border ${
-                        isDarkMode ? 'bg-black/30 border-white/[0.06]' : 'bg-white border-[#CBD5E1]'
-                      }`}>
-                        {Array.isArray(testCase.generatedSummary) 
-                          ? testCase.generatedSummary.join(' ') 
-                          : testCase.generatedSummary}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {testCase.generatedActionItems && testCase.generatedActionItems.length > 0 ? (
-                    <div>
-                      <span className={`text-[10px] font-bold uppercase block mb-1 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      }`}>
-                        Extracted Action Items ({testCase.generatedActionItems.length}):
-                      </span>
-                      <div className="space-y-1.5">
-                        {testCase.generatedActionItems.map((act, i) => (
-                          <div key={i} className={`p-2 border ${
-                            isDarkMode ? 'bg-black/30 border-white/[0.06]' : 'bg-white border-[#CBD5E1]'
-                          }`}>
-                            <strong className="text-[#0091DA]">{act.assignee}:</strong> {act.task} <em className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>({act.deadline})</em>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
+                  <div className={`p-3 border ${
+                    isDarkMode ? 'bg-black/30 border-white/[0.06]' : 'bg-white border-[#CBD5E1]'
+                  }`}>
+                    {actualOutputText || 'No output recorded.'}
+                  </div>
                 </div>
               </div>
 
@@ -238,57 +218,14 @@ export default function TestCaseDetailModal({
                   <span className="text-[10px] font-mono text-slate-500">Benchmark Reference</span>
                 </div>
 
-                <div className={`flex-1 overflow-y-auto space-y-3 font-mono text-xs leading-relaxed ${
+                <div className={`flex-1 overflow-y-auto font-mono text-xs leading-relaxed whitespace-pre-wrap ${
                   isDarkMode ? 'text-slate-200' : 'text-slate-800'
                 }`}>
-                  {testCase.groundTruth?.keyDecision && (
-                    <div>
-                      <span className={`text-[10px] font-bold uppercase block mb-1 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      }`}>
-                        Target Strategic Decision:
-                      </span>
-                      <div className={`p-2.5 border ${
-                        isDarkMode ? 'bg-black/30 border-white/[0.06]' : 'bg-white border-[#CBD5E1]'
-                      }`}>
-                        {testCase.groundTruth.keyDecision}
-                      </div>
-                    </div>
-                  )}
-
-                  {testCase.groundTruth?.actionItems && (
-                    <div>
-                      <span className={`text-[10px] font-bold uppercase block mb-1 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      }`}>
-                        Target Action Commitments ({testCase.groundTruth.actionItems.length}):
-                      </span>
-                      <div className="space-y-1.5">
-                        {testCase.groundTruth.actionItems.map((act, i) => (
-                          <div key={i} className={`p-2 border ${
-                            isDarkMode ? 'bg-black/30 border-white/[0.06]' : 'bg-white border-[#CBD5E1]'
-                          }`}>
-                            <strong className="text-[#009A44]">{act.assignee}:</strong> {act.task} <em className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>({act.deadline})</em>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {testCase.groundTruth?.piiToRedact?.length > 0 && (
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-[#6D2077] block mb-1">
-                        Mandatory PII Targets to Redact:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {testCase.groundTruth.piiToRedact.map((pii, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-[#6D2077]/20 text-[#6D2077] border border-[#6D2077]/40 text-xs font-mono">
-                            {pii}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className={`p-3 border ${
+                    isDarkMode ? 'bg-black/30 border-white/[0.06]' : 'bg-white border-[#CBD5E1]'
+                  }`}>
+                    {expectedTargetText || 'No ground truth target specified.'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -317,12 +254,12 @@ export default function TestCaseDetailModal({
               <span className={`text-xs font-bold uppercase font-mono block ${
                 isDarkMode ? 'text-slate-400' : 'text-slate-600'
               }`}>
-                Source Input Text
+                Source Input Payload / Prompt
               </span>
               <div className={`p-3 border font-mono text-xs whitespace-pre-wrap max-h-96 overflow-y-auto leading-relaxed ${
                 isDarkMode ? 'bg-black/30 border-white/[0.06] text-slate-300' : 'bg-white border-[#CBD5E1] text-slate-800'
               }`}>
-                {testCase.inputTranscript || 'No input text recorded.'}
+                {inputPayloadText || 'No input text recorded.'}
               </div>
             </div>
           )}

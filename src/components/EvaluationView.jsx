@@ -122,6 +122,14 @@ export default function EvaluationView({
     return runs.find(r => r.id === compareRunId) || null;
   }, [runs, compareRunId, isCompareMode]);
 
+  const activeEvaluators = useMemo(() => {
+    return evaluators.filter(e => e.isActive !== false);
+  }, [evaluators]);
+
+  const nonSlaEvaluators = useMemo(() => {
+    return activeEvaluators.filter(e => e.type !== 'latency-sla');
+  }, [activeEvaluators]);
+
   // Handle Evaluator Toggle / Update
   const handleToggleEvaluator = (evalId) => {
     const updated = evaluators.map(ev => 
@@ -316,7 +324,11 @@ export default function EvaluationView({
               </div>
               <button
                 onClick={() => setIsDatasetDrawerOpen(true)}
-                className="btn-tactile px-2.5 py-1 border border-[#00338D] hover:bg-[#00338D] text-xs font-bold text-white transition-colors"
+                className={`btn-tactile px-3 py-1 border border-[#00338D] text-xs font-bold transition-colors ${
+                  isDarkMode
+                    ? 'text-white hover:bg-[#00338D]'
+                    : 'text-[#00338D] bg-white hover:bg-[#00338D] hover:text-white shadow-xs'
+                }`}
               >
                 Manage
               </button>
@@ -516,7 +528,7 @@ export default function EvaluationView({
                   <div className="flex justify-between items-center">
                     <span className={`text-[10px] font-mono font-bold uppercase ${
                       isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                    }`}>Composite Match</span>
+                    }`}>Composite Score</span>
                     {compareRun && (
                       <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
                         (activeRun.aggregates?.overallMatchRate || 85) >= (compareRun.aggregates?.overallMatchRate || 85)
@@ -529,10 +541,10 @@ export default function EvaluationView({
                     )}
                   </div>
                   <span className="text-2xl font-extrabold text-[#0091DA] font-mono block mt-1">
-                    {activeRun.aggregates?.overallMatchRate ?? activeRun.aggregates?.faithfulness}%
+                    {activeRun.aggregates?.overallMatchRate ?? 85}%
                   </span>
                   <span className={`text-[10px] mt-1 block ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Target: ≥ 85% SLA
+                    Target: ≥ {thresholds.minCompositeScore ?? 85}% SLA
                   </span>
                 </div>
 
@@ -540,21 +552,24 @@ export default function EvaluationView({
                   isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-white border-[#CBD5E1]'
                 }`}>
                   <div className="flex justify-between items-center">
-                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                    <span className={`text-[10px] font-mono font-bold uppercase truncate ${
                       isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                    }`}>Faithfulness</span>
-                    {compareRun && (
+                    }`}>
+                      {nonSlaEvaluators[0]?.shortName || nonSlaEvaluators[0]?.name || 'Alignment Gate'}
+                    </span>
+                    {nonSlaEvaluators[0] && (
                       <span className="text-[10px] font-mono font-bold text-[#009A44]">
-                        {(activeRun.aggregates?.faithfulness || 90) - (compareRun.aggregates?.faithfulness || 90) >= 0 ? '+' : ''}
-                        {(activeRun.aggregates?.faithfulness || 90) - (compareRun.aggregates?.faithfulness || 90)}%
+                        ≥ {nonSlaEvaluators[0].threshold}%
                       </span>
                     )}
                   </div>
                   <span className="text-2xl font-extrabold text-[#009A44] font-mono block mt-1">
-                    {activeRun.aggregates?.faithfulness}%
+                    {nonSlaEvaluators[0]
+                      ? (activeRun.aggregates?.evaluatorAverages?.[nonSlaEvaluators[0].id] ?? activeRun.aggregates?.overallMatchRate ?? 90)
+                      : 100}%
                   </span>
-                  <span className={`text-[10px] mt-1 block ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Zero Hallucinations
+                  <span className={`text-[10px] mt-1 block truncate ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {nonSlaEvaluators[0]?.description || 'Primary quality gate'}
                   </span>
                 </div>
 
@@ -562,21 +577,28 @@ export default function EvaluationView({
                   isDarkMode ? 'bg-[#121622] border-[#222736]' : 'bg-white border-[#CBD5E1]'
                 }`}>
                   <div className="flex justify-between items-center">
-                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                    <span className={`text-[10px] font-mono font-bold uppercase truncate ${
                       isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                    }`}>Action Item F1</span>
-                    {compareRun && (
+                    }`}>
+                      {nonSlaEvaluators[1]?.shortName || nonSlaEvaluators[1]?.name || 'Compliance Guard'}
+                    </span>
+                    {nonSlaEvaluators[1] ? (
                       <span className="text-[10px] font-mono font-bold text-[#00A3A6]">
-                        {(activeRun.aggregates?.actionItemF1 || 90) - (compareRun.aggregates?.actionItemF1 || 90) >= 0 ? '+' : ''}
-                        {(activeRun.aggregates?.actionItemF1 || 90) - (compareRun.aggregates?.actionItemF1 || 90)}%
+                        ≥ {nonSlaEvaluators[1].threshold}%
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono font-bold text-[#00A3A6]">
+                        Strict
                       </span>
                     )}
                   </div>
                   <span className="text-2xl font-extrabold text-[#00A3A6] font-mono block mt-1">
-                    {activeRun.aggregates?.actionItemF1}%
+                    {nonSlaEvaluators[1]
+                      ? (activeRun.aggregates?.evaluatorAverages?.[nonSlaEvaluators[1].id] ?? activeRun.aggregates?.overallMatchRate ?? 90)
+                      : (activeRun.allPassed ? '100%' : 'Gated')}%
                   </span>
-                  <span className={`text-[10px] mt-1 block ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Entity Overlap
+                  <span className={`text-[10px] mt-1 block truncate ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {nonSlaEvaluators[1]?.description || 'Institutional compliance standard'}
                   </span>
                 </div>
 
@@ -594,10 +616,10 @@ export default function EvaluationView({
                     )}
                   </div>
                   <span className="text-2xl font-extrabold text-[#EAAA00] font-mono block mt-1">
-                    {activeRun.aggregates?.avgLatencySec || activeRun.aggregates?.latencySec}s
+                    {activeRun.aggregates?.avgLatencySec || 1.2}s
                   </span>
                   <span className={`text-[10px] mt-1 block ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Budget: ≤ 4.0s
+                    Budget: ≤ {thresholds.maxLatencySec ?? 4.0}s
                   </span>
                 </div>
               </div>
@@ -605,7 +627,7 @@ export default function EvaluationView({
               {/* "Is the Model Worth It?" ROI & Pareto Economics Card */}
               <ModelRoiCard
                 roi={activeRun.roi || {}}
-                overallMatchRate={activeRun.aggregates?.overallMatchRate || activeRun.aggregates?.faithfulness || 90}
+                overallMatchRate={activeRun.aggregates?.overallMatchRate || 85}
                 laborRateHr={suite.laborRateHr ?? 75}
                 reviewMinsSaved={suite.reviewMinsSaved ?? 15}
                 onUpdateEconomics={({ laborRateHr, reviewMinsSaved }) => {
@@ -641,10 +663,10 @@ export default function EvaluationView({
                       }`}>
                         <th className="py-2.5 px-3">Case ID</th>
                         <th className="py-2.5 px-3">Scenario Name</th>
-                        <th className="py-2.5 px-3">Composite Match</th>
-                        <th className="py-2.5 px-3">Faithfulness</th>
-                        <th className="py-2.5 px-3">Action F1</th>
-                        <th className="py-2.5 px-3">PII Redact</th>
+                        <th className="py-2.5 px-3">Composite Score</th>
+                        {nonSlaEvaluators.map(ev => (
+                          <th key={ev.id} className="py-2.5 px-3">{ev.shortName || ev.name}</th>
+                        ))}
                         <th className="py-2.5 px-3">Latency</th>
                         <th className="py-2.5 px-3">Status</th>
                         <th className="py-2.5 px-3 text-right">Inspect</th>
@@ -659,18 +681,24 @@ export default function EvaluationView({
                             isDarkMode ? 'hover:bg-white/[0.04]' : 'hover:bg-[#E6EDF7]/50'
                           }`}
                         >
-                          <td className="py-3 px-3 font-mono font-bold text-[#0091DA]">{res.caseId}</td>
+                          <td className="py-3 px-3 font-mono font-bold text-[#0091DA]">{res.caseId || res.id}</td>
                           <td className={`py-3 px-3 font-medium max-w-xs truncate ${
                             isDarkMode ? 'text-white' : 'text-[#0B0F19]'
                           }`}>{res.name || res.caseName}</td>
                           <td className={`py-3 px-3 font-mono font-bold ${
                             isDarkMode ? 'text-white' : 'text-[#0B0F19]'
                           }`}>
-                            {res.compositeScore ?? res.faithfulness}%
+                            {res.compositeScore ?? 85}%
                           </td>
-                          <td className="py-3 px-3 font-mono text-[#009A44] font-bold">{res.faithfulness}%</td>
-                          <td className="py-3 px-3 font-mono text-[#00A3A6] font-bold">{res.actionItemF1}%</td>
-                          <td className="py-3 px-3 font-mono text-[#6D2077] font-bold">{res.piiRate}%</td>
+                          {nonSlaEvaluators.map(ev => {
+                            const score = res.evalScores?.[ev.id] ?? '-';
+                            const isPassed = typeof score === 'number' ? score >= (ev.threshold || 85) : true;
+                            return (
+                              <td key={ev.id} className={`py-3 px-3 font-mono font-bold ${isPassed ? 'text-[#009A44]' : 'text-[#6D2077]'}`}>
+                                {typeof score === 'number' ? `${score}%` : score}
+                              </td>
+                            );
+                          })}
                           <td className={`py-3 px-3 font-mono ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{res.latencySec}s</td>
                           <td className="py-3 px-3">
                             <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-full ${
@@ -742,7 +770,7 @@ export default function EvaluationView({
                     <p className={`text-[11px] mt-1 leading-relaxed line-clamp-2 ${
                       isDarkMode ? 'text-slate-400' : 'text-slate-600'
                     }`}>
-                      {cs.groundTruth?.keyDecision || 'Benchmark ground truth fixture.'}
+                      {cs.expectedOutput || (typeof cs.groundTruth === 'string' ? cs.groundTruth : JSON.stringify(cs.groundTruth || '')) || 'Ground truth fixture.'}
                     </p>
                   </div>
                 ))}

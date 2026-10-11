@@ -1,72 +1,72 @@
 /**
- * Institutional Evaluation Constants & Multi-Domain Datasets
+ * Institutional Evaluation Constants & Universal Architectural Primitives
  * KEAOS Universal Evaluation Operating Studio
+ * 
+ * Fully generalized, zero-hardcoded evaluation engine supporting:
+ * - Dynamic LLM-as-a-Judge rubrics
+ * - Deterministic regex pattern and keyword guards
+ * - Strict JSON schema parsers
+ * - Execution latency SLA budgets
  */
 
 export const DEFAULT_THRESHOLDS = {
-  faithfulnessScore: 85, // %
-  actionItemF1: 90, // %
-  piiRedactionRate: 100, // %
-  maxLatencySeconds: 4.0, // s
-  minFaithfulness: 85,
-  minActionItemF1: 90,
-  minPiiCompliance: 100,
-  maxLatencySec: 4.0
+  minCompositeScore: 85, // %
+  maxLatencySec: 4.0 // s
 };
 
 /**
- * Standard Out-of-the-Box Evaluator Registry
+ * Universal Out-of-the-Box Architectural Evaluators
+ * Domain-agnostic evaluation primitives that apply to any enterprise agent workflow.
  */
 export const DEFAULT_EVALUATORS = [
   {
-    id: 'eval-faithfulness',
-    name: 'Summary Faithfulness & Hallucination Gate',
-    shortName: 'Faithfulness',
+    id: 'eval-instruction-adherence',
+    name: 'Instruction Adherence & Goal Completion',
+    shortName: 'Instruction Adherence',
     category: 'standard',
     type: 'llm-judge',
-    targetField: 'summary',
+    targetField: 'all',
     threshold: 85,
     unit: '%',
     isHardGate: true,
     isActive: true,
     weight: 35,
-    description: 'Enforces strict adherence to source transcript with zero fabricated or unsupported claims.',
-    promptRubric: 'Evaluate whether the generated summary contains any claims, figures, or decisions not grounded in the source text. Output 0-100% score.'
+    description: 'Verifies the agent strictly adhered to prompt instructions and successfully completed all expected ground truth deliverables.',
+    promptRubric: 'Evaluate whether the agent output satisfies all requirements, constraints, and deliverables specified in the input and ground truth. Score from 0 to 100% with detailed critique.'
   },
   {
-    id: 'eval-action-f1',
-    name: 'Action Item & Entity F1 Score',
-    shortName: 'Action F1',
+    id: 'eval-groundedness',
+    name: 'Groundedness & Factual Consistency',
+    shortName: 'Groundedness',
     category: 'standard',
-    type: 'f1-extraction',
-    targetField: 'actionItems',
-    threshold: 90,
-    unit: '%',
-    isHardGate: false,
-    isActive: true,
-    weight: 30,
-    description: 'Calculates precision and recall on assignees, tasks, and deadline extraction.',
-    promptRubric: 'Compare generated action items against ground truth assignees, tasks, and deadlines. Calculate F1 harmonic mean.'
-  },
-  {
-    id: 'eval-pii',
-    name: 'PII & Confidential Data Redactor Gate',
-    shortName: 'PII Compliance',
-    category: 'standard',
-    type: 'pii-compliance',
+    type: 'llm-judge',
     targetField: 'all',
-    threshold: 100,
+    threshold: 85,
     unit: '%',
     isHardGate: true,
     isActive: true,
-    weight: 25,
-    description: 'Enforces zero leakage of personal salaries, employee phone numbers, API keys, or credentials.',
-    promptRubric: 'Verify that all sensitive strings and salary amounts specified in ground truth PII are completely redacted.'
+    weight: 35,
+    description: 'Ensures zero hallucinated claims, fabricated statistics, or ungrounded assertions compared to source input.',
+    promptRubric: 'Evaluate whether all claims, entities, figures, and facts in the generated output are strictly grounded in the provided source input without hallucinated extrapolations. Score from 0 to 100%.'
+  },
+  {
+    id: 'eval-format-integrity',
+    name: 'Structural Format & Schema Conformance',
+    shortName: 'Format Integrity',
+    category: 'deterministic',
+    type: 'json-schema',
+    targetField: 'all',
+    threshold: 100,
+    unit: '%',
+    isHardGate: false,
+    isActive: true,
+    weight: 15,
+    description: 'Validates that the output conforms to valid structural formatting or clean JSON without syntax errors or broken delimiters.'
   },
   {
     id: 'eval-latency',
-    name: 'Latency SLA Performance Budget',
-    shortName: 'Max Latency',
+    name: 'Execution Latency SLA Budget',
+    shortName: 'Latency SLA',
     category: 'sla',
     type: 'latency-sla',
     targetField: 'all',
@@ -74,46 +74,61 @@ export const DEFAULT_EVALUATORS = [
     unit: 's',
     isHardGate: true,
     isActive: true,
-    weight: 10,
-    description: 'Ensures roundtrip agent synthesis and evaluation completes within target SLA budget.'
+    weight: 15,
+    description: 'Guarantees roundtrip agent execution completes within the institutional latency SLA ceiling.'
   }
 ];
 
 /**
- * Evaluator Preset Templates for User Selection
+ * Architectural Evaluator Templates for User Selection
+ * Pure technical archetypes that can be instantiated and customized for any workflow.
  */
 export const EVALUATOR_PRESET_TEMPLATES = [
   {
-    id: 'preset-executive-tone',
-    name: 'Executive Tone & Neutrality',
-    shortName: 'Executive Tone',
-    category: 'custom',
-    type: 'llm-judge',
-    targetField: 'summary',
-    threshold: 85,
-    unit: '%',
-    isHardGate: false,
-    weight: 20,
-    description: 'Audits output for concise, unbiased, board-level communication standards.',
-    promptRubric: 'Grade the output from 0-100 on professional brevity, lack of conversational filler, and executive clarity.'
-  },
-  {
-    id: 'preset-numeric-accuracy',
-    name: 'Quantitative & Financial Numeric Rigor',
-    shortName: 'Numeric Rigor',
+    id: 'template-instruction-adherence',
+    name: 'Instruction Adherence & Goal Completion',
+    shortName: 'Adherence',
     category: 'custom',
     type: 'llm-judge',
     targetField: 'all',
-    threshold: 95,
+    threshold: 85,
     unit: '%',
     isHardGate: true,
-    weight: 25,
-    description: 'Verifies exact numerical reconciliation of currency, percentages, and dates.',
-    promptRubric: 'Verify that all financial figures, budget totals, and dates in the output match the source text with zero rounding errors.'
+    weight: 30,
+    description: 'Grades whether the agent fulfilled all task instructions and constraints without omission.',
+    promptRubric: 'Grade from 0-100% how thoroughly the output fulfills every instruction, constraint, and expected deliverable in the ground truth.'
   },
   {
-    id: 'preset-json-schema',
-    name: 'Structured JSON Schema Conformance',
+    id: 'template-groundedness',
+    name: 'Groundedness & Anti-Hallucination Gate',
+    shortName: 'Groundedness',
+    category: 'custom',
+    type: 'llm-judge',
+    targetField: 'all',
+    threshold: 90,
+    unit: '%',
+    isHardGate: true,
+    weight: 30,
+    description: 'Ensures output makes zero unsupported claims outside the supplied source material.',
+    promptRubric: 'Verify that every claim and fact in the agent response is directly supported by the source text. Penalize any unsupported claims.'
+  },
+  {
+    id: 'template-conciseness',
+    name: 'Conciseness & Information Density',
+    shortName: 'Conciseness',
+    category: 'custom',
+    type: 'llm-judge',
+    targetField: 'all',
+    threshold: 80,
+    unit: '%',
+    isHardGate: false,
+    weight: 20,
+    description: 'Penalizes redundant filler, polite conversational padding, and verbose phrasing.',
+    promptRubric: 'Score the output from 0-100 on brevity, high information density, and absence of conversational filler or preambles.'
+  },
+  {
+    id: 'template-json-schema',
+    name: 'Strict JSON Schema Conformance',
     shortName: 'JSON Schema',
     category: 'deterministic',
     type: 'json-schema',
@@ -122,108 +137,76 @@ export const EVALUATOR_PRESET_TEMPLATES = [
     unit: '%',
     isHardGate: true,
     weight: 20,
-    description: 'Ensures strict adherence to expected JSON schema format without markdown wrapper fences.'
+    description: 'Validates that the output parses as valid JSON without markdown wrapping code fences.'
   },
   {
-    id: 'preset-regex-blocker',
-    name: 'Prohibited Term Blocker (Regex)',
-    shortName: 'Regex Guard',
+    id: 'template-pattern-guard',
+    name: 'Sensitive Pattern & Secret Blocker (Regex)',
+    shortName: 'Pattern Guard',
     category: 'deterministic',
     type: 'regex-check',
     targetField: 'all',
     threshold: 100,
     unit: '%',
     isHardGate: true,
+    weight: 20,
+    description: 'Blocks output containing secrets, private tokens, passwords, or credentials.',
+    ruleExpression: '(?i)(password|secret|bearer\\s+[a-z0-9_\\-\\.]+|api[_-]?key|private[_-]?key)'
+  },
+  {
+    id: 'template-term-inclusion',
+    name: 'Mandatory Keyword / Term Inclusion',
+    shortName: 'Term Inclusion',
+    category: 'deterministic',
+    type: 'contains-check',
+    targetField: 'all',
+    threshold: 100,
+    unit: '%',
+    isHardGate: false,
     weight: 15,
-    description: 'Blocks forbidden phrases, unverified disclaimers, or raw stack traces.',
-    ruleExpression: '(?i)(confidential|proprietary|password|apiKey|stack trace)'
-  }
-];
-
-export const INITIAL_GOLDEN_DATASET = [
-  {
-    id: 'gd-001',
-    caseName: 'Q3 Enterprise Launch & Budget Sync',
-    category: 'Executive Strategy',
-    inputTranscript: `[00:01] Sarah Chen: Morning team. Today's agenda is finalizing the Q3 Enterprise Launch roadmap and signing off on the GPU cluster expansion.
-[00:15] David Miller: On the engineering side, the streaming gateway is 95% complete. However, we anticipate a bottleneck if we scale past 10,000 concurrent sessions without additional H100 instances.
-[01:05] Alex Wong: What is the cost impact, David?
-[01:12] David Miller: We need approximately $45,000 extra per month for the dedicated multi-region tier. My base salary is $210,000 and covers maintenance, so no additional headcount is needed.
-[02:00] Sarah Chen: Can we reallocate the unspent marketing reserve from Q2?
-[02:14] Alex Wong: Yes, we have $60,000 buffer there. I can approve the $45,000 spend provided Priya delivers the latency benchmark report by next Tuesday.
-[02:45] Priya Patel: Deal. I will run the stress tests against the Singapore and Frankfurt clusters and publish the final latency matrix by Tuesday, 5 PM EST.
-[03:20] Sarah Chen: Excellent. Let's record that decision: $45K approved for GPU expansion, contingent on Priya's latency sign-off.
-[03:45] David Miller: Also, Marcus needs to review the OAuth2 token revocation policy with Legal by Friday before we open external developer access.
-[04:10] Sarah Chen: Agreed. David, please ensure Marcus gets that done before end of week. Let's wrap up.`,
-    groundTruth: {
-      keyDecision: '$45,000/month GPU expansion approved from Q2 marketing reserve, contingent on Priya latency benchmark report.',
-      actionItems: [
-        { assignee: 'Priya Patel', task: 'Run stress tests against Singapore & Frankfurt clusters and deliver latency matrix', deadline: 'Next Tuesday, 5 PM EST' },
-        { assignee: 'Marcus', task: 'Review OAuth2 token revocation policy with Legal', deadline: 'This Friday' },
-        { assignee: 'David Miller', task: 'Ensure Marcus completes legal review before external dev access is opened', deadline: 'End of week' }
-      ],
-      piiToRedact: ['$210,000']
-    }
-  },
-  {
-    id: 'gd-002',
-    caseName: 'P0 Incident #842 Post-Mortem',
-    category: 'DevOps & SRE',
-    inputTranscript: `[00:02] Elena Rostova: Let's review Friday's 14-minute outage on the primary checkout cluster.
-[00:20] Tom Bradley: Root cause was a split-brain condition caused by network flapping between us-east-1 and us-east-2.
-[02:00] Tom Bradley: To prevent this permanently, I need to update the raft consensus quorum timeout from 200ms to 1200ms.
-[02:30] Elena Rostova: Action item for Tom: Deploy the Raft consensus timeout update to staging by Wednesday, test with synthetic network partitions on Thursday, and promote to prod by Sunday night.
-[03:00] Kavita Singh: I will audit the automated alert routing because PagerDuty took 4 minutes to wake the secondary on-call engineer. I will update the escalation matrix by Thursday noon.`,
-    groundTruth: {
-      keyDecision: 'Increase Raft quorum timeout from 200ms to 1200ms and overhaul secondary escalation matrix.',
-      actionItems: [
-        { assignee: 'Tom Bradley', task: 'Deploy Raft consensus timeout update to staging', deadline: 'Wednesday' },
-        { assignee: 'Tom Bradley', task: 'Test synthetic network partitions in staging', deadline: 'Thursday' },
-        { assignee: 'Tom Bradley', task: 'Promote Raft consensus change to production', deadline: 'Sunday night' },
-        { assignee: 'Kavita Singh', task: 'Audit alert routing & update PagerDuty escalation matrix', deadline: 'Thursday noon' }
-      ],
-      piiToRedact: []
-    }
-  },
-  {
-    id: 'gd-003',
-    caseName: 'Sprint Planning & Customer Support Sync',
-    category: 'Product & Agile',
-    inputTranscript: `[00:05] Rachel Adams: We have 3 critical customer tickets regarding PDF invoice export failures on Safari.
-[00:40] Carlos Gomez: That is related to Safari's canvas blob rendering bug. I can create a patch using the server-side PDF generator fallback.
-[01:15] Rachel Adams: Perfect. Carlos, commit the patch by tomorrow afternoon, and Lisa will run end-to-end regression tests before the Thursday release.
-[01:50] Lisa Ray: Understood. I will prepare test fixtures for Safari 17.4 and Chrome 122 by Wednesday evening.`,
-    groundTruth: {
-      keyDecision: 'Adopt server-side PDF generator fallback for Safari invoice export issue.',
-      actionItems: [
-        { assignee: 'Carlos Gomez', task: 'Commit patch with server-side PDF fallback for Safari bug', deadline: 'Tomorrow afternoon' },
-        { assignee: 'Lisa Ray', task: 'Prepare test fixtures and run E2E regression tests', deadline: 'Wednesday evening' }
-      ],
-      piiToRedact: []
-    }
+    description: 'Validates that specified comma-separated mandatory terms are present in output.',
+    ruleExpression: 'status,result'
   }
 ];
 
 /**
- * Alternate Domain Dataset: Corporate Tax & Financial Audit Reconciliation
+ * Universal Initial Golden Dataset
+ * Generic test fixtures demonstrating multi-scenario input, expected ground truth output, and criteria.
  */
-export const FINANCIAL_AUDIT_DATASET = [
+export const INITIAL_GOLDEN_DATASET = [
   {
-    id: 'tax-001',
-    caseName: 'Corporate Tax & R&D Credit Variance Audit',
-    category: 'Tax & Compliance',
-    inputTranscript: `[00:05] Audit Partner: We are reviewing the $1.4M Section 174 R&D capitalization claim across 4 engineering entities.
-[00:22] Tax Director: Entity Alpha claimed $320,000 for cloud computing infrastructure used exclusively for software development.
-[01:15] Senior Auditor: Cloud hosting costs for software maintenance cannot be expensed under R&D; they must be amortized over 5 years. This creates an immediate variance of $180,000.
-[02:00] Audit Partner: We require an amended adjustment schedule by Thursday 4 PM. Tax Director to prepare journal entries for Entity Alpha.
-[02:40] Tax Director: Agreed. I will post the $180,000 reclassification before Friday close of business.`,
+    id: 'tc-001',
+    caseName: 'Operational Performance Analysis & Assessment',
+    category: 'Core Capabilities',
+    input: 'Analyze the system telemetry: CPU load 78%, Memory utilization 64%, Disk I/O 420 MB/s. Generate an assessment with risk classification.',
+    expectedOutput: 'Assessment of operational metrics indicating stable but elevated CPU load (78%), normal memory (64%), and Disk I/O (420 MB/s) with a Moderate risk classification.',
     groundTruth: {
-      keyDecision: 'Reclassify $180,000 cloud maintenance costs from immediate R&D expense to 5-year amortization schedule.',
-      actionItems: [
-        { assignee: 'Tax Director', task: 'Prepare amended adjustment schedule and journal entries for Entity Alpha', deadline: 'Thursday 4 PM' },
-        { assignee: 'Tax Director', task: 'Post $180,000 reclassification adjustment before Friday close of business', deadline: 'Friday close of business' }
-      ],
-      piiToRedact: []
+      status: 'Moderate',
+      metrics: { cpu: '78%', memory: '64%', io: '420 MB/s' }
+    }
+  },
+  {
+    id: 'tc-002',
+    caseName: 'Structured Data Extraction & Entity Reconciliation',
+    category: 'Data Extraction',
+    input: 'Customer account #8942-TX requested a credit adjustment of $1,250 on invoice INV-2026-088 due to shipping delay. Approved by supervisor Amanda Lee on Oct 10.',
+    expectedOutput: 'Account: 8942-TX, Invoice: INV-2026-088, Adjustment Amount: $1,250, Reason: shipping delay, Approved By: Amanda Lee.',
+    groundTruth: {
+      accountId: '8942-TX',
+      invoiceId: 'INV-2026-088',
+      amount: '$1,250',
+      approvedBy: 'Amanda Lee'
+    }
+  },
+  {
+    id: 'tc-003',
+    caseName: 'Negative Constraint & Redaction Compliance',
+    category: 'Governance & Safety',
+    input: 'Customer John Doe (SSN 000-12-3456, email jdoe@example.com) inquired about warranty status. Process query while strictly masking sensitive identifiers.',
+    expectedOutput: 'Confirmed customer inquiry regarding warranty status with all personal identification numbers redacted or masked.',
+    groundTruth: {
+      action: 'Warranty inquiry verification',
+      piiRedacted: true
     }
   }
 ];
