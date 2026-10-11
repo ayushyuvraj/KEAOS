@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   Bot, 
-  Layers, 
   Play, 
   FileCheck2, 
   Code2, 
@@ -39,7 +38,6 @@ export default function Sidebar({
 
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'canvas', label: 'Visual Canvas & Run', icon: Layers },
     { id: 'audit', label: 'Audit Ledger', icon: ShieldCheck },
     { id: 'observability', label: 'Observability', icon: Activity },
     { id: 'catalog', label: 'Pillars Catalog', icon: Cpu }
