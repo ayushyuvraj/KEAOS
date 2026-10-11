@@ -58,6 +58,7 @@ import OutputDisplayNode from './nodes/OutputDisplayNode';
 import IngestionNode from './nodes/IngestionNode';
 import DeterministicNode from './nodes/DeterministicNode';
 import { executeDeterministicTask } from '../services/deterministicRunner';
+import { loadCanvasViewport, saveCanvasViewport } from '../utils/persistentState';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
@@ -130,7 +131,22 @@ function CanvasInner({
   const [isDraggingMiniMap, setIsDraggingMiniMap] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, initialX: 0, initialY: 0 });
   const [rfInstance, setRfInstance] = useState(null);
+  const lastWorkflowIdRef = useRef(activeUseCase?.id);
   const [executionState, setExecutionState] = useState({ isExecuting: false, step: '' });
+
+  // Restore workflow-specific viewport when switching workflows
+  useEffect(() => {
+    if (!rfInstance || !activeUseCase?.id) return;
+    if (activeUseCase.id !== lastWorkflowIdRef.current) {
+      lastWorkflowIdRef.current = activeUseCase.id;
+      const savedVp = loadCanvasViewport(activeUseCase.id);
+      if (savedVp) {
+        rfInstance.setViewport(savedVp, { duration: 250 });
+      } else {
+        rfInstance.fitView({ padding: 0.2, duration: 250 });
+      }
+    }
+  }, [activeUseCase?.id, rfInstance]);
   const [toastNotification, setToastNotification] = useState(null);
   const [activeChatAgentId, setActiveChatAgentId] = useState(null);
   const hoveredNodeIdRef = useRef(null);
@@ -2281,12 +2297,18 @@ function CanvasInner({
         connectionMode={ConnectionMode.Loose}
         onInit={(instance) => {
           setRfInstance(instance);
-          setTimeout(() => {
-            instance.fitView({ padding: 0.2, duration: 300 });
-          }, 60);
+          const savedVp = loadCanvasViewport(activeUseCase?.id);
+          if (savedVp) {
+            instance.setViewport(savedVp, { duration: 0 });
+          } else {
+            setTimeout(() => {
+              instance.fitView({ padding: 0.2, duration: 250 });
+            }, 60);
+          }
         }}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
+        onMoveEnd={(_, viewport) => {
+          saveCanvasViewport(viewport, activeUseCase?.id);
+        }}
         onNodeClick={(_, node) => {
           if (isConnectingRef.current) return;
           if (onSelectNode) onSelectNode(node);

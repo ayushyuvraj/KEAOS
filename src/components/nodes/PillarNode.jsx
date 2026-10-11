@@ -238,13 +238,11 @@ export default function PillarNode({ id, data, selected }) {
       }`}>
         {name}
       </span>
-      <span className={`text-[9px] font-mono block -mt-0.5 uppercase tracking-wider ${
-        isDeactivated
-          ? 'text-amber-500'
-          : isDarkMode ? 'text-slate-400' : 'text-slate-600'
-      }`}>
-        {isDeactivated ? 'Deactivated' : pillarDef.label}
-      </span>
+      {isDeactivated && (
+        <span className="text-[9px] font-mono block -mt-0.5 uppercase tracking-wider text-amber-500">
+          Deactivated
+        </span>
+      )}
 
       {/* Gateway Capabilities Toggle Pill */}
       {pillarType === 'gateway' && routedTools.length > 0 && (

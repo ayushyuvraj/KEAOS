@@ -54,9 +54,9 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       type: 'agentCore',
       position: { x: 520, y: 165 },
       data: {
-        name: 'Enterprise Autonomous Agent',
+        name: 'Meeting Intelligence Agent',
         framework,
-        prompt: 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.',
+        prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
         temperature: 0.2,
         topP: 0.95,
         attachedCounts: {
@@ -544,26 +544,32 @@ export default function App() {
     return getWorkflowById(activeId);
   }, []);
 
-  const [activeUseCase, setActiveUseCase] = useState(
-    initialActiveWorkflow?.activeUseCase || initialCanvas?.activeUseCase || {
-      id: 'uc-autonomous-agent',
-      name: 'Enterprise Autonomous Agent',
-      description: 'Adaptive multi-pillar workflow orchestration with live MCP tools, model reasoning, and zero-trust policies.',
+  const [activeUseCase, setActiveUseCase] = useState(() => {
+    const fromWf = initialActiveWorkflow?.activeUseCase;
+    const fromCanvas = initialCanvas?.activeUseCase;
+    const candidate = fromWf || fromCanvas;
+    if (candidate && candidate.name && candidate.name !== 'Enterprise Autonomous Agent') {
+      return candidate;
+    }
+    return {
+      id: 'uc-meeting-intel',
+      name: 'Meeting Intelligence Agent',
+      description: 'Autonomous multi-speaker synthesis, action items with owners, and task sync.',
       framework: FRAMEWORKS[0], // Google ADK
       agent: {
-        prompt: 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.',
+        prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
         temperature: 0.2,
         topP: 0.95
       }
-    }
-  );
+    };
+  });
 
   const { initialNodes, initialEdges } = useMemo(
     () => getInitialNodesAndEdges(activeUseCase.framework),
     []
   );
 
-  // Sanitize initial nodes to ensure legacy saved meeting prompts seamlessly upgrade
+  // Sanitize initial nodes to ensure MCP nodes upgrade, and preserve Meeting Intelligence prompts
   const sanitizedInitialNodes = useMemo(() => {
     const rawNodes = initialActiveWorkflow?.nodes !== undefined
       ? initialActiveWorkflow.nodes
@@ -573,12 +579,15 @@ export default function App() {
       let prompt = nodeData.prompt;
       let name = nodeData.name;
 
-      if (n.type === 'agentCore' && prompt && prompt.includes('Analyze meeting transcripts')) {
-        prompt = 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.';
-        if (name === 'Meeting Intelligence Agent') {
-          name = 'Enterprise Autonomous Agent';
+      // Preserve and restore Meeting Intelligence Agent
+      if (n.type === 'agentCore') {
+        if (!name || name === 'Enterprise Autonomous Agent' || name === 'Meeting Intelligence Agent') {
+          name = 'Meeting Intelligence Agent';
+          prompt = (prompt && prompt.includes('Analyze meeting transcripts'))
+            ? prompt
+            : 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.';
+          nodeData = { ...nodeData, prompt, name };
         }
-        nodeData = { ...nodeData, prompt, name };
       }
 
       if (n.type === 'deterministicNode') {
@@ -638,9 +647,7 @@ export default function App() {
   const [isInspectorOpen, setIsInspectorOpenState] = useState(initialUI.isInspectorOpen);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isEnforcerActive, setIsEnforcerActiveState] = useState(initialUI.isEnforcerActive);
-  const [viewMode, setViewModeState] = useState(
-    initialUI.viewMode === 'simulator' ? 'frontend' : initialUI.viewMode
-  );
+  const [viewMode, setViewModeState] = useState('home');
 
   // Wrapped State Setters with localStorage Persistence
   const setIsDarkMode = useCallback((val) => {

@@ -49,40 +49,278 @@ export function computeWorkflowStats(nodes = []) {
 }
 
 /**
- * Creates the initial enterprise workflow from existing saved canvas state or default setup.
+ * Canonical Meeting Intelligence Workflow definition with full multi-pillar topology
  */
-function createInitialDefaultWorkflow() {
-  const existingCanvas = loadCanvasState();
+export function createMeetingIntelligenceWorkflow() {
   const defaultFramework = FRAMEWORKS[0]; // Google ADK
 
-  const defaultUseCase = existingCanvas?.activeUseCase || {
-    id: 'uc-autonomous-agent',
-    name: 'Enterprise Autonomous Agent',
-    description: 'Adaptive multi-pillar workflow orchestration with live MCP tools, model reasoning, and zero-trust policies.',
+  const defaultUseCase = {
+    id: 'uc-meeting-intel',
+    name: 'Meeting Intelligence Agent',
+    description: 'Autonomous multi-speaker synthesis, action items with owners, and task sync.',
     framework: defaultFramework,
     agent: {
-      prompt: 'You are an autonomous enterprise AI agent whose reasoning, execution, and capabilities adapt dynamically to your active brain, connected skills, protocol gateways, and live MCP tools.',
+      prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
       temperature: 0.2,
       topP: 0.95
     }
   };
 
-  const initialNodes = existingCanvas?.nodes || [];
-  const initialEdges = existingCanvas?.edges || [];
+  const initialNodes = [
+    {
+      id: 'agent-core',
+      type: 'agentCore',
+      position: { x: 520, y: 165 },
+      data: {
+        name: 'Meeting Intelligence Agent',
+        framework: defaultFramework,
+        prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
+        temperature: 0.2,
+        topP: 0.95,
+        attachedCounts: {
+          model: 1,
+          skills: 1,
+          mcp: 1,
+          tools: 1,
+          gateway: 1,
+          memory: 1,
+          policies: 1
+        }
+      }
+    },
+    {
+      id: 'node-model-1',
+      type: 'pillar',
+      position: { x: 595, y: -20 },
+      data: {
+        pillarType: 'model',
+        name: 'Gemini 2.0 Flash',
+        description: 'Fast, multimodal, 1M+ context window for long transcripts.',
+        config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
+      }
+    },
+    {
+      id: 'node-tool-1',
+      type: 'pillar',
+      position: { x: 230, y: -20 },
+      data: {
+        pillarType: 'tools',
+        toolId: 'tool-audio-transcribe',
+        name: 'Audio Transcriber',
+        description: 'Accepts MP3 audio, runs Whisper/Speech-to-Text with speaker diarization.',
+        config: { format: 'mp3', diarization: true }
+      }
+    },
+    {
+      id: 'node-mcp-gw-1',
+      type: 'pillar',
+      position: { x: 780, y: -20 },
+      data: {
+        pillarType: 'gateway',
+        itemId: 'gw-mcp-controller',
+        name: 'MCP Egress Gateway',
+        description: 'Enforces zero-trust mediation between Agent Core and external MCP servers. Awaiting live MCP server connection.',
+        config: { gatewayType: 'mcp-egress', auditAllActions: true }
+      }
+    },
+    {
+      id: 'node-policy-1',
+      type: 'pillar',
+      position: { x: 410, y: 440 },
+      data: {
+        pillarType: 'policies',
+        name: 'PII Redactor',
+        description: 'Detects and redacts salaries, personal phones, SSNs, and passwords.',
+        config: { redactSalaries: true, maskEmails: true }
+      }
+    },
+    {
+      id: 'node-memory-1',
+      type: 'pillar',
+      position: { x: 595, y: 440 },
+      data: {
+        pillarType: 'memory',
+        name: 'Episodic Sync Memory',
+        description: 'Remembers past meeting action items to verify resolution across weeks.',
+        config: { ttlDays: 90, store: 'vector-sqlite' }
+      }
+    },
+    {
+      id: 'node-skill-1',
+      type: 'pillar',
+      position: { x: 780, y: 440 },
+      data: {
+        pillarType: 'skills',
+        name: 'Executive Summarizer',
+        description: 'Generates TL;DR, high-level takeaways, and strategic themes.',
+        config: { length: 'concise', focus: 'decisions' }
+      }
+    },
+    {
+      id: 'node-output-1',
+      type: 'outputNode',
+      position: { x: 800, y: 260 },
+      data: {
+        title: 'Meeting Intelligence Output',
+        content: '',
+        status: 'idle',
+        format: 'markdown',
+        isExpanded: false
+      }
+    },
+    {
+      id: 'node-ingest-1',
+      type: 'ingestionNode',
+      position: { x: 410, y: -20 },
+      data: {
+        title: 'Data & Audio Ingestion',
+        content: '',
+        status: 'idle',
+        isExpanded: false
+      }
+    }
+  ];
+
+  const initialEdges = [
+    {
+      id: 'edge-model',
+      source: 'node-model-1',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'model-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#00338D', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-ingest-1',
+      source: 'node-ingest-1',
+      sourceHandle: 'data-out',
+      target: 'agent-core',
+      targetHandle: 'tools-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-tool',
+      source: 'node-tool-1',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'tools-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-mcp-gw',
+      source: 'node-mcp-gw-1',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'mcp-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#00A3A6', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-policy',
+      source: 'node-policy-1',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'policies-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#6D2077', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-memory',
+      source: 'node-memory-1',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'memory-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#483698', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-skill',
+      source: 'node-skill-1',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'skill-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#009A44', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-output',
+      source: 'agent-core',
+      sourceHandle: 'out',
+      target: 'node-output-1',
+      targetHandle: 'data-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    }
+  ];
 
   return {
-    id: 'wf-enterprise-autonomous-agent',
-    name: defaultUseCase.name || 'Enterprise Autonomous Agent',
-    description: defaultUseCase.description || 'Adaptive multi-pillar workflow orchestration with live MCP tools, model reasoning, and zero-trust policies.',
-    framework: defaultUseCase.framework || defaultFramework,
+    id: 'wf-meeting-intelligence',
+    name: 'Meeting Intelligence Agent',
+    description: 'Autonomous multi-speaker meeting intelligence: transcript & audio ingestion, executive summarization, action item extraction, PII redaction, and episodic sync.',
+    framework: defaultFramework,
     activeUseCase: defaultUseCase,
     nodes: initialNodes,
     edges: initialEdges,
     createdAt: Date.now() - 86400000,
     updatedAt: Date.now(),
     isStarred: true,
-    tags: ['Autonomous', 'Enterprise', 'Multi-Pillar']
+    tags: ['Meeting Intelligence', 'Audio Ingestion', 'Summarizer', 'PII Redactor'],
+    stats: computeWorkflowStats(initialNodes)
   };
+}
+
+/**
+ * Creates the initial enterprise workflow from existing saved canvas state or default setup.
+ */
+function createInitialDefaultWorkflow() {
+  const existingCanvas = loadCanvasState();
+  if (existingCanvas && existingCanvas.nodes && existingCanvas.nodes.length > 0) {
+    const rawUseCase = existingCanvas.activeUseCase || {};
+    const ucName = rawUseCase.name && rawUseCase.name !== 'Enterprise Autonomous Agent'
+      ? rawUseCase.name
+      : 'Meeting Intelligence Agent';
+    const ucDesc = rawUseCase.description || 'Autonomous multi-speaker synthesis, action items, and task sync.';
+    const ucFramework = rawUseCase.framework || FRAMEWORKS[0];
+
+    return {
+      id: 'wf-meeting-intelligence',
+      name: ucName,
+      description: ucDesc,
+      framework: ucFramework,
+      activeUseCase: {
+        ...rawUseCase,
+        name: ucName,
+        description: ucDesc,
+        framework: ucFramework,
+        agent: {
+          prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
+          temperature: 0.2,
+          topP: 0.95,
+          ...(rawUseCase.agent || {})
+        }
+      },
+      nodes: existingCanvas.nodes,
+      edges: existingCanvas.edges || [],
+      createdAt: Date.now() - 86400000,
+      updatedAt: Date.now(),
+      isStarred: true,
+      tags: ['Meeting Intelligence', 'Audio Ingestion', 'Summarizer'],
+      stats: computeWorkflowStats(existingCanvas.nodes)
+    };
+  }
+
+  return createMeetingIntelligenceWorkflow();
 }
 
 /**
@@ -92,8 +330,70 @@ export function loadAllWorkflows() {
   try {
     const raw = localStorage.getItem(WORKFLOWS_REGISTRY_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
+      let parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        // Check if Meeting Intelligence workflow exists
+        const hasMeetingIntel = parsed.some(
+          (w) => (w.name && w.name.toLowerCase().includes('meeting intelligence')) ||
+                 (w.id === 'wf-meeting-intelligence') ||
+                 (w.activeUseCase?.name && w.activeUseCase.name.toLowerCase().includes('meeting intelligence'))
+        );
+
+        if (!hasMeetingIntel) {
+          // Check if an existing workflow was accidentally renamed to 'Enterprise Autonomous Agent'
+          const autoRenamedIndex = parsed.findIndex(
+            (w) => w.id === 'wf-enterprise-autonomous-agent' ||
+                   (w.nodes && w.nodes.some(n => n.data?.name === 'Audio Transcriber' || n.data?.name === 'Executive Summarizer'))
+          );
+
+          if (autoRenamedIndex >= 0) {
+            const existing = parsed[autoRenamedIndex];
+            parsed[autoRenamedIndex] = {
+              ...existing,
+              id: existing.id || 'wf-meeting-intelligence',
+              name: 'Meeting Intelligence Agent',
+              description: 'Autonomous multi-speaker meeting intelligence: transcript & audio ingestion, executive summarization, action item extraction, PII redaction, and episodic sync.',
+              activeUseCase: {
+                ...(existing.activeUseCase || {}),
+                id: existing.activeUseCase?.id || 'uc-meeting-intel',
+                name: 'Meeting Intelligence Agent',
+                description: 'Autonomous multi-speaker synthesis, action items, and task sync.',
+                agent: {
+                  ...(existing.activeUseCase?.agent || {}),
+                  prompt: existing.activeUseCase?.agent?.prompt?.includes('Analyze meeting transcripts')
+                    ? existing.activeUseCase.agent.prompt
+                    : 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.'
+                }
+              },
+              nodes: (existing.nodes || []).map((n) => {
+                if (n.type === 'agentCore') {
+                  return {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      name: 'Meeting Intelligence Agent',
+                      prompt: n.data?.prompt?.includes('Analyze meeting transcripts')
+                        ? n.data.prompt
+                        : 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.'
+                    }
+                  };
+                }
+                return n;
+              }),
+              isStarred: true
+            };
+          } else {
+            // Prepend canonical Meeting Intelligence workflow so it's immediately accessible
+            const miWf = createMeetingIntelligenceWorkflow();
+            parsed = [miWf, ...parsed];
+          }
+
+          try {
+            localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(parsed));
+          } catch (e) {
+            console.warn('Failed to save updated workflows registry:', e);
+          }
+        }
         return parsed;
       }
     }
@@ -101,7 +401,7 @@ export function loadAllWorkflows() {
     console.warn('Failed to parse workflows registry from localStorage:', err);
   }
 
-  // If no registry exists yet, bootstrap with the active canvas state
+  // If no registry exists yet, bootstrap with the Meeting Intelligence workflow
   const initialWf = createInitialDefaultWorkflow();
   const initialList = [initialWf];
   try {
@@ -124,7 +424,7 @@ export function getActiveWorkflowId() {
     console.warn('Failed to read active workflow id:', err);
   }
   const all = loadAllWorkflows();
-  return all[0]?.id || 'wf-enterprise-autonomous-agent';
+  return all[0]?.id || 'wf-meeting-intelligence';
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   Sun, 
   Moon,
   Edit3,
+  Layers,
   X
 } from 'lucide-react';
 
@@ -249,6 +250,24 @@ export default function Header({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Center: Quick 1-click Return to Editor when in Global Views (Audit, Observability, Catalog) */}
+      {!isWorkflowView && viewMode !== 'home' && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center pointer-events-auto z-10">
+          <button
+            onClick={() => setViewMode && setViewMode('canvas')}
+            className={`flex items-center gap-1.5 px-3.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+              isDarkMode
+                ? 'bg-[#00338D]/30 hover:bg-[#00338D]/50 text-[#38BDF8] border-[#0091DA]/40 shadow-xs'
+                : 'bg-blue-50 hover:bg-blue-100 text-[#00338D] border-blue-200 shadow-xs'
+            }`}
+            title={`Return to Editor (${activeUseCase?.name || 'Active Workflow'})`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Return to Editor</span>
+          </button>
         </div>
       )}
 

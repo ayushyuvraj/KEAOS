@@ -8,8 +8,6 @@ import {
   ShieldCheck, 
   Activity, 
   Cpu, 
-  Plus, 
-  RotateCcw, 
   Key, 
   PanelLeftClose,
   PanelLeftOpen,
@@ -165,41 +163,6 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Active Specification & Action Bar */}
-        <div className="p-3 bg-[#001E50] border-b border-[#00338D]/80 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] uppercase font-bold tracking-widest text-slate-400 font-mono">
-              Active Specification
-            </span>
-            <span className="text-[9px] px-2 py-0.5 rounded-full font-mono bg-[#00338D] text-slate-100 border border-[#0091DA]/50 font-bold">
-              {activeUseCase.framework.name}
-            </span>
-          </div>
-
-          <div className="text-xs font-bold text-white tracking-tight truncate">
-            {activeUseCase.name}
-          </div>
-
-          {/* Quick Action Buttons */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <button
-              onClick={onOpenMakeModal}
-              className="btn-tactile flex items-center justify-center gap-1.5 py-1.5 px-2 text-[11px] font-bold bg-[#005EB8] hover:bg-[#00478F] text-white rounded-none shadow-sm border border-[#0091DA]/40"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Make Use Case</span>
-            </button>
-
-            <button
-              onClick={onResetTemplate}
-              className="btn-tactile flex items-center justify-center gap-1.5 py-1.5 px-2 text-[11px] font-semibold text-slate-300 border border-white/20 hover:bg-white/10 rounded-none transition-colors"
-              title="Reset back to pilot template"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-              <span>Reset Pilot</span>
-            </button>
-          </div>
-        </div>
 
         {/* Navigation View Modes (Tabs) */}
         <div className="p-2 border-b border-[#00338D]/80 bg-[#001438]/60 space-y-1 flex-1 overflow-y-auto">

@@ -16,7 +16,7 @@ export const DEFAULT_UI_STATE = {
   miniMapPos: { x: 0, y: 0 },
   isInspectorOpen: false,
   isEnforcerActive: true,
-  viewMode: 'canvas'
+  viewMode: 'home'
 };
 
 /**
@@ -115,3 +115,51 @@ export function clearCanvasState() {
     console.warn('Failed to clear Canvas state from localStorage:', e);
   }
 }
+
+const CANVAS_VIEWPORT_PREFIX = 'keaos_canvas_viewport_';
+const GLOBAL_VIEWPORT_KEY = 'keaos_canvas_viewport_global';
+
+/**
+ * Loads saved Canvas viewport (x, y, zoom) for specific workflow or global fallback.
+ */
+export function loadCanvasViewport(workflowId) {
+  try {
+    if (workflowId) {
+      const wfRaw = localStorage.getItem(`${CANVAS_VIEWPORT_PREFIX}${workflowId}`);
+      if (wfRaw) {
+        const parsed = JSON.parse(wfRaw);
+        if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number' && typeof parsed?.zoom === 'number') {
+          return parsed;
+        }
+      }
+    }
+    const globalRaw = localStorage.getItem(GLOBAL_VIEWPORT_KEY);
+    if (globalRaw) {
+      const parsed = JSON.parse(globalRaw);
+      if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number' && typeof parsed?.zoom === 'number') {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load Canvas viewport from localStorage:', e);
+  }
+  return null;
+}
+
+/**
+ * Saves Canvas viewport (x, y, zoom) for specific workflow and global fallback.
+ */
+export function saveCanvasViewport(viewport, workflowId) {
+  try {
+    if (viewport && typeof viewport.x === 'number' && typeof viewport.y === 'number' && typeof viewport.zoom === 'number') {
+      const payload = JSON.stringify(viewport);
+      localStorage.setItem(GLOBAL_VIEWPORT_KEY, payload);
+      if (workflowId) {
+        localStorage.setItem(`${CANVAS_VIEWPORT_PREFIX}${workflowId}`, payload);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to save Canvas viewport to localStorage:', e);
+  }
+}
+
