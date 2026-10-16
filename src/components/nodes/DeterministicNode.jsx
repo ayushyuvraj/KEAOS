@@ -16,6 +16,7 @@ import NodeActionToolbar from '../common/NodeActionToolbar';
 export default function DeterministicNode({ id, data, selected }) {
   const isDarkMode = data?.isDarkMode !== false;
   const isDeactivated = Boolean(data?.isDeactivated);
+  const isLocked = Boolean(data?.isLocked);
   
   const [isRunning, setIsRunning] = useState(Boolean(data?.isRunning));
   const [runStatus, setRunStatus] = useState(data?.lastStatus || 'idle');
@@ -277,6 +278,7 @@ export default function DeterministicNode({ id, data, selected }) {
         nodeId={id}
         nodeName={nodeTitle}
         isDeactivated={isDeactivated}
+        isLocked={isLocked}
         onOpenChat={handleChatClick}
         onExecute={handleQuickRun}
         onToggleDeactivate={() => data?.onToggleDeactivate && data.onToggleDeactivate(id)}
@@ -358,9 +360,14 @@ export default function DeterministicNode({ id, data, selected }) {
             />
           ) : (
             <span
-              onClick={() => setIsEditingTitle(true)}
-              title="Click to rename rule"
-              className="text-xs font-mono font-bold text-[#EAAA00] truncate max-w-[95px] cursor-text hover:underline decoration-dashed decoration-[#EAAA00]/60 transition-all"
+              onClick={() => {
+                if (isLocked) return;
+                setIsEditingTitle(true);
+              }}
+              title={isLocked ? 'Workflow is locked' : 'Click to rename rule'}
+              className={`text-xs font-mono font-bold text-[#EAAA00] truncate max-w-[95px] transition-all ${
+                isLocked ? 'cursor-default' : 'cursor-text hover:underline decoration-dashed decoration-[#EAAA00]/60'
+              }`}
             >
               {nodeTitle}
             </span>
@@ -371,19 +378,19 @@ export default function DeterministicNode({ id, data, selected }) {
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
           {/* Small circle status indicator (to the left of play button) */}
           <span
-            onClick={!isFrozen && hasLogic ? handleFreezeLogic : undefined}
+            onClick={!isLocked && !isFrozen && hasLogic ? handleFreezeLogic : undefined}
             className={`w-2 h-2 rounded-full transition-all shrink-0 ${
               !hasLogic
                 ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)]'
                 : !isFrozen
-                  ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.7)] cursor-pointer hover:scale-125'
+                  ? `bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.7)] ${isLocked ? 'cursor-default' : 'cursor-pointer hover:scale-125'}`
                   : 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
             } ${isRunning ? 'animate-ping' : ''}`}
             title={
               !hasLogic
                 ? 'No logic defined'
                 : !isFrozen
-                  ? 'Draft logic (Click to freeze)'
+                  ? isLocked ? 'Draft logic (Locked)' : 'Draft logic (Click to freeze)'
                   : 'Logic frozen & active'
             }
           />
@@ -485,14 +492,19 @@ export default function DeterministicNode({ id, data, selected }) {
             ref={textareaRef}
             value={localText}
             onChange={(e) => {
+              if (isLocked) return;
               if (isFrozen) {
                 setShowOverwriteWarning(true);
                 return;
               }
               handleTextChange(e);
             }}
-            onClick={handleTextareaClick}
+            onClick={(e) => {
+              if (isLocked) return;
+              handleTextareaClick(e);
+            }}
             onFocus={(e) => {
+              if (isLocked) return;
               if (isFrozen) {
                 e.target.blur();
                 setShowOverwriteWarning(true);
@@ -500,21 +512,29 @@ export default function DeterministicNode({ id, data, selected }) {
             }}
             onKeyDown={(e) => {
               e.stopPropagation();
+              if (isLocked) {
+                e.preventDefault();
+                return;
+              }
               if (isFrozen) {
                 e.preventDefault();
                 setShowOverwriteWarning(true);
               }
             }}
-            readOnly={isFrozen}
+            readOnly={isFrozen || isLocked}
             placeholder="Describe deterministic logic (e.g., parse rows, calculate tax, format output)..."
             className={`nodrag nowheel w-full h-full p-2 text-[10.5px] font-mono leading-relaxed resize-none rounded-xl border transition-all outline-none ${
-              isFrozen
+              isLocked
                 ? isDarkMode
-                  ? 'bg-[#141722]/80 border-[#2A2E3D] text-slate-300 cursor-pointer selection:bg-transparent'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 cursor-pointer selection:bg-transparent'
-                : isDarkMode 
-                  ? 'bg-[#0E111A] border-[#2E3547] text-white placeholder-slate-500 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
-                  : 'bg-white border-slate-300 text-[#0B0F19] placeholder-slate-400 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
+                  ? 'bg-[#141722]/60 border-[#2A2E3D] text-slate-300 cursor-default'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 cursor-default'
+                : isFrozen
+                  ? isDarkMode
+                    ? 'bg-[#141722]/80 border-[#2A2E3D] text-slate-300 cursor-pointer selection:bg-transparent'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 cursor-pointer selection:bg-transparent'
+                  : isDarkMode 
+                    ? 'bg-[#0E111A] border-[#2E3547] text-white placeholder-slate-500 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
+                    : 'bg-white border-slate-300 text-[#0B0F19] placeholder-slate-400 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
             }`}
           />
         )}

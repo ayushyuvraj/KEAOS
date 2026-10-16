@@ -5,7 +5,9 @@ import {
   Moon,
   Edit3,
   Layers,
-  X
+  X,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 import { FRAMEWORKS } from '../constants/frameworks';
@@ -19,7 +21,9 @@ export default function Header({
   isSidebarClosed = false,
   onToggleSidebarClosed,
   isDarkMode = true,
-  onToggleTheme
+  onToggleTheme,
+  isWorkflowLocked = false,
+  onToggleWorkflowLock
 }) {
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [editName, setEditName] = useState(activeUseCase?.name || '');
@@ -103,15 +107,24 @@ export default function Header({
           {/* Editable Details / Resources Region */}
           <div className="relative">
             <button
-              onClick={() => setIsEditingDetails(!isEditingDetails)}
-              className={`group flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all cursor-pointer ${
-                isEditingDetails
-                  ? 'bg-[#00338D]/20 border-[#0091DA] text-[#0091DA]'
-                  : isDarkMode
-                    ? 'border-transparent hover:border-[#383C4A] hover:bg-white/5 text-slate-200'
-                    : 'border-transparent hover:border-slate-300 hover:bg-slate-100 text-slate-800'
+              onClick={() => {
+                if (isWorkflowLocked) return;
+                setIsEditingDetails(!isEditingDetails);
+              }}
+              className={`group flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all ${
+                isWorkflowLocked
+                  ? 'border-transparent text-slate-300 cursor-default'
+                  : isEditingDetails
+                    ? 'bg-[#00338D]/20 border-[#0091DA] text-[#0091DA] cursor-pointer'
+                    : isDarkMode
+                      ? 'border-transparent hover:border-[#383C4A] hover:bg-white/5 text-slate-200 cursor-pointer'
+                      : 'border-transparent hover:border-slate-300 hover:bg-slate-100 text-slate-800 cursor-pointer'
               }`}
-              title="Click to edit workflow name & description"
+              title={
+                isWorkflowLocked
+                  ? 'Workflow is locked for execution. Unlock to edit specifications.'
+                  : 'Click to edit workflow name & description'
+              }
             >
               <div className="flex flex-col items-start text-left">
                 <span className="font-semibold tracking-tight text-xs max-w-[200px] truncate">
@@ -123,11 +136,15 @@ export default function Header({
                   </span>
                 )}
               </div>
-              <Edit3 className="w-3 h-3 text-slate-400 group-hover:text-[#0091DA] opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              {isWorkflowLocked ? (
+                <Lock className={`w-3 h-3 shrink-0 ${isDarkMode ? 'text-[#0091DA]' : 'text-[#00338D]'}`} />
+              ) : (
+                <Edit3 className="w-3 h-3 text-slate-400 group-hover:text-[#0091DA] opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              )}
             </button>
 
             {/* Chic Popover for Editing Name & Description */}
-            {isEditingDetails && (
+            {isEditingDetails && !isWorkflowLocked && (
               <div
                 ref={editPopoverRef}
                 className={`absolute top-full left-0 mt-2 w-80 p-4 rounded-none border shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 ${
@@ -271,8 +288,69 @@ export default function Header({
         </div>
       )}
 
-      {/* Right: Clean & Minimal Theme Toggle */}
-      <div className="flex items-center gap-2 ml-auto">
+      {/* Right: Workflow Lock Toggle & Clean Minimal Theme Toggle */}
+      <div className="flex items-center gap-2.5 ml-auto">
+        {isWorkflowView && (
+          <label 
+            className="relative inline-flex items-center cursor-pointer select-none transition-transform active:scale-95"
+            title={
+              isWorkflowLocked
+                ? 'Workflow is LOCKED (Execution only). Click to unlock canvas editing.'
+                : 'Workflow is UNLOCKED (Editing enabled). Click to lock canvas from accidental edits.'
+            }
+          >
+            <input 
+              type="checkbox" 
+              checked={isWorkflowLocked} 
+              onChange={onToggleWorkflowLock} 
+              className="sr-only" 
+              aria-label={isWorkflowLocked ? 'Unlock workflow' : 'Lock workflow'}
+            />
+            <div 
+              className={`relative w-14 h-7 rounded-full transition-all duration-300 shadow-inner flex items-center ${
+                isWorkflowLocked
+                  ? isDarkMode
+                    ? 'bg-[#00338D] border border-[#0091DA]/60 shadow-[0_0_16px_rgba(0,145,218,0.4)]'
+                    : 'bg-[#00338D] border border-[#002B7A] shadow-[0_0_12px_rgba(0,51,141,0.25)]'
+                  : isDarkMode
+                    ? 'bg-[#1C1F2B] border border-[#33384A]'
+                    : 'bg-slate-200 border border-slate-300'
+              }`}
+            >
+              {/* Sliding Thumb Knob */}
+              <span 
+                className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ease-out flex items-center justify-center ${
+                  isWorkflowLocked ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+
+              {/* Unlocked Icon (Left) */}
+              <svg 
+                className={`absolute top-[5px] left-[6px] w-4 h-4 pointer-events-none transition-colors duration-300 z-10 ${
+                  !isWorkflowLocked 
+                    ? 'fill-slate-900 stroke-slate-900' 
+                    : isDarkMode ? 'fill-blue-100/80 stroke-blue-100/80' : 'fill-white/80 stroke-white/80'
+                }`} 
+                viewBox="0 0 100 100"
+              >
+                <path d="M50,18A19.9,19.9,0,0,0,30,38v8a8,8,0,0,0-8,8V74a8,8,0,0,0,8,8H70a8,8,0,0,0,8-8V54a8,8,0,0,0-8-8H38V38a12,12,0,0,1,23.6-3,4,4,0,1,0,7.8-2A20.1,20.1,0,0,0,50,18Z" />
+              </svg>
+
+              {/* Locked Icon (Right) */}
+              <svg 
+                className={`absolute top-[5px] right-[6px] w-4 h-4 pointer-events-none transition-colors duration-300 z-10 ${
+                  isWorkflowLocked 
+                    ? 'fill-[#00338D] stroke-[#00338D]' 
+                    : isDarkMode ? 'fill-slate-500 stroke-slate-500' : 'fill-slate-400 stroke-slate-400'
+                }`} 
+                viewBox="0 0 100 100"
+              >
+                <path d="M30,46V38a20,20,0,0,1,40,0v8a8,8,0,0,1,8,8V74a8,8,0,0,1-8,8H30a8,8,0,0,1-8-8V54A8,8,0,0,1,30,46Zm32-8v8H38V38a12,12,0,0,1,24,0Z" fillRule="evenodd" />
+              </svg>
+            </div>
+          </label>
+        )}
+
         <button
           onClick={onToggleTheme}
           className={`p-1.5 rounded-lg border border-transparent transition-colors ${

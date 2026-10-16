@@ -664,8 +664,16 @@ export default function App() {
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isEnforcerActive, setIsEnforcerActiveState] = useState(initialUI.isEnforcerActive);
   const [viewMode, setViewModeState] = useState('home');
+  const [isWorkflowLocked, setIsWorkflowLockedState] = useState(initialUI.isWorkflowLocked || false);
 
   // Wrapped State Setters with localStorage Persistence
+  const setIsWorkflowLocked = useCallback((val) => {
+    setIsWorkflowLockedState((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      saveUIState({ isWorkflowLocked: next });
+      return next;
+    });
+  }, []);
   const setIsDarkMode = useCallback((val) => {
     setIsDarkModeState((prev) => {
       const next = typeof val === 'function' ? val(prev) : val;
@@ -1457,6 +1465,8 @@ export default function App() {
           onToggleSidebarCollapsed={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isDarkMode={isDarkMode}
           onToggleTheme={() => setIsDarkMode(!isDarkMode)}
+          isWorkflowLocked={isWorkflowLocked}
+          onToggleWorkflowLock={() => setIsWorkflowLocked((prev) => !prev)}
         />
 
         <main className="flex-1 flex overflow-hidden relative">
@@ -1494,6 +1504,8 @@ export default function App() {
                   isDrawerExpanded={isDrawerExpanded}
                   setIsDrawerExpanded={setIsDrawerExpanded}
                   onUpdateNodeData={handleUpdateNodeData}
+                  isWorkflowLocked={isWorkflowLocked}
+                  onToggleWorkflowLock={() => setIsWorkflowLocked((prev) => !prev)}
                 />
               </div>
 
@@ -1543,6 +1555,7 @@ export default function App() {
                           onUpdateAgentConfig={handleUpdateAgentConfig}
                           onUpdateNodeData={handleUpdateNodeData}
                           onDeleteNode={handleDeleteNode}
+                          isWorkflowLocked={isWorkflowLocked}
                           onClose={() => {
                             setSelectedNode(null);
                             setIsInspectorOpen(false);

@@ -26,6 +26,7 @@ export default function NodeActionToolbar({
   onRename,
   onAddDownstreamAgent,
   isDarkMode = true,
+  isLocked = false,
   className = '',
   dropdownPlacement = 'auto' // 'auto' | 'top' | 'bottom' | 'right' | 'left' | 'top-left'
 }) {
@@ -82,6 +83,10 @@ export default function NodeActionToolbar({
     }
   }
 
+  if (isLocked && !onOpenChat && !onOpenInspector) {
+    return null;
+  }
+
   return (
     <div 
       className={`absolute z-30 transition-all duration-150 ${
@@ -133,26 +138,28 @@ export default function NodeActionToolbar({
           </button>
         )}
 
-        {/* 2. Deactivate / Activate Toggle */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onToggleDeactivate) onToggleDeactivate(nodeId);
-          }}
-          className={`p-1 rounded-md transition-all ${
-            isDeactivated
-              ? 'text-amber-500 hover:text-amber-400 bg-amber-500/10'
-              : isDarkMode
-                ? 'hover:text-white hover:bg-white/10 active:scale-95'
-                : 'hover:text-black hover:bg-black/5 active:scale-95'
-          }`}
-          title={isDeactivated ? "Activate node" : "Deactivate node"}
-        >
-          <Power className="w-3 h-3 stroke-[2.2]" />
-        </button>
+        {/* 2. Deactivate / Activate Toggle (hidden when locked) */}
+        {!isLocked && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onToggleDeactivate) onToggleDeactivate(nodeId);
+            }}
+            className={`p-1 rounded-md transition-all ${
+              isDeactivated
+                ? 'text-amber-500 hover:text-amber-400 bg-amber-500/10'
+                : isDarkMode
+                  ? 'hover:text-white hover:bg-white/10 active:scale-95'
+                  : 'hover:text-black hover:bg-black/5 active:scale-95'
+            }`}
+            title={isDeactivated ? "Activate node" : "Deactivate node"}
+          >
+            <Power className="w-3 h-3 stroke-[2.2]" />
+          </button>
+        )}
 
-        {/* 3. Delete Node */}
-        {onDelete && (
+        {/* 3. Delete Node (hidden when locked) */}
+        {!isLocked && onDelete && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -169,24 +176,25 @@ export default function NodeActionToolbar({
           </button>
         )}
 
-        {/* 4. More Options (...) */}
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMenuOpen((prev) => !prev);
-            }}
-            className={`p-1 rounded-md transition-all ${
-              isMenuOpen
-                ? isDarkMode ? 'bg-white/15 text-white' : 'bg-black/10 text-black'
-                : isDarkMode
-                  ? 'hover:text-white hover:bg-white/10 active:scale-95'
-                  : 'hover:text-black hover:bg-black/5 active:scale-95'
-            }`}
-            title="More actions"
-          >
-            <MoreHorizontal className="w-3 h-3 stroke-[2.5]" />
-          </button>
+        {/* 4. More Options (...) (hidden when locked) */}
+        {!isLocked && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen((prev) => !prev);
+              }}
+              className={`p-1 rounded-md transition-all ${
+                isMenuOpen
+                  ? isDarkMode ? 'bg-white/15 text-white' : 'bg-black/10 text-black'
+                  : isDarkMode
+                    ? 'hover:text-white hover:bg-white/10 active:scale-95'
+                    : 'hover:text-black hover:bg-black/5 active:scale-95'
+              }`}
+              title="More actions"
+            >
+              <MoreHorizontal className="w-3 h-3 stroke-[2.5]" />
+            </button>
 
           {/* Contextual Dropdown Menu (Matches Screenshot) */}
           {isMenuOpen && (
@@ -356,7 +364,8 @@ export default function NodeActionToolbar({
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
-  );
+  </div>
+);
 }

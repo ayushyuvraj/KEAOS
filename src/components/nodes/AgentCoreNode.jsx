@@ -38,8 +38,10 @@ export default function AgentCoreNode({ id, data, selected }) {
   const hasPolicies = (attachedCounts?.policies || 0) > 0;
   const hasSkills = (attachedCounts?.skills || 0) > 0;
   const hasUpstreamA2A = (attachedCounts?.agent || 0) > 0 || (data?.upstreamAgentCount || 0) > 0;
+  const isLocked = Boolean(data?.isLocked);
 
   const handleSpawnDownstream = (e) => {
+    if (isLocked) return;
     if (e && e.stopPropagation) e.stopPropagation();
     window.dispatchEvent(new CustomEvent('keaos:spawn-downstream-agent', { detail: { sourceAgentId: id } }));
   };
@@ -132,7 +134,7 @@ export default function AgentCoreNode({ id, data, selected }) {
             />
 
             {/* Disconnect hover button if model attached */}
-            {hasModel && !isDeactivated && (
+            {hasModel && !isDeactivated && !isLocked && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -215,6 +217,7 @@ export default function AgentCoreNode({ id, data, selected }) {
           nodeId={id}
           nodeName={name}
           isDeactivated={isDeactivated}
+          isLocked={isLocked}
           onOpenChat={onOpenAgentChat}
           onExecute={onExecute}
           onToggleDeactivate={onToggleDeactivate}
@@ -310,35 +313,37 @@ export default function AgentCoreNode({ id, data, selected }) {
           <Bot className="w-2.5 h-2.5" />
 
           {/* Quick Action buttons on hover */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/out:opacity-100 transition-opacity z-30 pointer-events-none group-hover/out:pointer-events-auto">
-            {/* Quick Add Downstream Connected Agent */}
-            <div 
-              onClick={handleSpawnDownstream}
-              className={`w-4 h-4 rounded border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
-                isDarkMode
-                  ? 'border-[#4F46E5]/60 bg-[#1E1B4B] text-[#A5B4FC] hover:text-white hover:border-[#6366F1] hover:bg-[#4F46E5]'
-                  : 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:text-white hover:bg-indigo-600 hover:border-indigo-600'
-              }`}
-              title="Add connected downstream Agent (A2A)"
-            >
-              <Bot className="w-2.5 h-2.5" />
+          {!isLocked && (
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/out:opacity-100 transition-opacity z-30 pointer-events-none group-hover/out:pointer-events-auto">
+              {/* Quick Add Downstream Connected Agent */}
+              <div 
+                onClick={handleSpawnDownstream}
+                className={`w-4 h-4 rounded border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
+                  isDarkMode
+                    ? 'border-[#4F46E5]/60 bg-[#1E1B4B] text-[#A5B4FC] hover:text-white hover:border-[#6366F1] hover:bg-[#4F46E5]'
+                    : 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:text-white hover:bg-indigo-600 hover:border-indigo-600'
+                }`}
+                title="Add connected downstream Agent (A2A)"
+              >
+                <Bot className="w-2.5 h-2.5" />
+              </div>
+              {/* Quick Add Output Component */}
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.dispatchEvent(new CustomEvent('keaos:spawn-output-node', { detail: { sourceAgentId: id } }));
+                }}
+                className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95 ${
+                  isDarkMode
+                    ? 'border-[#444856] bg-[#222530] text-slate-400 hover:text-white hover:border-[#10B981]'
+                    : 'border-[#CBD5E1] bg-white text-slate-600 hover:text-black hover:border-[#10B981]'
+                }`}
+                title="Attach Canvas Output Component to this agent"
+              >
+                <Plus className="w-2.5 h-2.5" />
+              </div>
             </div>
-            {/* Quick Add Output Component */}
-            <div 
-              onClick={(e) => {
-                e.stopPropagation();
-                window.dispatchEvent(new CustomEvent('keaos:spawn-output-node', { detail: { sourceAgentId: id } }));
-              }}
-              className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95 ${
-                isDarkMode
-                  ? 'border-[#444856] bg-[#222530] text-slate-400 hover:text-white hover:border-[#10B981]'
-                  : 'border-[#CBD5E1] bg-white text-slate-600 hover:text-black hover:border-[#10B981]'
-              }`}
-              title="Attach Canvas Output Component to this agent"
-            >
-              <Plus className="w-2.5 h-2.5" />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ============================================================ */}

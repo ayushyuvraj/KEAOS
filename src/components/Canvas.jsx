@@ -49,7 +49,8 @@ import {
   Map as MapIcon,
   GripVertical,
   Play,
-  Square
+  Square,
+  Lock
 } from 'lucide-react';
 
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
@@ -123,7 +124,9 @@ function CanvasInner({
   setMiniMapPos,
   isDrawerExpanded = false,
   setIsDrawerExpanded,
-  onUpdateNodeData
+  onUpdateNodeData,
+  isWorkflowLocked = false,
+  onToggleWorkflowLock
 }) {
   const [internalAddMenuOpen, setInternalAddMenuOpen] = useState(false);
   const isAddMenuOpen = setIsAddMenuOpenProp !== undefined ? isAddMenuOpenProp : internalAddMenuOpen;
@@ -838,28 +841,32 @@ function CanvasInner({
 
   // Take snapshot when node drag starts
   const handleNodeDragStart = useCallback(() => {
+    if (isWorkflowLocked) return;
     takeSnapshot();
-  }, [takeSnapshot]);
+  }, [takeSnapshot, isWorkflowLocked]);
 
   // Handle edge delete with snapshot
   const handleDeleteEdge = useCallback((edgeId) => {
+    if (isWorkflowLocked) return;
     takeSnapshot();
     setEdges((eds) => eds.filter(e => e.id !== edgeId));
-  }, [takeSnapshot, setEdges]);
+  }, [takeSnapshot, setEdges, isWorkflowLocked]);
 
   // Handle node delete with snapshot
   const handleDeleteNode = useCallback((nodeId) => {
+    if (isWorkflowLocked) return;
     takeSnapshot();
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     if (onSelectNode) {
       onSelectNode(null);
     }
-  }, [takeSnapshot, setNodes, setEdges, onSelectNode]);
+  }, [takeSnapshot, setNodes, setEdges, onSelectNode, isWorkflowLocked]);
 
   // Listener to disconnect Foundation Model from Agent
   useEffect(() => {
     const handleDisconnectModel = (e) => {
+      if (isWorkflowLocked) return;
       const agentId = e.detail?.agentId;
       if (!agentId) return;
       takeSnapshot();
@@ -870,11 +877,12 @@ function CanvasInner({
 
     window.addEventListener('keaos:disconnect-model', handleDisconnectModel);
     return () => window.removeEventListener('keaos:disconnect-model', handleDisconnectModel);
-  }, [takeSnapshot, setEdges]);
+  }, [takeSnapshot, setEdges, isWorkflowLocked]);
 
   // Listen for quick-spawn downstream connected Agent (A2A) from Agent Core output port [+]
   useEffect(() => {
     const handleSpawnDownstreamAgent = (e) => {
+      if (isWorkflowLocked) return;
       const sourceAgentId = e.detail?.sourceAgentId;
       if (!sourceAgentId) return;
 
@@ -950,18 +958,20 @@ function CanvasInner({
   // Listener to delete node via event
   useEffect(() => {
     const handleDeleteEvent = (e) => {
+      if (isWorkflowLocked) return;
       const nodeId = e.detail?.nodeId;
       if (nodeId) handleDeleteNode(nodeId);
     };
 
     window.addEventListener('keaos:delete-node', handleDeleteEvent);
     return () => window.removeEventListener('keaos:delete-node', handleDeleteEvent);
-  }, [handleDeleteNode]);
+  }, [handleDeleteNode, isWorkflowLocked]);
 
   // Global keyboard listener for Delete / Backspace node deletion
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      if (isWorkflowLocked) return;
 
       // Ignore keypress if focus is inside an input, textarea, select, or contentEditable element
       const activeEl = document.activeElement;
@@ -992,10 +1002,11 @@ function CanvasInner({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNode, nodes, handleDeleteNode, onSelectNode]);
+  }, [selectedNode, nodes, handleDeleteNode, onSelectNode, isWorkflowLocked]);
 
   // Handle node duplicate with snapshot
   const handleDuplicateNode = useCallback((nodeId) => {
+    if (isWorkflowLocked) return;
     const nodeToClone = nodes.find(n => n.id === nodeId);
     if (!nodeToClone) return;
 
@@ -1141,6 +1152,7 @@ function CanvasInner({
 
   // Handle rename node with snapshot
   const handleRenameNode = useCallback((nodeId, newName) => {
+    if (isWorkflowLocked) return;
     if (!newName || !newName.trim()) return;
     takeSnapshot();
     const cleanName = newName.trim();
@@ -1161,7 +1173,7 @@ function CanvasInner({
     setTimeout(() => {
       setToastNotification((curr) => (curr === toastMsg ? null : curr));
     }, 2000);
-  }, [takeSnapshot, setNodes]);
+  }, [takeSnapshot, setNodes, isWorkflowLocked]);
 
   // Handle update deterministic node data
   const handleUpdateDeterministicNode = useCallback((nodeId, updatedData) => {
@@ -1209,6 +1221,7 @@ function CanvasInner({
           return;
         } else if (key === 'z' || key === 'Z') {
           e.preventDefault();
+          if (isWorkflowLocked) return;
           if (e.shiftKey) {
             redo();
           } else {
@@ -1217,6 +1230,7 @@ function CanvasInner({
           return;
         } else if (key === 'y' || key === 'Y') {
           e.preventDefault();
+          if (isWorkflowLocked) return;
           redo();
           return;
         }
@@ -1232,6 +1246,7 @@ function CanvasInner({
       // 2. Duplicate Node (Ctrl+D)
       if (isCtrlOrCmd && (key === 'd' || key === 'D')) {
         e.preventDefault();
+        if (isWorkflowLocked) return;
         handleDuplicateNode(targetNode.id);
         return;
       }
@@ -1239,6 +1254,7 @@ function CanvasInner({
       // 3. Copy Node Config (Ctrl+C)
       if (isCtrlOrCmd && (key === 'c' || key === 'C')) {
         e.preventDefault();
+        if (isWorkflowLocked) return;
         handleCopyNode(targetNode.id);
         return;
       }
@@ -1246,6 +1262,7 @@ function CanvasInner({
       // 4. Toggle Deactivate / Activate (Single key "D" or "d")
       if (!isCtrlOrCmd && !e.altKey && (key === 'd' || key === 'D')) {
         e.preventDefault();
+        if (isWorkflowLocked) return;
         handleToggleDeactivateNode(targetNode.id);
         return;
       }
@@ -1260,6 +1277,7 @@ function CanvasInner({
       // 6. Quick Rename (F2)
       if (key === 'F2') {
         e.preventDefault();
+        if (isWorkflowLocked) return;
         const currentName = targetNode.data?.name || '';
         const newName = window.prompt(`Rename "${currentName}":`, currentName);
         if (newName && newName.trim() && newName.trim() !== currentName) {
@@ -1280,27 +1298,43 @@ function CanvasInner({
     handleDuplicateNode, 
     handleCopyNode, 
     handleOpenInspector,
-    handleRenameNode
+    handleRenameNode,
+    isWorkflowLocked
   ]);
 
   // Handle node removals (e.g. keyboard delete)
   const handleNodesChange = useCallback((changes) => {
+    if (isWorkflowLocked) {
+      const filtered = changes.filter(c => c.type !== 'position' && c.type !== 'remove');
+      if (filtered.length > 0) {
+        onNodesChange(filtered);
+      }
+      return;
+    }
     if (changes.some(c => c.type === 'remove')) {
       takeSnapshot();
     }
     onNodesChange(changes);
-  }, [takeSnapshot, onNodesChange]);
+  }, [takeSnapshot, onNodesChange, isWorkflowLocked]);
 
   // Handle edge removals (e.g. keyboard delete)
   const handleEdgesChange = useCallback((changes) => {
+    if (isWorkflowLocked) {
+      const filtered = changes.filter(c => c.type !== 'remove');
+      if (filtered.length > 0) {
+        onEdgesChange(filtered);
+      }
+      return;
+    }
     if (changes.some(c => c.type === 'remove')) {
       takeSnapshot();
     }
     onEdgesChange(changes);
-  }, [takeSnapshot, onEdgesChange]);
+  }, [takeSnapshot, onEdgesChange, isWorkflowLocked]);
 
   const isValidConnection = useCallback(
     (connection) => {
+      if (isWorkflowLocked) return false;
       if (!isEnforcerActive) return true;
 
       const { source, target, targetHandle } = connection;
@@ -1415,11 +1449,12 @@ function CanvasInner({
 
       return false;
     },
-    [nodes, isEnforcerActive, setInvalidConnectionAlert]
+    [nodes, isEnforcerActive, setInvalidConnectionAlert, isWorkflowLocked]
   );
 
   const onConnect = useCallback(
     (params) => {
+      if (isWorkflowLocked) return;
       const sourceNode = nodes.find(n => n.id === params.source);
       const targetNode = nodes.find(n => n.id === params.target);
       const pillarDef = sourceNode ? PILLARS[sourceNode.data?.pillarType] : null;
@@ -1503,7 +1538,7 @@ function CanvasInner({
       );
       setInvalidConnectionAlert(null);
     },
-    [nodes, setEdges, setInvalidConnectionAlert, takeSnapshot, handleDeleteEdge]
+    [nodes, setEdges, setInvalidConnectionAlert, takeSnapshot, handleDeleteEdge, isWorkflowLocked]
   );
 
   const isConnectingRef = useRef(false);
@@ -1511,6 +1546,7 @@ function CanvasInner({
   // Triggered the instant a connector wire is dragged from any handle on any agent or circle
   const handleConnectStart = useCallback(
     (event, params) => {
+      if (isWorkflowLocked) return;
       isConnectingRef.current = true;
 
       // 1. Immediately open the Add component panel on the right
@@ -1554,7 +1590,7 @@ function CanvasInner({
         })
       );
     },
-    [setIsAddMenuOpen, setIsInspectorOpen, nodes]
+    [setIsAddMenuOpen, setIsInspectorOpen, nodes, isWorkflowLocked]
   );
 
   const handleConnectEnd = useCallback(() => {
@@ -1567,6 +1603,11 @@ function CanvasInner({
     if (e) {
       e.preventDefault();
       e.stopPropagation();
+    }
+    if (isWorkflowLocked) {
+      setToastNotification('🔒 Socket Enforcer is locked in active workflow mode.');
+      setTimeout(() => setToastNotification(null), 2500);
+      return;
     }
     const nextVal = !isEnforcerActive;
     if (setIsEnforcerActive) {
@@ -1911,7 +1952,8 @@ function CanvasInner({
           onOpenInspector: handleOpenInspector,
           onExecute: handleExecuteNode,
           onRename: handleRenameNode,
-          onOpenCatalog: handleOpenCatalog
+          onOpenCatalog: handleOpenCatalog,
+          isLocked: isWorkflowLocked
         }
       };
     });
@@ -1931,7 +1973,8 @@ function CanvasInner({
     handleExecuteNode,
     handleRenameNode,
     handleUpdateDeterministicNode,
-    handleOpenCatalog
+    handleOpenCatalog,
+    isWorkflowLocked
   ]);
 
   // Edges styled dynamically: when executing, active transmitting edge glows and pulses with taxonomy color
@@ -2025,11 +2068,12 @@ function CanvasInner({
           ...edge.data,
           isDeactivated,
           isDarkMode,
+          isLocked: isWorkflowLocked,
           onDelete: handleDeleteEdge
         }
       };
     });
-  }, [edges, nodes, isDarkMode, handleDeleteEdge, executionState]);
+  }, [edges, nodes, isDarkMode, handleDeleteEdge, executionState, isWorkflowLocked]);
 
   return (
     <div className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${
@@ -2092,7 +2136,9 @@ function CanvasInner({
         }`}>
           {/* 1. Add Node (+) */}
           <button
+            disabled={isWorkflowLocked}
             onClick={() => {
+              if (isWorkflowLocked) return;
               const next = !isAddMenuOpen;
               setIsAddMenuOpen(next);
               if (next) {
@@ -2101,11 +2147,13 @@ function CanvasInner({
               }
             }}
             className={`w-10 h-10 flex items-center justify-center transition-colors ${
-              isAddMenuOpen 
-                ? 'bg-[#0091DA] text-white' 
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
+              isWorkflowLocked
+                ? 'opacity-40 cursor-not-allowed text-slate-500'
+                : isAddMenuOpen 
+                  ? 'bg-[#0091DA] text-white' 
+                  : 'text-slate-400 hover:text-white hover:bg-white/10'
             }`}
-            title="Add Node / Component (+)"
+            title={isWorkflowLocked ? "Adding components is disabled while workflow is locked" : "Add Node / Component (+)"}
           >
             <Plus className="w-5 h-5 font-bold" />
           </button>
@@ -2186,13 +2234,13 @@ function CanvasInner({
           {/* 4. Undo (Ctrl+Z) */}
           <button
             onClick={undo}
-            disabled={!canUndo}
+            disabled={!canUndo || isWorkflowLocked}
             className={`w-9 h-9 flex items-center justify-center transition-colors ${
-              canUndo
+              canUndo && !isWorkflowLocked
                 ? 'text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer'
                 : 'text-slate-600 opacity-30 cursor-not-allowed'
             }`}
-            title={canUndo ? "Undo (Ctrl+Z)" : "Undo (Ctrl+Z) - No actions to undo"}
+            title={isWorkflowLocked ? "Undo disabled while workflow is locked" : canUndo ? "Undo (Ctrl+Z)" : "Undo (Ctrl+Z) - No actions to undo"}
           >
             <Undo2 className="w-4 h-4" />
           </button>
@@ -2200,13 +2248,13 @@ function CanvasInner({
           {/* 5. Redo (Ctrl+Y / Ctrl+Shift+Z) */}
           <button
             onClick={redo}
-            disabled={!canRedo}
+            disabled={!canRedo || isWorkflowLocked}
             className={`w-9 h-9 flex items-center justify-center transition-colors ${
-              canRedo
+              canRedo && !isWorkflowLocked
                 ? 'text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer'
                 : 'text-slate-600 opacity-30 cursor-not-allowed'
             }`}
-            title={canRedo ? "Redo (Ctrl+Y / Ctrl+Shift+Z)" : "Redo - No actions to redo"}
+            title={isWorkflowLocked ? "Redo disabled while workflow is locked" : canRedo ? "Redo (Ctrl+Y / Ctrl+Shift+Z)" : "Redo - No actions to redo"}
           >
             <Redo2 className="w-4 h-4" />
           </button>
@@ -2214,10 +2262,17 @@ function CanvasInner({
           {/* 6. Socket Enforcer Toggle */}
           <button
             onClick={handleToggleEnforcer}
+            disabled={isWorkflowLocked}
             className={`w-9 h-9 flex items-center justify-center transition-colors ${
-              isEnforcerActive ? 'text-[#0091DA]' : 'text-amber-400'
+              isWorkflowLocked
+                ? 'opacity-50 cursor-not-allowed text-slate-500'
+                : isEnforcerActive ? 'text-[#0091DA]' : 'text-amber-400'
             }`}
-            title={isEnforcerActive ? 'Socket Enforcer Active (Strict)' : 'Socket Enforcer Bypassed'}
+            title={
+              isWorkflowLocked
+                ? 'Socket Enforcer is locked in active workflow mode'
+                : isEnforcerActive ? 'Socket Enforcer Active (Strict)' : 'Socket Enforcer Bypassed'
+            }
           >
             {isEnforcerActive ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
           </button>
@@ -2333,8 +2388,11 @@ function CanvasInner({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         isValidConnection={isValidConnection}
-        deleteKeyCode={['Backspace', 'Delete']}
+        nodesDraggable={!isWorkflowLocked}
+        nodesConnectable={!isWorkflowLocked}
+        deleteKeyCode={isWorkflowLocked ? [] : ['Backspace', 'Delete']}
         onNodesDelete={(deletedNodes) => {
+          if (isWorkflowLocked) return;
           takeSnapshot();
           deletedNodes.forEach(n => handleDeleteNode(n.id));
           if (onSelectNode) onSelectNode(null);

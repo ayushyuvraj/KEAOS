@@ -30,7 +30,8 @@ import {
   Check,
   Search,
   Code2,
-  MessageSquare
+  MessageSquare,
+  Lock
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { 
@@ -107,7 +108,8 @@ export default function Inspector({
   onCollapse,
   onOpenApiSettings,
   isDarkMode = true,
-  isEmbedded = false
+  isEmbedded = false,
+  isWorkflowLocked = false
 }) {
   // Always derive freshest node data from nodes array if available
   const selectedNode = useMemo(() => {
@@ -420,7 +422,7 @@ export default function Inspector({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {!isAgent && (
+          {!isAgent && !isWorkflowLocked && (
             <button
               onClick={() => onDeleteNode(selectedNode.id)}
               className="w-8 h-8 rounded-lg hover:bg-red-500/15 text-slate-400 hover:text-red-500 flex items-center justify-center transition-all card-pressable"
@@ -446,8 +448,21 @@ export default function Inspector({
         </div>
       </div>
 
+      {/* Workflow Locked Notice */}
+      {isWorkflowLocked && (
+        <div className={`px-4 py-2 border-b text-xs font-mono font-semibold flex items-center gap-2 select-none shrink-0 ${
+          isDarkMode
+            ? 'bg-[#00338D]/20 border-[#0091DA]/30 text-[#0091DA]'
+            : 'bg-[#00338D]/10 border-[#00338D]/20 text-[#00338D]'
+        }`}>
+          <Lock className={`w-3.5 h-3.5 shrink-0 ${isDarkMode ? 'text-[#0091DA]' : 'text-[#00338D]'}`} />
+          <span className="uppercase tracking-wider text-[10.5px]">Workflow Locked — View Only</span>
+        </div>
+      )}
+
       {/* Content */}
-      <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${t.content}`}>
+      <fieldset disabled={isWorkflowLocked} className="contents">
+        <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${t.content}`}>
         {isAgent ? (
           <>
             {/* Agent Name & Strategic Role */}
@@ -1991,6 +2006,7 @@ export default function Inspector({
           </div>
         )}
       </div>
-    </aside>
+    </fieldset>
+  </aside>
   );
 }

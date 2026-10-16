@@ -460,48 +460,52 @@ export default function IngestionNode({ id, data = {}, selected }) {
       } ${selected ? 'ring-2 ring-[#0091DA]' : ''}`}>
       
       {/* Dynamic Boundary Resizer Controls */}
-      <NodeResizer 
-        minWidth={340}
-        minHeight={240}
-        maxWidth={1200}
-        maxHeight={950}
-        isVisible={true}
-        lineClassName="!border-[#0091DA] hover:!border-2 !opacity-40 hover:!opacity-100 transition-opacity"
-        handleClassName="!w-2.5 !h-2.5 !bg-[#0091DA] !border-2 !border-white !rounded-none hover:!scale-125 transition-transform"
-        onResize={(_, params) => {
-          setCustomSize({
-            width: params.width,
-            height: params.height
-          });
-        }}
-      />
+      {!data?.isLocked && (
+        <>
+          <NodeResizer 
+            minWidth={340}
+            minHeight={240}
+            maxWidth={1200}
+            maxHeight={950}
+            isVisible={true}
+            lineClassName="!border-[#0091DA] hover:!border-2 !opacity-40 hover:!opacity-100 transition-opacity"
+            handleClassName="!w-2.5 !h-2.5 !bg-[#0091DA] !border-2 !border-white !rounded-none hover:!scale-125 transition-transform"
+            onResize={(_, params) => {
+              setCustomSize({
+                width: params.width,
+                height: params.height
+              });
+            }}
+          />
 
-      {/* Interactive Drag Handles on Boundaries */}
-      <div
-        onPointerDown={(e) => startManualResize(e, 'horizontal')}
-        className="absolute top-0 right-0 w-2.5 h-full cursor-ew-resize z-20 group flex items-center justify-center"
-        title="Drag boundary horizontally"
-      >
-        <div className="w-0.5 h-8 bg-transparent group-hover:bg-[#0091DA] rounded-full transition-colors" />
-      </div>
+          {/* Interactive Drag Handles on Boundaries */}
+          <div
+            onPointerDown={(e) => startManualResize(e, 'horizontal')}
+            className="absolute top-0 right-0 w-2.5 h-full cursor-ew-resize z-20 group flex items-center justify-center"
+            title="Drag boundary horizontally"
+          >
+            <div className="w-0.5 h-8 bg-transparent group-hover:bg-[#0091DA] rounded-full transition-colors" />
+          </div>
 
-      <div
-        onPointerDown={(e) => startManualResize(e, 'vertical')}
-        className="absolute bottom-0 left-0 w-full h-2.5 cursor-ns-resize z-20 group flex items-center justify-center"
-        title="Drag boundary vertically"
-      >
-        <div className="h-0.5 w-8 bg-transparent group-hover:bg-[#0091DA] rounded-full transition-colors" />
-      </div>
+          <div
+            onPointerDown={(e) => startManualResize(e, 'vertical')}
+            className="absolute bottom-0 left-0 w-full h-2.5 cursor-ns-resize z-20 group flex items-center justify-center"
+            title="Drag boundary vertically"
+          >
+            <div className="h-0.5 w-8 bg-transparent group-hover:bg-[#0091DA] rounded-full transition-colors" />
+          </div>
 
-      <div
-        onPointerDown={(e) => startManualResize(e, 'both')}
-        className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-30 flex items-center justify-center text-slate-400 hover:text-[#0091DA] transition-colors"
-        title="Drag corner to resize boundary"
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10" className="fill-current">
-          <path d="M8 2L2 8M8 5L5 8M8 8L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      </div>
+          <div
+            onPointerDown={(e) => startManualResize(e, 'both')}
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-30 flex items-center justify-center text-slate-400 hover:text-[#0091DA] transition-colors"
+            title="Drag corner to resize boundary"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" className="fill-current">
+              <path d="M8 2L2 8M8 5L5 8M8 8L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+        </>
+      )}
 
       {/* Hidden File Input */}
       <input

@@ -28,8 +28,11 @@ export default function DeletableEdge({
     targetPosition,
   });
 
+  const isLocked = !!data?.isLocked;
+
   const handleDelete = (e) => {
     e.stopPropagation();
+    if (isLocked) return;
     if (data?.onDelete) {
       data.onDelete(id);
     } else {
@@ -37,7 +40,7 @@ export default function DeletableEdge({
     }
   };
 
-  const isVisible = isHovered || selected;
+  const isVisible = (isHovered || selected) && !isLocked;
   const isDeactivated = !!data?.isDeactivated;
   const isDarkMode = data?.isDarkMode ?? true;
 

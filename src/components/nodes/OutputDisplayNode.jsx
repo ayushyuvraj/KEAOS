@@ -50,6 +50,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
     ? data.isDarkMode 
     : !document.documentElement.classList.contains('light');
   const isDeactivated = Boolean(data.isDeactivated);
+  const isLocked = Boolean(data.isLocked);
 
   const [isExpanded, setIsExpanded] = useState(data.isExpanded ?? false);
 
@@ -336,6 +337,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
           nodeId={id}
           nodeName={nodeTitle}
           isDeactivated={isDeactivated}
+          isLocked={isLocked}
           onOpenChat={() => toggleExpand()}
           onExecute={() => {}}
           onToggleDeactivate={() => data?.onToggleDeactivate && data.onToggleDeactivate(id)}
@@ -457,6 +459,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
         nodeId={id}
         nodeName={nodeTitle}
         isDeactivated={isDeactivated}
+        isLocked={isLocked}
         onOpenChat={() => {}}
         onExecute={() => {}}
         onToggleDeactivate={() => data?.onToggleDeactivate && data.onToggleDeactivate(id)}
@@ -474,38 +477,42 @@ export default function OutputDisplayNode({ id, data, selected }) {
       />
 
       {/* Dynamic Boundary Resizer Controls */}
-      <NodeResizer 
-        minWidth={360}
-        minHeight={240}
-        maxWidth={1400}
-        maxHeight={1100}
-        isVisible={true}
-        lineClassName="!border-[#10B981] hover:!border-2 !opacity-40 hover:!opacity-100 transition-opacity"
-        handleClassName="!w-2.5 !h-2.5 !bg-[#10B981] !border-2 !border-white !rounded-none hover:!scale-125 transition-transform"
-        onResize={(_, params) => {
-          setCustomSize({
-            width: params.width,
-            height: params.height
-          });
-        }}
-      />
+      {!isLocked && (
+        <>
+          <NodeResizer 
+            minWidth={360}
+            minHeight={240}
+            maxWidth={1400}
+            maxHeight={1100}
+            isVisible={true}
+            lineClassName="!border-[#10B981] hover:!border-2 !opacity-40 hover:!opacity-100 transition-opacity"
+            handleClassName="!w-2.5 !h-2.5 !bg-[#10B981] !border-2 !border-white !rounded-none hover:!scale-125 transition-transform"
+            onResize={(_, params) => {
+              setCustomSize({
+                width: params.width,
+                height: params.height
+              });
+            }}
+          />
 
-      {/* Interactive Drag Handles on Boundaries */}
-      <div
-        onPointerDown={(e) => startManualResize(e, 'horizontal')}
-        className="absolute top-0 right-0 w-2 h-full cursor-ew-resize z-20 group flex items-center justify-center"
-        title="Drag boundary horizontally"
-      >
-        <div className="w-0.5 h-8 bg-transparent group-hover:bg-[#10B981] transition-colors" />
-      </div>
+          {/* Interactive Drag Handles on Boundaries */}
+          <div
+            onPointerDown={(e) => startManualResize(e, 'horizontal')}
+            className="absolute top-0 right-0 w-2 h-full cursor-ew-resize z-20 group flex items-center justify-center"
+            title="Drag boundary horizontally"
+          >
+            <div className="w-0.5 h-8 bg-transparent group-hover:bg-[#10B981] transition-colors" />
+          </div>
 
-      <div
-        onPointerDown={(e) => startManualResize(e, 'vertical')}
-        className="absolute bottom-0 left-0 w-full h-2 cursor-ns-resize z-20 group flex items-center justify-center"
-        title="Drag boundary vertically"
-      >
-        <div className="h-0.5 w-8 bg-transparent group-hover:bg-[#10B981] transition-colors" />
-      </div>
+          <div
+            onPointerDown={(e) => startManualResize(e, 'vertical')}
+            className="absolute bottom-0 left-0 w-full h-2 cursor-ns-resize z-20 group flex items-center justify-center"
+            title="Drag boundary vertically"
+          >
+            <div className="h-0.5 w-8 bg-transparent group-hover:bg-[#10B981] transition-colors" />
+          </div>
+        </>
+      )}
 
       {/* Input Handle (Left) */}
       <Handle
@@ -573,9 +580,14 @@ export default function OutputDisplayNode({ id, data, selected }) {
                 />
               ) : (
                 <span
-                  onClick={() => setIsEditingTitle(true)}
-                  title="Click to rename"
-                  className={`text-xs font-bold tracking-tight truncate cursor-text hover:underline decoration-dashed decoration-[#10B981]/60 ${
+                  onClick={() => {
+                    if (isLocked) return;
+                    setIsEditingTitle(true);
+                  }}
+                  title={isLocked ? 'Workflow is locked' : 'Click to rename'}
+                  className={`text-xs font-bold tracking-tight truncate ${
+                    isLocked ? 'cursor-default' : 'cursor-text hover:underline decoration-dashed decoration-[#10B981]/60'
+                  } ${
                     isDarkMode ? 'text-white' : 'text-[#001E50]'
                   }`}
                 >
@@ -750,13 +762,15 @@ export default function OutputDisplayNode({ id, data, selected }) {
           </button>
 
           {/* Close / Remove button */}
-          <button
-            onClick={handleClose}
-            className="p-1 border border-slate-700 text-slate-400 hover:text-red-400 transition-all cursor-pointer active:scale-95"
-            title="Close / Remove Output Component"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          {!isLocked && (
+            <button
+              onClick={handleClose}
+              className="p-1 border border-slate-700 text-slate-400 hover:text-red-400 transition-all cursor-pointer active:scale-95"
+              title="Close / Remove Output Component"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

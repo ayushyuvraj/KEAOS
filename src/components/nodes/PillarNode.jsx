@@ -295,6 +295,7 @@ export default function PillarNode({ id, data, selected }) {
         onCopy={onCopy}
         onRename={onRename}
         isDarkMode={isDarkMode}
+        isLocked={data?.isLocked}
         className={toolbarPlacement}
         dropdownPlacement={dropdownPlacement}
       />

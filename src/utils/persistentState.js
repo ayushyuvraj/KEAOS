@@ -16,7 +16,8 @@ export const DEFAULT_UI_STATE = {
   miniMapPos: { x: 0, y: 0 },
   isInspectorOpen: false,
   isEnforcerActive: true,
-  viewMode: 'home'
+  viewMode: 'home',
+  isWorkflowLocked: false
 };
 
 /**
