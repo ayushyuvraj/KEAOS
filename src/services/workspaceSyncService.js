@@ -9,6 +9,7 @@
 
 import { loadAllWorkflows, getActiveWorkflowId, WORKFLOWS_REGISTRY_KEY, ACTIVE_WORKFLOW_ID_KEY } from '../utils/workflowStorage';
 import { loadUIState, loadCanvasState } from '../utils/persistentState';
+import { getRegisteredMcpServers } from './mcpClientService';
 
 let saveDebounceTimer = null;
 let isInitialized = false;
@@ -40,12 +41,17 @@ export async function initWorkspaceSync() {
         if (serverState.canvasState) {
           localStorage.setItem('keaos_canvas_state', JSON.stringify(serverState.canvasState));
         }
+        if (serverState.registeredMcps && Array.isArray(serverState.registeredMcps) && serverState.registeredMcps.length > 0) {
+          localStorage.setItem('keaos_registered_mcps', JSON.stringify(serverState.registeredMcps));
+          window.dispatchEvent(new CustomEvent('keaos:mcp-registry-updated', { detail: { servers: serverState.registeredMcps } }));
+        }
 
         lastPushedSnapshot = JSON.stringify({
           activeWorkflowId: serverState.activeWorkflowId,
           uiState: serverState.uiState,
           workflows: serverState.workflows,
-          canvasState: serverState.canvasState
+          canvasState: serverState.canvasState,
+          registeredMcps: serverState.registeredMcps || []
         });
 
         // Notify active React components
@@ -61,6 +67,9 @@ export async function initWorkspaceSync() {
 
   // Listen to any user-driven workspace mutations and persist to disk (debounced)
   window.addEventListener('keaos:workspace-changed', () => {
+    pushWorkspaceToServer();
+  });
+  window.addEventListener('keaos:mcp-registry-updated', () => {
     pushWorkspaceToServer();
   });
 }
@@ -82,12 +91,14 @@ export function pushWorkspaceToServer(immediate = false) {
       const activeWorkflowId = getActiveWorkflowId();
       const uiState = loadUIState();
       const canvasState = loadCanvasState();
+      const registeredMcps = getRegisteredMcpServers();
 
       const snapshotCompare = JSON.stringify({
         activeWorkflowId,
         uiState,
         workflows,
-        canvasState
+        canvasState,
+        registeredMcps
       });
 
       // Avoid writing if state has not meaningfully changed
@@ -101,6 +112,7 @@ export function pushWorkspaceToServer(immediate = false) {
         uiState,
         workflows,
         canvasState,
+        registeredMcps,
         syncedAt: Date.now()
       };
 

@@ -292,10 +292,10 @@ export default function Palette({ onAddNode }) {
                       {registeredMcps.length === 0 && (!pillar.items || pillar.items.length === 0) ? (
                         <div className="p-3 bg-white border border-dashed border-[#00A3A6]/40 text-center space-y-1">
                           <span className="text-[10px] font-mono font-bold text-[#00A3A6] block uppercase tracking-wider">
-                            Zero Simulation Policy
+                            External Integrations
                           </span>
                           <p className="text-[11px] text-slate-500 font-sans leading-relaxed">
-                            No hardcoded mocks. Click above to connect a real external MCP URL, Outlook, Slack, Jira, or GitHub.
+                            Connect an external MCP URL, Outlook, Slack, Jira, or GitHub.
                           </p>
                         </div>
                       ) : (

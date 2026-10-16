@@ -42,32 +42,85 @@ import {
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 
-// Official GitHub Brand Icon SVG (since lucide-react deprecated brand icons)
-function GithubIcon({ className = 'w-4 h-4' }) {
+// Official Model Context Protocol (MCP) Icon
+function McpIcon({ className = 'w-4 h-4' }) {
   return (
-    <svg 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
-      <path d="M9 18c-4.51 2-5-2-7-2" />
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" fill="#00A3A6" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" fill="#00338D" />
+      <path d="M10 6.5h3.5a2 2 0 0 1 2 2V14" stroke="#00A3A6" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="6.5" cy="6.5" r="1.2" fill="#FFFFFF" />
+      <circle cx="17.5" cy="17.5" r="1.2" fill="#FFFFFF" />
     </svg>
   );
 }
 
+// Official Slack 4-Color Brand Logo SVG
+function SlackLogo({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52-2.523 2.52 2.52 0 0 1 2.52-2.52h2.52v2.52c0 1.394-1.126 2.523-2.52 2.523z" fill="#E01E5A"/>
+      <path d="M6.313 15.165a2.527 2.527 0 0 1 2.521-2.523 2.52 2.52 0 0 1 2.52 2.523v6.307A2.52 2.52 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.528v-6.307z" fill="#E01E5A"/>
+      <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.52 2.52 0 0 1 8.834 0c1.394 0 2.52 1.127 2.52 2.522v2.52H8.834z" fill="#36C5F0"/>
+      <path d="M8.834 6.313a2.528 2.528 0 0 1 2.52 2.521 2.52 2.52 0 0 1-2.52 2.52H2.522A2.52 2.52 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+      <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522 2.521 2.52 2.52 0 0 1-2.522 2.52h-2.52V11.35c0-1.394 1.127-2.521 2.52-2.521z" fill="#2EB67D"/>
+      <path d="M17.688 8.834a2.528 2.528 0 0 1-2.523 2.52 2.52 0 0 1-2.52-2.52V2.522A2.52 2.52 0 0 1 15.165 0c1.394 0 2.523 1.127 2.523 2.522v6.312z" fill="#2EB67D"/>
+      <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.52 2.52 0 0 1 15.165 24a2.52 2.52 0 0 1-2.52-2.522v-2.522h2.52z" fill="#ECB22E"/>
+      <path d="M15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.52 2.52 0 0 1 2.52-2.52h6.313A2.52 2.52 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+    </svg>
+  );
+}
+
+// Official Atlassian Jira Brand Logo SVG
+function JiraLogo({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M11.53 2c0 2.4 1.97 4.35 4.38 4.35h1.7v1.7c0 2.4 1.97 4.35 4.39 4.35V2h-10.47z" fill="#0052CC"/>
+      <path d="M6.35 7.18c0 2.4 1.97 4.35 4.39 4.35h1.7v1.7c0 2.4 1.97 4.35 4.39 4.35V7.18H6.35z" fill="#2684FF"/>
+      <path d="M1.17 12.35c0 2.4 1.97 4.35 4.39 4.35h1.7v1.7c0 2.4 1.97 4.35 4.39 4.35V12.35H1.17z" fill="#0052CC"/>
+    </svg>
+  );
+}
+
+// Authentic Solid Filled GitHub Invertocat Logo SVG
+function GithubIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path 
+        fillRule="evenodd" 
+        clipRule="evenodd" 
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" 
+      />
+    </svg>
+  );
+}
+
+// Official Neo4j Graph Database Brand Logo SVG
+function Neo4jLogo({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <circle cx="12" cy="5.5" r="3" fill="#018BFF" />
+      <circle cx="5.5" cy="17.5" r="3" fill="#018BFF" />
+      <circle cx="18.5" cy="17.5" r="3" fill="#018BFF" />
+      <line x1="12" y1="5.5" x2="5.5" y2="17.5" stroke="#018BFF" strokeWidth="2" strokeLinecap="round" />
+      <line x1="12" y1="5.5" x2="18.5" y2="17.5" stroke="#018BFF" strokeWidth="2" strokeLinecap="round" />
+      <line x1="5.5" y1="17.5" x2="18.5" y2="17.5" stroke="#018BFF" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="5.5" r="1.2" fill="#FFFFFF" />
+      <circle cx="5.5" cy="17.5" r="1.2" fill="#FFFFFF" />
+      <circle cx="18.5" cy="17.5" r="1.2" fill="#FFFFFF" />
+    </svg>
+  );
+}
+
+// Official Microsoft Outlook Brand Logo SVG
 function OutlookCatalogIcon({ className = 'w-4 h-4' }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect width="24" height="24" rx="2" fill="#0078D4" />
-      <path d="M14 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H14V6Z" fill="#28A8EA" />
-      <path d="M4 8C4 7.44772 4.44772 7 5 7H14V17H5C4.44772 17 4 16.5523 4 16V8Z" fill="#0078D4" />
-      <circle cx="9" cy="12" r="3.2" fill="#FFFFFF" fillOpacity="0.2" />
-      <text x="9" y="15" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">O</text>
+      <rect width="24" height="24" rx="4" fill="#0078D4" />
+      <path d="M13 6H19C19.55 6 20 6.45 20 7V17C20 17.55 19.55 18 19 18H13V6Z" fill="#28A8EA" />
+      <path d="M4 7C4 6.45 4.45 6 5 6H13V18H5C4.45 18 4 17.55 4 17V7Z" fill="#005A9E" />
+      <ellipse cx="8.5" cy="12" rx="3" ry="3.5" fill="#FFFFFF" fillOpacity="0.25" />
+      <text x="8.5" y="15" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="Segoe UI, sans-serif">O</text>
     </svg>
   );
 }
@@ -89,6 +142,79 @@ import {
   getRegisteredMcpServers,
   removeRegisteredMcpServer
 } from '../services/mcpClientService';
+import { identifyMcpService } from '../constants/mcpOfficialCatalogs';
+
+// Helper to derive official brand visuals and minimal name for registered MCP servers
+function getServerVisuals(server) {
+  const service = (server?.serviceName || '').toLowerCase();
+  const detectedService = identifyMcpService(server, server?.id) || service;
+  const normName = (server?.name || '').toLowerCase();
+  const normId = (server?.id || '').toLowerCase();
+
+  if (detectedService === 'outlook' || service === 'outlook' || normName.includes('outlook') || normId.includes('outlook')) {
+    const emailMatch = normName.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0];
+    return {
+      name: emailMatch ? `Outlook (${emailMatch})` : 'Outlook',
+      icon: <OutlookCatalogIcon className="w-4 h-4" />,
+      iconBox: 'bg-[#0078D4]/10 border border-[#0078D4]/25 text-[#0078D4]',
+      hoverBorder: 'hover:border-[#0078D4]'
+    };
+  }
+
+  if (detectedService === 'slack' || service === 'slack' || normName.includes('slack') || normId.includes('slack')) {
+    const channel = normName.includes('#') ? server.name.match(/#[a-z0-9_-]+/i)?.[0] : null;
+    return {
+      name: channel ? `Slack (${channel})` : 'Slack',
+      icon: <SlackLogo className="w-4 h-4" />,
+      iconBox: 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60',
+      hoverBorder: 'hover:border-[#009A44]'
+    };
+  }
+
+  if (detectedService === 'jira' || service === 'jira' || normName.includes('jira') || normId.includes('jira')) {
+    return {
+      name: 'Jira',
+      icon: <JiraLogo className="w-4 h-4" />,
+      iconBox: 'bg-[#0052CC]/10 border border-[#0052CC]/25 text-[#0052CC]',
+      hoverBorder: 'hover:border-[#0052CC]'
+    };
+  }
+
+  if (detectedService === 'github' || service === 'github' || normName.includes('github') || normId.includes('github')) {
+    const userMatch = server.basis?.username || (normName.includes('(') ? server.name.match(/\(([^)]+)\)/)?.[1] : null);
+    return {
+      name: userMatch && !userMatch.toLowerCase().includes('authed') ? `GitHub (${userMatch})` : 'GitHub',
+      icon: <GithubIcon className="w-4 h-4" />,
+      iconBox: 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border border-slate-700/30',
+      hoverBorder: 'hover:border-slate-400'
+    };
+  }
+
+  if (detectedService === 'neo4j' || service === 'neo4j' || normName.includes('neo4j') || normId.includes('neo4j')) {
+    return {
+      name: 'Neo4j',
+      icon: <Neo4jLogo className="w-4 h-4" />,
+      iconBox: 'bg-[#018BFF]/10 border border-[#018BFF]/25 text-[#018BFF]',
+      hoverBorder: 'hover:border-[#018BFF]'
+    };
+  }
+
+  if (detectedService === 'google' || service === 'google' || normName.includes('google') || normId.includes('google')) {
+    return {
+      name: 'Google Workspace',
+      icon: <GoogleLogo className="w-4 h-4" />,
+      iconBox: 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700',
+      hoverBorder: 'hover:border-[#4285F4]'
+    };
+  }
+
+  return {
+    name: (server?.name || 'Universal MCP').replace(/\s*MCP\s*/gi, ' ').replace(/\s+Server/gi, '').trim() || 'Universal MCP',
+    icon: <McpIcon className="w-4 h-4" />,
+    iconBox: 'bg-[#00A3A6]/10 border border-[#00A3A6]/25 text-[#00A3A6]',
+    hoverBorder: 'hover:border-[#00A3A6]'
+  };
+}
 
 // The 5 Authorized Model Providers with Official Logos
 export const MODEL_PROVIDERS = [
@@ -317,7 +443,7 @@ const NODE_CATEGORIES = [
     bgColor: '#E6F6F6',
     badge: 'MCP SERVER',
     socketId: 'mcp-in',
-    items: []
+    items: PILLARS.mcp?.items || []
   },
   {
     id: 'tools',
@@ -458,6 +584,12 @@ export default function NodeCatalogPanel({
   const [registeredMcpServers, setRegisteredMcpServers] = useState(() => getRegisteredMcpServers());
 
   useEffect(() => {
+    if (isOpen || activeCategoryId === 'mcp') {
+      setRegisteredMcpServers(getRegisteredMcpServers());
+    }
+  }, [isOpen, activeCategoryId]);
+
+  useEffect(() => {
     const handleUpdate = () => {
       setRegisteredMcpServers(getRegisteredMcpServers());
     };
@@ -572,18 +704,22 @@ export default function NodeCatalogPanel({
         };
       }
       if (cat.id === 'mcp') {
-        return {
-          ...cat,
-          items: registeredMcpServers.map(s => ({
+        const liveItems = registeredMcpServers.map(s => {
+          const visuals = getServerVisuals(s);
+          return {
             id: s.id,
-            name: s.name,
-            description: s.description || `Exposes ${s.tools?.length || 0} live verified tools (${s.transport?.toUpperCase()}).`,
+            name: visuals.name || s.name || s.displayName || 'MCP Server',
+            description: s.description || `Exposes ${s.tools?.length || 0} live verified tools (${s.transport?.toUpperCase() || 'LIVE'}).`,
             tools: s.tools || [],
             config: s.config || {},
             transport: s.transport,
             url: s.url,
             isRealMcp: true
-          }))
+          };
+        });
+        return {
+          ...cat,
+          items: liveItems.length > 0 ? liveItems : (PILLARS.mcp?.items || [])
         };
       }
       return cat;
@@ -810,24 +946,18 @@ export default function NodeCatalogPanel({
               </button>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div 
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-xs"
-                style={{ 
-                  backgroundColor: activeCategory.bgColor, 
-                  color: activeCategory.color,
-                  borderColor: `${activeCategory.color}35`
-                }}
-              >
-                {activeCategory.id === 'model' && selectedModelProvider ? (
-                  (() => {
-                    const CurrentLogo = MODEL_PROVIDERS.find(p => p.id === selectedModelProvider)?.logo || Cpu;
-                    return <CurrentLogo className="w-4.5 h-4.5" />;
-                  })()
-                ) : (
-                  React.createElement(activeCategory.icon || Wrench, { className: 'w-4.5 h-4.5' })
-                )}
-              </div>
+            <div className="flex items-center gap-2.5">
+              {activeCategory.id === 'model' && selectedModelProvider ? (
+                (() => {
+                  const CurrentLogo = MODEL_PROVIDERS.find(p => p.id === selectedModelProvider)?.logo || Cpu;
+                  return <CurrentLogo className="w-5 h-5 shrink-0" />;
+                })()
+              ) : (
+                React.createElement(activeCategory.icon || Wrench, { 
+                  className: 'w-5 h-5 shrink-0',
+                  style: { color: activeCategory.color }
+                })
+              )}
               <div className="flex-1 truncate">
                 <h3 className={`text-sm font-bold tracking-tight truncate ${
                   isDarkMode ? 'text-white' : 'text-slate-900'
@@ -847,38 +977,31 @@ export default function NodeCatalogPanel({
                       : '5 foundation providers available'
                     : activeCategory.id === 'mcp'
                       ? registeredMcpServers.length > 0
-                        ? `${registeredMcpServers.length} ${registeredMcpServers.length === 1 ? 'server' : 'servers'} connected • 4 direct connectors`
-                        : '0 connected • 4 live connectors available'
+                        ? `${registeredMcpServers.length} ${registeredMcpServers.length === 1 ? 'server' : 'servers'} connected`
+                        : 'Select an integration to connect'
                     : `${activeCategory.items.length} ${activeCategory.items.length === 1 ? 'component' : 'components'} available`}
                 </span>
               </div>
             </div>
           </div>
         ) : (
-          /* Tier 1 Header: Title + Search */
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#0091DA] block">
-                  Nodes & Capabilities
-                </span>
-                <h3 className={`text-base font-bold tracking-tight ${
-                  isDarkMode ? 'text-white' : 'text-slate-900'
-                }`}>
-                  What happens next?
-                </h3>
-              </div>
+          /* Tier 1 Header: Minimal Title + Close */
+          <div className="flex items-center justify-between">
+            <h3 className={`text-sm font-semibold tracking-tight ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}>
+              Nodes & Capabilities
+            </h3>
 
-              <button
-                onClick={onClose}
-                className={`btn-tactile p-1.5 rounded-lg transition-colors ${
-                  isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
-                }`}
-                title="Close panel"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+              }`}
+              title="Close panel"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
@@ -888,7 +1011,7 @@ export default function NodeCatalogPanel({
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
             <input
               type="text"
-              placeholder={activeCategory ? `Search in ${activeCategory.label}...` : "Search capabilities & nodes..."}
+              placeholder={activeCategory ? `Search in ${activeCategory.label}...` : "Search nodes..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`w-full pl-9 pr-9 py-2 text-xs rounded-xl border transition-all duration-200 outline-none ${
@@ -933,28 +1056,29 @@ export default function NodeCatalogPanel({
                       <div
                         key={item.id}
                         onClick={() => handleItemClick(category.id, item)}
-                        className={`p-2.5 border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
                           isDarkMode 
-                            ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0091DA] hover:bg-[#252833]' 
-                            : 'bg-white border-[#E2E8F0] hover:border-[#00338D] hover:bg-[#F8FAFC]'
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
                         }`}
                       >
-                        <div className="flex-1 min-w-0">
-                          <h5 className={`text-xs font-semibold truncate ${
-                            isDarkMode ? 'text-white' : 'text-[#0B0F19]'
+                        <div className="flex-1 min-w-0 flex items-center gap-3">
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${
+                            isDarkMode ? 'text-white' : 'text-slate-800'
                           }`}>
                             {item.name}
-                          </h5>
+                          </h4>
                         </div>
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleItemClick(category.id, item);
                           }}
-                          className={`btn-tactile w-7 h-7 flex items-center justify-center shrink-0 border transition-all ${
+                          className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
                             addedItemId === item.id
                               ? 'bg-[#009A44] text-white border-[#009A44]'
-                              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#001E50]'
+                              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-xs'
                           }`}
                           title={item.isProviderCard ? "Configure Provider" : "Add to Canvas"}
                         >
@@ -981,20 +1105,7 @@ export default function NodeCatalogPanel({
             /* ======================================================== */
             !selectedModelProvider ? (
               /* Level 2A: The 5 Providers with Actual SVG Logos */
-              <div className="p-3 space-y-2.5">
-                <div className={`p-3 border text-[11px] leading-relaxed rounded-none ${
-                  isDarkMode 
-                    ? 'bg-[#14151B] border-[#2D313D] text-slate-300' 
-                    : 'bg-[#E6EDF7] border-[#00338D]/20 text-[#001E50]'
-                }`}>
-                  <div className="font-bold flex items-center gap-1.5 text-[#00338D] mb-1">
-                    <Cpu className="w-3.5 h-3.5" />
-                    <span>Select Foundation Model Provider</span>
-                  </div>
-                  Paste your API key to detect all compatible models in real time. Zero hardcoded model limits.
-                </div>
-
-                <div className="space-y-2">
+              <div className="px-2 py-1 space-y-0.5">
                   {MODEL_PROVIDERS.map(provider => {
                     const ProviderLogo = provider.logo;
                     const isConfigured = Boolean(getProviderCredential(provider.id));
@@ -1002,35 +1113,32 @@ export default function NodeCatalogPanel({
                       <button
                         key={provider.id}
                         onClick={() => handleSelectProvider(provider.id)}
-                        className={`w-full p-2.5 border transition-all text-left flex items-center justify-between gap-3 group cursor-pointer ${
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
                           isDarkMode
-                            ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0091DA] hover:bg-[#252833]'
-                            : 'bg-white border-[#E2E8F0] hover:border-[#00338D] hover:bg-[#F8FAFC]'
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]'
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <ProviderLogo className="w-6 h-6 shrink-0" />
-                          <div className="min-w-0 flex-1 flex items-center gap-2">
-                            <h4 className={`text-xs font-bold tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                              {provider.name}
-                            </h4>
-                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
-                              isConfigured || provider.isLocal
-                                ? 'bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30'
-                                : 'bg-slate-100 text-slate-500 border border-slate-200'
-                            }`}>
-                              {isConfigured ? '● Key Ready' : provider.isLocal ? '● Local Endpoint' : '○ Paste Key'}
-                            </span>
-                          </div>
+                          <ProviderLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                            {provider.name}
+                          </h4>
                         </div>
 
-                        <div className="flex items-center text-[#00338D] text-xs font-bold font-mono self-center shrink-0 group-hover:translate-x-0.5 transition-transform">
-                          <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#00338D]" />
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isConfigured && (
+                            <span className="text-[10px] font-mono text-[#009A44] font-medium">● Ready</span>
+                          )}
+                          <ChevronRight className={`w-3.5 h-3.5 transition-all duration-150 shrink-0 ${
+                            isDarkMode 
+                              ? 'text-slate-500 group-hover:text-white group-hover:translate-x-0.5' 
+                              : 'text-slate-400 group-hover:text-slate-800 group-hover:translate-x-0.5'
+                          }`} />
                         </div>
                       </button>
                     );
                   })}
-                </div>
               </div>
             ) : (
               /* Level 2B: Provider API Key Input & Real-Time Model Detection */
@@ -1305,33 +1413,29 @@ export default function NodeCatalogPanel({
                               <div
                                 key={model.id}
                                 onClick={() => handleAddDiscoveredModel(model)}
-                                className={`group p-2 border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+                                className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
                                   isDarkMode
-                                    ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0091DA] hover:bg-[#252833]'
-                                    : 'bg-white border-[#E2E8F0] hover:border-[#00338D] hover:bg-[#F8FAFC]'
+                                    ? 'hover:bg-white/[0.06] active:bg-white/[0.1]'
+                                    : 'hover:bg-slate-100/90 active:bg-slate-200/70'
                                 }`}
                               >
-                                <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                                  <SelectedLogo className="w-3.5 h-3.5 shrink-0" />
-                                  <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+                                <div className="flex-1 min-w-0 flex items-center gap-3">
+                                  <SelectedLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                                  <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
                                     {model.name}
-                                  </h5>
-                                  {model.id !== model.name && (
-                                    <span className="text-[10px] font-mono text-slate-400 truncate">
-                                      ({model.id})
-                                    </span>
-                                  )}
+                                  </h4>
                                 </div>
 
                                 <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleAddDiscoveredModel(model);
                                   }}
-                                  className={`btn-tactile w-7 h-7 flex items-center justify-center shrink-0 border transition-all ${
+                                  className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
                                     addedItemId === `model-${selectedModelProvider}-${model.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
                                       ? 'bg-[#009A44] text-white border-[#009A44]'
-                                      : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#001E50]'
+                                      : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-xs'
                                   }`}
                                   title="Add to Canvas"
                                 >
@@ -1355,241 +1459,174 @@ export default function NodeCatalogPanel({
             /* ======================================================== */
             /* REAL MCP INTEGRATIONS & UNIVERSAL CONNECTOR VIEW        */
             /* ======================================================== */
-            <div className="p-3 space-y-3.5">
-              {/* Primary Action Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                    detail: { tab: 'github' }
-                  }));
-                }}
-                className="card-pressable w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#00A3A6] to-[#008A8C] hover:opacity-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-[#00A3A6]/20 transition-all cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Connect Live MCP Server</span>
-              </button>
-
-              {/* Direct Integration Connectors */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between px-0.5">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                    Direct Connectors
-                  </span>
-                  <span className="text-[10px] font-mono text-[#00A3A6] font-semibold">
-                    Zero Simulation
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  {/* Connector 1: Universal Link (Claude Code style) */}
-                  {(!searchQuery.trim() || 'universal mcp link http sse json-rpc'.includes(searchQuery.toLowerCase())) && (
-                    <div
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                          detail: { tab: 'url' }
-                        }));
-                      }}
-                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
-                        isDarkMode 
-                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#00A3A6] hover:bg-[#252833]' 
-                          : 'bg-white border-[#E2E8F0] hover:border-[#00A3A6] hover:bg-[#F0FAF9]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-7 h-7 rounded-lg bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center shrink-0 border border-[#00A3A6]/30">
-                          <Globe className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="min-w-0 flex-1 flex items-center gap-2">
-                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                            Universal MCP Link
-                          </h5>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
-                            HTTP / SSE
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-[#00A3A6] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                        Connect →
-                      </span>
+            <div className="px-2 py-1 space-y-0.5">
+              {/* MCP Integration Connectors */}
+              <div className="space-y-0.5">
+                {/* Connector 1: Universal MCP */}
+                {(!searchQuery.trim() || 'universal mcp link http sse json-rpc endpoint custom'.includes(searchQuery.toLowerCase())) && (
+                  <div
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                        detail: { tab: 'url' }
+                      }));
+                    }}
+                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                      isDarkMode 
+                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <McpIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110 text-[#00A3A6]" />
+                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                        Universal MCP
+                      </h4>
                     </div>
-                  )}
+                    <span className="text-[12px] font-medium text-[#00A3A6] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      Connect →
+                    </span>
+                  </div>
+                )}
 
-                  {/* Connector 2: Slack MCP */}
-                  {(!searchQuery.trim() || 'slack mcp webhook bot messages'.includes(searchQuery.toLowerCase())) && (
-                    <div
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                          detail: { tab: 'slack' }
-                        }));
-                      }}
-                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
-                        isDarkMode 
-                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#009A44] hover:bg-[#252833]' 
-                          : 'bg-white border-[#E2E8F0] hover:border-[#009A44] hover:bg-[#F2FAF5]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-7 h-7 rounded-lg bg-[#009A44]/15 text-[#009A44] flex items-center justify-center shrink-0 border border-[#009A44]/30">
-                          <MessageSquare className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="min-w-0 flex-1 flex items-center gap-2">
-                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                            Slack MCP Server
-                          </h5>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30">
-                            WEBHOOK / BOT
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-[#009A44] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                        Connect →
-                      </span>
+                {/* Connector 2: Slack */}
+                {(!searchQuery.trim() || 'slack mcp webhook bot messages channels'.includes(searchQuery.toLowerCase())) && (
+                  <div
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                        detail: { tab: 'slack' }
+                      }));
+                    }}
+                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                      isDarkMode 
+                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <SlackLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                        Slack
+                      </h4>
                     </div>
-                  )}
+                    <span className="text-[12px] font-medium text-[#009A44] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      Connect →
+                    </span>
+                  </div>
+                )}
 
-                  {/* Connector 3: Atlassian Jira MCP */}
-                  {(!searchQuery.trim() || 'jira atlassian cloud rest sprint issues tickets'.includes(searchQuery.toLowerCase())) && (
-                    <div
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                          detail: { tab: 'jira' }
-                        }));
-                      }}
-                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
-                        isDarkMode 
-                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#EAAA00] hover:bg-[#252833]' 
-                          : 'bg-white border-[#E2E8F0] hover:border-[#EAAA00] hover:bg-[#FAF6EC]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-7 h-7 rounded-lg bg-[#EAAA00]/15 text-[#EAAA00] flex items-center justify-center shrink-0 border border-[#EAAA00]/30">
-                          <GitFork className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="min-w-0 flex-1 flex items-center gap-2">
-                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                            Atlassian Jira Cloud MCP
-                          </h5>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#EAAA00]/15 text-[#EAAA00] border border-[#EAAA00]/30">
-                            REST API
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-[#EAAA00] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                        Connect →
-                      </span>
+                {/* Connector 3: Jira */}
+                {(!searchQuery.trim() || 'jira atlassian cloud rest sprint issues tickets'.includes(searchQuery.toLowerCase())) && (
+                  <div
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                        detail: { tab: 'jira' }
+                      }));
+                    }}
+                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                      isDarkMode 
+                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <JiraLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                        Jira
+                      </h4>
                     </div>
-                  )}
+                    <span className="text-[12px] font-medium text-[#0052CC] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      Connect →
+                    </span>
+                  </div>
+                )}
 
-                  {/* Connector 4: GitHub MCP */}
-                  {(!searchQuery.trim() || 'github pat git repo issues pr pull request'.includes(searchQuery.toLowerCase())) && (
-                    <div
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                          detail: { tab: 'github' }
-                        }));
-                      }}
-                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
-                        isDarkMode 
-                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#483698] hover:bg-[#252833]' 
-                          : 'bg-white border-[#E2E8F0] hover:border-[#483698] hover:bg-[#F5F2FA]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-7 h-7 rounded-lg bg-[#483698]/15 text-[#483698] flex items-center justify-center shrink-0 border border-[#483698]/30">
-                          <GithubIcon className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="min-w-0 flex-1 flex items-center gap-2">
-                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                            GitHub MCP Server
-                          </h5>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#483698]/15 text-[#483698] border border-[#483698]/30">
-                            PAT TOKEN
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-[#483698] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                        Connect →
-                      </span>
+                {/* Connector 4: GitHub */}
+                {(!searchQuery.trim() || 'github pat git repo issues pr pull request'.includes(searchQuery.toLowerCase())) && (
+                  <div
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                        detail: { tab: 'github' }
+                      }));
+                    }}
+                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                      isDarkMode 
+                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <GithubIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                        GitHub
+                      </h4>
                     </div>
-                  )}
+                    <span className={`text-[12px] font-medium font-mono shrink-0 group-hover:translate-x-0.5 transition-transform ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>
+                      Connect →
+                    </span>
+                  </div>
+                )}
 
-                  {/* Connector 5: Neo4j Graph Database MCP */}
-                  {(!searchQuery.trim() || 'neo4j graph cypher bolt auradb database schema gds'.includes(searchQuery.toLowerCase())) && (
-                    <div
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                          detail: { tab: 'neo4j' }
-                        }));
-                      }}
-                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
-                        isDarkMode 
-                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#00A3A6] hover:bg-[#252833]' 
-                          : 'bg-white border-[#E2E8F0] hover:border-[#00A3A6] hover:bg-[#F0FAF9]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-7 h-7 rounded-lg bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center shrink-0 border border-[#00A3A6]/30">
-                          <Database className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="min-w-0 flex-1 flex items-center gap-2">
-                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                            Neo4j Graph Database
-                          </h5>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
-                            BOLT / AURA / MCP
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-[#00A3A6] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                        Connect →
-                      </span>
+                {/* Connector 5: Neo4j */}
+                {(!searchQuery.trim() || 'neo4j graph cypher bolt auradb database schema gds'.includes(searchQuery.toLowerCase())) && (
+                  <div
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                        detail: { tab: 'neo4j' }
+                      }));
+                    }}
+                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                      isDarkMode 
+                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Neo4jLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                        Neo4j
+                      </h4>
                     </div>
-                  )}
+                    <span className="text-[12px] font-medium text-[#018BFF] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      Connect →
+                    </span>
+                  </div>
+                )}
 
-                  {/* Connector 6: Microsoft Outlook MCP */}
-                  {(!searchQuery.trim() || 'outlook microsoft graph 365 mail email calendar events tasks'.includes(searchQuery.toLowerCase())) && (
-                    <div
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                          detail: { tab: 'outlook' }
-                        }));
-                      }}
-                      className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
-                        isDarkMode 
-                          ? 'bg-[#1E2028] border-[#2D313D] hover:border-[#0078D4] hover:bg-[#252833]' 
-                          : 'bg-white border-[#E2E8F0] hover:border-[#0078D4] hover:bg-[#F0F6FA]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-7 h-7 rounded-lg bg-[#0078D4]/15 text-[#0078D4] flex items-center justify-center shrink-0 border border-[#0078D4]/30">
-                          <OutlookCatalogIcon className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0 flex-1 flex items-center gap-2">
-                          <h5 className={`text-xs font-semibold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                            Microsoft Outlook MCP
-                          </h5>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#0078D4]/15 text-[#0078D4] border border-[#0078D4]/30">
-                            GRAPH API / OAUTH
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-[#0078D4] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                        Connect →
-                      </span>
+                {/* Connector 6: Outlook */}
+                {(!searchQuery.trim() || 'outlook microsoft graph 365 mail email calendar events tasks'.includes(searchQuery.toLowerCase())) && (
+                  <div
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                        detail: { tab: 'outlook' }
+                      }));
+                    }}
+                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                      isDarkMode 
+                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <OutlookCatalogIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                        Outlook
+                      </h4>
                     </div>
-                  )}
-                </div>
+                    <span className="text-[12px] font-medium text-[#0078D4] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      Connect →
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Connected Live MCP Servers List */}
-              <div className="space-y-2 pt-2 border-t border-inherit">
-                <div className="flex items-center justify-between px-0.5">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                    Connected Live Servers ({registeredMcpServers.length})
+              <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-1">
+                <div className="flex items-center justify-between px-2.5 pb-0.5">
+                  <span className="text-[11px] font-mono font-medium text-slate-400">
+                    Connected Live ({registeredMcpServers.length})
                   </span>
                   {registeredMcpServers.length > 0 && (
-                    <span className="text-[10px] font-mono text-emerald-500 font-bold flex items-center gap-1">
+                    <span className="text-[10px] font-mono text-emerald-500 font-medium flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Live Verified
                     </span>
@@ -1597,34 +1634,48 @@ export default function NodeCatalogPanel({
                 </div>
 
                 {registeredMcpServers.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-0.5">
                     {registeredMcpServers
-                      .filter(s => !searchQuery.trim() || s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                      .map(server => (
-                        <div
-                          key={server.id}
-                          className={`p-3 border rounded-xl space-y-2 transition-all ${
-                            isDarkMode ? 'bg-[#1E2028] border-[#00A3A6]/40' : 'bg-white border-[#00A3A6]/30'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0 flex-1 flex items-center gap-2">
-                              <h5 className={`text-xs font-bold truncate ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                                {server.name}
-                              </h5>
-                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/30">
-                                {server.transport?.toUpperCase() || 'SSE'}
+                      .filter(s => {
+                        if (!searchQuery.trim()) return true;
+                        const q = searchQuery.toLowerCase();
+                        const visuals = getServerVisuals(s);
+                        const n = (visuals.name || s?.name || s?.displayName || s?.serviceName || s?.id || '').toLowerCase();
+                        return n.includes(q);
+                      })
+                      .map(server => {
+                        const visuals = getServerVisuals(server);
+                        return (
+                          <div
+                            key={server.id}
+                            className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                              isDarkMode 
+                                ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                                : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <span className="shrink-0 transition-transform duration-150 group-hover:scale-110">
+                                {visuals.icon}
                               </span>
+                              <div className="min-w-0 flex-1 flex items-center gap-2">
+                                <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                                  {visuals.name}
+                                </h4>
+                                <span className="text-[11px] font-mono text-slate-400 shrink-0">
+                                  • {server.tools?.length || 0} tools
+                                </span>
+                              </div>
                             </div>
 
-                            <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex items-center gap-1 shrink-0">
                               <button
                                 type="button"
                                 onClick={() => {
                                   removeRegisteredMcpServer(server.id);
                                   setRegisteredMcpServers(getRegisteredMcpServers());
                                 }}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                className="p-1 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
                                 title="Disconnect MCP Server"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1632,10 +1683,11 @@ export default function NodeCatalogPanel({
 
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   handleItemAdd('mcp', {
                                     id: server.id,
-                                    name: server.name,
+                                    name: visuals.name || server.name,
                                     description: server.description,
                                     tools: server.tools,
                                     config: server.config,
@@ -1644,79 +1696,47 @@ export default function NodeCatalogPanel({
                                     isRealMcp: true
                                   });
                                 }}
-                                className={`btn-tactile px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 text-white shadow-xs cursor-pointer ${
+                                className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
                                   addedItemId === server.id
-                                    ? 'bg-[#009A44]'
-                                    : 'bg-[#00A3A6] hover:bg-[#008A8C]'
+                                    ? 'bg-[#009A44] text-white border-[#009A44]'
+                                    : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-xs'
                                 }`}
+                                title="Add to Canvas"
                               >
                                 {addedItemId === server.id ? (
-                                  <>
-                                    <Check className="w-3.5 h-3.5" />
-                                    <span>Added ✓</span>
-                                  </>
+                                  <Check className="w-3.5 h-3.5" />
                                 ) : (
-                                  <>
-                                    <Plus className="w-3.5 h-3.5" />
-                                    <span>Add to Canvas</span>
-                                  </>
+                                  <Plus className="w-3.5 h-3.5" />
                                 )}
                               </button>
                             </div>
                           </div>
-
-                          {/* Tools chips */}
-                          {server.tools && server.tools.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-700/20 dark:border-slate-800">
-                              {server.tools.slice(0, 4).map((tool, tIdx) => (
-                                <span
-                                  key={tIdx}
-                                  className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                                >
-                                  {tool.name}
-                                </span>
-                              ))}
-                              {server.tools.length > 4 && (
-                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                                  +{server.tools.length - 4} more
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 ) : (
-                  /* Institutional Zero-Simulation Notice */
-                  <div className={`p-4 border border-dashed rounded-xl text-center space-y-2 ${
-                    isDarkMode ? 'bg-[#14151B] border-[#00A3A6]/30' : 'bg-[#F0FAF9] border-[#00A3A6]/40'
-                  }`}>
-                    <div className="w-8 h-8 rounded-full bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center mx-auto">
-                      <Server className="w-4 h-4" />
-                    </div>
-                    <h6 className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                      Zero Simulated Mocks
-                    </h6>
-                    <p className={`text-[11px] leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                      All simulated MCPs have been removed. Connect a live MCP server via Claude Code-style URL or connect Slack, Jira, or GitHub to expose and route real tools.
+                  <div className="px-2.5 py-2 text-center">
+                    <p className="text-[11px] font-mono text-slate-400">
+                      No live servers connected yet. Select a connector above to connect.
                     </p>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            /* Other categories (Skills, MCP, Tools, etc.) */
-            <div className="p-3 space-y-2.5">
+            /* Other categories (Skills, Tools, Memory, AI Agent, Deterministic, Policies, etc.) */
+            <div className="px-2 py-1 space-y-0.5">
               {/* Create Custom Skill Button & Form (for Skills Category) */}
               {activeCategory.id === 'skills' && (
-                <div className="space-y-2 mb-2">
+                <div className="mb-1">
                   {!isCreatingSkill ? (
                     <button
+                      type="button"
                       onClick={() => setIsCreatingSkill(true)}
-                      className="card-pressable w-full py-2.5 px-3 rounded-xl bg-[#009A44] hover:bg-[#007F38] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                      className="w-full py-2 px-2.5 rounded-lg border border-dashed border-[#009A44]/40 hover:border-[#009A44] hover:bg-[#009A44]/10 text-[#009A44] text-[13px] font-medium flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>+ Create Custom Skill</span>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Create Custom Skill</span>
                     </button>
                   ) : (
                     <form onSubmit={handleCreateSkill} className={`p-3.5 border rounded-xl space-y-3 animate-in fade-in zoom-in-95 duration-200 shadow-sm ${
@@ -1774,7 +1794,7 @@ export default function NodeCatalogPanel({
 
                       <div>
                         <label className="text-[10px] font-mono font-semibold text-slate-400 block mb-1 uppercase tracking-wider flex items-center justify-between">
-                          <span>Attach Reference Spec (.docx, .txt, .md, .json)</span>
+                          <span>Skill Specification Document (.docx, .txt, .md, .json)</span>
                           {referenceDoc && <span className="text-[#009A44] font-semibold">✓ Parsed</span>}
                         </label>
                         <div className="flex items-center gap-2">
@@ -1794,7 +1814,7 @@ export default function NodeCatalogPanel({
                             }`}
                           >
                             <Upload className="w-3.5 h-3.5" />
-                            <span className="truncate">{referenceDoc ? referenceDoc.name : 'Upload Word / Spec File'}</span>
+                            <span className="truncate">{referenceDoc ? referenceDoc.name : 'Attach Skill Specification'}</span>
                           </label>
                           {referenceDoc && (
                             <button
@@ -1861,24 +1881,22 @@ export default function NodeCatalogPanel({
                     <div
                       key={item.id}
                       onClick={() => handleItemAdd(activeCategory.id, item)}
-                      className={`group p-2.5 border rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 shadow-xs card-pressable ${
+                      className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
                         isDarkMode 
-                          ? 'bg-[#1E2028]/90 border-slate-700/60 hover:border-[#0091DA]/80 hover:bg-[#252833]' 
-                          : 'bg-white border-slate-200/90 hover:border-[#00338D]/60 hover:bg-slate-50/80'
+                          ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                          : 'hover:bg-slate-100/90 active:bg-slate-200/70'
                       }`}
                     >
-                      <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <div 
-                          className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: `${activeCategory.color}15`, color: activeCategory.color }}
-                        >
-                          <ItemIcon className="w-3.5 h-3.5" />
-                        </div>
-                        <h5 className={`text-xs font-semibold truncate ${
-                          isDarkMode ? 'text-white' : 'text-slate-900'
+                      <div className="flex-1 min-w-0 flex items-center gap-3">
+                        <ItemIcon 
+                          className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" 
+                          style={{ color: activeCategory.color }} 
+                        />
+                        <h4 className={`text-[13px] font-medium tracking-tight truncate ${
+                          isDarkMode ? 'text-white' : 'text-slate-800'
                         }`}>
                           {item.name}
-                        </h5>
+                        </h4>
 
                         {isCustom && (
                           <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 shrink-0">
@@ -1890,8 +1908,9 @@ export default function NodeCatalogPanel({
                       <div className="flex items-center gap-1.5 shrink-0">
                         {isCustom && (
                           <button
+                            type="button"
                             onClick={(e) => handleDeleteCustomSkill(item.id, e)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border border-slate-700/50 hover:border-red-500/60 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all card-pressable"
+                            className="p-1 rounded text-slate-400 hover:text-red-400 transition-colors"
                             title="Delete Custom Skill"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1899,14 +1918,15 @@ export default function NodeCatalogPanel({
                         )}
 
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleItemAdd(activeCategory.id, item);
                           }}
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-all card-pressable ${
+                          className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
                             addedItemId === item.id
                               ? 'bg-[#009A44] text-white border-[#009A44]'
-                              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-sm'
+                              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-xs'
                           }`}
                           title="Add to Canvas"
                         >
@@ -1919,81 +1939,43 @@ export default function NodeCatalogPanel({
             </div>
           )
         ) : (
-          /* Tier 1 Primary Category List (Clean borderless list, tighter spacing, smooth hover) */
-          <div className="px-2 py-1 space-y-1">
-            {NODE_CATEGORIES.map(category => {
+          /* Tier 1 Primary Category List - Clean Minimal Single-Row */
+          <div className="px-2 py-1 space-y-0.5">
+            {categoriesWithCustomSkills.map(category => {
               const CategoryIcon = category.icon;
               return (
                 <button
                   key={category.id}
                   onClick={() => handleSelectCategory(category.id)}
-                  className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-200 group cursor-pointer ${
+                  className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
                     isDarkMode 
                       ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
-                      : 'hover:bg-slate-100/80 active:bg-slate-200/60'
+                      : 'hover:bg-slate-100/90 active:bg-slate-200/70'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    <div 
-                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border shadow-xs transition-transform duration-200 group-hover:scale-105"
-                      style={{ 
-                        backgroundColor: category.bgColor, 
-                        color: category.color,
-                        borderColor: `${category.color}35` 
-                      }}
-                    >
-                      <CategoryIcon className="w-4 h-4" />
-                    </div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <CategoryIcon 
+                      className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" 
+                      style={{ color: category.color }} 
+                    />
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className={`text-xs font-semibold tracking-tight ${
-                          isDarkMode ? 'text-white' : 'text-slate-900'
-                        }`}>
-                          {category.label}
-                        </h4>
-                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-semibold ${
-                          isDarkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-200/80 text-slate-700'
-                        }`}>
-                          {category.items.length}
-                        </span>
-                      </div>
-                      <p className={`text-[11px] mt-0.5 line-clamp-1 leading-snug ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                      }`}>
-                        {category.subtitle}
-                      </p>
-                    </div>
+                    <h4 className={`text-[13px] font-medium tracking-tight truncate ${
+                      isDarkMode ? 'text-white' : 'text-slate-800'
+                    }`}>
+                      {category.label}
+                    </h4>
                   </div>
 
-                  <div className={`w-5 h-5 flex items-center justify-center transition-all duration-200 shrink-0 ${
+                  <ChevronRight className={`w-3.5 h-3.5 transition-all duration-150 shrink-0 ${
                     isDarkMode 
                       ? 'text-slate-500 group-hover:text-white group-hover:translate-x-0.5' 
-                      : 'text-slate-400 group-hover:text-[#00338D] group-hover:translate-x-0.5'
-                  }`}>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </div>
+                      : 'text-slate-400 group-hover:text-slate-800 group-hover:translate-x-0.5'
+                  }`} />
                 </button>
               );
             })}
           </div>
         )}
-      </div>
-
-      {/* ============================================================ */}
-      {/* FOOTER: Architecture Info                                    */}
-      {/* ============================================================ */}
-      <div className={`p-3 border-t text-[10px] font-mono flex items-center justify-between shrink-0 ${
-        isDarkMode ? 'bg-[#14151B]/80 border-slate-800 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
-      }`}>
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#009A44]" />
-          <span>8 VISUAL PILLARS</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA]" />
-          <span>AUDIT & COST: INHERENT</span>
-        </div>
       </div>
     </aside>
   );

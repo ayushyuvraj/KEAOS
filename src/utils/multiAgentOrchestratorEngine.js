@@ -236,7 +236,12 @@ async function executeSingleAgentInPipeline({
   const basePrompt = agentNode.data?.prompt || `You are ${agentName}, an autonomous enterprise agent running on ${frameworkName}.`;
   const roleContext = agentRole ? `\n[YOUR ARCHITECTURAL ROLE IN THE MULTI-AGENT GRAPH]: ${agentRole.toUpperCase()} under ${frameworkName}.` : '';
   const skillsContext = skillNodes.length > 0
-    ? `\n[ATTACHED SKILLS]:\n${skillNodes.map(s => `- ${s.name}: ${s.description || 'Custom Skill'}`).join('\n')}`
+    ? `\n[ATTACHED SKILLS & DIRECTIVES]:\n${skillNodes.map(s => {
+        let txt = `- ${s.name}: ${s.description || 'Custom Skill'}`;
+        if (s.customDirective) txt += `\n  * Directives & Output Rules: ${s.customDirective}`;
+        if (s.referenceDoc?.text) txt += `\n  * Reference Specification Document (${s.referenceDoc.name}):\n"""\n${s.referenceDoc.text}\n"""`;
+        return txt;
+      }).join('\n')}`
     : '';
   const mcpContext = mcpNodes.length > 0
     ? `\n[CONNECTED MCP PROTOCOL SERVERS]:\n${mcpNodes.map(m => `- ${m.name}`).join('\n')}`

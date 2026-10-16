@@ -1262,16 +1262,13 @@ export default function Inspector({
             </div>
 
             <div className={`p-4 ${t.card} rounded-2xl space-y-2`}>
-              <label className={`text-xs font-semibold uppercase tracking-wider ${t.label} block font-mono flex items-center`}>
-                Description
-                <InfoTooltip text="A simple description explaining what this component does when your agent executes." align="left" />
-              </label>
-              <textarea
-                rows={3}
-                value={nodeData.description || ''}
-                onChange={(e) => onUpdateNodeData(selectedNode.id, { description: e.target.value })}
-                className={`w-full p-3 text-xs leading-relaxed rounded-xl resize-none transition-all ${t.input}`}
-              />
+              <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.subText} block font-mono flex items-center justify-between`}>
+                <span>Functional Overview</span>
+                <InfoTooltip text="High-level summary of what this capability does in the agent workflow." align="right" />
+              </span>
+              <p className={`text-xs leading-relaxed ${t.title}`}>
+                {nodeData.description || 'Specialized reasoning capability attached to the agent workflow.'}
+              </p>
             </div>
 
             {/* Trigger Configuration & Ingress Bench */}
@@ -1789,7 +1786,7 @@ export default function Inspector({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className={`text-xs font-semibold uppercase tracking-wider ${nodeData.pillarType === 'policies' ? 'text-purple-600 dark:text-purple-400' : 'text-emerald-600 dark:text-emerald-400'} font-mono flex items-center`}>
-                      {nodeData.pillarType === 'policies' ? 'Governance / Policy Document' : 'Reference Spec Document'}
+                      {nodeData.pillarType === 'policies' ? 'Governance / Policy Document' : 'Skill Specification Document'}
                       <InfoTooltip 
                         text={nodeData.pillarType === 'policies'
                           ? 'Attach a Word (.docx), TXT, Markdown, or JSON file containing institutional compliance rules and security policies.'
@@ -1846,7 +1843,7 @@ export default function Inspector({
                       <span className="truncate">
                         {nodeData.referenceDoc 
                           ? nodeData.referenceDoc.name 
-                          : (nodeData.pillarType === 'policies' ? 'Upload Policy / Governance File' : 'Upload Word / Spec File')}
+                          : (nodeData.pillarType === 'policies' ? 'Attach Policy / Governance File' : 'Attach Skill Specification')}
                       </span>
                     </label>
 
@@ -1876,30 +1873,7 @@ export default function Inspector({
               </div>
             )}
 
-            {nodeData.config && Object.keys(nodeData.config).length > 0 && (
-              <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
-                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono flex items-center`}>
-                  Configuration Properties
-                  <InfoTooltip text="Custom key-value parameters passed directly to this component during runtime execution." align="right" />
-                </span>
-                {Object.entries(nodeData.config).map(([key, val]) => (
-                  <div key={key}>
-                    <label className={`text-[10px] font-mono ${t.subText} block mb-1`}>
-                      {key}
-                    </label>
-                    <input
-                      type="text"
-                      value={String(val)}
-                      onChange={(e) => {
-                        const newConfig = { ...nodeData.config, [key]: e.target.value };
-                        onUpdateNodeData(selectedNode.id, { config: newConfig });
-                      }}
-                      className={`w-full px-3 py-2 text-xs font-mono rounded-lg transition-all ${t.input}`}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+
           </div>
         )}
       </div>

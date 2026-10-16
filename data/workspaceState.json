@@ -1,8 +1,8 @@
 {
-  "activeWorkflowId": "wf-1792162747408-90syy",
+  "activeWorkflowId": "wf-1792177177152-7r952",
   "uiState": {
     "isDarkMode": false,
-    "isSidebarCollapsed": true,
+    "isSidebarCollapsed": false,
     "isSidebarClosed": false,
     "isDrawerExpanded": false,
     "showMiniMap": false,
@@ -16,6 +16,1115 @@
     "isWorkflowLocked": false
   },
   "workflows": [
+    {
+      "id": "wf-1792177177152-7r952",
+      "name": "Untitled Workflow",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792177177152-7r952",
+        "name": "Untitled Workflow",
+        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "node-skills-3259",
+          "type": "pillar",
+          "position": {
+            "x": 562.6133902501842,
+            "y": 169.1672514295928
+          },
+          "data": {
+            "pillarType": "skills",
+            "toolId": "skill-summarizer",
+            "name": "Executive Summarizer",
+            "description": "Generates TL;DR, high-level takeaways, and strategic themes.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "format": "bullet_points",
+              "length": "concise",
+              "focus": "decisions"
+            },
+            "tools": null,
+            "itemId": "skill-summarizer"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-mcp-4228",
+          "type": "pillar",
+          "position": {
+            "x": 1060,
+            "y": 165
+          },
+          "data": {
+            "pillarType": "mcp",
+            "title": "Outlook",
+            "name": "Outlook",
+            "displayName": "Outlook",
+            "subtitle": "OUTLOOK-API",
+            "description": "Official Enterprise Microsoft Outlook MCP with 38 categorized tools.",
+            "config": {
+              "connectionMode": "oauth",
+              "endpoint": "https://graph.microsoft.com/v1.0"
+            },
+            "tools": [
+              {
+                "name": "list_messages",
+                "displayName": "List Emails",
+                "category": "Mail Operations",
+                "type": "read",
+                "description": "Lists messages from the user mailbox or a specific folder (GET /me/messages).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "folder": {
+                      "type": "string",
+                      "description": "Folder name or ID (e.g., inbox, drafts, sentitems, archive)"
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Maximum number of messages to return (default: 10, max: 50)"
+                    },
+                    "filter": {
+                      "type": "string",
+                      "description": "OData filter query (e.g., isRead eq false or from/emailAddress/address eq 'exec@corp.com')"
+                    },
+                    "search": {
+                      "type": "string",
+                      "description": "KQL search keyword across subject, body, or sender"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "get_message",
+                "displayName": "Get Email Details",
+                "category": "Mail Operations",
+                "type": "read",
+                "description": "Retrieves complete message content, HTML body, internet headers, and recipient arrays (GET /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The unique Microsoft Graph ID of the message"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "search_messages",
+                "displayName": "Search Emails",
+                "category": "Mail Operations",
+                "type": "read",
+                "description": "Executes full-text keyword search across email subjects, sender addresses, and body text.",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "description": "Search term or keyword to search for"
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Maximum search results to return (default: 10)"
+                    }
+                  },
+                  "required": [
+                    "query"
+                  ]
+                }
+              },
+              {
+                "name": "send_mail",
+                "displayName": "Send Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Sends a new email message to recipients (POST /me/sendMail).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "List of recipient email addresses"
+                    },
+                    "cc": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Optional CC recipient email addresses"
+                    },
+                    "bcc": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Optional BCC recipient email addresses"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Email subject line"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Email body text or HTML content"
+                    },
+                    "importance": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ],
+                      "description": "Importance priority level"
+                    }
+                  },
+                  "required": [
+                    "to",
+                    "subject",
+                    "body"
+                  ]
+                }
+              },
+              {
+                "name": "create_draft",
+                "displayName": "Create Draft Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Composes a new draft message in the Drafts folder without sending (POST /me/messages).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Recipient email addresses"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Draft subject line"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Draft body content"
+                    }
+                  },
+                  "required": [
+                    "subject",
+                    "body"
+                  ]
+                }
+              },
+              {
+                "name": "update_draft",
+                "displayName": "Update Draft Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Modifies subject, body, or recipients of an existing unsent draft message (PATCH /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The draft message ID to update"
+                    },
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Updated recipient list"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Updated subject line"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Updated body content"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "send_draft",
+                "displayName": "Send Draft Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Dispatches an existing draft message to its specified recipients (POST /me/messages/{id}/send).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The draft message ID to send"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "reply_mail",
+                "displayName": "Reply to Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Sends a reply message to the original sender of an email (POST /me/messages/{id}/reply).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID being replied to"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Reply text message to send"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "comment"
+                  ]
+                }
+              },
+              {
+                "name": "reply_all_mail",
+                "displayName": "Reply All to Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Sends a reply to all recipients and the sender of an email thread (POST /me/messages/{id}/replyAll).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID being replied to"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Reply text message to send to all recipients"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "comment"
+                  ]
+                }
+              },
+              {
+                "name": "forward_mail",
+                "displayName": "Forward Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Forwards an email to specified recipients with optional forwarding commentary (POST /me/messages/{id}/forward).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to forward"
+                    },
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Recipient email addresses to forward to"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Optional forward message body commentary"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "to"
+                  ]
+                }
+              },
+              {
+                "name": "delete_message",
+                "displayName": "Delete Email",
+                "category": "Mail Operations",
+                "type": "destructive",
+                "description": "Permanently deletes an email message or moves it to Deleted Items (DELETE /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to delete"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "move_message",
+                "displayName": "Move Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Moves an email message to a specified destination mail folder (POST /me/messages/{id}/move).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to move"
+                    },
+                    "destinationId": {
+                      "type": "string",
+                      "description": "Destination folder ID or well-known name (e.g., archive, junkemail)"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "destinationId"
+                  ]
+                }
+              },
+              {
+                "name": "list_mail_folders",
+                "displayName": "List Mail Folders",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Lists all mail folders in the user mailbox (GET /me/mailFolders).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "includeHidden": {
+                      "type": "boolean",
+                      "description": "Whether to include system or hidden folders"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "create_mail_folder",
+                "displayName": "Create Mail Folder",
+                "category": "Folders & Attachments",
+                "type": "write",
+                "description": "Creates a new mail folder under root or a parent folder (POST /me/mailFolders).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "displayName": {
+                      "type": "string",
+                      "description": "Name of the new folder"
+                    },
+                    "parentFolderId": {
+                      "type": "string",
+                      "description": "Optional parent folder ID to create subfolder under"
+                    }
+                  },
+                  "required": [
+                    "displayName"
+                  ]
+                }
+              },
+              {
+                "name": "list_message_attachments",
+                "displayName": "List Attachments",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Retrieves all file attachments and metadata for a specific message (GET /me/messages/{id}/attachments).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to fetch attachments from"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "add_message_attachment",
+                "displayName": "Add Attachment",
+                "category": "Folders & Attachments",
+                "type": "write",
+                "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The draft message ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Filename of the attachment"
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "description": "MIME type of the file (e.g., application/pdf)"
+                    },
+                    "contentBytes": {
+                      "type": "string",
+                      "description": "Base64-encoded file content"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "name",
+                    "contentBytes"
+                  ]
+                }
+              },
+              {
+                "name": "list_events",
+                "displayName": "List Calendar Events",
+                "category": "Calendar & Scheduling",
+                "type": "read",
+                "description": "Lists upcoming calendar events from the default calendar (GET /me/events).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "limit": {
+                      "type": "number",
+                      "description": "Maximum events to return (default: 10)"
+                    },
+                    "filter": {
+                      "type": "string",
+                      "description": "OData filter query"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "get_calendar_view",
+                "displayName": "Get Calendar Schedule",
+                "category": "Calendar & Scheduling",
+                "type": "read",
+                "description": "Retrieves occurrences of events within a specific time window (GET /me/calendarView).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "startDateTime": {
+                      "type": "string",
+                      "description": "Start time ISO string (e.g., 2026-10-09T08:00:00Z)"
+                    },
+                    "endDateTime": {
+                      "type": "string",
+                      "description": "End time ISO string (e.g., 2026-10-09T18:00:00Z)"
+                    }
+                  },
+                  "required": [
+                    "startDateTime",
+                    "endDateTime"
+                  ]
+                }
+              },
+              {
+                "name": "get_event",
+                "displayName": "Get Event Details",
+                "category": "Calendar & Scheduling",
+                "type": "read",
+                "description": "Retrieves complete event metadata, location, attendees, and Teams meeting links (GET /me/events/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The unique Microsoft Graph ID of the event"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "create_event",
+                "displayName": "Schedule Event",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Schedules a calendar event with attendees, agenda, and optional online Teams meeting (POST /me/events).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "subject": {
+                      "type": "string",
+                      "description": "Event title / meeting subject"
+                    },
+                    "start": {
+                      "type": "string",
+                      "description": "Start time ISO string (e.g., 2026-10-10T14:00:00)"
+                    },
+                    "end": {
+                      "type": "string",
+                      "description": "End time ISO string (e.g., 2026-10-10T15:00:00)"
+                    },
+                    "timeZone": {
+                      "type": "string",
+                      "description": "Time zone identifier (default: UTC)"
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "List of attendee email addresses"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Meeting description / agenda notes"
+                    },
+                    "location": {
+                      "type": "string",
+                      "description": "Physical meeting location or room"
+                    },
+                    "isOnlineMeeting": {
+                      "type": "boolean",
+                      "description": "Whether to generate a Microsoft Teams online meeting link"
+                    }
+                  },
+                  "required": [
+                    "subject",
+                    "start",
+                    "end"
+                  ]
+                }
+              },
+              {
+                "name": "update_event",
+                "displayName": "Update Event",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Modifies timing, attendees, location, or agenda of an existing event (PATCH /me/events/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to update"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Updated subject"
+                    },
+                    "start": {
+                      "type": "string",
+                      "description": "Updated start time ISO string"
+                    },
+                    "end": {
+                      "type": "string",
+                      "description": "Updated end time ISO string"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Updated agenda notes"
+                    },
+                    "location": {
+                      "type": "string",
+                      "description": "Updated location"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "delete_event",
+                "displayName": "Cancel / Delete Event",
+                "category": "Calendar & Scheduling",
+                "type": "destructive",
+                "description": "Cancels a meeting and removes it from the calendar (DELETE /me/events/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to cancel / delete"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "accept_event",
+                "displayName": "Accept Meeting",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Formally accepts a calendar meeting invitation (POST /me/events/{id}/accept).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to accept"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Optional acceptance response message"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "decline_event",
+                "displayName": "Decline Meeting",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Declines a calendar meeting invitation (POST /me/events/{id}/decline).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to decline"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Optional decline reasoning comment"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "tentatively_accept_event",
+                "displayName": "Tentative Accept Meeting",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Tentatively accepts a calendar meeting invitation (POST /me/events/{id}/tentativelyAccept).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to tentatively accept"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Optional comment"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "find_meeting_times",
+                "displayName": "Find Optimal Meeting Times",
+                "category": "Calendar & Scheduling",
+                "type": "read",
+                "description": "Checks free/busy availability of requested attendees and suggests optimal meeting slots (POST /me/findMeetingTimes).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Attendee email addresses to coordinate"
+                    },
+                    "meetingDurationMinutes": {
+                      "type": "number",
+                      "description": "Duration of the proposed meeting in minutes (default: 30)"
+                    },
+                    "startWindow": {
+                      "type": "string",
+                      "description": "Start boundary ISO string"
+                    },
+                    "endWindow": {
+                      "type": "string",
+                      "description": "End boundary ISO string"
+                    }
+                  },
+                  "required": [
+                    "attendees"
+                  ]
+                }
+              },
+              {
+                "name": "list_contacts",
+                "displayName": "List Contacts",
+                "category": "Contacts & People",
+                "type": "read",
+                "description": "Lists contacts from the user personal address book (GET /me/contacts).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "limit": {
+                      "type": "number",
+                      "description": "Maximum contacts to return (default: 20)"
+                    },
+                    "filter": {
+                      "type": "string",
+                      "description": "OData filter expression"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "get_contact",
+                "displayName": "Get Contact Details",
+                "category": "Contacts & People",
+                "type": "read",
+                "description": "Retrieves complete profile, emails, phones, and job title of a contact (GET /me/contacts/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string",
+                      "description": "The unique contact ID"
+                    }
+                  },
+                  "required": [
+                    "contactId"
+                  ]
+                }
+              },
+              {
+                "name": "create_contact",
+                "displayName": "Create Contact",
+                "category": "Contacts & People",
+                "type": "write",
+                "description": "Adds a new person to the address book (POST /me/contacts).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "givenName": {
+                      "type": "string",
+                      "description": "First name"
+                    },
+                    "surname": {
+                      "type": "string",
+                      "description": "Last name"
+                    },
+                    "emailAddress": {
+                      "type": "string",
+                      "description": "Primary email address"
+                    },
+                    "companyName": {
+                      "type": "string",
+                      "description": "Company or organization"
+                    },
+                    "jobTitle": {
+                      "type": "string",
+                      "description": "Job title"
+                    },
+                    "mobilePhone": {
+                      "type": "string",
+                      "description": "Mobile phone number"
+                    }
+                  },
+                  "required": [
+                    "givenName",
+                    "emailAddress"
+                  ]
+                }
+              },
+              {
+                "name": "update_contact",
+                "displayName": "Update Contact",
+                "category": "Contacts & People",
+                "type": "write",
+                "description": "Updates information for an existing contact (PATCH /me/contacts/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string",
+                      "description": "The contact ID to update"
+                    },
+                    "givenName": {
+                      "type": "string",
+                      "description": "Updated first name"
+                    },
+                    "surname": {
+                      "type": "string",
+                      "description": "Updated last name"
+                    },
+                    "emailAddress": {
+                      "type": "string",
+                      "description": "Updated email address"
+                    },
+                    "companyName": {
+                      "type": "string",
+                      "description": "Updated company"
+                    },
+                    "jobTitle": {
+                      "type": "string",
+                      "description": "Updated title"
+                    }
+                  },
+                  "required": [
+                    "contactId"
+                  ]
+                }
+              },
+              {
+                "name": "delete_contact",
+                "displayName": "Delete Contact",
+                "category": "Contacts & People",
+                "type": "destructive",
+                "description": "Removes a contact from personal address book (DELETE /me/contacts/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string",
+                      "description": "The contact ID to remove"
+                    }
+                  },
+                  "required": [
+                    "contactId"
+                  ]
+                }
+              },
+              {
+                "name": "list_todo_lists",
+                "displayName": "List To Do Lists",
+                "category": "Tasks & To Do",
+                "type": "read",
+                "description": "Enumerates Microsoft To Do task lists and folders (GET /me/todo/lists).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              {
+                "name": "list_tasks",
+                "displayName": "List Tasks",
+                "category": "Tasks & To Do",
+                "type": "read",
+                "description": "Lists tasks within a specific To Do list (GET /me/todo/lists/{id}/tasks).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "listId": {
+                      "type": "string",
+                      "description": "The To Do list ID (or default list if omitted)"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "notStarted",
+                        "inProgress",
+                        "completed"
+                      ],
+                      "description": "Filter tasks by status"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "create_task",
+                "displayName": "Create Task",
+                "category": "Tasks & To Do",
+                "type": "write",
+                "description": "Creates a new task in Microsoft To Do (POST /me/todo/lists/{id}/tasks).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "listId": {
+                      "type": "string",
+                      "description": "Optional list ID (uses default task list if omitted)"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Task title / description"
+                    },
+                    "dueDateTime": {
+                      "type": "string",
+                      "description": "Due date ISO string (e.g., 2026-10-15T18:00:00Z)"
+                    },
+                    "importance": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ],
+                      "description": "Task importance"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Task notes or checklist details"
+                    }
+                  },
+                  "required": [
+                    "title"
+                  ]
+                }
+              },
+              {
+                "name": "update_task",
+                "displayName": "Update Task",
+                "category": "Tasks & To Do",
+                "type": "write",
+                "description": "Updates task title, completion status, or due date (PATCH /me/todo/lists/{id}/tasks/{taskId}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "listId": {
+                      "type": "string",
+                      "description": "The list ID containing the task"
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "description": "The task ID to update"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Updated title"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "notStarted",
+                        "inProgress",
+                        "completed"
+                      ],
+                      "description": "Updated status"
+                    },
+                    "dueDateTime": {
+                      "type": "string",
+                      "description": "Updated due date ISO string"
+                    }
+                  },
+                  "required": [
+                    "taskId"
+                  ]
+                }
+              },
+              {
+                "name": "delete_task",
+                "displayName": "Delete Task",
+                "category": "Tasks & To Do",
+                "type": "destructive",
+                "description": "Permanently deletes a task from Microsoft To Do (DELETE /me/todo/lists/{id}/tasks/{taskId}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "listId": {
+                      "type": "string",
+                      "description": "The list ID containing the task"
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "description": "The task ID to remove"
+                    }
+                  },
+                  "required": [
+                    "taskId"
+                  ]
+                }
+              },
+              {
+                "name": "list_message_rules",
+                "displayName": "List Inbox Rules",
+                "category": "Mailbox Settings",
+                "type": "read",
+                "description": "Lists automated inbox sorting, forwarding, and categorization rules (GET /me/mailFolders/inbox/messageRules).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              {
+                "name": "get_mailbox_settings",
+                "displayName": "Get Mailbox Settings",
+                "category": "Mailbox Settings",
+                "type": "read",
+                "description": "Inspects user timezone, working hours, language, and automatic Out-of-Office (OOO) status (GET /me/mailboxSettings).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "basis": null,
+            "serviceName": "Outlook",
+            "transport": "outlook-api",
+            "serverUrl": "",
+            "isRealMcp": true,
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        }
+      ],
+      "edges": [],
+      "createdAt": 1792177177152,
+      "updatedAt": 1792185394521,
+      "isStarred": false,
+      "isLocked": false,
+      "isWorkflowLocked": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 2,
+        "agentCount": 0,
+        "mcpCount": 1,
+        "modelCount": 0,
+        "skillCount": 1,
+        "toolCount": 0,
+        "policyCount": 0,
+        "hasAudit": false
+      }
+    },
     {
       "id": "wf-1792162747408-90syy",
       "name": "Functionality Extension 1",
@@ -202,8 +1311,8 @@
           "id": "node-output-8631",
           "type": "outputNode",
           "position": {
-            "x": 758.8889822170229,
-            "y": 281.662988712804
+            "x": 825.5106717360372,
+            "y": 396.3396673930746
           },
           "data": {
             "name": "Final Output Viewer & Exporter",
@@ -293,7 +1402,8 @@
               "framework": "OpenAI Swarm",
               "isLiveApi": true
             },
-            "costUsd": 0.00118
+            "costUsd": 0.00118,
+            "isDeactivated": false
           },
           "measured": {
             "width": 140,
@@ -414,7 +1524,8 @@
               "memory": 0,
               "policies": 0,
               "agent": 1
-            }
+            },
+            "isDarkMode": false
           },
           "measured": {
             "width": 228,
@@ -425,8 +1536,8 @@
           "id": "agent-core-4055",
           "type": "agentCore",
           "position": {
-            "x": 887.6664044117533,
-            "y": 406.14109640492205
+            "x": 883.2977690334574,
+            "y": -37.27539449212418
           },
           "data": {
             "name": "Autonomous Agent #3",
@@ -441,7 +1552,8 @@
             },
             "prompt": "",
             "temperature": 0.2,
-            "topP": 0.95
+            "topP": 0.95,
+            "isDarkMode": false
           },
           "measured": {
             "width": 228,
@@ -630,7 +1742,7 @@
         }
       ],
       "createdAt": 1792162747408,
-      "updatedAt": 1792176542796,
+      "updatedAt": 1792185367777,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -1012,605 +2124,2095 @@
   "canvasState": {
     "nodes": [
       {
-        "id": "agent-core",
-        "type": "agentCore",
-        "position": {
-          "x": 520,
-          "y": 165
-        },
-        "data": {
-          "name": "Orchestrator",
-          "framework": {
-            "id": "langchain",
-            "name": "LangChain",
-            "subtitle": "Composable LCEL chains and agent toolkits",
-            "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
-            "defaultModel": "claude-3-5-sonnet",
-            "exportExtension": ".py",
-            "category": "Chains"
-          },
-          "prompt": "",
-          "temperature": 0.2,
-          "topP": 0.95,
-          "attachedCounts": {
-            "model": 1,
-            "skills": 1,
-            "mcp": 1,
-            "tools": 1,
-            "gateway": 1,
-            "memory": 1,
-            "policies": 1
-          },
-          "isDarkMode": false,
-          "lastOutput": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
-          "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
-          "observability": {
-            "totalLatencyMs": 11683,
-            "totalTokens": 2663,
-            "modelUsed": "OpenAI (gpt-4o-mini)",
-            "provider": "openai",
-            "framework": "OpenAI Swarm",
-            "isLiveApi": true
-          },
-          "costUsd": 0.00118,
-          "customRole": "abc",
-          "role": "abc"
-        },
-        "measured": {
-          "width": 228,
-          "height": 172
-        },
-        "selected": false
-      },
-      {
-        "id": "node-model-1",
+        "id": "node-skills-3259",
         "type": "pillar",
         "position": {
-          "x": 565.01347427186,
-          "y": 80.7547264465507
-        },
-        "data": {
-          "pillarType": "model",
-          "name": "OpenAI (gpt-4o-mini)",
-          "description": "OpenAI foundation model configured for live enterprise inference.",
-          "config": {
-            "provider": "openai",
-            "modelId": "gpt-4o-mini",
-            "temperature": 0.2,
-            "topP": 0.95
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-policy-1",
-        "type": "pillar",
-        "position": {
-          "x": 472.56306575224005,
-          "y": 354.02099037837394
-        },
-        "data": {
-          "pillarType": "policies",
-          "name": "PII Redactor",
-          "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
-          "config": {
-            "redactSalaries": true,
-            "maskEmails": true
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-memory-1",
-        "type": "pillar",
-        "position": {
-          "x": 566.5260274589854,
-          "y": 369.00398415555117
-        },
-        "data": {
-          "pillarType": "memory",
-          "name": "Episodic Sync Memory",
-          "description": "Remembers past meeting action items to verify resolution across weeks.",
-          "config": {
-            "ttlDays": 90,
-            "store": "vector-sqlite"
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-skill-1",
-        "type": "pillar",
-        "position": {
-          "x": 654.7344983266293,
-          "y": 344.59648545463347
+          "x": 562.6133902501842,
+          "y": 169.1672514295928
         },
         "data": {
           "pillarType": "skills",
+          "toolId": "skill-summarizer",
           "name": "Executive Summarizer",
           "description": "Generates TL;DR, high-level takeaways, and strategic themes.",
+          "customDirective": null,
+          "referenceDoc": null,
           "config": {
+            "format": "bullet_points",
             "length": "concise",
             "focus": "decisions"
           },
-          "isDarkMode": false
+          "tools": null,
+          "itemId": "skill-summarizer"
         },
         "measured": {
           "width": 140,
           "height": 60
-        },
-        "selected": false,
-        "dragging": false
+        }
       },
       {
-        "id": "node-output-8631",
-        "type": "outputNode",
+        "id": "node-mcp-4228",
+        "type": "pillar",
         "position": {
-          "x": 758.8889822170229,
-          "y": 281.662988712804
-        },
-        "data": {
-          "name": "Final Output Viewer & Exporter",
-          "title": "Final Output Viewer & Exporter",
-          "outputContent": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
-          "content": "",
-          "status": "ready",
-          "format": "markdown",
-          "runsHistory": [
-            {
-              "runNumber": 1,
-              "timestamp": "9:51:55 PM",
-              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: For the pilot, confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Integration**: For the pilot, ARC will not automatically create Jira tickets, send emails, or update external systems. It can prepare or recommend an external action, but a human user must approve every execution.\n5. **Model Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n6. **Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n\n#### Action Items:\n1. **Rohan**: \n   - Modify the extraction logic to ensure confirmed actions are created only when there is an explicit owner, an explicit commitment, or both. Prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026.\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday evening build.\n     - **Deadline**: Wednesday evening, September 30, 2026.\n   - Add consistent model-version logging alongside the confidence-logic changes so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions.\n     - **Deadline**: Wednesday afternoon, September 30, 2026.\n\n2. **Mira**: \n   - Consult with InfoSec and Data Privacy about pilot transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing.\n     - **Deadline**: Thursday noon, October 1, 2026.\n\n3. **Marcus**: \n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday evening release candidate to the team.\n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged.\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**: \n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting.\n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting.\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in today's meeting. Below are the key decisions made and action items assigned:\n\n**Decisions:**\n- Confirmed action items for the pilot will only be created when there is an explicit owner or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention configurations will await confirmation from InfoSec and Data Privacy.\n- ARC will not automatically create Jira tickets or send emails during the pilot; human approval is required for all external actions.\n- Model latency will be treated as a performance issue, not a launch blocker.\n- The pilot audit trail will include model/version logging, tool calls, timestamps, and human approval status.\n\n**Action Items:**\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by Wednesday afternoon and evening, respectively. Also, add model-version logging by Wednesday afternoon.\n- **Mira**: Confirm transcript retention requirements with InfoSec and Data Privacy and send your recommendation by Thursday noon.\n- **Marcus**: Execute the complete user journey and distribute the release candidate by Wednesday evening, contingent on Rohan's changes being merged.\n- **All**: Please flag any risks or delays immediately regarding the Wednesday build, Thursday confirmation, audit logging, or pilot readiness.\n\nLet's keep communication open as we approach the pilot launch. Thank you for your hard work!\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]  ",
-              "auditHash": "sha256:34f7da20784b7ae36f2bdd793b47876dd3a90acd4ae3fed988bf95e004c52c49",
-              "tokens": 3472,
-              "latencyMs": 0,
-              "costUsd": 0.00154,
-              "source": "agent",
-              "sourceNodeType": "agent",
-              "sourceNodeId": "agent-core",
-              "sourceNodeName": "MIA2"
-            },
-            {
-              "runNumber": 2,
-              "timestamp": "9:58:20 PM",
-              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **External Actions**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging alongside the confidence-logic changes for the audit trail. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in the recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions can only be created with explicit ownership or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention configurations will await confirmation from InfoSec and Data Privacy.\n- ARC/ARK will not automatically create external actions without human approval.\n- The audit trail will include necessary logging for model/version and approval status.\n- Latency will be monitored, and the UI will indicate processing states.\n- A feature freeze will occur if the Wednesday-evening release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Your consultation with InfoSec is crucial; please prioritize this task.\n- **Marcus**: Prepare for the user journey execution post-Rohan’s changes.\n- **All**: Keep an eye on any potential delays and report them immediately.\n\nLet’s ensure we stay on track with our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
-              "auditHash": "sha256:860720aa326f485135cf3927681fa55dab7ec1b848481d39d5e6c430ce6fd647",
-              "tokens": 2562,
-              "latencyMs": 0,
-              "costUsd": 0.00113,
-              "source": "agent",
-              "sourceNodeType": "agent",
-              "sourceNodeId": "agent-core",
-              "sourceNodeName": "MIA2"
-            },
-            {
-              "runNumber": 3,
-              "timestamp": "10:49:03 PM",
-              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: For the pilot, confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Integration**: For the pilot, ARC will not automatically create Jira tickets, send emails, or update external systems. It can prepare a proposed action, but a user must approve execution.\n5. **Model Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n6. **Audit Trail Requirements**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging alongside the confidence-logic changes to ensure the audit trail records necessary details. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy about transcript-retention requirements and send a retention recommendation by Thursday noon, October 1, 2026. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in today's meeting. Below is a summary of the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions will only be created when there is an explicit owner or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention requirements will be confirmed with InfoSec and Data Privacy before any configuration changes are made.\n- ARC will not automatically create Jira tickets or send emails; user approval will be required for all external actions.\n- Model latency will be treated as a performance issue, not a launch blocker.\n- The pilot audit trail will include model/version logging, tool calls, timestamps, and human approval status.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by Wednesday afternoon and evening, respectively. Additionally, implement model-version logging by Wednesday afternoon.\n- **Mira**: Confirm transcript retention requirements with InfoSec and Data Privacy and send your recommendation by Thursday noon.\n- **Marcus**: Once Rohan's changes are merged, please execute the user journey and distribute the release candidate by Wednesday evening.\n- **All**: Please flag any risks or delays immediately regarding the Wednesday build, Thursday confirmation, or pilot readiness.\n\nLet’s keep the momentum going as we prepare for the internal pilot next Friday. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
-              "auditHash": "sha256:afa420d71123e2a46f3d40803917bcc7b44dc8a596f98d928f151b066cfa8c64",
-              "tokens": 3402,
-              "latencyMs": 0,
-              "costUsd": 0.00151,
-              "source": "agent",
-              "sourceNodeType": "agent",
-              "sourceNodeId": "agent-core",
-              "sourceNodeName": "MIA2"
-            },
-            {
-              "runNumber": 4,
-              "timestamp": "10:51:53 PM",
-              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions will not be treated as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No configuration for transcript retention or deletion will be built until Mira confirms requirements with InfoSec and Data Privacy.\n4. **Jira Ticket Creation**: ARC/ARK will not automatically create Jira tickets or update external systems without human approval.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency Handling**: Latency is a performance issue but not a launch blocker unless response times become unacceptable.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday, focusing only on bug fixing and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging for the audit trail. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy about transcript-retention requirements and send a retention recommendation. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your contributions during our recent meeting. Below is a summary of the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions will only be created with explicit ownership or commitments.\n- Low-confidence items will be displayed separately as possible actions.\n- No transcript retention or deletion configurations will proceed until Mira confirms requirements with InfoSec and Data Privacy.\n- ARC/ARK will not create Jira tickets or update external systems without human approval.\n- The pilot audit trail must include detailed logging of actions.\n- Latency will be monitored, but it is not a launch blocker unless response times become unacceptable.\n- If the Wednesday-evening release candidate is stable, we will freeze new features on Thursday.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Kindly consult with InfoSec and Data Privacy and provide a retention recommendation by Thursday noon.\n- **Marcus**: Prepare to execute the user journey and distribute the release candidate after Rohan’s changes are merged.\n- **All**: Please flag any risks or delays immediately.\n\nLet’s ensure we stay on track for our upcoming deadlines. If you have any questions or need further clarification, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]  ",
-              "auditHash": "sha256:dfedc162b0650d80c56203d3f39c78868f842c5245cb4171a930532edb7d8558",
-              "tokens": 2518,
-              "latencyMs": 0,
-              "costUsd": 0.00111,
-              "source": "agent",
-              "sourceNodeType": "agent",
-              "sourceNodeId": "agent-core",
-              "sourceNodeName": "MIA2"
-            },
-            {
-              "runNumber": 5,
-              "timestamp": "10:54:07 PM",
-              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
-              "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
-              "tokens": 2663,
-              "latencyMs": 0,
-              "costUsd": 0.00118,
-              "source": "agent",
-              "sourceNodeType": "agent",
-              "sourceNodeId": "agent-core",
-              "sourceNodeName": "MIA2"
-            }
-          ],
-          "sourceNodeType": "agent",
-          "sourceNodeId": "agent-core",
-          "sourceNodeName": "MIA2",
-          "isExpanded": false,
-          "isDarkMode": false,
-          "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
-          "observability": {
-            "totalLatencyMs": 11683,
-            "totalTokens": 2663,
-            "modelUsed": "OpenAI (gpt-4o-mini)",
-            "provider": "openai",
-            "framework": "OpenAI Swarm",
-            "isLiveApi": true
-          },
-          "costUsd": 0.00118
-        },
-        "measured": {
-          "width": 140,
-          "height": 56
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-ingest-1527",
-        "type": "ingestionNode",
-        "position": {
-          "x": 473.86795213577284,
-          "y": 42.65497502918843
-        },
-        "data": {
-          "title": "Universal File & Audio Ingest",
-          "content": "",
-          "status": "idle",
-          "isExpanded": false,
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-trigger-7925",
-        "type": "triggerNode",
-        "position": {
-          "x": 350.7285905377582,
-          "y": 218.4340079453939
-        },
-        "data": {
-          "name": "Webhook Ingress #1",
-          "triggerType": "webhook",
-          "description": "Universal HTTP webhook endpoint. Subscribes to external systems, fast ACKs (200 OK), and dispatches payload.",
-          "config": {
-            "triggerType": "webhook",
-            "webhookPath": "/api/ingress/v1/wh_live",
-            "requireSecret": true,
-            "defaultPayload": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
-          },
-          "lastFired": null,
-          "lastStatus": "idle",
-          "status": "idle",
-          "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}",
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-trigger-1501",
-        "type": "triggerNode",
-        "position": {
-          "x": 328.7147268158334,
-          "y": 310.6165916155498
-        },
-        "data": {
-          "name": "File Watcher #1",
-          "triggerType": "file",
-          "description": "Tactile file drop zone. Ingests local PDFs, text files, audio recordings, or CSVs and forwards into workflows.",
-          "config": {
-            "triggerType": "file",
-            "acceptedTypes": [
-              "pdf",
-              "txt",
-              "csv",
-              "json",
-              "mp3"
-            ],
-            "defaultPayload": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}"
-          },
-          "lastFired": null,
-          "lastStatus": "idle",
-          "status": "idle",
-          "payloadText": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}",
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "agent-core-1593",
-        "type": "agentCore",
-        "position": {
-          "x": 880,
+          "x": 1060,
           "y": 165
         },
         "data": {
-          "name": "Specialist Agent #2",
-          "role": "specialist",
-          "framework": {
-            "id": "microsoft-adk",
-            "name": "Microsoft ADK"
+          "pillarType": "mcp",
+          "title": "Outlook",
+          "name": "Outlook",
+          "displayName": "Outlook",
+          "subtitle": "OUTLOOK-API",
+          "description": "Official Enterprise Microsoft Outlook MCP with 38 categorized tools.",
+          "config": {
+            "connectionMode": "oauth",
+            "endpoint": "https://graph.microsoft.com/v1.0"
           },
-          "prompt": "",
-          "temperature": 0.2,
-          "topP": 0.95,
-          "attachedCounts": {
-            "model": 0,
-            "skills": 0,
-            "mcp": 0,
-            "tools": 0,
-            "gateway": 0,
-            "memory": 0,
-            "policies": 0,
-            "agent": 1
-          }
+          "tools": [
+            {
+              "name": "list_messages",
+              "displayName": "List Emails",
+              "category": "Mail Operations",
+              "type": "read",
+              "description": "Lists messages from the user mailbox or a specific folder (GET /me/messages).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "folder": {
+                    "type": "string",
+                    "description": "Folder name or ID (e.g., inbox, drafts, sentitems, archive)"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "description": "Maximum number of messages to return (default: 10, max: 50)"
+                  },
+                  "filter": {
+                    "type": "string",
+                    "description": "OData filter query (e.g., isRead eq false or from/emailAddress/address eq 'exec@corp.com')"
+                  },
+                  "search": {
+                    "type": "string",
+                    "description": "KQL search keyword across subject, body, or sender"
+                  }
+                }
+              }
+            },
+            {
+              "name": "get_message",
+              "displayName": "Get Email Details",
+              "category": "Mail Operations",
+              "type": "read",
+              "description": "Retrieves complete message content, HTML body, internet headers, and recipient arrays (GET /me/messages/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The unique Microsoft Graph ID of the message"
+                  }
+                },
+                "required": [
+                  "messageId"
+                ]
+              }
+            },
+            {
+              "name": "search_messages",
+              "displayName": "Search Emails",
+              "category": "Mail Operations",
+              "type": "read",
+              "description": "Executes full-text keyword search across email subjects, sender addresses, and body text.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Search term or keyword to search for"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "description": "Maximum search results to return (default: 10)"
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            },
+            {
+              "name": "send_mail",
+              "displayName": "Send Email",
+              "category": "Mail Operations",
+              "type": "write",
+              "description": "Sends a new email message to recipients (POST /me/sendMail).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "List of recipient email addresses"
+                  },
+                  "cc": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Optional CC recipient email addresses"
+                  },
+                  "bcc": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Optional BCC recipient email addresses"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "Email subject line"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Email body text or HTML content"
+                  },
+                  "importance": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "normal",
+                      "high"
+                    ],
+                    "description": "Importance priority level"
+                  }
+                },
+                "required": [
+                  "to",
+                  "subject",
+                  "body"
+                ]
+              }
+            },
+            {
+              "name": "create_draft",
+              "displayName": "Create Draft Email",
+              "category": "Mail Operations",
+              "type": "write",
+              "description": "Composes a new draft message in the Drafts folder without sending (POST /me/messages).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Recipient email addresses"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "Draft subject line"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Draft body content"
+                  }
+                },
+                "required": [
+                  "subject",
+                  "body"
+                ]
+              }
+            },
+            {
+              "name": "update_draft",
+              "displayName": "Update Draft Email",
+              "category": "Mail Operations",
+              "type": "write",
+              "description": "Modifies subject, body, or recipients of an existing unsent draft message (PATCH /me/messages/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The draft message ID to update"
+                  },
+                  "to": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Updated recipient list"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "Updated subject line"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Updated body content"
+                  }
+                },
+                "required": [
+                  "messageId"
+                ]
+              }
+            },
+            {
+              "name": "send_draft",
+              "displayName": "Send Draft Email",
+              "category": "Mail Operations",
+              "type": "write",
+              "description": "Dispatches an existing draft message to its specified recipients (POST /me/messages/{id}/send).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The draft message ID to send"
+                  }
+                },
+                "required": [
+                  "messageId"
+                ]
+              }
+            },
+            {
+              "name": "reply_mail",
+              "displayName": "Reply to Email",
+              "category": "Mail Operations",
+              "type": "write",
+              "description": "Sends a reply message to the original sender of an email (POST /me/messages/{id}/reply).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The message ID being replied to"
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Reply text message to send"
+                  }
+                },
+                "required": [
+                  "messageId",
+                  "comment"
+                ]
+              }
+            },
+            {
+              "name": "reply_all_mail",
+              "displayName": "Reply All to Email",
+              "category": "Mail Operations",
+              "type": "write",
+              "description": "Sends a reply to all recipients and the sender of an email thread (POST /me/messages/{id}/replyAll).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The message ID being replied to"
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Reply text message to send to all recipients"
+                  }
+                },
+                "required": [
+                  "messageId",
+                  "comment"
+                ]
+              }
+            },
+            {
+              "name": "forward_mail",
+              "displayName": "Forward Email",
+              "category": "Mail Operations",
+              "type": "write",
+              "description": "Forwards an email to specified recipients with optional forwarding commentary (POST /me/messages/{id}/forward).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The message ID to forward"
+                  },
+                  "to": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Recipient email addresses to forward to"
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Optional forward message body commentary"
+                  }
+                },
+                "required": [
+                  "messageId",
+                  "to"
+                ]
+              }
+            },
+            {
+              "name": "delete_message",
+              "displayName": "Delete Email",
+              "category": "Mail Operations",
+              "type": "destructive",
+              "description": "Permanently deletes an email message or moves it to Deleted Items (DELETE /me/messages/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The message ID to delete"
+                  }
+                },
+                "required": [
+                  "messageId"
+                ]
+              }
+            },
+            {
+              "name": "move_message",
+              "displayName": "Move Email",
+              "category": "Mail Operations",
+              "type": "write",
+              "description": "Moves an email message to a specified destination mail folder (POST /me/messages/{id}/move).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The message ID to move"
+                  },
+                  "destinationId": {
+                    "type": "string",
+                    "description": "Destination folder ID or well-known name (e.g., archive, junkemail)"
+                  }
+                },
+                "required": [
+                  "messageId",
+                  "destinationId"
+                ]
+              }
+            },
+            {
+              "name": "list_mail_folders",
+              "displayName": "List Mail Folders",
+              "category": "Folders & Attachments",
+              "type": "read",
+              "description": "Lists all mail folders in the user mailbox (GET /me/mailFolders).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "includeHidden": {
+                    "type": "boolean",
+                    "description": "Whether to include system or hidden folders"
+                  }
+                }
+              }
+            },
+            {
+              "name": "create_mail_folder",
+              "displayName": "Create Mail Folder",
+              "category": "Folders & Attachments",
+              "type": "write",
+              "description": "Creates a new mail folder under root or a parent folder (POST /me/mailFolders).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "description": "Name of the new folder"
+                  },
+                  "parentFolderId": {
+                    "type": "string",
+                    "description": "Optional parent folder ID to create subfolder under"
+                  }
+                },
+                "required": [
+                  "displayName"
+                ]
+              }
+            },
+            {
+              "name": "list_message_attachments",
+              "displayName": "List Attachments",
+              "category": "Folders & Attachments",
+              "type": "read",
+              "description": "Retrieves all file attachments and metadata for a specific message (GET /me/messages/{id}/attachments).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The message ID to fetch attachments from"
+                  }
+                },
+                "required": [
+                  "messageId"
+                ]
+              }
+            },
+            {
+              "name": "add_message_attachment",
+              "displayName": "Add Attachment",
+              "category": "Folders & Attachments",
+              "type": "write",
+              "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "description": "The draft message ID"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Filename of the attachment"
+                  },
+                  "contentType": {
+                    "type": "string",
+                    "description": "MIME type of the file (e.g., application/pdf)"
+                  },
+                  "contentBytes": {
+                    "type": "string",
+                    "description": "Base64-encoded file content"
+                  }
+                },
+                "required": [
+                  "messageId",
+                  "name",
+                  "contentBytes"
+                ]
+              }
+            },
+            {
+              "name": "list_events",
+              "displayName": "List Calendar Events",
+              "category": "Calendar & Scheduling",
+              "type": "read",
+              "description": "Lists upcoming calendar events from the default calendar (GET /me/events).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "number",
+                    "description": "Maximum events to return (default: 10)"
+                  },
+                  "filter": {
+                    "type": "string",
+                    "description": "OData filter query"
+                  }
+                }
+              }
+            },
+            {
+              "name": "get_calendar_view",
+              "displayName": "Get Calendar Schedule",
+              "category": "Calendar & Scheduling",
+              "type": "read",
+              "description": "Retrieves occurrences of events within a specific time window (GET /me/calendarView).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "startDateTime": {
+                    "type": "string",
+                    "description": "Start time ISO string (e.g., 2026-10-09T08:00:00Z)"
+                  },
+                  "endDateTime": {
+                    "type": "string",
+                    "description": "End time ISO string (e.g., 2026-10-09T18:00:00Z)"
+                  }
+                },
+                "required": [
+                  "startDateTime",
+                  "endDateTime"
+                ]
+              }
+            },
+            {
+              "name": "get_event",
+              "displayName": "Get Event Details",
+              "category": "Calendar & Scheduling",
+              "type": "read",
+              "description": "Retrieves complete event metadata, location, attendees, and Teams meeting links (GET /me/events/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "description": "The unique Microsoft Graph ID of the event"
+                  }
+                },
+                "required": [
+                  "eventId"
+                ]
+              }
+            },
+            {
+              "name": "create_event",
+              "displayName": "Schedule Event",
+              "category": "Calendar & Scheduling",
+              "type": "write",
+              "description": "Schedules a calendar event with attendees, agenda, and optional online Teams meeting (POST /me/events).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "description": "Event title / meeting subject"
+                  },
+                  "start": {
+                    "type": "string",
+                    "description": "Start time ISO string (e.g., 2026-10-10T14:00:00)"
+                  },
+                  "end": {
+                    "type": "string",
+                    "description": "End time ISO string (e.g., 2026-10-10T15:00:00)"
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "description": "Time zone identifier (default: UTC)"
+                  },
+                  "attendees": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "List of attendee email addresses"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Meeting description / agenda notes"
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "Physical meeting location or room"
+                  },
+                  "isOnlineMeeting": {
+                    "type": "boolean",
+                    "description": "Whether to generate a Microsoft Teams online meeting link"
+                  }
+                },
+                "required": [
+                  "subject",
+                  "start",
+                  "end"
+                ]
+              }
+            },
+            {
+              "name": "update_event",
+              "displayName": "Update Event",
+              "category": "Calendar & Scheduling",
+              "type": "write",
+              "description": "Modifies timing, attendees, location, or agenda of an existing event (PATCH /me/events/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "description": "The event ID to update"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "Updated subject"
+                  },
+                  "start": {
+                    "type": "string",
+                    "description": "Updated start time ISO string"
+                  },
+                  "end": {
+                    "type": "string",
+                    "description": "Updated end time ISO string"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Updated agenda notes"
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "Updated location"
+                  }
+                },
+                "required": [
+                  "eventId"
+                ]
+              }
+            },
+            {
+              "name": "delete_event",
+              "displayName": "Cancel / Delete Event",
+              "category": "Calendar & Scheduling",
+              "type": "destructive",
+              "description": "Cancels a meeting and removes it from the calendar (DELETE /me/events/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "description": "The event ID to cancel / delete"
+                  }
+                },
+                "required": [
+                  "eventId"
+                ]
+              }
+            },
+            {
+              "name": "accept_event",
+              "displayName": "Accept Meeting",
+              "category": "Calendar & Scheduling",
+              "type": "write",
+              "description": "Formally accepts a calendar meeting invitation (POST /me/events/{id}/accept).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "description": "The event ID to accept"
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Optional acceptance response message"
+                  }
+                },
+                "required": [
+                  "eventId"
+                ]
+              }
+            },
+            {
+              "name": "decline_event",
+              "displayName": "Decline Meeting",
+              "category": "Calendar & Scheduling",
+              "type": "write",
+              "description": "Declines a calendar meeting invitation (POST /me/events/{id}/decline).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "description": "The event ID to decline"
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Optional decline reasoning comment"
+                  }
+                },
+                "required": [
+                  "eventId"
+                ]
+              }
+            },
+            {
+              "name": "tentatively_accept_event",
+              "displayName": "Tentative Accept Meeting",
+              "category": "Calendar & Scheduling",
+              "type": "write",
+              "description": "Tentatively accepts a calendar meeting invitation (POST /me/events/{id}/tentativelyAccept).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "description": "The event ID to tentatively accept"
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Optional comment"
+                  }
+                },
+                "required": [
+                  "eventId"
+                ]
+              }
+            },
+            {
+              "name": "find_meeting_times",
+              "displayName": "Find Optimal Meeting Times",
+              "category": "Calendar & Scheduling",
+              "type": "read",
+              "description": "Checks free/busy availability of requested attendees and suggests optimal meeting slots (POST /me/findMeetingTimes).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "attendees": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Attendee email addresses to coordinate"
+                  },
+                  "meetingDurationMinutes": {
+                    "type": "number",
+                    "description": "Duration of the proposed meeting in minutes (default: 30)"
+                  },
+                  "startWindow": {
+                    "type": "string",
+                    "description": "Start boundary ISO string"
+                  },
+                  "endWindow": {
+                    "type": "string",
+                    "description": "End boundary ISO string"
+                  }
+                },
+                "required": [
+                  "attendees"
+                ]
+              }
+            },
+            {
+              "name": "list_contacts",
+              "displayName": "List Contacts",
+              "category": "Contacts & People",
+              "type": "read",
+              "description": "Lists contacts from the user personal address book (GET /me/contacts).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "number",
+                    "description": "Maximum contacts to return (default: 20)"
+                  },
+                  "filter": {
+                    "type": "string",
+                    "description": "OData filter expression"
+                  }
+                }
+              }
+            },
+            {
+              "name": "get_contact",
+              "displayName": "Get Contact Details",
+              "category": "Contacts & People",
+              "type": "read",
+              "description": "Retrieves complete profile, emails, phones, and job title of a contact (GET /me/contacts/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "contactId": {
+                    "type": "string",
+                    "description": "The unique contact ID"
+                  }
+                },
+                "required": [
+                  "contactId"
+                ]
+              }
+            },
+            {
+              "name": "create_contact",
+              "displayName": "Create Contact",
+              "category": "Contacts & People",
+              "type": "write",
+              "description": "Adds a new person to the address book (POST /me/contacts).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "givenName": {
+                    "type": "string",
+                    "description": "First name"
+                  },
+                  "surname": {
+                    "type": "string",
+                    "description": "Last name"
+                  },
+                  "emailAddress": {
+                    "type": "string",
+                    "description": "Primary email address"
+                  },
+                  "companyName": {
+                    "type": "string",
+                    "description": "Company or organization"
+                  },
+                  "jobTitle": {
+                    "type": "string",
+                    "description": "Job title"
+                  },
+                  "mobilePhone": {
+                    "type": "string",
+                    "description": "Mobile phone number"
+                  }
+                },
+                "required": [
+                  "givenName",
+                  "emailAddress"
+                ]
+              }
+            },
+            {
+              "name": "update_contact",
+              "displayName": "Update Contact",
+              "category": "Contacts & People",
+              "type": "write",
+              "description": "Updates information for an existing contact (PATCH /me/contacts/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "contactId": {
+                    "type": "string",
+                    "description": "The contact ID to update"
+                  },
+                  "givenName": {
+                    "type": "string",
+                    "description": "Updated first name"
+                  },
+                  "surname": {
+                    "type": "string",
+                    "description": "Updated last name"
+                  },
+                  "emailAddress": {
+                    "type": "string",
+                    "description": "Updated email address"
+                  },
+                  "companyName": {
+                    "type": "string",
+                    "description": "Updated company"
+                  },
+                  "jobTitle": {
+                    "type": "string",
+                    "description": "Updated title"
+                  }
+                },
+                "required": [
+                  "contactId"
+                ]
+              }
+            },
+            {
+              "name": "delete_contact",
+              "displayName": "Delete Contact",
+              "category": "Contacts & People",
+              "type": "destructive",
+              "description": "Removes a contact from personal address book (DELETE /me/contacts/{id}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "contactId": {
+                    "type": "string",
+                    "description": "The contact ID to remove"
+                  }
+                },
+                "required": [
+                  "contactId"
+                ]
+              }
+            },
+            {
+              "name": "list_todo_lists",
+              "displayName": "List To Do Lists",
+              "category": "Tasks & To Do",
+              "type": "read",
+              "description": "Enumerates Microsoft To Do task lists and folders (GET /me/todo/lists).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "name": "list_tasks",
+              "displayName": "List Tasks",
+              "category": "Tasks & To Do",
+              "type": "read",
+              "description": "Lists tasks within a specific To Do list (GET /me/todo/lists/{id}/tasks).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "listId": {
+                    "type": "string",
+                    "description": "The To Do list ID (or default list if omitted)"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "notStarted",
+                      "inProgress",
+                      "completed"
+                    ],
+                    "description": "Filter tasks by status"
+                  }
+                }
+              }
+            },
+            {
+              "name": "create_task",
+              "displayName": "Create Task",
+              "category": "Tasks & To Do",
+              "type": "write",
+              "description": "Creates a new task in Microsoft To Do (POST /me/todo/lists/{id}/tasks).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "listId": {
+                    "type": "string",
+                    "description": "Optional list ID (uses default task list if omitted)"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Task title / description"
+                  },
+                  "dueDateTime": {
+                    "type": "string",
+                    "description": "Due date ISO string (e.g., 2026-10-15T18:00:00Z)"
+                  },
+                  "importance": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "normal",
+                      "high"
+                    ],
+                    "description": "Task importance"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Task notes or checklist details"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            },
+            {
+              "name": "update_task",
+              "displayName": "Update Task",
+              "category": "Tasks & To Do",
+              "type": "write",
+              "description": "Updates task title, completion status, or due date (PATCH /me/todo/lists/{id}/tasks/{taskId}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "listId": {
+                    "type": "string",
+                    "description": "The list ID containing the task"
+                  },
+                  "taskId": {
+                    "type": "string",
+                    "description": "The task ID to update"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Updated title"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "notStarted",
+                      "inProgress",
+                      "completed"
+                    ],
+                    "description": "Updated status"
+                  },
+                  "dueDateTime": {
+                    "type": "string",
+                    "description": "Updated due date ISO string"
+                  }
+                },
+                "required": [
+                  "taskId"
+                ]
+              }
+            },
+            {
+              "name": "delete_task",
+              "displayName": "Delete Task",
+              "category": "Tasks & To Do",
+              "type": "destructive",
+              "description": "Permanently deletes a task from Microsoft To Do (DELETE /me/todo/lists/{id}/tasks/{taskId}).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "listId": {
+                    "type": "string",
+                    "description": "The list ID containing the task"
+                  },
+                  "taskId": {
+                    "type": "string",
+                    "description": "The task ID to remove"
+                  }
+                },
+                "required": [
+                  "taskId"
+                ]
+              }
+            },
+            {
+              "name": "list_message_rules",
+              "displayName": "List Inbox Rules",
+              "category": "Mailbox Settings",
+              "type": "read",
+              "description": "Lists automated inbox sorting, forwarding, and categorization rules (GET /me/mailFolders/inbox/messageRules).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "name": "get_mailbox_settings",
+              "displayName": "Get Mailbox Settings",
+              "category": "Mailbox Settings",
+              "type": "read",
+              "description": "Inspects user timezone, working hours, language, and automatic Out-of-Office (OOO) status (GET /me/mailboxSettings).",
+              "inputSchema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          ],
+          "basis": null,
+          "serviceName": "Outlook",
+          "transport": "outlook-api",
+          "serverUrl": "",
+          "isRealMcp": true,
+          "isDarkMode": false
         },
         "measured": {
-          "width": 228,
-          "height": 172
+          "width": 140,
+          "height": 60
         }
-      },
-      {
-        "id": "agent-core-4055",
-        "type": "agentCore",
-        "position": {
-          "x": 887.6664044117533,
-          "y": 406.14109640492205
-        },
-        "data": {
-          "name": "Autonomous Agent #3",
-          "framework": {
-            "id": "openai-swarm",
-            "name": "OpenAI Swarm",
-            "subtitle": "Ergonomic multi-agent routine & handoff orchestration",
-            "description": "Lightweight, client-side multi-agent coordination with native function calling and dynamic agent handoffs.",
-            "defaultModel": "gpt-4o",
-            "exportExtension": ".py",
-            "category": "Routines"
-          },
-          "prompt": "",
-          "temperature": 0.2,
-          "topP": 0.95
-        },
-        "measured": {
-          "width": 228,
-          "height": 172
-        },
-        "selected": false,
-        "dragging": false
       }
     ],
-    "edges": [
-      {
-        "id": "edge-model",
-        "source": "node-model-1",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "model-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00338D",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-ingest-1",
-        "source": "node-ingest-1",
-        "sourceHandle": "data-out",
-        "target": "agent-core",
-        "targetHandle": "tools-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#0091DA",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-policy",
-        "source": "node-policy-1",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "policy-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#470A68",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-memory",
-        "source": "node-memory-1",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "memory-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#483698",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-skill-1",
-        "source": "node-skill-1",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "skill-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#6D2077",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-output-1",
-        "source": "agent-core",
-        "sourceHandle": "out",
-        "target": "node-output-1",
-        "targetHandle": "data-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#10B981",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "animated": false,
-        "type": "deletable",
-        "data": {},
-        "source": "agent-core",
-        "sourceHandle": "out",
-        "target": "node-output-8631",
-        "targetHandle": "data-in",
-        "style": {
-          "stroke": "#10B981",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        },
-        "id": "xy-edge__agent-coreout-node-output-8631data-in"
-      },
-      {
-        "animated": false,
-        "type": "deletable",
-        "data": {},
-        "source": "node-ingest-1527",
-        "sourceHandle": "data-out",
-        "target": "agent-core",
-        "targetHandle": "tools-in",
-        "style": {
-          "stroke": "#0091DA",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        },
-        "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
-      },
-      {
-        "animated": false,
-        "type": "deletable",
-        "data": {},
-        "source": "node-trigger-7925",
-        "sourceHandle": "trigger-out",
-        "target": "agent-core",
-        "targetHandle": "agent-in",
-        "style": {
-          "stroke": "#00A3A6",
-          "strokeWidth": 2.2,
-          "strokeDasharray": "5 4",
-          "filter": "none"
-        },
-        "id": "xy-edge__node-trigger-7925trigger-out-agent-coreagent-in"
-      },
-      {
-        "animated": false,
-        "type": "deletable",
-        "data": {},
-        "source": "node-trigger-1501",
-        "sourceHandle": "trigger-out",
-        "target": "agent-core",
-        "targetHandle": "agent-in",
-        "style": {
-          "stroke": "#00A3A6",
-          "strokeWidth": 2.2,
-          "strokeDasharray": "5 4",
-          "filter": "none"
-        },
-        "id": "xy-edge__node-trigger-1501trigger-out-agent-coreagent-in",
-        "selected": false
-      },
-      {
-        "id": "edge-a2a-1593",
-        "source": "agent-core",
-        "sourceHandle": "out",
-        "target": "agent-core-1593",
-        "targetHandle": "agent-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#6366F1",
-          "strokeWidth": 2.2,
-          "strokeDasharray": "6 4"
-        }
-      },
-      {
-        "animated": false,
-        "type": "deletable",
-        "data": {},
-        "source": "agent-core",
-        "sourceHandle": "out",
-        "target": "agent-core-4055",
-        "targetHandle": "agent-in",
-        "style": {
-          "stroke": "#6366F1",
-          "strokeWidth": 2.2,
-          "strokeDasharray": "6 4"
-        },
-        "id": "xy-edge__agent-coreout-agent-core-4055agent-in"
-      }
-    ],
+    "edges": [],
     "activeUseCase": {
-      "id": "uc-wf-1792162747408-90syy",
-      "name": "Functionality Extension 1",
-      "description": "To Test different functionalities of the product",
+      "id": "uc-wf-1792177177152-7r952",
+      "name": "Untitled Workflow",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
       "framework": {
-        "id": "openai-swarm",
-        "name": "OpenAI Swarm",
-        "subtitle": "Ergonomic multi-agent routine & handoff orchestration",
-        "description": "Lightweight, client-side multi-agent coordination with native function calling and dynamic agent handoffs.",
-        "defaultModel": "gpt-4o",
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
         "exportExtension": ".py",
-        "category": "Routines"
+        "category": "SDK"
       },
       "agent": {
-        "prompt": "",
+        "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
         "temperature": 0.2,
-        "topP: 0.95": 0.95
+        "topP": 0.95
       }
     },
     "version": "v7_real_mcp_engine"
   },
-  "syncedAt": 1792176543603
+  "registeredMcps": [
+    {
+      "id": "mcp-outlook-official",
+      "name": "Outlook MCP",
+      "displayName": "Outlook MCP",
+      "serviceName": "Outlook",
+      "description": "Official Enterprise Microsoft Outlook MCP with 38 categorized tools.",
+      "transport": "outlook-api",
+      "config": {
+        "connectionMode": "oauth",
+        "endpoint": "https://graph.microsoft.com/v1.0"
+      },
+      "isRealMcp": true,
+      "tools": [
+        {
+          "name": "list_messages",
+          "displayName": "List Emails",
+          "category": "Mail Operations",
+          "type": "read",
+          "description": "Lists messages from the user mailbox or a specific folder (GET /me/messages).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "folder": {
+                "type": "string",
+                "description": "Folder name or ID (e.g., inbox, drafts, sentitems, archive)"
+              },
+              "limit": {
+                "type": "number",
+                "description": "Maximum number of messages to return (default: 10, max: 50)"
+              },
+              "filter": {
+                "type": "string",
+                "description": "OData filter query (e.g., isRead eq false or from/emailAddress/address eq 'exec@corp.com')"
+              },
+              "search": {
+                "type": "string",
+                "description": "KQL search keyword across subject, body, or sender"
+              }
+            }
+          }
+        },
+        {
+          "name": "get_message",
+          "displayName": "Get Email Details",
+          "category": "Mail Operations",
+          "type": "read",
+          "description": "Retrieves complete message content, HTML body, internet headers, and recipient arrays (GET /me/messages/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The unique Microsoft Graph ID of the message"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "search_messages",
+          "displayName": "Search Emails",
+          "category": "Mail Operations",
+          "type": "read",
+          "description": "Executes full-text keyword search across email subjects, sender addresses, and body text.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "Search term or keyword to search for"
+              },
+              "limit": {
+                "type": "number",
+                "description": "Maximum search results to return (default: 10)"
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "send_mail",
+          "displayName": "Send Email",
+          "category": "Mail Operations",
+          "type": "write",
+          "description": "Sends a new email message to recipients (POST /me/sendMail).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of recipient email addresses"
+              },
+              "cc": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Optional CC recipient email addresses"
+              },
+              "bcc": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Optional BCC recipient email addresses"
+              },
+              "subject": {
+                "type": "string",
+                "description": "Email subject line"
+              },
+              "body": {
+                "type": "string",
+                "description": "Email body text or HTML content"
+              },
+              "importance": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "normal",
+                  "high"
+                ],
+                "description": "Importance priority level"
+              }
+            },
+            "required": [
+              "to",
+              "subject",
+              "body"
+            ]
+          }
+        },
+        {
+          "name": "create_draft",
+          "displayName": "Create Draft Email",
+          "category": "Mail Operations",
+          "type": "write",
+          "description": "Composes a new draft message in the Drafts folder without sending (POST /me/messages).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Recipient email addresses"
+              },
+              "subject": {
+                "type": "string",
+                "description": "Draft subject line"
+              },
+              "body": {
+                "type": "string",
+                "description": "Draft body content"
+              }
+            },
+            "required": [
+              "subject",
+              "body"
+            ]
+          }
+        },
+        {
+          "name": "update_draft",
+          "displayName": "Update Draft Email",
+          "category": "Mail Operations",
+          "type": "write",
+          "description": "Modifies subject, body, or recipients of an existing unsent draft message (PATCH /me/messages/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The draft message ID to update"
+              },
+              "to": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Updated recipient list"
+              },
+              "subject": {
+                "type": "string",
+                "description": "Updated subject line"
+              },
+              "body": {
+                "type": "string",
+                "description": "Updated body content"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "send_draft",
+          "displayName": "Send Draft Email",
+          "category": "Mail Operations",
+          "type": "write",
+          "description": "Dispatches an existing draft message to its specified recipients (POST /me/messages/{id}/send).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The draft message ID to send"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "reply_mail",
+          "displayName": "Reply to Email",
+          "category": "Mail Operations",
+          "type": "write",
+          "description": "Sends a reply message to the original sender of an email (POST /me/messages/{id}/reply).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID being replied to"
+              },
+              "comment": {
+                "type": "string",
+                "description": "Reply text message to send"
+              }
+            },
+            "required": [
+              "messageId",
+              "comment"
+            ]
+          }
+        },
+        {
+          "name": "reply_all_mail",
+          "displayName": "Reply All to Email",
+          "category": "Mail Operations",
+          "type": "write",
+          "description": "Sends a reply to all recipients and the sender of an email thread (POST /me/messages/{id}/replyAll).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID being replied to"
+              },
+              "comment": {
+                "type": "string",
+                "description": "Reply text message to send to all recipients"
+              }
+            },
+            "required": [
+              "messageId",
+              "comment"
+            ]
+          }
+        },
+        {
+          "name": "forward_mail",
+          "displayName": "Forward Email",
+          "category": "Mail Operations",
+          "type": "write",
+          "description": "Forwards an email to specified recipients with optional forwarding commentary (POST /me/messages/{id}/forward).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID to forward"
+              },
+              "to": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Recipient email addresses to forward to"
+              },
+              "comment": {
+                "type": "string",
+                "description": "Optional forward message body commentary"
+              }
+            },
+            "required": [
+              "messageId",
+              "to"
+            ]
+          }
+        },
+        {
+          "name": "delete_message",
+          "displayName": "Delete Email",
+          "category": "Mail Operations",
+          "type": "destructive",
+          "description": "Permanently deletes an email message or moves it to Deleted Items (DELETE /me/messages/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID to delete"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "move_message",
+          "displayName": "Move Email",
+          "category": "Mail Operations",
+          "type": "write",
+          "description": "Moves an email message to a specified destination mail folder (POST /me/messages/{id}/move).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID to move"
+              },
+              "destinationId": {
+                "type": "string",
+                "description": "Destination folder ID or well-known name (e.g., archive, junkemail)"
+              }
+            },
+            "required": [
+              "messageId",
+              "destinationId"
+            ]
+          }
+        },
+        {
+          "name": "list_mail_folders",
+          "displayName": "List Mail Folders",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Lists all mail folders in the user mailbox (GET /me/mailFolders).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "includeHidden": {
+                "type": "boolean",
+                "description": "Whether to include system or hidden folders"
+              }
+            }
+          }
+        },
+        {
+          "name": "create_mail_folder",
+          "displayName": "Create Mail Folder",
+          "category": "Folders & Attachments",
+          "type": "write",
+          "description": "Creates a new mail folder under root or a parent folder (POST /me/mailFolders).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "displayName": {
+                "type": "string",
+                "description": "Name of the new folder"
+              },
+              "parentFolderId": {
+                "type": "string",
+                "description": "Optional parent folder ID to create subfolder under"
+              }
+            },
+            "required": [
+              "displayName"
+            ]
+          }
+        },
+        {
+          "name": "list_message_attachments",
+          "displayName": "List Attachments",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Retrieves all file attachments and metadata for a specific message (GET /me/messages/{id}/attachments).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID to fetch attachments from"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "add_message_attachment",
+          "displayName": "Add Attachment",
+          "category": "Folders & Attachments",
+          "type": "write",
+          "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The draft message ID"
+              },
+              "name": {
+                "type": "string",
+                "description": "Filename of the attachment"
+              },
+              "contentType": {
+                "type": "string",
+                "description": "MIME type of the file (e.g., application/pdf)"
+              },
+              "contentBytes": {
+                "type": "string",
+                "description": "Base64-encoded file content"
+              }
+            },
+            "required": [
+              "messageId",
+              "name",
+              "contentBytes"
+            ]
+          }
+        },
+        {
+          "name": "list_events",
+          "displayName": "List Calendar Events",
+          "category": "Calendar & Scheduling",
+          "type": "read",
+          "description": "Lists upcoming calendar events from the default calendar (GET /me/events).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number",
+                "description": "Maximum events to return (default: 10)"
+              },
+              "filter": {
+                "type": "string",
+                "description": "OData filter query"
+              }
+            }
+          }
+        },
+        {
+          "name": "get_calendar_view",
+          "displayName": "Get Calendar Schedule",
+          "category": "Calendar & Scheduling",
+          "type": "read",
+          "description": "Retrieves occurrences of events within a specific time window (GET /me/calendarView).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "startDateTime": {
+                "type": "string",
+                "description": "Start time ISO string (e.g., 2026-10-09T08:00:00Z)"
+              },
+              "endDateTime": {
+                "type": "string",
+                "description": "End time ISO string (e.g., 2026-10-09T18:00:00Z)"
+              }
+            },
+            "required": [
+              "startDateTime",
+              "endDateTime"
+            ]
+          }
+        },
+        {
+          "name": "get_event",
+          "displayName": "Get Event Details",
+          "category": "Calendar & Scheduling",
+          "type": "read",
+          "description": "Retrieves complete event metadata, location, attendees, and Teams meeting links (GET /me/events/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The unique Microsoft Graph ID of the event"
+              }
+            },
+            "required": [
+              "eventId"
+            ]
+          }
+        },
+        {
+          "name": "create_event",
+          "displayName": "Schedule Event",
+          "category": "Calendar & Scheduling",
+          "type": "write",
+          "description": "Schedules a calendar event with attendees, agenda, and optional online Teams meeting (POST /me/events).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "subject": {
+                "type": "string",
+                "description": "Event title / meeting subject"
+              },
+              "start": {
+                "type": "string",
+                "description": "Start time ISO string (e.g., 2026-10-10T14:00:00)"
+              },
+              "end": {
+                "type": "string",
+                "description": "End time ISO string (e.g., 2026-10-10T15:00:00)"
+              },
+              "timeZone": {
+                "type": "string",
+                "description": "Time zone identifier (default: UTC)"
+              },
+              "attendees": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of attendee email addresses"
+              },
+              "body": {
+                "type": "string",
+                "description": "Meeting description / agenda notes"
+              },
+              "location": {
+                "type": "string",
+                "description": "Physical meeting location or room"
+              },
+              "isOnlineMeeting": {
+                "type": "boolean",
+                "description": "Whether to generate a Microsoft Teams online meeting link"
+              }
+            },
+            "required": [
+              "subject",
+              "start",
+              "end"
+            ]
+          }
+        },
+        {
+          "name": "update_event",
+          "displayName": "Update Event",
+          "category": "Calendar & Scheduling",
+          "type": "write",
+          "description": "Modifies timing, attendees, location, or agenda of an existing event (PATCH /me/events/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The event ID to update"
+              },
+              "subject": {
+                "type": "string",
+                "description": "Updated subject"
+              },
+              "start": {
+                "type": "string",
+                "description": "Updated start time ISO string"
+              },
+              "end": {
+                "type": "string",
+                "description": "Updated end time ISO string"
+              },
+              "body": {
+                "type": "string",
+                "description": "Updated agenda notes"
+              },
+              "location": {
+                "type": "string",
+                "description": "Updated location"
+              }
+            },
+            "required": [
+              "eventId"
+            ]
+          }
+        },
+        {
+          "name": "delete_event",
+          "displayName": "Cancel / Delete Event",
+          "category": "Calendar & Scheduling",
+          "type": "destructive",
+          "description": "Cancels a meeting and removes it from the calendar (DELETE /me/events/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The event ID to cancel / delete"
+              }
+            },
+            "required": [
+              "eventId"
+            ]
+          }
+        },
+        {
+          "name": "accept_event",
+          "displayName": "Accept Meeting",
+          "category": "Calendar & Scheduling",
+          "type": "write",
+          "description": "Formally accepts a calendar meeting invitation (POST /me/events/{id}/accept).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The event ID to accept"
+              },
+              "comment": {
+                "type": "string",
+                "description": "Optional acceptance response message"
+              }
+            },
+            "required": [
+              "eventId"
+            ]
+          }
+        },
+        {
+          "name": "decline_event",
+          "displayName": "Decline Meeting",
+          "category": "Calendar & Scheduling",
+          "type": "write",
+          "description": "Declines a calendar meeting invitation (POST /me/events/{id}/decline).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The event ID to decline"
+              },
+              "comment": {
+                "type": "string",
+                "description": "Optional decline reasoning comment"
+              }
+            },
+            "required": [
+              "eventId"
+            ]
+          }
+        },
+        {
+          "name": "tentatively_accept_event",
+          "displayName": "Tentative Accept Meeting",
+          "category": "Calendar & Scheduling",
+          "type": "write",
+          "description": "Tentatively accepts a calendar meeting invitation (POST /me/events/{id}/tentativelyAccept).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The event ID to tentatively accept"
+              },
+              "comment": {
+                "type": "string",
+                "description": "Optional comment"
+              }
+            },
+            "required": [
+              "eventId"
+            ]
+          }
+        },
+        {
+          "name": "find_meeting_times",
+          "displayName": "Find Optimal Meeting Times",
+          "category": "Calendar & Scheduling",
+          "type": "read",
+          "description": "Checks free/busy availability of requested attendees and suggests optimal meeting slots (POST /me/findMeetingTimes).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "attendees": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Attendee email addresses to coordinate"
+              },
+              "meetingDurationMinutes": {
+                "type": "number",
+                "description": "Duration of the proposed meeting in minutes (default: 30)"
+              },
+              "startWindow": {
+                "type": "string",
+                "description": "Start boundary ISO string"
+              },
+              "endWindow": {
+                "type": "string",
+                "description": "End boundary ISO string"
+              }
+            },
+            "required": [
+              "attendees"
+            ]
+          }
+        },
+        {
+          "name": "list_contacts",
+          "displayName": "List Contacts",
+          "category": "Contacts & People",
+          "type": "read",
+          "description": "Lists contacts from the user personal address book (GET /me/contacts).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number",
+                "description": "Maximum contacts to return (default: 20)"
+              },
+              "filter": {
+                "type": "string",
+                "description": "OData filter expression"
+              }
+            }
+          }
+        },
+        {
+          "name": "get_contact",
+          "displayName": "Get Contact Details",
+          "category": "Contacts & People",
+          "type": "read",
+          "description": "Retrieves complete profile, emails, phones, and job title of a contact (GET /me/contacts/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "contactId": {
+                "type": "string",
+                "description": "The unique contact ID"
+              }
+            },
+            "required": [
+              "contactId"
+            ]
+          }
+        },
+        {
+          "name": "create_contact",
+          "displayName": "Create Contact",
+          "category": "Contacts & People",
+          "type": "write",
+          "description": "Adds a new person to the address book (POST /me/contacts).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "givenName": {
+                "type": "string",
+                "description": "First name"
+              },
+              "surname": {
+                "type": "string",
+                "description": "Last name"
+              },
+              "emailAddress": {
+                "type": "string",
+                "description": "Primary email address"
+              },
+              "companyName": {
+                "type": "string",
+                "description": "Company or organization"
+              },
+              "jobTitle": {
+                "type": "string",
+                "description": "Job title"
+              },
+              "mobilePhone": {
+                "type": "string",
+                "description": "Mobile phone number"
+              }
+            },
+            "required": [
+              "givenName",
+              "emailAddress"
+            ]
+          }
+        },
+        {
+          "name": "update_contact",
+          "displayName": "Update Contact",
+          "category": "Contacts & People",
+          "type": "write",
+          "description": "Updates information for an existing contact (PATCH /me/contacts/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "contactId": {
+                "type": "string",
+                "description": "The contact ID to update"
+              },
+              "givenName": {
+                "type": "string",
+                "description": "Updated first name"
+              },
+              "surname": {
+                "type": "string",
+                "description": "Updated last name"
+              },
+              "emailAddress": {
+                "type": "string",
+                "description": "Updated email address"
+              },
+              "companyName": {
+                "type": "string",
+                "description": "Updated company"
+              },
+              "jobTitle": {
+                "type": "string",
+                "description": "Updated title"
+              }
+            },
+            "required": [
+              "contactId"
+            ]
+          }
+        },
+        {
+          "name": "delete_contact",
+          "displayName": "Delete Contact",
+          "category": "Contacts & People",
+          "type": "destructive",
+          "description": "Removes a contact from personal address book (DELETE /me/contacts/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "contactId": {
+                "type": "string",
+                "description": "The contact ID to remove"
+              }
+            },
+            "required": [
+              "contactId"
+            ]
+          }
+        },
+        {
+          "name": "list_todo_lists",
+          "displayName": "List To Do Lists",
+          "category": "Tasks & To Do",
+          "type": "read",
+          "description": "Enumerates Microsoft To Do task lists and folders (GET /me/todo/lists).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "name": "list_tasks",
+          "displayName": "List Tasks",
+          "category": "Tasks & To Do",
+          "type": "read",
+          "description": "Lists tasks within a specific To Do list (GET /me/todo/lists/{id}/tasks).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "listId": {
+                "type": "string",
+                "description": "The To Do list ID (or default list if omitted)"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "notStarted",
+                  "inProgress",
+                  "completed"
+                ],
+                "description": "Filter tasks by status"
+              }
+            }
+          }
+        },
+        {
+          "name": "create_task",
+          "displayName": "Create Task",
+          "category": "Tasks & To Do",
+          "type": "write",
+          "description": "Creates a new task in Microsoft To Do (POST /me/todo/lists/{id}/tasks).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "listId": {
+                "type": "string",
+                "description": "Optional list ID (uses default task list if omitted)"
+              },
+              "title": {
+                "type": "string",
+                "description": "Task title / description"
+              },
+              "dueDateTime": {
+                "type": "string",
+                "description": "Due date ISO string (e.g., 2026-10-15T18:00:00Z)"
+              },
+              "importance": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "normal",
+                  "high"
+                ],
+                "description": "Task importance"
+              },
+              "body": {
+                "type": "string",
+                "description": "Task notes or checklist details"
+              }
+            },
+            "required": [
+              "title"
+            ]
+          }
+        },
+        {
+          "name": "update_task",
+          "displayName": "Update Task",
+          "category": "Tasks & To Do",
+          "type": "write",
+          "description": "Updates task title, completion status, or due date (PATCH /me/todo/lists/{id}/tasks/{taskId}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "listId": {
+                "type": "string",
+                "description": "The list ID containing the task"
+              },
+              "taskId": {
+                "type": "string",
+                "description": "The task ID to update"
+              },
+              "title": {
+                "type": "string",
+                "description": "Updated title"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "notStarted",
+                  "inProgress",
+                  "completed"
+                ],
+                "description": "Updated status"
+              },
+              "dueDateTime": {
+                "type": "string",
+                "description": "Updated due date ISO string"
+              }
+            },
+            "required": [
+              "taskId"
+            ]
+          }
+        },
+        {
+          "name": "delete_task",
+          "displayName": "Delete Task",
+          "category": "Tasks & To Do",
+          "type": "destructive",
+          "description": "Permanently deletes a task from Microsoft To Do (DELETE /me/todo/lists/{id}/tasks/{taskId}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "listId": {
+                "type": "string",
+                "description": "The list ID containing the task"
+              },
+              "taskId": {
+                "type": "string",
+                "description": "The task ID to remove"
+              }
+            },
+            "required": [
+              "taskId"
+            ]
+          }
+        },
+        {
+          "name": "list_message_rules",
+          "displayName": "List Inbox Rules",
+          "category": "Mailbox Settings",
+          "type": "read",
+          "description": "Lists automated inbox sorting, forwarding, and categorization rules (GET /me/mailFolders/inbox/messageRules).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "name": "get_mailbox_settings",
+          "displayName": "Get Mailbox Settings",
+          "category": "Mailbox Settings",
+          "type": "read",
+          "description": "Inspects user timezone, working hours, language, and automatic Out-of-Office (OOO) status (GET /me/mailboxSettings).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      ]
+    }
+  ],
+  "syncedAt": 1792185395337
 }

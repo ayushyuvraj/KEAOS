@@ -21,6 +21,24 @@ import {
 
 const SAVED_MCPS_STORAGE_KEY = 'keaos_registered_mcps';
 
+export const DEFAULT_OFFICIAL_MCP_SERVERS = [
+  {
+    id: 'mcp-outlook-official',
+    name: 'Outlook MCP',
+    displayName: 'Outlook MCP',
+    serviceName: 'Outlook',
+    description: `Official Enterprise Microsoft Outlook MCP with ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized tools.`,
+    transport: 'outlook-api',
+    config: {
+      connectionMode: 'oauth',
+      endpoint: 'https://graph.microsoft.com/v1.0'
+    },
+    tools: OUTLOOK_OFFICIAL_ACTIONS,
+    isRealMcp: true,
+    verifiedAt: new Date().toISOString()
+  }
+];
+
 /**
  * Loads all user-registered real MCP servers from browser storage.
  * Automatically upgrades existing GitHub, Slack, and Jira connections to official comprehensive catalogs.
@@ -30,12 +48,14 @@ export function getRegisteredMcpServers() {
     const raw = localStorage.getItem(SAVED_MCPS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.map(server => {
           const service = identifyMcpService(server);
+          const baseName = server.name || server.displayName || `${service ? service.toUpperCase() : 'Universal'} MCP`;
           if (service === 'outlook' && (!server.tools || server.tools.length < OUTLOOK_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
+              name: baseName,
               serviceName: 'Outlook',
               tools: OUTLOOK_OFFICIAL_ACTIONS,
               description: `Official Enterprise Microsoft Outlook MCP with ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized tools.`
@@ -44,6 +64,7 @@ export function getRegisteredMcpServers() {
           if (service === 'github' && (!server.tools || server.tools.length < GITHUB_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
+              name: baseName,
               serviceName: 'GitHub',
               tools: GITHUB_OFFICIAL_ACTIONS,
               description: `Official Enterprise GitHub MCP with ${GITHUB_OFFICIAL_ACTIONS.length} categorized tools.`
@@ -52,6 +73,7 @@ export function getRegisteredMcpServers() {
           if (service === 'slack' && (!server.tools || server.tools.length < SLACK_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
+              name: baseName,
               serviceName: 'Slack',
               tools: SLACK_OFFICIAL_ACTIONS,
               description: `Official Enterprise Slack MCP with ${SLACK_OFFICIAL_ACTIONS.length} categorized tools.`
@@ -60,6 +82,7 @@ export function getRegisteredMcpServers() {
           if (service === 'jira' && (!server.tools || server.tools.length < JIRA_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
+              name: baseName,
               serviceName: 'Jira',
               tools: JIRA_OFFICIAL_ACTIONS,
               description: `Official Enterprise Jira MCP with ${JIRA_OFFICIAL_ACTIONS.length} categorized tools.`
@@ -68,19 +91,29 @@ export function getRegisteredMcpServers() {
           if (service === 'neo4j' && (!server.tools || server.tools.length < NEO4J_OFFICIAL_ACTIONS.length)) {
             return {
               ...server,
+              name: baseName,
               serviceName: 'Neo4j',
               tools: NEO4J_OFFICIAL_ACTIONS,
               description: `Official Enterprise Neo4j Graph Database MCP with ${NEO4J_OFFICIAL_ACTIONS.length} categorized tools.`
             };
           }
-          return server;
+          return {
+            ...server,
+            name: baseName
+          };
         });
       }
     }
+
+    // Seed default verified official servers if registry is empty
+    try {
+      localStorage.setItem(SAVED_MCPS_STORAGE_KEY, JSON.stringify(DEFAULT_OFFICIAL_MCP_SERVERS));
+    } catch (_) {}
+    return DEFAULT_OFFICIAL_MCP_SERVERS;
   } catch (e) {
     console.warn('Failed to load registered MCP servers:', e);
   }
-  return [];
+  return DEFAULT_OFFICIAL_MCP_SERVERS;
 }
 
 /**
@@ -92,6 +125,7 @@ export function saveRegisteredMcpServer(mcpServer) {
     const updated = [mcpServer, ...current.filter(s => s.id !== mcpServer.id)];
     localStorage.setItem(SAVED_MCPS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('keaos:mcp-registry-updated', { detail: { servers: updated } }));
+    window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
     return updated;
   } catch (e) {
     console.warn('Failed to save registered MCP server:', e);
@@ -103,10 +137,12 @@ export function saveRegisteredMcpServer(mcpServer) {
  */
 export function removeRegisteredMcpServer(mcpId) {
   try {
-    const current = getRegisteredMcpServers();
+    const raw = localStorage.getItem(SAVED_MCPS_STORAGE_KEY);
+    const current = raw ? JSON.parse(raw) : getRegisteredMcpServers();
     const updated = current.filter(s => s.id !== mcpId);
     localStorage.setItem(SAVED_MCPS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('keaos:mcp-registry-updated', { detail: { servers: updated } }));
+    window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
     return updated;
   } catch (e) {
     console.warn('Failed to remove MCP server:', e);

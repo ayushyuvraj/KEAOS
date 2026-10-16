@@ -674,7 +674,7 @@ export default function ConnectMcpModal({
                   <span>38 Official Microsoft Outlook & M365 Tools</span>
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00A3A6]/20 text-[#00A3A6] font-bold">
-                  Zero Simulation
+                  Graph API v1.0
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
