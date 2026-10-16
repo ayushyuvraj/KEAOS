@@ -284,5 +284,21 @@ All agents and developers writing code or designing UI in KEAOS MUST enforce thi
      - No giant card borders, no heavy dark frames, no multi-line progress blocks, and zero verbose text.
    - Keep user controls (such as the ChatGPT-style Stop button) clean and minimal near the input bar without cluttering the conversation stream.
 
+---
+
+## 12. Strict Browser Origin & Host Invariant (127.0.0.1 Mandate)
+
+All agents, subagents, and automated verification tools MUST strictly enforce this browser host directive:
+
+1. **Canonical Origin is Strictly `http://127.0.0.1:5173/`**:
+   - **MANDATE**: Whenever any agent or subagent accesses, inspects, tests, clicks, or captures the browser application, it MUST use `http://127.0.0.1:5173/`.
+   - **ABSOLUTELY FORBIDDEN**: NEVER navigate to `http://localhost:5173/` or any other domain/IP variant.
+
+2. **Core Principle: "What the User Sees is What the Agent Must See"**:
+   - Browsers partition all storage (`localStorage`, `sessionStorage`, `IndexedDB`, session cookies) by exact origin. `localhost` and `127.0.0.1` are treated as two separate web origins.
+   - Navigating to `localhost` when the user is operating on `127.0.0.1` creates disconnected state partitions, leads to stale cache divergence, and destroys visual parity.
+   - Any browser subagent task must explicitly navigate to `http://127.0.0.1:5173/`.
+
+
 
 

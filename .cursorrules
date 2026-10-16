@@ -30,3 +30,8 @@ Read `AGENTS.md` and `src/design.md` for full specifications.
 - In any node mapping (`nodesWithTheme`, `nodes.map`), ALWAYS initialize all returned data fields (`let connectedModelName = null; let inheritedModelName = null;`) at the top of the outer map iteration scope. Never introduce variables inside an `if (n.type === ...)` block that are referenced in the return object.
 - Declare helper callbacks/refs (`takeSnapshot`, `undo`, `redo`) BEFORE any `useEffect` that calls them or lists them in dependencies (No Temporal Dead Zone).
 
+## 6. Strict Browser Origin & Host Invariant (127.0.0.1 Mandate)
+- All browser subagents and tools MUST exclusively navigate to `http://127.0.0.1:5173/`.
+- NEVER use `http://localhost:5173/`. Browsers isolate localStorage per origin; using 127.0.0.1 ensures the agent sees the exact same storage and state as the user.
+
+

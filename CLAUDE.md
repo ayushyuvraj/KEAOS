@@ -26,6 +26,10 @@ For complete architectural specifications, see **`AGENTS.md`** and **`src/design
 5. **Strict Variable Scoping & Zero-ReferenceError Mandate**:
    - In all mapping functions (`nodesWithTheme`, `nodes.map`), ALWAYS initialize all returned data fields (`let connectedModelName = null; let inheritedModelName = null;`) at the top of the outer map iteration scope. Never introduce variables inside an `if (n.type === ...)` block that are referenced in the return object.
    - Declare helper callbacks/refs (`takeSnapshot`, `undo`, `redo`) BEFORE any `useEffect` that calls them or lists them in dependencies.
+6. **Strict Browser Origin Invariant (127.0.0.1 Mandate)**:
+   - When inspecting or testing in the browser, always use `http://127.0.0.1:5173/`. NEVER use `http://localhost:5173/`.
+   - Browser storage is partitioned per origin; using 127.0.0.1 guarantees visual and state parity with the user.
+
 
 ---
 
