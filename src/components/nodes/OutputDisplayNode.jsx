@@ -330,7 +330,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
   // =========================================================================
   if (!isExpanded) {
     return (
-      <div className={`relative group select-none flex flex-col items-center ${isDeactivated ? 'opacity-40 grayscale' : 'opacity-100'}`}>
+      <div className={`relative group w-[140px] select-none flex flex-col items-center ${isDeactivated ? 'opacity-40 grayscale' : 'opacity-100'}`}>
         {/* Floating Micro-Toolbar on Hover */}
         <NodeActionToolbar
           nodeId={id}
@@ -352,74 +352,79 @@ export default function OutputDisplayNode({ id, data, selected }) {
           dropdownPlacement="bottom"
         />
 
-        {/* Input Handle (Left) */}
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="data-in"
-          style={{
-            top: '50%',
-            left: '-6px',
-            width: '10px',
-            height: '10px',
-            borderRadius: '0px',
-            backgroundColor: status === 'ready' ? '#10B981' : '#0091DA',
-            borderColor: isDarkMode ? '#151720' : '#FFFFFF',
-            borderWidth: '2px',
-            zIndex: 20
-          }}
-          title="Input: Connect Agent or Tool output stream"
-        />
+        {/* Circular Morphing Button with Left/Right Attached Handles */}
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          {/* Input Handle (Left) */}
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="data-in"
+            style={{
+              top: '50%',
+              left: '-6px',
+              width: '10px',
+              height: '10px',
+              borderRadius: '0px',
+              backgroundColor: status === 'ready' ? '#10B981' : '#0091DA',
+              borderColor: isDarkMode ? '#151720' : '#FFFFFF',
+              borderWidth: '2px',
+              zIndex: 20
+            }}
+            title="Input: Connect Agent or Tool output stream"
+          />
 
-        {/* Output Handle (Right - Pass-through) */}
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="data-out"
-          style={{
-            top: '50%',
-            right: '-6px',
-            width: '10px',
-            height: '10px',
-            borderRadius: '0px',
-            backgroundColor: status === 'ready' ? '#10B981' : '#0091DA',
-            borderColor: isDarkMode ? '#151720' : '#FFFFFF',
-            borderWidth: '2px',
-            zIndex: 20
-          }}
-          title="Pass-through: Pipe this output to downstream agent"
-        />
+          {/* Morphing Circular Button */}
+          <button
+            onClick={toggleExpand}
+            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center transition-colors duration-150 cursor-pointer shadow-lg active:scale-95 ${
+              selected 
+                ? 'ring-4 ring-[#10B981]/40 border-2 border-[#10B981]' 
+                : 'border border-slate-300 dark:border-slate-700'
+            } ${
+              status === 'ready' 
+                ? 'bg-gradient-to-br from-[#10B981] to-[#047857] text-white shadow-emerald-500/30' 
+                : status === 'generating'
+                  ? 'bg-[#0091DA] text-white animate-pulse'
+                  : isDarkMode ? 'bg-[#151821] text-slate-300' : 'bg-white text-slate-700'
+            }`}
+            title="Click to expand Output Viewer & Multi-Format Exporter"
+          >
+            {status === 'generating' ? (
+              <RefreshCw className="w-5 h-5 animate-spin" />
+            ) : (
+              <Sparkles className="w-5 h-5" />
+            )}
+            <span className="text-[8px] font-mono font-bold mt-0.5 tracking-tight uppercase">
+              {runsHistory.length > 0 ? `${runsHistory.length} RUNS` : 'VIEW'}
+            </span>
+          </button>
 
-        {/* Morphing Circular Button */}
-        <button
-          onClick={toggleExpand}
-          className={`w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer shadow-lg active:scale-95 ${
-            selected 
-              ? 'ring-4 ring-[#10B981]/40 border-2 border-[#10B981]' 
-              : 'border border-slate-300 dark:border-slate-700 hover:scale-105'
-          } ${
-            status === 'ready' 
-              ? 'bg-gradient-to-br from-[#10B981] to-[#047857] text-white shadow-emerald-500/30' 
-              : status === 'generating'
-                ? 'bg-[#0091DA] text-white animate-pulse'
-                : isDarkMode ? 'bg-[#151821] text-slate-300' : 'bg-white text-slate-700'
-          }`}
-          title="Click to expand Output Viewer & Multi-Format Exporter"
-        >
-          {status === 'generating' ? (
-            <RefreshCw className="w-5 h-5 animate-spin" />
-          ) : (
-            <Sparkles className="w-5 h-5" />
-          )}
-          <span className="text-[8px] font-mono font-bold mt-0.5 tracking-tight uppercase">
-            {runsHistory.length > 0 ? `${runsHistory.length} RUNS` : 'VIEW'}
-          </span>
-        </button>
+          {/* Output Handle (Right - Pass-through) */}
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="data-out"
+            style={{
+              top: '50%',
+              right: '-6px',
+              width: '10px',
+              height: '10px',
+              borderRadius: '0px',
+              backgroundColor: status === 'ready' ? '#10B981' : '#0091DA',
+              borderColor: isDarkMode ? '#151720' : '#FFFFFF',
+              borderWidth: '2px',
+              zIndex: 20
+            }}
+            title="Pass-through: Pipe this output to downstream agent"
+          />
+        </div>
 
         {/* Node Name under Circle */}
-        <span className="text-[10px] font-mono font-bold text-slate-400 mt-1 max-w-[90px] truncate text-center">
-          {nodeTitle}
-        </span>
+        <div className="absolute top-[calc(100%+6px)] left-0 w-full px-1 text-center pointer-events-auto select-none">
+          <span className="text-[10px] font-mono font-bold text-slate-400 block truncate">
+            {nodeTitle}
+          </span>
+        </div>
       </div>
     );
   }

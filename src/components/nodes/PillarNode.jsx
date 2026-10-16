@@ -226,11 +226,11 @@ export default function PillarNode({ id, data, selected }) {
     handlePosition = Position.Bottom;
   }
 
-  let toolbarPlacement = 'top-1/2 -right-14 -translate-y-1/2';
+  let toolbarPlacement = 'top-1/2 -right-3 -translate-y-1/2';
   let dropdownPlacement = isTopPillar ? 'bottom' : 'top';
 
   const renderPillarLabel = (isTop) => (
-    <div className={`${isTop ? 'mb-2' : 'mt-2'} text-center max-w-[140px]`}>
+    <div className="w-full max-w-[140px] px-1 text-center pointer-events-auto select-none">
       <span className={`text-[11px] font-semibold tracking-tight block truncate ${
         isDeactivated
           ? 'line-through text-slate-500'
@@ -239,7 +239,7 @@ export default function PillarNode({ id, data, selected }) {
         {name}
       </span>
       {isDeactivated && (
-        <span className="text-[9px] font-mono block -mt-0.5 uppercase tracking-wider text-amber-500">
+        <span className="text-[9px] font-mono block -mt-0.5 uppercase tracking-wider text-amber-500 truncate">
           Deactivated
         </span>
       )}
@@ -281,7 +281,7 @@ export default function PillarNode({ id, data, selected }) {
   );
 
   return (
-    <div className="relative group flex flex-col items-center select-none">
+    <div className="relative group w-[140px] flex flex-col items-center select-none">
       {/* Floating Micro-Toolbar on Hover */}
       <NodeActionToolbar
         nodeId={id}
@@ -311,7 +311,11 @@ export default function PillarNode({ id, data, selected }) {
       )}
 
       {/* Clean Succinct Label Placed ABOVE Node for Top Pillars (Zero Wire Overlap) */}
-      {isTopPillar && renderPillarLabel(true)}
+      {isTopPillar && (
+        <div className="absolute bottom-[calc(100%+8px)] left-0 w-full flex flex-col items-center pointer-events-auto">
+          {renderPillarLabel(true)}
+        </div>
+      )}
 
       {/* Circular Token Disc */}
       <div
@@ -322,7 +326,7 @@ export default function PillarNode({ id, data, selected }) {
             setShowMcpFlyout(!showMcpFlyout);
           }
         }}
-        className={`w-15 h-15 rounded-full flex items-center justify-center border-2 transition-all duration-200 relative shadow-lg cursor-pointer ${
+        className={`w-15 h-15 rounded-full flex items-center justify-center border-2 transition-colors duration-150 relative shadow-lg cursor-pointer ${
           isExecuting
             ? 'scale-110 ring-4'
             : isDeactivated
@@ -332,7 +336,7 @@ export default function PillarNode({ id, data, selected }) {
                 : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] hover:border-[#00338D]'
         } ${
           selected && !isExecuting
-            ? 'ring-4 ring-[#0091DA]/30 border-[#0091DA] scale-105'
+            ? 'ring-4 ring-[#0091DA]/30 border-[#0091DA]'
             : ''
         }`}
         style={isExecuting ? {
@@ -512,7 +516,11 @@ export default function PillarNode({ id, data, selected }) {
       </div>
 
       {/* Clean Succinct Label Below Node for Bottom Pillars */}
-      {!isTopPillar && renderPillarLabel(false)}
+      {!isTopPillar && (
+        <div className="absolute top-[calc(100%+8px)] left-0 w-full flex flex-col items-center pointer-events-auto">
+          {renderPillarLabel(false)}
+        </div>
+      )}
 
       {/* GATEWAY ON-CANVAS CAPABILITY & POLICY FLYOUT */}
       {pillarType === 'gateway' && showGatewayFlyout && routedTools.length > 0 && (

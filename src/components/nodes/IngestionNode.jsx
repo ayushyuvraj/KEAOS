@@ -325,7 +325,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
   if (!isExpanded) {
 
     return (
-      <div className="relative group flex flex-col items-center select-none">
+      <div className="relative group w-[140px] flex flex-col items-center select-none">
         {/* Floating Active Beacon */}
         {isExecuting && (
           <div 
@@ -340,7 +340,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
         {/* Succinct Canvas Label Placed ABOVE Circle to Avoid Any Wire Overlap */}
         <div 
           onClick={() => setIsExpanded(true)}
-          className="mb-2 text-center max-w-[130px] cursor-pointer"
+          className="absolute bottom-[calc(100%+8px)] left-0 w-full px-1 text-center cursor-pointer pointer-events-auto select-none"
           title="Click to open Ingestion Viewport"
         >
           <span className={`text-[11px] font-semibold tracking-tight block truncate ${
@@ -348,7 +348,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
           }`}>
             {currentFile?.name ? currentFile.name : title}
           </span>
-          <span className="text-[9px] font-mono block -mt-0.5 text-slate-400">
+          <span className="text-[9px] font-mono block -mt-0.5 text-slate-400 truncate">
             {isProcessing ? 'Transcribing...' : isReady ? `${charCount} chars ready` : 'Click to Upload'}
           </span>
         </div>
@@ -356,9 +356,9 @@ export default function IngestionNode({ id, data = {}, selected }) {
         {/* 60px Circular Morphing Disc */}
         <div
           onClick={() => setIsExpanded(true)}
-          className={`w-[60px] h-[60px] rounded-full flex flex-col items-center justify-center border-2 transition-all duration-200 cursor-pointer shadow-lg relative group-hover:scale-105 active:scale-95 ${
+          className={`w-[60px] h-[60px] rounded-full flex flex-col items-center justify-center border-2 transition-colors duration-150 cursor-pointer shadow-lg relative active:scale-95 ${
             isExecuting || isProcessing
-              ? 'border-[#0091DA] ring-4 ring-[#0091DA]/40 animate-pulse shadow-[0_0_24px_rgba(0,145,218,0.85)] scale-105'
+              ? 'border-[#0091DA] ring-4 ring-[#0091DA]/40 animate-pulse shadow-[0_0_24px_rgba(0,145,218,0.85)]'
               : isReady
                 ? 'border-[#0091DA] ring-2 ring-[#0091DA]/30 shadow-[0_0_16px_rgba(0,145,218,0.3)]'
                 : 'border-[#0091DA]/70 ring-2 ring-[#0091DA]/20'
