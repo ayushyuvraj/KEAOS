@@ -33,7 +33,12 @@ import {
   MessageSquare,
   Server,
   GitBranch,
-  Code
+  Code,
+  Zap,
+  Clock,
+  Webhook,
+  FolderDown,
+  Activity
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 
@@ -197,6 +202,90 @@ const NODE_CATEGORIES = [
         config: {
           language: 'python',
           engine: 'auto'
+        }
+      }
+    ]
+  },
+  {
+    id: 'triggers',
+    label: 'Triggers & Ingress',
+    subtitle: 'Manual one-click dispatches, instant webhooks, and event-driven pipeline starters',
+    icon: Zap,
+    color: '#00A3A6', // Cyber Teal
+    bgColor: '#E6F6F6',
+    badge: 'TRIGGER',
+    socketId: 'trigger-out',
+    items: [
+      {
+        id: 'trigger-manual-instant',
+        name: 'Manual Start',
+        description: 'Tactile circular origin disc. Emits manual execution impulse directly into AI Agents or Deterministic Boxes.',
+        isTriggerNode: true,
+        config: {
+          triggerType: 'manual',
+          payloadMode: 'json',
+          defaultPayload: '{\n  "source": "manual_dispatch",\n  "test": true\n}'
+        }
+      },
+      {
+        id: 'trigger-schedule-cron',
+        name: 'Schedule / Time',
+        description: 'Temporal ignition. Executes at a scheduled date and time or on a recurring interval with zero cognitive burden.',
+        isTriggerNode: true,
+        config: {
+          triggerType: 'schedule',
+          scheduleMode: 'datetime',
+          scheduledTime: '',
+          intervalMinutes: 15,
+          defaultPayload: '{\n  "source": "cron_scheduler",\n  "scheduled": true\n}'
+        }
+      },
+      {
+        id: 'trigger-webhook-universal',
+        name: 'Webhook Ingress',
+        description: 'Universal HTTP webhook endpoint. Subscribes to external systems, fast ACKs (200 OK), and dispatches payload.',
+        isTriggerNode: true,
+        config: {
+          triggerType: 'webhook',
+          webhookPath: '/api/ingress/v1/wh_live',
+          requireSecret: true,
+          defaultPayload: '{\n  "event": "customer.created",\n  "id": "cust_9921",\n  "timestamp": 1718000000\n}'
+        }
+      },
+      {
+        id: 'trigger-file-drop',
+        name: 'File Watcher',
+        description: 'Tactile file drop zone. Ingests local PDFs, text files, audio recordings, or CSVs and forwards into workflows.',
+        isTriggerNode: true,
+        config: {
+          triggerType: 'file',
+          acceptedTypes: ['pdf', 'txt', 'csv', 'json', 'mp3'],
+          defaultPayload: '{\n  "fileName": "sample_report.pdf",\n  "sizeBytes": 204800,\n  "mimeType": "application/pdf"\n}'
+        }
+      },
+      {
+        id: 'trigger-poll-api',
+        name: 'API Polling Watcher',
+        description: 'Smart periodic REST/GraphQL watcher with SHA-256 watermark deduplication. Only triggers on payload changes.',
+        isTriggerNode: true,
+        config: {
+          triggerType: 'poll',
+          pollIntervalSeconds: 60,
+          endpointUrl: 'https://api.example.com/v1/status',
+          deduplicateWatermark: true,
+          defaultPayload: '{\n  "source": "api_poller",\n  "status": "healthy"\n}'
+        }
+      },
+      {
+        id: 'trigger-a2a-event',
+        name: 'A2A Event Bus',
+        description: 'Inter-agent event bus subscriber. Listens for institutional topic broadcasts across multi-agent workflows.',
+        isTriggerNode: true,
+        config: {
+          triggerType: 'event',
+          topic: 'incident.sev1.raised',
+          filterPattern: '*',
+          defaultPayload: '{\n  "topic": "incident.sev1.raised",\n  "severity": "CRITICAL",\n  "service": "payments-core"\n}'
         }
       }
     ]

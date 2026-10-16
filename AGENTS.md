@@ -294,10 +294,40 @@ All agents, subagents, and automated verification tools MUST strictly enforce th
    - **MANDATE**: Whenever any agent or subagent accesses, inspects, tests, clicks, or captures the browser application, it MUST use `http://127.0.0.1:5173/`.
    - **ABSOLUTELY FORBIDDEN**: NEVER navigate to `http://localhost:5173/` or any other domain/IP variant.
 
-2. **Core Principle: "What the User Sees is What the Agent Must See"**:
+3. **Core Principle: "What the User Sees is What the Agent Must See"**:
    - Browsers partition all storage (`localStorage`, `sessionStorage`, `IndexedDB`, session cookies) by exact origin. `localhost` and `127.0.0.1` are treated as two separate web origins.
    - Navigating to `localhost` when the user is operating on `127.0.0.1` creates disconnected state partitions, leads to stale cache divergence, and destroys visual parity.
    - Any browser subagent task must explicitly navigate to `http://127.0.0.1:5173/`.
+
+---
+
+## 13. Strict Minimalist Cognitive Design & Origin Token Invariant (Zero-Cognitive Load Mandate)
+
+All agents, subagents, and developers writing code or designing visual interfaces in KEAOS MUST enforce this non-negotiable design philosophy:
+
+1. **Zero-Cognitive Load & Absolute Simplicity**:
+   - The user must never face cluttered configuration forms, raw JSON textareas, or confusing parameter trees directly on the canvas graph.
+   - Canvas nodes must operate as pure, uncluttered visual tokens. All deep configurations (payloads, API credentials, cron schedules, mappings, headers) belong strictly in the Inspector panel on the right.
+   - **Zero Useless Text**: No noisy descriptions or secondary paragraphs on node bodies. If possible, zero text inside the node itself—only the precision iconic glyph. A single clean 11px uppercase label above or below the token is the standard.
+   - Every feature must feel intuitive at a glance. Cognitive burden must be near zero.
+
+2. **Visual Rhythm & Spatial Token Harmony**:
+   - The 60px concentric Origin Disc design is our inspiration and golden reference for origin triggers, peripheral inputs, and satellite nodes.
+   - While not every future node needs to be strictly circular (e.g., complex composite agent cores or table monitors may use angular rectangular geometry per Rule 5), the *philosophy* must be identical: ultra-clean silhouette, high visual hierarchy, immediate status readability, and zero internal clutter.
+   - **High Tactility**: Nodes must provide immediate physical affordance — hover lifts (`scale(1.05)`), active press depression (`active:scale-95`), and clean acoustic/sonar shockwave ripple animations (`animate-ping`) when activated.
+
+3. **Temporal & Schedule Ingress Contract (Time & Date Simplicity)**:
+   - For any time or cron trigger: selecting the node immediately presents a clean, effortless Date & Time / Preset picker in the Inspector.
+   - The user can select human presets ("Run Once at Time", "Every 5 min", "Every 1 hour", "Daily at 09:00") or pick a specific date and time with standard native inputs.
+   - No arcane cron expressions required by default (human-first). The system automatically tracks the countdown and executes downstream workflows precisely when the scheduled moment arrives, with live countdown state reflected subtly on the token or inspector.
+
+4. **Multi-Agent Quality & Robustness Verification**:
+   - All newly added nodes, triggers, and execution engines must pass multi-agent scrutiny:
+     - **Coder**: Implements clean, type-safe, decoupled logic with robust event bus and audit integration.
+     - **Systems Integrity**: Guards against race conditions, ensures timer cleanup on unmount, handles unhandled promise rejections, and enforces strictly-typed socket validations.
+     - **Quality Assurance**: Validates end-to-end browser execution, 0 console errors, seamless styling, and responsive interactivity.
+     - **Contradictory Critic**: Audits for clutter, cognitive burden, non-idiomatic hardcoding, and removes any unnecessary visual elements.
+
 
 
 

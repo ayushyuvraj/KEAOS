@@ -1,5 +1,5 @@
 {
-  "activeWorkflowId": "wf-meeting-intelligence",
+  "activeWorkflowId": "wf-1792162747408-90syy",
   "uiState": {
     "isDarkMode": false,
     "isSidebarCollapsed": true,
@@ -17,81 +17,539 @@
   },
   "workflows": [
     {
-      "id": "wf-1792161269173-n1msh",
-      "name": "Untitled Workflow",
-      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "id": "wf-1792162747408-90syy",
+      "name": "Functionality Extension 1",
+      "description": "To Test different functionalities of the product",
       "framework": {
-        "id": "google-adk",
-        "name": "Google ADK",
-        "subtitle": "Google Agent Development Kit & GenAI SDK",
-        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-        "defaultModel": "gemini-2.0-flash",
+        "id": "openai-swarm",
+        "name": "OpenAI Swarm",
+        "subtitle": "Ergonomic multi-agent routine & handoff orchestration",
+        "description": "Lightweight, client-side multi-agent coordination with native function calling and dynamic agent handoffs.",
+        "defaultModel": "gpt-4o",
         "exportExtension": ".py",
-        "category": "SDK"
+        "category": "Routines"
       },
       "activeUseCase": {
-        "id": "uc-wf-1792161269173-n1msh",
-        "name": "Untitled Workflow",
-        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+        "id": "uc-wf-1792162747408-90syy",
+        "name": "Functionality Extension 1",
+        "description": "To Test different functionalities of the product",
         "framework": {
-          "id": "google-adk",
-          "name": "Google ADK",
-          "subtitle": "Google Agent Development Kit & GenAI SDK",
-          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-          "defaultModel": "gemini-2.0-flash",
+          "id": "openai-swarm",
+          "name": "OpenAI Swarm",
+          "subtitle": "Ergonomic multi-agent routine & handoff orchestration",
+          "description": "Lightweight, client-side multi-agent coordination with native function calling and dynamic agent handoffs.",
+          "defaultModel": "gpt-4o",
           "exportExtension": ".py",
-          "category": "SDK"
+          "category": "Routines"
         },
         "agent": {
-          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
           "temperature": 0.2,
-          "topP": 0.95
+          "topP: 0.95": 0.95
         }
       },
       "nodes": [
         {
-          "id": "agent-core-6407",
+          "id": "agent-core",
           "type": "agentCore",
           "position": {
-            "x": 280,
-            "y": 200
+            "x": 520,
+            "y": 165
           },
           "data": {
-            "name": "Autonomous Agent #1",
+            "name": "MIA2",
             "framework": {
-              "id": "google-adk",
-              "name": "Google ADK",
-              "subtitle": "Google Agent Development Kit & GenAI SDK",
-              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-              "defaultModel": "gemini-2.0-flash",
+              "id": "langchain",
+              "name": "LangChain",
+              "subtitle": "Composable LCEL chains and agent toolkits",
+              "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+              "defaultModel": "claude-3-5-sonnet",
               "exportExtension": ".py",
-              "category": "SDK"
+              "category": "Chains"
             },
-            "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+            "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
             "temperature": 0.2,
-            "topP": 0.95
+            "topP": 0.95,
+            "attachedCounts": {
+              "model": 1,
+              "skills": 1,
+              "mcp": 1,
+              "tools": 1,
+              "gateway": 1,
+              "memory": 1,
+              "policies": 1
+            },
+            "isDarkMode": false,
+            "lastOutput": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+            "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
+            "observability": {
+              "totalLatencyMs": 11683,
+              "totalTokens": 2663,
+              "modelUsed": "OpenAI (gpt-4o-mini)",
+              "provider": "openai",
+              "framework": "OpenAI Swarm",
+              "isLiveApi": true
+            },
+            "costUsd": 0.00118
           },
           "measured": {
             "width": 228,
             "height": 164
-          }
+          },
+          "selected": false
+        },
+        {
+          "id": "node-model-1",
+          "type": "pillar",
+          "position": {
+            "x": 565.01347427186,
+            "y": 80.7547264465507
+          },
+          "data": {
+            "pillarType": "model",
+            "name": "OpenAI (gpt-4o-mini)",
+            "description": "OpenAI foundation model configured for live enterprise inference.",
+            "config": {
+              "provider": "openai",
+              "modelId": "gpt-4o-mini",
+              "temperature": 0.2,
+              "topP": 0.95
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-policy-1",
+          "type": "pillar",
+          "position": {
+            "x": 475.9703566019082,
+            "y": 360.8355720777102
+          },
+          "data": {
+            "pillarType": "policies",
+            "name": "PII Redactor",
+            "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+            "config": {
+              "redactSalaries": true,
+              "maskEmails": true
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-memory-1",
+          "type": "pillar",
+          "position": {
+            "x": 561.4150911844831,
+            "y": 418.4097014757391
+          },
+          "data": {
+            "pillarType": "memory",
+            "name": "Episodic Sync Memory",
+            "description": "Remembers past meeting action items to verify resolution across weeks.",
+            "config": {
+              "ttlDays": 90,
+              "store": "vector-sqlite"
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-skill-1",
+          "type": "pillar",
+          "position": {
+            "x": 657.6549750291884,
+            "y": 341.6441956117005
+          },
+          "data": {
+            "pillarType": "skills",
+            "name": "Executive Summarizer",
+            "description": "Generates TL;DR, high-level takeaways, and strategic themes.",
+            "config": {
+              "length": "concise",
+              "focus": "decisions"
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-output-8631",
+          "type": "outputNode",
+          "position": {
+            "x": 764.8517412039421,
+            "y": 217.77628528152655
+          },
+          "data": {
+            "name": "Final Output Viewer & Exporter",
+            "title": "Final Output Viewer & Exporter",
+            "outputContent": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+            "content": "",
+            "status": "ready",
+            "format": "markdown",
+            "runsHistory": [
+              {
+                "runNumber": 1,
+                "timestamp": "9:51:55 PM",
+                "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: For the pilot, confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Integration**: For the pilot, ARC will not automatically create Jira tickets, send emails, or update external systems. It can prepare or recommend an external action, but a human user must approve every execution.\n5. **Model Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n6. **Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n\n#### Action Items:\n1. **Rohan**: \n   - Modify the extraction logic to ensure confirmed actions are created only when there is an explicit owner, an explicit commitment, or both. Prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026.\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday evening build.\n     - **Deadline**: Wednesday evening, September 30, 2026.\n   - Add consistent model-version logging alongside the confidence-logic changes so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions.\n     - **Deadline**: Wednesday afternoon, September 30, 2026.\n\n2. **Mira**: \n   - Consult with InfoSec and Data Privacy about pilot transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing.\n     - **Deadline**: Thursday noon, October 1, 2026.\n\n3. **Marcus**: \n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday evening release candidate to the team.\n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged.\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**: \n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting.\n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting.\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in today's meeting. Below are the key decisions made and action items assigned:\n\n**Decisions:**\n- Confirmed action items for the pilot will only be created when there is an explicit owner or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention configurations will await confirmation from InfoSec and Data Privacy.\n- ARC will not automatically create Jira tickets or send emails during the pilot; human approval is required for all external actions.\n- Model latency will be treated as a performance issue, not a launch blocker.\n- The pilot audit trail will include model/version logging, tool calls, timestamps, and human approval status.\n\n**Action Items:**\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by Wednesday afternoon and evening, respectively. Also, add model-version logging by Wednesday afternoon.\n- **Mira**: Confirm transcript retention requirements with InfoSec and Data Privacy and send your recommendation by Thursday noon.\n- **Marcus**: Execute the complete user journey and distribute the release candidate by Wednesday evening, contingent on Rohan's changes being merged.\n- **All**: Please flag any risks or delays immediately regarding the Wednesday build, Thursday confirmation, audit logging, or pilot readiness.\n\nLet's keep communication open as we approach the pilot launch. Thank you for your hard work!\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]  ",
+                "auditHash": "sha256:34f7da20784b7ae36f2bdd793b47876dd3a90acd4ae3fed988bf95e004c52c49",
+                "tokens": 3472,
+                "latencyMs": 0,
+                "costUsd": 0.00154,
+                "source": "agent",
+                "sourceNodeType": "agent",
+                "sourceNodeId": "agent-core",
+                "sourceNodeName": "MIA2"
+              },
+              {
+                "runNumber": 2,
+                "timestamp": "9:58:20 PM",
+                "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **External Actions**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging alongside the confidence-logic changes for the audit trail. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in the recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions can only be created with explicit ownership or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention configurations will await confirmation from InfoSec and Data Privacy.\n- ARC/ARK will not automatically create external actions without human approval.\n- The audit trail will include necessary logging for model/version and approval status.\n- Latency will be monitored, and the UI will indicate processing states.\n- A feature freeze will occur if the Wednesday-evening release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Your consultation with InfoSec is crucial; please prioritize this task.\n- **Marcus**: Prepare for the user journey execution post-Rohan’s changes.\n- **All**: Keep an eye on any potential delays and report them immediately.\n\nLet’s ensure we stay on track with our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+                "auditHash": "sha256:860720aa326f485135cf3927681fa55dab7ec1b848481d39d5e6c430ce6fd647",
+                "tokens": 2562,
+                "latencyMs": 0,
+                "costUsd": 0.00113,
+                "source": "agent",
+                "sourceNodeType": "agent",
+                "sourceNodeId": "agent-core",
+                "sourceNodeName": "MIA2"
+              },
+              {
+                "runNumber": 3,
+                "timestamp": "10:49:03 PM",
+                "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: For the pilot, confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Integration**: For the pilot, ARC will not automatically create Jira tickets, send emails, or update external systems. It can prepare a proposed action, but a user must approve execution.\n5. **Model Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n6. **Audit Trail Requirements**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging alongside the confidence-logic changes to ensure the audit trail records necessary details. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy about transcript-retention requirements and send a retention recommendation by Thursday noon, October 1, 2026. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in today's meeting. Below is a summary of the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions will only be created when there is an explicit owner or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention requirements will be confirmed with InfoSec and Data Privacy before any configuration changes are made.\n- ARC will not automatically create Jira tickets or send emails; user approval will be required for all external actions.\n- Model latency will be treated as a performance issue, not a launch blocker.\n- The pilot audit trail will include model/version logging, tool calls, timestamps, and human approval status.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by Wednesday afternoon and evening, respectively. Additionally, implement model-version logging by Wednesday afternoon.\n- **Mira**: Confirm transcript retention requirements with InfoSec and Data Privacy and send your recommendation by Thursday noon.\n- **Marcus**: Once Rohan's changes are merged, please execute the user journey and distribute the release candidate by Wednesday evening.\n- **All**: Please flag any risks or delays immediately regarding the Wednesday build, Thursday confirmation, or pilot readiness.\n\nLet’s keep the momentum going as we prepare for the internal pilot next Friday. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+                "auditHash": "sha256:afa420d71123e2a46f3d40803917bcc7b44dc8a596f98d928f151b066cfa8c64",
+                "tokens": 3402,
+                "latencyMs": 0,
+                "costUsd": 0.00151,
+                "source": "agent",
+                "sourceNodeType": "agent",
+                "sourceNodeId": "agent-core",
+                "sourceNodeName": "MIA2"
+              },
+              {
+                "runNumber": 4,
+                "timestamp": "10:51:53 PM",
+                "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions will not be treated as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No configuration for transcript retention or deletion will be built until Mira confirms requirements with InfoSec and Data Privacy.\n4. **Jira Ticket Creation**: ARC/ARK will not automatically create Jira tickets or update external systems without human approval.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency Handling**: Latency is a performance issue but not a launch blocker unless response times become unacceptable.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday, focusing only on bug fixing and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging for the audit trail. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy about transcript-retention requirements and send a retention recommendation. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your contributions during our recent meeting. Below is a summary of the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions will only be created with explicit ownership or commitments.\n- Low-confidence items will be displayed separately as possible actions.\n- No transcript retention or deletion configurations will proceed until Mira confirms requirements with InfoSec and Data Privacy.\n- ARC/ARK will not create Jira tickets or update external systems without human approval.\n- The pilot audit trail must include detailed logging of actions.\n- Latency will be monitored, but it is not a launch blocker unless response times become unacceptable.\n- If the Wednesday-evening release candidate is stable, we will freeze new features on Thursday.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Kindly consult with InfoSec and Data Privacy and provide a retention recommendation by Thursday noon.\n- **Marcus**: Prepare to execute the user journey and distribute the release candidate after Rohan’s changes are merged.\n- **All**: Please flag any risks or delays immediately.\n\nLet’s ensure we stay on track for our upcoming deadlines. If you have any questions or need further clarification, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]  ",
+                "auditHash": "sha256:dfedc162b0650d80c56203d3f39c78868f842c5245cb4171a930532edb7d8558",
+                "tokens": 2518,
+                "latencyMs": 0,
+                "costUsd": 0.00111,
+                "source": "agent",
+                "sourceNodeType": "agent",
+                "sourceNodeId": "agent-core",
+                "sourceNodeName": "MIA2"
+              },
+              {
+                "runNumber": 5,
+                "timestamp": "10:54:07 PM",
+                "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+                "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
+                "tokens": 2663,
+                "latencyMs": 0,
+                "costUsd": 0.00118,
+                "source": "agent",
+                "sourceNodeType": "agent",
+                "sourceNodeId": "agent-core",
+                "sourceNodeName": "MIA2"
+              }
+            ],
+            "sourceNodeType": "agent",
+            "sourceNodeId": "agent-core",
+            "sourceNodeName": "MIA2",
+            "isExpanded": false,
+            "isDarkMode": false,
+            "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
+            "observability": {
+              "totalLatencyMs": 11683,
+              "totalTokens": 2663,
+              "modelUsed": "OpenAI (gpt-4o-mini)",
+              "provider": "openai",
+              "framework": "OpenAI Swarm",
+              "isLiveApi": true
+            },
+            "costUsd": 0.00118
+          },
+          "measured": {
+            "width": 140,
+            "height": 56
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-ingest-1527",
+          "type": "ingestionNode",
+          "position": {
+            "x": 473.86795213577284,
+            "y": 42.65497502918843
+          },
+          "data": {
+            "title": "Universal File & Audio Ingest",
+            "content": "",
+            "status": "idle",
+            "isExpanded": false,
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-trigger-7925",
+          "type": "triggerNode",
+          "position": {
+            "x": 350.7285905377582,
+            "y": 218.4340079453939
+          },
+          "data": {
+            "name": "Webhook Ingress #1",
+            "triggerType": "webhook",
+            "description": "Universal HTTP webhook endpoint. Subscribes to external systems, fast ACKs (200 OK), and dispatches payload.",
+            "config": {
+              "triggerType": "webhook",
+              "webhookPath": "/api/ingress/v1/wh_live",
+              "requireSecret": true,
+              "defaultPayload": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+            },
+            "lastFired": null,
+            "lastStatus": "idle",
+            "status": "idle",
+            "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-trigger-1501",
+          "type": "triggerNode",
+          "position": {
+            "x": 361.08398988768056,
+            "y": 318.28299602730306
+          },
+          "data": {
+            "name": "File Watcher #1",
+            "triggerType": "file",
+            "description": "Tactile file drop zone. Ingests local PDFs, text files, audio recordings, or CSVs and forwards into workflows.",
+            "config": {
+              "triggerType": "file",
+              "acceptedTypes": [
+                "pdf",
+                "txt",
+                "csv",
+                "json",
+                "mp3"
+              ],
+              "defaultPayload": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}"
+            },
+            "lastFired": null,
+            "lastStatus": "idle",
+            "status": "idle",
+            "payloadText": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": true,
+          "dragging": false
         }
       ],
-      "edges": [],
-      "createdAt": 1792161269173,
-      "updatedAt": 1792162283541,
+      "edges": [
+        {
+          "id": "edge-model",
+          "source": "node-model-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "model-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-ingest-1",
+          "source": "node-ingest-1",
+          "sourceHandle": "data-out",
+          "target": "agent-core",
+          "targetHandle": "tools-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#0091DA",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-policy",
+          "source": "node-policy-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "policy-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#470A68",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-memory",
+          "source": "node-memory-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "memory-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#483698",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-skill-1",
+          "source": "node-skill-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "skill-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#6D2077",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-output-1",
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "node-output-1",
+          "targetHandle": "data-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "node-output-8631",
+          "targetHandle": "data-in",
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          },
+          "id": "xy-edge__agent-coreout-node-output-8631data-in"
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "node-ingest-1527",
+          "sourceHandle": "data-out",
+          "target": "agent-core",
+          "targetHandle": "tools-in",
+          "style": {
+            "stroke": "#0091DA",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          },
+          "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "node-trigger-7925",
+          "sourceHandle": "trigger-out",
+          "target": "agent-core",
+          "targetHandle": "agent-in",
+          "style": {
+            "stroke": "#00A3A6",
+            "strokeWidth": 2.2,
+            "strokeDasharray": "5 4",
+            "filter": "none"
+          },
+          "id": "xy-edge__node-trigger-7925trigger-out-agent-coreagent-in"
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "node-trigger-1501",
+          "sourceHandle": "trigger-out",
+          "target": "agent-core",
+          "targetHandle": "agent-in",
+          "style": {
+            "stroke": "#00A3A6",
+            "strokeWidth": 2.2,
+            "strokeDasharray": "5 4",
+            "filter": "none"
+          },
+          "id": "xy-edge__node-trigger-1501trigger-out-agent-coreagent-in"
+        }
+      ],
+      "createdAt": 1792162747408,
+      "updatedAt": 1792171505213,
       "isStarred": false,
       "tags": [
-        "New"
+        "Meeting Intelligence",
+        "Audio Ingestion",
+        "Summarizer",
+        "PII Redactor"
       ],
       "stats": {
-        "nodeCount": 1,
+        "nodeCount": 9,
         "agentCount": 1,
         "mcpCount": 0,
-        "modelCount": 0,
-        "skillCount": 0,
+        "modelCount": 1,
+        "skillCount": 1,
         "toolCount": 0,
-        "policyCount": 0,
+        "policyCount": 1,
         "hasAudit": false
       },
       "isLocked": false,
@@ -433,7 +891,7 @@
         }
       ],
       "createdAt": 1729080000000,
-      "updatedAt": 1792162288392,
+      "updatedAt": 1792171043500,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -487,7 +945,18 @@
             "memory": 1,
             "policies": 1
           },
-          "isDarkMode": false
+          "isDarkMode": false,
+          "lastOutput": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+          "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
+          "observability": {
+            "totalLatencyMs": 11683,
+            "totalTokens": 2663,
+            "modelUsed": "OpenAI (gpt-4o-mini)",
+            "provider": "openai",
+            "framework": "OpenAI Swarm",
+            "isLiveApi": true
+          },
+          "costUsd": 0.00118
         },
         "measured": {
           "width": 228,
@@ -603,16 +1072,92 @@
         "data": {
           "name": "Final Output Viewer & Exporter",
           "title": "Final Output Viewer & Exporter",
-          "outputContent": "",
+          "outputContent": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
           "content": "",
-          "status": "idle",
+          "status": "ready",
           "format": "markdown",
-          "runsHistory": [],
-          "sourceNodeType": null,
-          "sourceNodeId": null,
-          "sourceNodeName": null,
+          "runsHistory": [
+            {
+              "runNumber": 1,
+              "timestamp": "9:51:55 PM",
+              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: For the pilot, confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Integration**: For the pilot, ARC will not automatically create Jira tickets, send emails, or update external systems. It can prepare or recommend an external action, but a human user must approve every execution.\n5. **Model Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n6. **Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n\n#### Action Items:\n1. **Rohan**: \n   - Modify the extraction logic to ensure confirmed actions are created only when there is an explicit owner, an explicit commitment, or both. Prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026.\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday evening build.\n     - **Deadline**: Wednesday evening, September 30, 2026.\n   - Add consistent model-version logging alongside the confidence-logic changes so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions.\n     - **Deadline**: Wednesday afternoon, September 30, 2026.\n\n2. **Mira**: \n   - Consult with InfoSec and Data Privacy about pilot transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing.\n     - **Deadline**: Thursday noon, October 1, 2026.\n\n3. **Marcus**: \n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday evening release candidate to the team.\n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged.\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**: \n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting.\n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting.\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in today's meeting. Below are the key decisions made and action items assigned:\n\n**Decisions:**\n- Confirmed action items for the pilot will only be created when there is an explicit owner or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention configurations will await confirmation from InfoSec and Data Privacy.\n- ARC will not automatically create Jira tickets or send emails during the pilot; human approval is required for all external actions.\n- Model latency will be treated as a performance issue, not a launch blocker.\n- The pilot audit trail will include model/version logging, tool calls, timestamps, and human approval status.\n\n**Action Items:**\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by Wednesday afternoon and evening, respectively. Also, add model-version logging by Wednesday afternoon.\n- **Mira**: Confirm transcript retention requirements with InfoSec and Data Privacy and send your recommendation by Thursday noon.\n- **Marcus**: Execute the complete user journey and distribute the release candidate by Wednesday evening, contingent on Rohan's changes being merged.\n- **All**: Please flag any risks or delays immediately regarding the Wednesday build, Thursday confirmation, audit logging, or pilot readiness.\n\nLet's keep communication open as we approach the pilot launch. Thank you for your hard work!\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]  ",
+              "auditHash": "sha256:34f7da20784b7ae36f2bdd793b47876dd3a90acd4ae3fed988bf95e004c52c49",
+              "tokens": 3472,
+              "latencyMs": 0,
+              "costUsd": 0.00154,
+              "source": "agent",
+              "sourceNodeType": "agent",
+              "sourceNodeId": "agent-core",
+              "sourceNodeName": "MIA2"
+            },
+            {
+              "runNumber": 2,
+              "timestamp": "9:58:20 PM",
+              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **External Actions**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging alongside the confidence-logic changes for the audit trail. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in the recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions can only be created with explicit ownership or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention configurations will await confirmation from InfoSec and Data Privacy.\n- ARC/ARK will not automatically create external actions without human approval.\n- The audit trail will include necessary logging for model/version and approval status.\n- Latency will be monitored, and the UI will indicate processing states.\n- A feature freeze will occur if the Wednesday-evening release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Your consultation with InfoSec is crucial; please prioritize this task.\n- **Marcus**: Prepare for the user journey execution post-Rohan’s changes.\n- **All**: Keep an eye on any potential delays and report them immediately.\n\nLet’s ensure we stay on track with our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+              "auditHash": "sha256:860720aa326f485135cf3927681fa55dab7ec1b848481d39d5e6c430ce6fd647",
+              "tokens": 2562,
+              "latencyMs": 0,
+              "costUsd": 0.00113,
+              "source": "agent",
+              "sourceNodeType": "agent",
+              "sourceNodeId": "agent-core",
+              "sourceNodeName": "MIA2"
+            },
+            {
+              "runNumber": 3,
+              "timestamp": "10:49:03 PM",
+              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: For the pilot, confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Integration**: For the pilot, ARC will not automatically create Jira tickets, send emails, or update external systems. It can prepare a proposed action, but a user must approve execution.\n5. **Model Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n6. **Audit Trail Requirements**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging alongside the confidence-logic changes to ensure the audit trail records necessary details. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy about transcript-retention requirements and send a retention recommendation by Thursday noon, October 1, 2026. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in today's meeting. Below is a summary of the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions will only be created when there is an explicit owner or commitment.\n- Low-confidence items will be displayed separately as possible actions.\n- Transcript retention requirements will be confirmed with InfoSec and Data Privacy before any configuration changes are made.\n- ARC will not automatically create Jira tickets or send emails; user approval will be required for all external actions.\n- Model latency will be treated as a performance issue, not a launch blocker.\n- The pilot audit trail will include model/version logging, tool calls, timestamps, and human approval status.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by Wednesday afternoon and evening, respectively. Additionally, implement model-version logging by Wednesday afternoon.\n- **Mira**: Confirm transcript retention requirements with InfoSec and Data Privacy and send your recommendation by Thursday noon.\n- **Marcus**: Once Rohan's changes are merged, please execute the user journey and distribute the release candidate by Wednesday evening.\n- **All**: Please flag any risks or delays immediately regarding the Wednesday build, Thursday confirmation, or pilot readiness.\n\nLet’s keep the momentum going as we prepare for the internal pilot next Friday. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+              "auditHash": "sha256:afa420d71123e2a46f3d40803917bcc7b44dc8a596f98d928f151b066cfa8c64",
+              "tokens": 3402,
+              "latencyMs": 0,
+              "costUsd": 0.00151,
+              "source": "agent",
+              "sourceNodeType": "agent",
+              "sourceNodeId": "agent-core",
+              "sourceNodeName": "MIA2"
+            },
+            {
+              "runNumber": 4,
+              "timestamp": "10:51:53 PM",
+              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions will not be treated as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No configuration for transcript retention or deletion will be built until Mira confirms requirements with InfoSec and Data Privacy.\n4. **Jira Ticket Creation**: ARC/ARK will not automatically create Jira tickets or update external systems without human approval.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency Handling**: Latency is a performance issue but not a launch blocker unless response times become unacceptable.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday, focusing only on bug fixing and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify extraction logic to ensure confirmed actions are created only with explicit ownership or commitment. (Deadline: Wednesday afternoon, September 30, 2026)\n   - Update the UI to present low-confidence items separately as possible actions. (Deadline: Wednesday evening, September 30, 2026)\n   - Add consistent model-version logging for the audit trail. (Deadline: Wednesday afternoon, September 30, 2026)\n\n2. **Mira**:\n   - Consult with InfoSec and Data Privacy about transcript-retention requirements and send a retention recommendation. (Deadline: Thursday noon, October 1, 2026)\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. (Deadline: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged)\n\n4. **All Action-Item Owners (Rohan, Mira, Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness. (Deadline: Immediately upon identifying a risk or delay)\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your contributions during our recent meeting. Below is a summary of the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed actions will only be created with explicit ownership or commitments.\n- Low-confidence items will be displayed separately as possible actions.\n- No transcript retention or deletion configurations will proceed until Mira confirms requirements with InfoSec and Data Privacy.\n- ARC/ARK will not create Jira tickets or update external systems without human approval.\n- The pilot audit trail must include detailed logging of actions.\n- Latency will be monitored, but it is not a launch blocker unless response times become unacceptable.\n- If the Wednesday-evening release candidate is stable, we will freeze new features on Thursday.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Kindly consult with InfoSec and Data Privacy and provide a retention recommendation by Thursday noon.\n- **Marcus**: Prepare to execute the user journey and distribute the release candidate after Rohan’s changes are merged.\n- **All**: Please flag any risks or delays immediately.\n\nLet’s ensure we stay on track for our upcoming deadlines. If you have any questions or need further clarification, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]  ",
+              "auditHash": "sha256:dfedc162b0650d80c56203d3f39c78868f842c5245cb4171a930532edb7d8558",
+              "tokens": 2518,
+              "latencyMs": 0,
+              "costUsd": 0.00111,
+              "source": "agent",
+              "sourceNodeType": "agent",
+              "sourceNodeId": "agent-core",
+              "sourceNodeName": "MIA2"
+            },
+            {
+              "runNumber": 5,
+              "timestamp": "10:54:07 PM",
+              "content": "### Meeting Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: Confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displayed separately as possible actions rather than confirmed actions.\n3. **Transcript Retention**: No transcript-retention or deletion configuration will be built until Mira confirms requirements with InfoSec and Data Privacy. If immediate raw-transcript deletion is required, the likely approach is to retain structured approved intelligence while deleting the raw transcript after processing.\n4. **Jira Ticket Creation**: For the pilot, ARC/ARK will not automatically create Jira tickets, send emails, or update external systems. It may prepare or recommend an external action, but a human user must approve every execution.\n5. **Pilot Audit Trail**: The pilot audit trail must record the model and model version, tool calls, timestamps, and whether a human approved an action.\n6. **Latency**: Latency is a performance issue rather than a launch blocker unless average response time becomes unacceptable; the UI should show a processing state while requests are running.\n7. **Feature Freeze**: If the Wednesday-evening release candidate is stable, new features will freeze on Thursday. Thursday is limited to bug fixing, data-retention confirmation, and pilot preparation.\n\n#### Action Items:\n1. **Rohan**:\n   - Modify the extraction logic so a confirmed action is created only when there is an explicit owner, an explicit commitment, or both; prevent vague suggestions from being treated as confirmed commitments. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n   - Update the UI to present low-confidence items separately as possible actions rather than confirmed actions, and include the change in the Wednesday-evening build. \n     - **Deadline**: Wednesday evening, September 30, 2026\n   - Add consistent model-version logging alongside the confidence-logic change so the audit trail records the model/version, tool calls, timestamps, and human-approval status for actions. \n     - **Deadline**: Wednesday afternoon, September 30, 2026\n\n2. **Mira**:\n   - Consult InfoSec and Data Privacy on transcript-retention requirements and send a retention recommendation, including whether raw transcripts must be deleted immediately after processing. \n     - **Deadline**: Thursday noon, October 1, 2026\n\n3. **Marcus**:\n   - After Rohan’s changes are merged, execute the complete user journey and distribute the Wednesday-evening release candidate to the team. \n     - **Deadline**: Wednesday evening, September 30, 2026, conditional on Rohan’s changes being merged\n\n4. **All Action-Item Owners (Rohan, Mira, and Marcus)**:\n   - Immediately flag any slip affecting the Wednesday build, Thursday retention confirmation, audit logging, release-candidate validation, or pilot readiness, rather than waiting for the next meeting. \n     - **Deadline**: Immediately upon identifying a risk or delay, and before the next meeting\n\n### Follow-Up Communication Draft\n\nSubject: Follow-Up on Meeting Decisions and Action Items\n\nDear Team,\n\nThank you for your participation in our recent meeting. Below are the key decisions made and the action items assigned:\n\n#### Key Decisions:\n- Confirmed action items can only be created with explicit owners or commitments.\n- Low-confidence items will be displayed separately.\n- Transcript retention configurations are pending confirmation from InfoSec and Data Privacy.\n- Jira ticket creation will require human approval.\n- The pilot audit trail will log essential details.\n- Latency will be monitored but is not a launch blocker.\n- Feature freeze will occur if the Wednesday release candidate is stable.\n\n#### Action Items:\n- **Rohan**: Please ensure the extraction logic and UI updates are completed by the deadlines specified.\n- **Mira**: Consult with InfoSec and Data Privacy regarding transcript retention by Thursday noon.\n- **Marcus**: Prepare to execute the user journey post-Rohan's changes.\n- **All**: Flag any risks or delays immediately.\n\nLet’s keep each other updated on our progress and ensure we meet our deadlines. If you have any questions or need assistance, feel free to reach out.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Contact Information]",
+              "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
+              "tokens": 2663,
+              "latencyMs": 0,
+              "costUsd": 0.00118,
+              "source": "agent",
+              "sourceNodeType": "agent",
+              "sourceNodeId": "agent-core",
+              "sourceNodeName": "MIA2"
+            }
+          ],
+          "sourceNodeType": "agent",
+          "sourceNodeId": "agent-core",
+          "sourceNodeName": "MIA2",
           "isExpanded": false,
-          "isDarkMode": false
+          "isDarkMode": false,
+          "auditHash": "sha256:67979b4b1f43db97a36d40a332a6c49882f115dfe93865ec14d090dfc7349aab",
+          "observability": {
+            "totalLatencyMs": 11683,
+            "totalTokens": 2663,
+            "modelUsed": "OpenAI (gpt-4o-mini)",
+            "provider": "openai",
+            "framework": "OpenAI Swarm",
+            "isLiveApi": true
+          },
+          "costUsd": 0.00118
         },
         "measured": {
           "width": 140,
@@ -634,6 +1179,69 @@
           "status": "idle",
           "isExpanded": false,
           "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-trigger-7925",
+        "type": "triggerNode",
+        "position": {
+          "x": 350.7285905377582,
+          "y": 218.4340079453939
+        },
+        "data": {
+          "name": "Webhook Ingress #1",
+          "triggerType": "webhook",
+          "description": "Universal HTTP webhook endpoint. Subscribes to external systems, fast ACKs (200 OK), and dispatches payload.",
+          "config": {
+            "triggerType": "webhook",
+            "webhookPath": "/api/ingress/v1/wh_live",
+            "requireSecret": true,
+            "defaultPayload": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+          },
+          "lastFired": null,
+          "lastStatus": "idle",
+          "status": "idle",
+          "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-trigger-1501",
+        "type": "triggerNode",
+        "position": {
+          "x": 361.08398988768056,
+          "y": 318.28299602730306
+        },
+        "data": {
+          "name": "File Watcher #1",
+          "triggerType": "file",
+          "description": "Tactile file drop zone. Ingests local PDFs, text files, audio recordings, or CSVs and forwards into workflows.",
+          "config": {
+            "triggerType": "file",
+            "acceptedTypes": [
+              "pdf",
+              "txt",
+              "csv",
+              "json",
+              "mp3"
+            ],
+            "defaultPayload": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}"
+          },
+          "lastFired": null,
+          "lastStatus": "idle",
+          "status": "idle",
+          "payloadText": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}"
         },
         "measured": {
           "width": 140,
@@ -757,20 +1365,52 @@
           "strokeDasharray": "4 4"
         },
         "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "node-trigger-7925",
+        "sourceHandle": "trigger-out",
+        "target": "agent-core",
+        "targetHandle": "agent-in",
+        "style": {
+          "stroke": "#00A3A6",
+          "strokeWidth": 2.2,
+          "strokeDasharray": "5 4",
+          "filter": "none"
+        },
+        "id": "xy-edge__node-trigger-7925trigger-out-agent-coreagent-in"
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "node-trigger-1501",
+        "sourceHandle": "trigger-out",
+        "target": "agent-core",
+        "targetHandle": "agent-in",
+        "style": {
+          "stroke": "#00A3A6",
+          "strokeWidth": 2.2,
+          "strokeDasharray": "5 4",
+          "filter": "none"
+        },
+        "id": "xy-edge__node-trigger-1501trigger-out-agent-coreagent-in"
       }
     ],
     "activeUseCase": {
-      "id": "uc-meeting-intel",
-      "name": "MIA2",
-      "description": "Autonomous multi-speaker synthesis, action items with owners, and task sync.",
+      "id": "uc-wf-1792162747408-90syy",
+      "name": "Functionality Extension 1",
+      "description": "To Test different functionalities of the product",
       "framework": {
-        "id": "langchain",
-        "name": "LangChain",
-        "subtitle": "Composable LCEL chains and agent toolkits",
-        "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
-        "defaultModel": "claude-3-5-sonnet",
+        "id": "openai-swarm",
+        "name": "OpenAI Swarm",
+        "subtitle": "Ergonomic multi-agent routine & handoff orchestration",
+        "description": "Lightweight, client-side multi-agent coordination with native function calling and dynamic agent handoffs.",
+        "defaultModel": "gpt-4o",
         "exportExtension": ".py",
-        "category": "Chains"
+        "category": "Routines"
       },
       "agent": {
         "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
@@ -780,5 +1420,5 @@
     },
     "version": "v7_real_mcp_engine"
   },
-  "syncedAt": 1792162289202
+  "syncedAt": 1792171530962
 }

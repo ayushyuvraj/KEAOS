@@ -58,7 +58,9 @@ import DeletableEdge from './edges/DeletableEdge';
 import OutputDisplayNode from './nodes/OutputDisplayNode';
 import IngestionNode from './nodes/IngestionNode';
 import DeterministicNode from './nodes/DeterministicNode';
+import TriggerNode from './nodes/TriggerNode';
 import { executeDeterministicTask } from '../services/deterministicRunner';
+import { fireTriggerEvent, disarmScheduleTrigger, disarmPollingWatcher } from '../services/triggerEngine';
 import { loadCanvasViewport, saveCanvasViewport } from '../utils/persistentState';
 
 const nodeTypes = {
@@ -66,7 +68,8 @@ const nodeTypes = {
   pillar: PillarNode,
   outputNode: OutputDisplayNode,
   ingestionNode: IngestionNode,
-  deterministicNode: DeterministicNode
+  deterministicNode: DeterministicNode,
+  triggerNode: TriggerNode
 };
 
 const edgeTypes = {
@@ -578,6 +581,99 @@ function CanvasInner({
     return () => window.removeEventListener('keaos:deterministic-code-updated', handleDeterministicCodeUpdated);
   }, [setNodes]);
 
+  // Listen for real-time Trigger Firing events from Trigger Nodes
+  useEffect(() => {
+    const handleFireTriggerNode = async (e) => {
+      const detail = e.detail;
+      if (!detail || !detail.nodeId) return;
+
+      const triggerNode = (nodes || []).find((n) => n.id === detail.nodeId);
+      if (!triggerNode) return;
+
+      setToastNotification(`⚡ Fired Trigger: "${triggerNode.data?.name || 'Manual Dispatch'}"`);
+      setTimeout(() => setToastNotification((curr) => (curr?.startsWith('⚡ Fired Trigger') ? null : curr)), 2000);
+
+      try {
+        let payload = null;
+        if (detail.payloadText) {
+          try {
+            payload = JSON.parse(detail.payloadText);
+          } catch {
+            payload = { text: detail.payloadText };
+          }
+        }
+
+        const result = await fireTriggerEvent({
+          triggerNode,
+          nodes,
+          edges,
+          payload
+        });
+
+        if (result?.orphaned) {
+          setToastNotification(`ℹ️ Trigger fired, but no active downstream agent or box is connected.`);
+          setTimeout(() => setToastNotification(null), 3000);
+        }
+      } catch (err) {
+        console.error('Trigger execution error:', err);
+        setToastNotification(`❌ Trigger Error: ${err.message}`);
+        setTimeout(() => setToastNotification(null), 3500);
+      }
+    };
+
+    window.addEventListener('keaos:fire-trigger-node', handleFireTriggerNode);
+    return () => window.removeEventListener('keaos:fire-trigger-node', handleFireTriggerNode);
+  }, [nodes, edges]);
+
+  // Listen for trigger wire pulse animation
+  useEffect(() => {
+    const handleTriggerPulse = (e) => {
+      const { triggerId } = e.detail || {};
+      if (!triggerId) return;
+
+      setEdges((eds) =>
+        eds.map((ed) => {
+          if (ed.source === triggerId) {
+            return {
+              ...ed,
+              animated: true,
+              style: {
+                ...ed.style,
+                stroke: '#00A3A6',
+                strokeWidth: 3.5,
+                filter: 'drop-shadow(0 0 8px rgba(0, 163, 166, 0.8))'
+              }
+            };
+          }
+          return ed;
+        })
+      );
+
+      setTimeout(() => {
+        setEdges((eds) =>
+          eds.map((ed) => {
+            if (ed.source === triggerId) {
+              return {
+                ...ed,
+                animated: true,
+                style: {
+                  ...ed.style,
+                  stroke: '#00A3A6',
+                  strokeWidth: 2.2,
+                  filter: 'none'
+                }
+              };
+            }
+            return ed;
+          })
+        );
+      }, 1500);
+    };
+
+    window.addEventListener('keaos:trigger-pulse', handleTriggerPulse);
+    return () => window.removeEventListener('keaos:trigger-pulse', handleTriggerPulse);
+  }, [setEdges]);
+
   // Listen for spawn-output-node event (e.g. from agent [+] button)
   useEffect(() => {
     const handleSpawnOutput = (e) => {
@@ -856,6 +952,8 @@ function CanvasInner({
   const handleDeleteNode = useCallback((nodeId) => {
     if (isWorkflowLocked) return;
     takeSnapshot();
+    disarmScheduleTrigger(nodeId);
+    disarmPollingWatcher(nodeId);
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     if (onSelectNode) {
@@ -1029,6 +1127,12 @@ function CanvasInner({
       clonedData.title = 'Output Viewer';
     }
 
+    if (nodeToClone.type === 'triggerNode') {
+      clonedData.lastFired = null;
+      clonedData.lastStatus = 'idle';
+      clonedData.name = `${nodeToClone.data?.name || 'Trigger'} (Copy)`;
+    }
+
     const clonedNode = {
       ...JSON.parse(JSON.stringify(nodeToClone)),
       id: newId,
@@ -1138,6 +1242,13 @@ function CanvasInner({
       }
 
       window.dispatchEvent(new CustomEvent('keaos:execute-workflow', { detail: { agentId: nodeId } }));
+      return;
+    }
+
+    if (node.type === 'triggerNode') {
+      window.dispatchEvent(new CustomEvent('keaos:fire-trigger-node', {
+        detail: { nodeId, payloadText: node.data?.payloadText }
+      }));
       return;
     }
 
@@ -1389,6 +1500,16 @@ function CanvasInner({
         return true;
       }
 
+      // 5. Trigger Node feeding Agent Core or Deterministic Box
+      if (sourceNode.type === 'triggerNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode') {
+          return true;
+        }
+      }
+      if (targetNode.type === 'triggerNode') {
+        return false;
+      }
+
       // If user drags directly from other non-mcp nodes into gateway, show alert
       if (targetNode.type === 'pillar' && targetNode.data?.pillarType === 'gateway') {
         setInvalidConnectionAlert({
@@ -1515,6 +1636,10 @@ function CanvasInner({
       } else if (sourceNode?.type === 'deterministicNode' || targetNode?.type === 'deterministicNode') {
         strokeColor = '#EAAA00'; // Amber Gold for Deterministic Stream
         strokeWidth = 2.0;
+        strokeDasharray = '5 4';
+      } else if (sourceNode?.type === 'triggerNode' || targetNode?.type === 'triggerNode') {
+        strokeColor = '#00A3A6'; // Cyber Teal for Trigger Ingress Stream
+        strokeWidth = 2.2;
         strokeDasharray = '5 4';
       }
 
@@ -1726,7 +1851,8 @@ function CanvasInner({
         (n.type === 'agentCore' && !executionState.nodeId && !executionState.activeAgentId) ||
         (n.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
         (n.data?.pillarType && n.data.pillarType === executionState.pillarType) ||
-        (n.type === 'deterministicNode' && (executionState.nodeId === n.id || executionState.step?.includes('Deterministic')))
+        (n.type === 'deterministicNode' && (executionState.nodeId === n.id || executionState.step?.includes('Deterministic'))) ||
+        (n.type === 'triggerNode' && executionState.nodeId === n.id)
       );
 
       // Dynamically calculate attachedCounts and connectedModelName specifically for THIS agent node

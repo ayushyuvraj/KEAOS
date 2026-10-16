@@ -31,9 +31,27 @@ import {
   Search,
   Code2,
   MessageSquare,
-  Lock
+  Lock,
+  Zap,
+  Clock,
+  Webhook,
+  FolderDown,
+  Activity,
+  Copy,
+  Calendar,
+  Play,
+  Radio
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
+import TriggerInspectorPanel from './TriggerInspectorPanel';
+import { 
+  armScheduleTrigger, 
+  disarmScheduleTrigger, 
+  getScheduleStatus, 
+  processFileForTrigger, 
+  armPollingWatcher, 
+  disarmPollingWatcher 
+} from '../services/triggerEngine';
 import { 
   groupToolsByCategory,
   identifyMcpService,
@@ -1350,16 +1368,20 @@ export default function Inspector({
             <div className={`p-4 ${t.card} rounded-2xl space-y-2`}>
               <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.subText} block font-mono flex items-center justify-between`}>
                 <span className="flex items-center gap-1.5">
-                  Pillar Category
-                  <InfoTooltip text="Which of the 10 core AI pillars (Skills, MCP, Tools, Gateway, Memory, Guardrails, etc.) this component belongs to." align="left" />
+                  Category
+                  <InfoTooltip text="Component role and connectivity profile in the workspace." align="left" />
                 </span>
                 <span className="text-[10px] font-mono px-2.5 py-0.5 bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30 rounded-full font-semibold">
-                  Socket: {pillarDef?.socketId}
+                  Socket: {selectedNode.type === 'triggerNode' ? 'trigger-out' : pillarDef?.socketId}
                 </span>
               </span>
               <div className={`p-3 ${t.subCard} rounded-xl flex items-center justify-between`}>
-                <span className={`text-xs font-bold ${t.title} capitalize`}>{nodeData.pillarType}</span>
-                <span className={`text-[10px] font-mono ${t.subText}`}>Pillar Block</span>
+                <span className={`text-xs font-bold ${t.title} capitalize`}>
+                  {selectedNode.type === 'triggerNode' ? 'Triggers & Ingress' : nodeData.pillarType}
+                </span>
+                <span className={`text-[10px] font-mono ${t.subText}`}>
+                  {selectedNode.type === 'triggerNode' ? 'Trigger Node' : 'Pillar Block'}
+                </span>
               </div>
             </div>
 
@@ -1370,7 +1392,7 @@ export default function Inspector({
               </label>
               <input
                 type="text"
-                value={nodeData.name}
+                value={nodeData.name || ''}
                 onChange={(e) => onUpdateNodeData(selectedNode.id, { name: e.target.value })}
                 className={`w-full px-3.5 py-2.5 text-xs rounded-xl transition-all ${t.input}`}
               />
@@ -1383,11 +1405,23 @@ export default function Inspector({
               </label>
               <textarea
                 rows={3}
-                value={nodeData.description}
+                value={nodeData.description || ''}
                 onChange={(e) => onUpdateNodeData(selectedNode.id, { description: e.target.value })}
                 className={`w-full p-3 text-xs leading-relaxed rounded-xl resize-none transition-all ${t.input}`}
               />
             </div>
+
+            {/* Trigger Configuration & Ingress Bench */}
+            {selectedNode.type === 'triggerNode' && (
+              <TriggerInspectorPanel
+                selectedNode={selectedNode}
+                nodes={nodes}
+                edges={edges}
+                onUpdateNodeData={onUpdateNodeData}
+                isDarkMode={isDarkMode}
+                t={t}
+              />
+            )}
 
             {/* Exposed MCP Tools & Capabilities with Full Connection Basis */}
             {nodeData.pillarType === 'mcp' && (() => {

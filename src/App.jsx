@@ -33,6 +33,7 @@ import { getAllConfiguredProviders } from './services/llmService';
 import { FRAMEWORKS } from './constants/frameworks';
 import { PILLARS } from './constants/pillars';
 import { DEFAULT_THRESHOLDS } from './constants/goldenDataset';
+import { disarmScheduleTrigger, disarmPollingWatcher } from './services/triggerEngine';
 import {
   identifyMcpService,
   SLACK_OFFICIAL_ACTIONS,
@@ -981,6 +982,8 @@ export default function App() {
 
   // Handle deleting a node
   const handleDeleteNode = useCallback((nodeId) => {
+    disarmScheduleTrigger(nodeId);
+    disarmPollingWatcher(nodeId);
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     setSelectedNode((curr) => (curr?.id === nodeId ? null : curr));
@@ -1246,6 +1249,46 @@ export default function App() {
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `⚡ Added Deterministic Logic Box to Canvas` }
+      }));
+      return;
+    }
+
+    if (pillarKey === 'triggers' || pillarKey === 'triggerNode' || item?.isTriggerNode) {
+      const newNodeId = `node-trigger-${Date.now().toString().slice(-4)}`;
+      let count = 1;
+      setNodes((nds) => {
+        const trgType = item.config?.triggerType || 'manual';
+        const existingSameType = nds.filter(n => n.type === 'triggerNode' && (n.data?.triggerType === trgType));
+        count = existingSameType.length + 1;
+        const existingAllTriggers = nds.filter(n => n.type === 'triggerNode');
+        const agentNode = nds.find(n => n.type === 'agentCore');
+        const xPos = agentNode ? agentNode.position.x - 320 : 180;
+        const yPos = agentNode 
+          ? agentNode.position.y + (existingAllTriggers.length * 90) 
+          : 220 + (existingAllTriggers.length * 90);
+
+        const newNode = {
+          id: newNodeId,
+          type: 'triggerNode',
+          position: { x: xPos, y: yPos },
+          data: {
+            name: `${item.name || 'Trigger'} #${count}`,
+            triggerType: trgType,
+            description: item.description,
+            config: { ...(item.config || {}) },
+            lastFired: null,
+            lastStatus: 'idle',
+            status: 'idle',
+            payloadText: item.config?.defaultPayload || '{\n  "source": "manual_dispatch",\n  "test": true\n}'
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `⚡ Added Trigger (${item.name}) to Canvas` }
       }));
       return;
     }

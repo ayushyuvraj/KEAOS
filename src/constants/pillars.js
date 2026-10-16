@@ -412,7 +412,9 @@ export const SOCKET_RULES = {
   'tools-in': 'tools',
   'agent-in': 'agentCore',
   'in': 'deterministicNode',
-  'out': 'deterministicNode'
+  'out': 'deterministicNode',
+  'trigger-out': 'triggerNode',
+  'trigger-in': 'triggerNode'
 };
 
 
