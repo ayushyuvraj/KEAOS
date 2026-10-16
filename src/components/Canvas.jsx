@@ -1389,6 +1389,10 @@ function CanvasInner({
       if (key === 'F2') {
         e.preventDefault();
         if (isWorkflowLocked) return;
+        if (targetNode.type === 'agentCore') {
+          window.dispatchEvent(new CustomEvent('keaos:edit-agent-name', { detail: { agentId: targetNode.id } }));
+          return;
+        }
         const currentName = targetNode.data?.name || '';
         const newName = window.prompt(`Rename "${currentName}":`, currentName);
         if (newName && newName.trim() && newName.trim() !== currentName) {

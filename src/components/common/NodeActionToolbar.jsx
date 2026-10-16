@@ -231,9 +231,13 @@ export default function NodeActionToolbar({
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsMenuOpen(false);
-                    const newName = window.prompt(`Rename "${nodeName}":`, nodeName);
-                    if (newName && newName.trim() && newName.trim() !== nodeName) {
-                      onRename(nodeId, newName.trim());
+                    // Activate inline editing directly on the canvas token
+                    window.dispatchEvent(new CustomEvent('keaos:edit-agent-name', { detail: { agentId: nodeId } }));
+                    if (!nodeId.includes('agent')) {
+                      const newName = window.prompt(`Rename "${nodeName}":`, nodeName);
+                      if (newName && newName.trim() && newName.trim() !== nodeName) {
+                        onRename(nodeId, newName.trim());
+                      }
                     }
                   }}
                   className={`w-full px-3 py-1.5 flex items-center justify-between text-left transition-colors ${

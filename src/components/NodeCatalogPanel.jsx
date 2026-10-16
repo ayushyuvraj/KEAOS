@@ -164,22 +164,12 @@ const NODE_CATEGORIES = [
     items: [
       {
         id: 'agent-core-primary',
-        name: 'Autonomous Agent Core',
-        description: 'Central reasoning engine, authoritative instruction prompts, multi-SDK code synthesis, and typed socket coordinator.',
+        name: 'Autonomous Agent',
+        description: 'Primary reasoning core, persona directive instructions, multi-SDK code synthesis, and typed socket coordinator.',
         config: {
           framework: 'google-adk',
           temperature: 0.2,
           topP: 0.95
-        }
-      },
-      {
-        id: 'agent-sub-orchestrator',
-        name: 'Specialized Sub-Agent',
-        description: 'Delegated sub-agent instance for distributed multi-agent workflows, task routing, and parallel execution.',
-        config: {
-          framework: 'google-adk',
-          temperature: 0.1,
-          topP: 0.90
         }
       }
     ]

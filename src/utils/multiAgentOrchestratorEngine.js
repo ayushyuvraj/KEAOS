@@ -27,6 +27,32 @@ async function generateSha256Fingerprint(dataString) {
 }
 
 /**
+ * Detect dynamic conditional routing directives from upstream agent outputs
+ */
+export function extractRoutingTarget(upstreamOutputs = []) {
+  for (const up of upstreamOutputs) {
+    if (!up || !up.output) continue;
+    const text = typeof up.output === 'string' ? up.output : JSON.stringify(up.output);
+
+    // 1. JSON-formatted route directive e.g. { "route_to": "Agent B" }
+    const jsonMatch = text.match(/\{[\s\S]*?"(?:route_to|target_agent|delegate_to|assigned_agent|selected_agent|recipient_agent)"\s*:\s*"([^"]+)"[\s\S]*?\}/i);
+    if (jsonMatch && jsonMatch[1]) {
+      return jsonMatch[1].trim();
+    }
+
+    // 2. Explicit header directive e.g. "ROUTE TO: Agent B" or "[ROUTE TO: Agent B]" or "DISPATCH TO: Agent B"
+    const headerMatch = text.match(/(?:\[?\s*(?:ROUTE|DISPATCH|DELEGATE|ASSIGN|TARGET|SELECTED)\s+(?:TO|AGENT|RECIPIENT)?\s*\]?\s*:\s*|\*?\*?(?:Route To|Dispatch To|Target Agent|Assigned Agent)\*?\*?:\s*)([^\n\r,\.]+)/i);
+    if (headerMatch && headerMatch[1]) {
+      const candidate = headerMatch[1].trim().replace(/^\[|\]$/g, '').replace(/^\*|\*$/g, '').trim();
+      if (candidate.length > 0 && candidate.length < 60) {
+        return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Parse Canvas Graph and Partition Agents into Topological Execution Tiers / Stages
  */
 export function buildMultiAgentDAG(nodes = [], edges = []) {
@@ -132,7 +158,7 @@ async function executeSingleAgentInPipeline({
   const agentName = agentNode.data?.name || 'AI Agent';
   const frameworkId = agentNode.data?.framework?.id || 'google-adk';
   const frameworkName = agentNode.data?.framework?.name || 'Google ADK';
-  const agentRole = agentNode.data?.role || 'specialist';
+  const agentRole = agentNode.data?.role || null;
 
   const attachedPillars = getAgentAttachedPillars(agentId, allNodes, allEdges);
   const startTime = performance.now();
@@ -151,7 +177,7 @@ async function executeSingleAgentInPipeline({
     }
   };
 
-  logStep('Ingress & Scheduling', `Starting ${agentName} (${frameworkName} - ${agentRole.toUpperCase()})`, 'gateway', 30);
+  logStep('Ingress & Scheduling', `Starting ${agentName} (${frameworkName}${agentRole ? ` - ${agentRole.toUpperCase()}` : ''})`, 'gateway', 30);
 
   // 1. INGRESS COMPILATION & A2A PAYLOAD ASSEMBLY
   let taskPayload = '';
@@ -208,7 +234,7 @@ async function executeSingleAgentInPipeline({
 
   // 5. ASSEMBLE PROMPT
   const basePrompt = agentNode.data?.prompt || `You are ${agentName}, an autonomous enterprise agent running on ${frameworkName}.`;
-  const roleContext = `\n[YOUR ARCHITECTURAL ROLE IN THE MULTI-AGENT GRAPH]: ${agentRole.toUpperCase()} under ${frameworkName}.`;
+  const roleContext = agentRole ? `\n[YOUR ARCHITECTURAL ROLE IN THE MULTI-AGENT GRAPH]: ${agentRole.toUpperCase()} under ${frameworkName}.` : '';
   const skillsContext = skillNodes.length > 0
     ? `\n[ATTACHED SKILLS]:\n${skillNodes.map(s => `- ${s.name}: ${s.description || 'Custom Skill'}`).join('\n')}`
     : '';
@@ -404,6 +430,48 @@ export async function executeMultiAgentWorkflow({
           return null;
         })
         .filter(Boolean);
+
+      // Check for dynamic conditional routing from upstream orchestrator
+      const targetAgentName = extractRoutingTarget(upstreamAgentOutputs);
+      const myName = (agent.data?.name || '').toLowerCase();
+      const isTargeted = !targetAgentName || 
+                         myName.includes(targetAgentName.toLowerCase()) || 
+                         targetAgentName.toLowerCase().includes(myName);
+
+      if (!isTargeted) {
+        // Dynamic Router Gate: Bypass non-selected downstream agents with 0 tokens consumed
+        const bypassResult = {
+          agentId: agent.id,
+          agentName: agent.data?.name || 'AI Agent',
+          frameworkName: agent.data?.framework?.name || 'Google ADK',
+          role: agent.data?.role || 'Specialist',
+          output: `[DYNAMIC ROUTER BYPASS]: Task was routed specifically to "${targetAgentName}". ${agent.data?.name || 'This agent'} was bypassed with 0 tokens consumed.`,
+          auditHash: 'ROUTER-BYPASS-0-TOKENS',
+          tokens: 0,
+          costUsd: 0,
+          latencyMs: 5,
+          provider: 'router',
+          modelId: 'bypassed',
+          isBypassed: true,
+          timestamp: new Date().toLocaleTimeString()
+        };
+
+        window.dispatchEvent(new CustomEvent('keaos:agent-step-progress', {
+          detail: {
+            agentId: agent.id,
+            agentName: agent.data?.name || 'AI Agent',
+            frameworkName: agent.data?.framework?.name || 'Google ADK',
+            step: 'Dynamic Router Gate',
+            detail: `Bypassed — Upstream orchestrator routed task specifically to "${targetAgentName}"`,
+            pillarType: 'gateway',
+            timestamp: new Date().toLocaleTimeString()
+          }
+        }));
+
+        agentOutputs[agent.id] = bypassResult;
+        if (onAgentComplete) onAgentComplete(bypassResult);
+        return bypassResult;
+      }
 
       // Pulse canvas state for this active agent
       window.dispatchEvent(new CustomEvent('keaos:set-active-agent-pulse', {

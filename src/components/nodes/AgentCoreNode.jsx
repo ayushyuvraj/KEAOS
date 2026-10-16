@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { 
   Plus, 
   MessageSquare, 
   X, 
   GitFork, 
-  Bot 
+  Bot,
+  Edit3,
+  ChevronDown
 } from 'lucide-react';
+import { FRAMEWORKS } from '../../constants/frameworks';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
 export default function AgentCoreNode({ id, data, selected }) {
@@ -28,6 +31,69 @@ export default function AgentCoreNode({ id, data, selected }) {
     onRename,
     onOpenCatalog
   } = data;
+
+  // Direct Inline Editable Agent Name state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [localName, setLocalName] = useState(name || 'AI Agent');
+  const nameInputRef = useRef(null);
+
+  // Keep local name synchronized with incoming name prop
+  useEffect(() => {
+    setLocalName(name || 'AI Agent');
+  }, [name]);
+
+  // Focus and select input on entering edit mode
+  useEffect(() => {
+    if (isEditingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [isEditingName]);
+
+  // Listen for canvas event to edit this specific agent's name (e.g. F2 or context menu)
+  useEffect(() => {
+    const handleEditEvent = (e) => {
+      if (Boolean(data?.isLocked)) return;
+      if (e.detail?.agentId === id) {
+        setIsEditingName(true);
+      }
+    };
+    window.addEventListener('keaos:edit-agent-name', handleEditEvent);
+    return () => window.removeEventListener('keaos:edit-agent-name', handleEditEvent);
+  }, [id, data?.isLocked]);
+
+  const handleNameSubmit = () => {
+    setIsEditingName(false);
+    const trimmed = localName.trim() || name || 'AI Agent';
+    setLocalName(trimmed);
+    if (trimmed !== name) {
+      if (onRename) {
+        onRename(id, trimmed);
+      }
+      if (data?.onUpdateNodeData) {
+        data.onUpdateNodeData(id, { name: trimmed });
+      }
+      window.dispatchEvent(new CustomEvent('keaos:agent-name-updated', {
+        detail: { agentId: id, name: trimmed }
+      }));
+    }
+  };
+
+  const handleNameCancel = () => {
+    setIsEditingName(false);
+    setLocalName(name || 'AI Agent');
+  };
+
+  const handleNameKeyDown = (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleNameSubmit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleNameCancel();
+    }
+  };
 
   const hasModel = (attachedCounts?.model || 0) > 0;
   const inheritedModelName = data?.inheritedModelName;
@@ -402,7 +468,7 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* ============================================================ */}
         {/* AGENT IDENTITY / AUDIO SPEAKER GRILLE                        */}
         {/* ============================================================ */}
-        <div className="mt-1 flex flex-col items-center text-center">
+        <div className="mt-1 flex flex-col items-center text-center w-full px-1">
           {/* Mini Speaker Grille Slots */}
           <div className="flex items-center justify-center gap-1 mb-0.5 opacity-50">
             <span className={`w-2.5 h-0.5 rounded-full ${isDarkMode ? 'bg-slate-400' : 'bg-slate-500'}`} />
@@ -410,21 +476,99 @@ export default function AgentCoreNode({ id, data, selected }) {
             <span className={`w-2.5 h-0.5 rounded-full ${isDarkMode ? 'bg-slate-400' : 'bg-slate-500'}`} />
           </div>
 
-          <h3 className={`text-[11px] font-bold tracking-tight truncate max-w-[180px] transition-colors ${
-            isDeactivated
-              ? 'line-through text-slate-500'
-              : isDarkMode ? 'text-white' : 'text-[#0B0F19]'
-          }`}>
-            {name || 'AI Agent'}
-          </h3>
-          <div className="flex items-center justify-center gap-1.5 mt-0.5">
-            <span className={`text-[8px] font-mono font-medium uppercase tracking-wider transition-colors ${
-              isDeactivated
-                ? 'text-amber-500 font-bold'
-                : isDarkMode ? 'text-slate-400' : 'text-slate-600'
-            }`}>
-              {isDeactivated ? 'Deactivated' : (framework?.name || 'Workflow Orchestrator')}
-            </span>
+          {/* Direct Inline Editable Agent Name — Mathematically Centered directly below Eyes */}
+          <div className="w-full flex justify-center items-center my-0.5" onClick={(e) => e.stopPropagation()}>
+            {isEditingName ? (
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={localName}
+                onChange={(e) => setLocalName(e.target.value)}
+                onBlur={handleNameSubmit}
+                onKeyDown={handleNameKeyDown}
+                className={`nodrag nowheel text-[11px] font-bold text-center tracking-tight px-1.5 py-0.5 rounded outline-none border transition-all w-full max-w-[170px] shadow-inner ${
+                  isDarkMode
+                    ? 'bg-[#0B0E14] text-white border-[#0091DA] ring-2 ring-[#0091DA]/30'
+                    : 'bg-white text-[#0B0F19] border-[#00338D] ring-2 ring-[#00338D]/20'
+                }`}
+                placeholder="Agent Name..."
+              />
+            ) : (
+              <div 
+                onClick={(e) => {
+                  if (isLocked) return;
+                  e.stopPropagation();
+                  setIsEditingName(true);
+                }}
+                onDoubleClick={(e) => {
+                  if (isLocked) return;
+                  e.stopPropagation();
+                  setIsEditingName(true);
+                }}
+                className={`group/name relative inline-flex items-center justify-center px-1.5 py-0.5 rounded transition-all border border-transparent ${
+                  isLocked 
+                    ? 'cursor-default' 
+                    : isDarkMode
+                      ? 'cursor-text hover:bg-white/5 hover:border-white/10'
+                      : 'cursor-text hover:bg-slate-100 hover:border-slate-300'
+                }`}
+                title={isLocked ? 'Agent is locked' : 'Click to rename agent'}
+              >
+                <h3 className={`text-[11px] font-bold text-center tracking-tight truncate max-w-[170px] transition-colors ${
+                  isDeactivated
+                    ? 'line-through text-slate-500'
+                    : isDarkMode 
+                      ? 'text-white group-hover/name:text-[#38BDF8]' 
+                      : 'text-[#0B0F19] group-hover/name:text-[#00338D]'
+                }`}>
+                  {localName}
+                </h3>
+                {!isLocked && (
+                  <Edit3 className={`w-2.5 h-2.5 absolute -right-3.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/name:opacity-70 transition-opacity pointer-events-none ${
+                    isDarkMode ? 'text-[#38BDF8]' : 'text-[#00338D]'
+                  }`} />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Framework Dropdown Selector + Compact Chat Symbol */}
+          <div className="flex items-center justify-center gap-1.5 mt-0.5" onClick={(e) => e.stopPropagation()}>
+            <div className="relative inline-flex items-center">
+              <select
+                disabled={isLocked}
+                value={framework?.id || data?.framework?.id || 'google-adk'}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  const selectedFw = FRAMEWORKS.find(f => f.id === e.target.value);
+                  if (selectedFw && data?.onUpdateNodeData) {
+                    data.onUpdateNodeData(id, { framework: selectedFw });
+                    window.dispatchEvent(new CustomEvent('keaos:toast', {
+                      detail: { message: `⚡ Framework set to ${selectedFw.name}` }
+                    }));
+                  }
+                }}
+                className={`nodrag nowheel text-[8px] font-mono font-bold uppercase tracking-wider py-0.5 pl-2 pr-4 rounded border transition-all cursor-pointer appearance-none ${
+                  isLocked
+                    ? 'opacity-60 cursor-not-allowed bg-transparent border-transparent'
+                    : isDarkMode
+                      ? 'bg-[#181B24] border-[#2B303C] hover:border-[#0091DA]/60 text-slate-300 hover:text-white'
+                      : 'bg-slate-100 border-slate-300 hover:border-[#00338D]/60 text-slate-700 hover:text-black'
+                }`}
+                title={isLocked ? 'Locked' : 'Select multi-agent framework SDK'}
+              >
+                {FRAMEWORKS.map((fw) => (
+                  <option 
+                    key={fw.id} 
+                    value={fw.id} 
+                    className={isDarkMode ? 'bg-[#181B24] text-white' : 'bg-white text-slate-900'}
+                  >
+                    {fw.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-2.5 h-2.5 absolute right-1 pointer-events-none opacity-50" />
+            </div>
 
             {/* Compact Chat Symbol */}
             <button
@@ -441,9 +585,9 @@ export default function AgentCoreNode({ id, data, selected }) {
                     ? 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
               }`}
-              title={hasModel ? `Chat with ${name} (${connectedModelName || 'Model Active'})` : `Chat with ${name} (No brain connected)`}
+              title={hasModel ? `Chat with ${localName} (${connectedModelName || 'Model Active'})` : `Chat with ${localName} (No brain connected)`}
             >
-              <MessageSquare className="w-3 h-3" />
+              <MessageSquare className="w-2.5 h-2.5" />
             </button>
           </div>
         </div>

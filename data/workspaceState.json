@@ -43,7 +43,7 @@
           "category": "Routines"
         },
         "agent": {
-          "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+          "prompt": "",
           "temperature": 0.2,
           "topP: 0.95": 0.95
         }
@@ -57,7 +57,7 @@
             "y": 165
           },
           "data": {
-            "name": "MIA2",
+            "name": "Orchestrator",
             "framework": {
               "id": "langchain",
               "name": "LangChain",
@@ -67,7 +67,7 @@
               "exportExtension": ".py",
               "category": "Chains"
             },
-            "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+            "prompt": "",
             "temperature": 0.2,
             "topP": 0.95,
             "attachedCounts": {
@@ -90,11 +90,13 @@
               "framework": "OpenAI Swarm",
               "isLiveApi": true
             },
-            "costUsd": 0.00118
+            "costUsd": 0.00118,
+            "customRole": "abc",
+            "role": "abc"
           },
           "measured": {
             "width": 228,
-            "height": 164
+            "height": 172
           },
           "selected": false
         },
@@ -128,8 +130,8 @@
           "id": "node-policy-1",
           "type": "pillar",
           "position": {
-            "x": 475.9703566019082,
-            "y": 360.8355720777102
+            "x": 472.56306575224005,
+            "y": 354.02099037837394
           },
           "data": {
             "pillarType": "policies",
@@ -152,8 +154,8 @@
           "id": "node-memory-1",
           "type": "pillar",
           "position": {
-            "x": 561.4150911844831,
-            "y": 418.4097014757391
+            "x": 566.5260274589854,
+            "y": 369.00398415555117
           },
           "data": {
             "pillarType": "memory",
@@ -176,8 +178,8 @@
           "id": "node-skill-1",
           "type": "pillar",
           "position": {
-            "x": 657.6549750291884,
-            "y": 341.6441956117005
+            "x": 654.7344983266293,
+            "y": 344.59648545463347
           },
           "data": {
             "pillarType": "skills",
@@ -200,8 +202,8 @@
           "id": "node-output-8631",
           "type": "outputNode",
           "position": {
-            "x": 764.8517412039421,
-            "y": 217.77628528152655
+            "x": 758.8889822170229,
+            "y": 281.662988712804
           },
           "data": {
             "name": "Final Output Viewer & Exporter",
@@ -341,7 +343,8 @@
             "lastFired": null,
             "lastStatus": "idle",
             "status": "idle",
-            "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+            "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}",
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
@@ -354,8 +357,8 @@
           "id": "node-trigger-1501",
           "type": "triggerNode",
           "position": {
-            "x": 361.08398988768056,
-            "y": 318.28299602730306
+            "x": 328.7147268158334,
+            "y": 310.6165916155498
           },
           "data": {
             "name": "File Watcher #1",
@@ -375,13 +378,76 @@
             "lastFired": null,
             "lastStatus": "idle",
             "status": "idle",
-            "payloadText": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}"
+            "payloadText": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}",
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
             "height": 60
           },
-          "selected": true,
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "agent-core-1593",
+          "type": "agentCore",
+          "position": {
+            "x": 880,
+            "y": 165
+          },
+          "data": {
+            "name": "Specialist Agent #2",
+            "role": "specialist",
+            "framework": {
+              "id": "microsoft-adk",
+              "name": "Microsoft ADK"
+            },
+            "prompt": "",
+            "temperature": 0.2,
+            "topP": 0.95,
+            "attachedCounts": {
+              "model": 0,
+              "skills": 0,
+              "mcp": 0,
+              "tools": 0,
+              "gateway": 0,
+              "memory": 0,
+              "policies": 0,
+              "agent": 1
+            }
+          },
+          "measured": {
+            "width": 228,
+            "height": 172
+          }
+        },
+        {
+          "id": "agent-core-4055",
+          "type": "agentCore",
+          "position": {
+            "x": 887.6664044117533,
+            "y": 406.14109640492205
+          },
+          "data": {
+            "name": "Autonomous Agent #3",
+            "framework": {
+              "id": "openai-swarm",
+              "name": "OpenAI Swarm",
+              "subtitle": "Ergonomic multi-agent routine & handoff orchestration",
+              "description": "Lightweight, client-side multi-agent coordination with native function calling and dynamic agent handoffs.",
+              "defaultModel": "gpt-4o",
+              "exportExtension": ".py",
+              "category": "Routines"
+            },
+            "prompt": "",
+            "temperature": 0.2,
+            "topP": 0.95
+          },
+          "measured": {
+            "width": 228,
+            "height": 172
+          },
+          "selected": false,
           "dragging": false
         }
       ],
@@ -530,11 +596,41 @@
             "strokeDasharray": "5 4",
             "filter": "none"
           },
-          "id": "xy-edge__node-trigger-1501trigger-out-agent-coreagent-in"
+          "id": "xy-edge__node-trigger-1501trigger-out-agent-coreagent-in",
+          "selected": false
+        },
+        {
+          "id": "edge-a2a-1593",
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "agent-core-1593",
+          "targetHandle": "agent-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#6366F1",
+            "strokeWidth": 2.2,
+            "strokeDasharray": "6 4"
+          }
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "agent-core-4055",
+          "targetHandle": "agent-in",
+          "style": {
+            "stroke": "#6366F1",
+            "strokeWidth": 2.2,
+            "strokeDasharray": "6 4"
+          },
+          "id": "xy-edge__agent-coreout-agent-core-4055agent-in"
         }
       ],
       "createdAt": 1792162747408,
-      "updatedAt": 1792171505213,
+      "updatedAt": 1792176542796,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -543,8 +639,8 @@
         "PII Redactor"
       ],
       "stats": {
-        "nodeCount": 9,
-        "agentCount": 1,
+        "nodeCount": 11,
+        "agentCount": 3,
         "mcpCount": 0,
         "modelCount": 1,
         "skillCount": 1,
@@ -923,7 +1019,7 @@
           "y": 165
         },
         "data": {
-          "name": "MIA2",
+          "name": "Orchestrator",
           "framework": {
             "id": "langchain",
             "name": "LangChain",
@@ -933,7 +1029,7 @@
             "exportExtension": ".py",
             "category": "Chains"
           },
-          "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+          "prompt": "",
           "temperature": 0.2,
           "topP": 0.95,
           "attachedCounts": {
@@ -956,11 +1052,13 @@
             "framework": "OpenAI Swarm",
             "isLiveApi": true
           },
-          "costUsd": 0.00118
+          "costUsd": 0.00118,
+          "customRole": "abc",
+          "role": "abc"
         },
         "measured": {
           "width": 228,
-          "height": 164
+          "height": 172
         },
         "selected": false
       },
@@ -994,8 +1092,8 @@
         "id": "node-policy-1",
         "type": "pillar",
         "position": {
-          "x": 475.9703566019082,
-          "y": 360.8355720777102
+          "x": 472.56306575224005,
+          "y": 354.02099037837394
         },
         "data": {
           "pillarType": "policies",
@@ -1018,8 +1116,8 @@
         "id": "node-memory-1",
         "type": "pillar",
         "position": {
-          "x": 561.4150911844831,
-          "y": 418.4097014757391
+          "x": 566.5260274589854,
+          "y": 369.00398415555117
         },
         "data": {
           "pillarType": "memory",
@@ -1042,8 +1140,8 @@
         "id": "node-skill-1",
         "type": "pillar",
         "position": {
-          "x": 657.6549750291884,
-          "y": 341.6441956117005
+          "x": 654.7344983266293,
+          "y": 344.59648545463347
         },
         "data": {
           "pillarType": "skills",
@@ -1066,8 +1164,8 @@
         "id": "node-output-8631",
         "type": "outputNode",
         "position": {
-          "x": 764.8517412039421,
-          "y": 217.77628528152655
+          "x": 758.8889822170229,
+          "y": 281.662988712804
         },
         "data": {
           "name": "Final Output Viewer & Exporter",
@@ -1207,7 +1305,8 @@
           "lastFired": null,
           "lastStatus": "idle",
           "status": "idle",
-          "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+          "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}",
+          "isDarkMode": false
         },
         "measured": {
           "width": 140,
@@ -1220,8 +1319,8 @@
         "id": "node-trigger-1501",
         "type": "triggerNode",
         "position": {
-          "x": 361.08398988768056,
-          "y": 318.28299602730306
+          "x": 328.7147268158334,
+          "y": 310.6165916155498
         },
         "data": {
           "name": "File Watcher #1",
@@ -1241,13 +1340,76 @@
           "lastFired": null,
           "lastStatus": "idle",
           "status": "idle",
-          "payloadText": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}"
+          "payloadText": "{\n  \"fileName\": \"sample_report.pdf\",\n  \"sizeBytes\": 204800,\n  \"mimeType\": \"application/pdf\"\n}",
+          "isDarkMode": false
         },
         "measured": {
           "width": 140,
           "height": 60
         },
-        "selected": true,
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "agent-core-1593",
+        "type": "agentCore",
+        "position": {
+          "x": 880,
+          "y": 165
+        },
+        "data": {
+          "name": "Specialist Agent #2",
+          "role": "specialist",
+          "framework": {
+            "id": "microsoft-adk",
+            "name": "Microsoft ADK"
+          },
+          "prompt": "",
+          "temperature": 0.2,
+          "topP": 0.95,
+          "attachedCounts": {
+            "model": 0,
+            "skills": 0,
+            "mcp": 0,
+            "tools": 0,
+            "gateway": 0,
+            "memory": 0,
+            "policies": 0,
+            "agent": 1
+          }
+        },
+        "measured": {
+          "width": 228,
+          "height": 172
+        }
+      },
+      {
+        "id": "agent-core-4055",
+        "type": "agentCore",
+        "position": {
+          "x": 887.6664044117533,
+          "y": 406.14109640492205
+        },
+        "data": {
+          "name": "Autonomous Agent #3",
+          "framework": {
+            "id": "openai-swarm",
+            "name": "OpenAI Swarm",
+            "subtitle": "Ergonomic multi-agent routine & handoff orchestration",
+            "description": "Lightweight, client-side multi-agent coordination with native function calling and dynamic agent handoffs.",
+            "defaultModel": "gpt-4o",
+            "exportExtension": ".py",
+            "category": "Routines"
+          },
+          "prompt": "",
+          "temperature": 0.2,
+          "topP": 0.95
+        },
+        "measured": {
+          "width": 228,
+          "height": 172
+        },
+        "selected": false,
         "dragging": false
       }
     ],
@@ -1396,7 +1558,37 @@
           "strokeDasharray": "5 4",
           "filter": "none"
         },
-        "id": "xy-edge__node-trigger-1501trigger-out-agent-coreagent-in"
+        "id": "xy-edge__node-trigger-1501trigger-out-agent-coreagent-in",
+        "selected": false
+      },
+      {
+        "id": "edge-a2a-1593",
+        "source": "agent-core",
+        "sourceHandle": "out",
+        "target": "agent-core-1593",
+        "targetHandle": "agent-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#6366F1",
+          "strokeWidth": 2.2,
+          "strokeDasharray": "6 4"
+        }
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "agent-core",
+        "sourceHandle": "out",
+        "target": "agent-core-4055",
+        "targetHandle": "agent-in",
+        "style": {
+          "stroke": "#6366F1",
+          "strokeWidth": 2.2,
+          "strokeDasharray": "6 4"
+        },
+        "id": "xy-edge__agent-coreout-agent-core-4055agent-in"
       }
     ],
     "activeUseCase": {
@@ -1413,12 +1605,12 @@
         "category": "Routines"
       },
       "agent": {
-        "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+        "prompt": "",
         "temperature": 0.2,
         "topP: 0.95": 0.95
       }
     },
     "version": "v7_real_mcp_engine"
   },
-  "syncedAt": 1792171530962
+  "syncedAt": 1792176543603
 }
