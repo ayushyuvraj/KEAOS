@@ -27,7 +27,8 @@ import {
   getStoredAuditRuns, 
   getAuditKPIs, 
   exportAuditProofJsonLd,
-  clearAuditRuns
+  clearAuditRuns,
+  deleteAuditRun
 } from '../../services/unifiedAuditService';
 
 /**
@@ -497,6 +498,7 @@ export default function UnifiedAuditView({
                   <th className="py-2.5 px-3 font-bold text-right">Exact Cost</th>
                   <th className="py-2.5 px-3 font-bold text-right">Duration</th>
                   <th className="py-2.5 px-4 font-bold text-center">SHA-256 Proof</th>
+                  <th className="py-2.5 px-2 font-bold text-center w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
@@ -597,6 +599,20 @@ export default function UnifiedAuditView({
                           <span>{copiedId === r.runId ? 'Copied' : (r.cryptography?.rootSha256 || '').slice(0, 8)}</span>
                         </span>
                       </td>
+
+                      {/* Delete Action */}
+                      <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => {
+                            deleteAuditRun(r.runId);
+                            if (selectedRun?.runId === r.runId) setSelectedRun(null);
+                          }}
+                          className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors rounded-none"
+                          title="Delete this transaction"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -638,17 +654,29 @@ export default function UnifiedAuditView({
                 </h3>
               </div>
 
-              <button
-                onClick={() => setSelectedRun(null)}
-                className={`p-1.5 transition-colors border ${
-                  isDarkMode 
-                    ? 'text-slate-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08]' 
-                    : 'text-slate-500 hover:text-black bg-white border-slate-200'
-                }`}
-                title="Close Drawer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    deleteAuditRun(selectedRun.runId);
+                    setSelectedRun(null);
+                  }}
+                  className={`p-1.5 transition-colors border text-rose-400 hover:text-white hover:bg-rose-600/30 border-rose-500/30`}
+                  title="Delete this transaction record"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setSelectedRun(null)}
+                  className={`p-1.5 transition-colors border ${
+                    isDarkMode 
+                      ? 'text-slate-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08]' 
+                      : 'text-slate-500 hover:text-black bg-white border-slate-200'
+                  }`}
+                  title="Close Drawer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* Drawer Tabs */}

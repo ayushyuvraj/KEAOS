@@ -44,6 +44,9 @@ export function saveUIState(updates) {
     const current = loadUIState();
     const updated = { ...current, ...updates };
     localStorage.setItem(UI_STATE_KEY, JSON.stringify(updated));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
+    }
     return updated;
   } catch (e) {
     console.warn('Failed to save UI state to localStorage:', e);
@@ -101,6 +104,9 @@ export function loadCanvasState() {
 export function saveCanvasState(data) {
   try {
     localStorage.setItem(CANVAS_STATE_KEY, JSON.stringify({ ...data, version: CANVAS_VERSION }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
+    }
   } catch (e) {
     console.warn('Failed to save Canvas state to localStorage:', e);
   }

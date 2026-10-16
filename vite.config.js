@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 /**
  * Custom Vite Plugin to provide a local OAuth 2.0 Token Exchange Endpoint.
@@ -118,11 +121,149 @@ function keaosOAuthProxy() {
   };
 }
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+/**
+ * Custom Vite Plugin to provide local file persistence for workspace state & audit ledger.
+ * Bridges client-side state across browser profiles and sessions.
+ */
+function keaosWorkspaceStoragePlugin() {
+  const dataDir = path.resolve(__dirname, 'data');
+  const workspaceFile = path.join(dataDir, 'workspaceState.json');
+  const auditFile = path.join(dataDir, 'auditLedger.json');
+
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
+  return {
+    name: 'keaos-workspace-storage',
+    configureServer(server) {
+      // 1. Workspace State Endpoint
+      server.middlewares.use('/api/workspace-state', async (req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+
+        if (req.method === 'GET') {
+          if (fs.existsSync(workspaceFile)) {
+            try {
+              const content = fs.readFileSync(workspaceFile, 'utf-8');
+              res.statusCode = 200;
+              res.end(content);
+              return;
+            } catch (err) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message }));
+              return;
+            }
+          } else {
+            res.statusCode = 200;
+            res.end(JSON.stringify({ exists: false }));
+            return;
+          }
+        }
+
+        if (req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const data = JSON.parse(body || '{}');
+              const newContent = JSON.stringify(data, null, 2);
+              if (fs.existsSync(workspaceFile)) {
+                try {
+                  const existing = fs.readFileSync(workspaceFile, 'utf-8');
+                  if (existing === newContent) {
+                    res.statusCode = 200;
+                    res.end(JSON.stringify({ success: true, unchanged: true }));
+                    return;
+                  }
+                } catch (_) {}
+              }
+              fs.writeFileSync(workspaceFile, newContent, 'utf-8');
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, savedAt: Date.now() }));
+            } catch (err) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
+        res.statusCode = 405;
+        res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+      });
+
+      // 2. Audit Ledger Endpoint
+      server.middlewares.use('/api/audit-ledger', async (req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+
+        if (req.method === 'GET') {
+          if (fs.existsSync(auditFile)) {
+            try {
+              const content = fs.readFileSync(auditFile, 'utf-8');
+              res.statusCode = 200;
+              res.end(content);
+              return;
+            } catch (err) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message }));
+              return;
+            }
+          } else {
+            res.statusCode = 200;
+            res.end(JSON.stringify([]));
+            return;
+          }
+        }
+
+        if (req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const data = JSON.parse(body || '[]');
+              const newContent = JSON.stringify(data, null, 2);
+              if (fs.existsSync(auditFile)) {
+                try {
+                  const existing = fs.readFileSync(auditFile, 'utf-8');
+                  if (existing === newContent) {
+                    res.statusCode = 200;
+                    res.end(JSON.stringify({ success: true, unchanged: true }));
+                    return;
+                  }
+                } catch (_) {}
+              }
+              fs.writeFileSync(auditFile, newContent, 'utf-8');
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, savedAt: Date.now() }));
+            } catch (err) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
+        res.statusCode = 405;
+        res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+      });
+    }
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    watch: {
+      ignored: ['**/data/**', '**/.keaos-data/**', '**/src/data/**']
+    }
+  },
   plugins: [
     tailwindcss(),
     react(),
-    keaosOAuthProxy()
+    keaosOAuthProxy(),
+    keaosWorkspaceStoragePlugin()
   ],
 })

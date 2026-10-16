@@ -12,6 +12,7 @@
  */
 
 import { calculateInferenceCost, getLiveModelProfile } from './modelPricingService';
+import { pushAuditLedgerToServer } from './workspaceSyncService';
 
 const UNIFIED_AUDIT_STORAGE_KEY = 'keaos_unified_audit_ledger';
 const MAX_LEDGER_ENTRIES = 200;
@@ -69,6 +70,7 @@ export function saveAuditRuns(runs) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('keaos:audit-ledger-updated', { detail: { count: bounded.length } }));
     }
+    pushAuditLedgerToServer(bounded);
   } catch (err) {
     console.warn('[UnifiedAudit] Failed to save audit runs:', err);
   }
@@ -84,8 +86,24 @@ export function clearAuditRuns() {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('keaos:audit-ledger-updated', { detail: { count: 0 } }));
     }
+    pushAuditLedgerToServer([]);
   } catch (err) {
     console.warn('[UnifiedAudit] Failed to clear audit ledger:', err);
+  }
+}
+
+/**
+ * Delete a specific audit run by ID
+ */
+export function deleteAuditRun(runId) {
+  if (!runId) return;
+  try {
+    const current = getStoredAuditRuns();
+    const updated = current.filter(r => r.runId !== runId);
+    saveAuditRuns(updated);
+    return updated;
+  } catch (err) {
+    console.warn('[UnifiedAudit] Failed to delete audit run:', err);
   }
 }
 

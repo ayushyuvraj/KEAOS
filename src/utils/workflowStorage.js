@@ -325,6 +325,7 @@ function createInitialDefaultWorkflow() {
 
 /**
  * Loads all saved workflows from localStorage with safe fallback and seamless migration.
+ * Preserves custom workflows (e.g. MIA2) without forced renaming.
  */
 export function loadAllWorkflows() {
   try {
@@ -332,68 +333,6 @@ export function loadAllWorkflows() {
     if (raw) {
       let parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Find Meeting Intelligence workflow
-        const miIndex = parsed.findIndex(
-          (w) => (w.name && w.name.toLowerCase().includes('meeting intelligence')) ||
-                 (w.id === 'wf-meeting-intelligence') ||
-                 (w.activeUseCase?.name && w.activeUseCase.name.toLowerCase().includes('meeting intelligence'))
-        );
-
-        if (miIndex >= 0) {
-          const miWf = parsed[miIndex];
-          // If nodes array is empty or corrupt, restore canonical 9 nodes and 8 edges immediately
-          if (!miWf.nodes || miWf.nodes.length === 0) {
-            const canonical = createMeetingIntelligenceWorkflow();
-            parsed[miIndex] = {
-              ...miWf,
-              id: 'wf-meeting-intelligence',
-              name: 'Meeting Intelligence Agent',
-              description: canonical.description,
-              activeUseCase: canonical.activeUseCase,
-              nodes: canonical.nodes,
-              edges: canonical.edges,
-              stats: canonical.stats,
-              isStarred: true
-            };
-            try {
-              localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(parsed));
-            } catch (e) {
-              console.warn('Failed to update workflow registry:', e);
-            }
-          }
-        } else {
-          // Check if an existing workflow was accidentally renamed to 'Enterprise Autonomous Agent'
-          const autoRenamedIndex = parsed.findIndex(
-            (w) => w.id === 'wf-enterprise-autonomous-agent' ||
-                   (w.nodes && w.nodes.some(n => n.data?.name === 'Audio Transcriber' || n.data?.name === 'Executive Summarizer'))
-          );
-
-          if (autoRenamedIndex >= 0) {
-            const existing = parsed[autoRenamedIndex];
-            const canonical = createMeetingIntelligenceWorkflow();
-            parsed[autoRenamedIndex] = {
-              ...existing,
-              id: 'wf-meeting-intelligence',
-              name: 'Meeting Intelligence Agent',
-              description: canonical.description,
-              activeUseCase: canonical.activeUseCase,
-              nodes: (existing.nodes && existing.nodes.length > 0) ? existing.nodes : canonical.nodes,
-              edges: (existing.edges && existing.edges.length > 0) ? existing.edges : canonical.edges,
-              stats: canonical.stats,
-              isStarred: true
-            };
-          } else {
-            // Prepend canonical Meeting Intelligence workflow so it's immediately accessible
-            const miWf = createMeetingIntelligenceWorkflow();
-            parsed = [miWf, ...parsed];
-          }
-
-          try {
-            localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(parsed));
-          } catch (e) {
-            console.warn('Failed to save updated workflows registry:', e);
-          }
-        }
         return parsed;
       }
     }
@@ -401,7 +340,7 @@ export function loadAllWorkflows() {
     console.warn('Failed to parse workflows registry from localStorage:', err);
   }
 
-  // If no registry exists yet, bootstrap with the Meeting Intelligence workflow
+  // If no registry exists yet, bootstrap with initial default workflow
   const initialWf = createInitialDefaultWorkflow();
   const initialList = [initialWf];
   try {
@@ -480,6 +419,9 @@ export function saveWorkflow(workflow) {
 
   try {
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(newList));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
+    }
   } catch (err) {
     console.warn('Failed to save workflows registry:', err);
   }
@@ -532,6 +474,9 @@ export function createWorkflow({
   try {
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(updatedList));
     localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, newId);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
+    }
   } catch (err) {
     console.warn('Failed to persist new workflow:', err);
   }
@@ -568,6 +513,9 @@ export function duplicateWorkflow(sourceId) {
   const updatedList = [clonedWorkflow, ...all];
   try {
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(updatedList));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
+    }
   } catch (err) {
     console.warn('Failed to duplicate workflow:', err);
   }
@@ -601,6 +549,9 @@ export function updateWorkflowMetadata(id, updates = {}) {
   all[index] = updated;
   try {
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(all));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
+    }
   } catch (err) {
     console.warn('Failed to update workflow metadata:', err);
   }
@@ -622,6 +573,9 @@ export function deleteWorkflow(id) {
     const activeId = getActiveWorkflowId();
     if (activeId === id) {
       setActiveWorkflowId(filtered[0].id);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
     }
   } catch (err) {
     console.warn('Failed to delete workflow from registry:', err);

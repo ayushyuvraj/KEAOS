@@ -1,0 +1,103 @@
+[
+  {
+    "runId": "RUN-828253",
+    "workflowId": "uc-meeting-intel",
+    "workflowName": "MIA2",
+    "frameworkId": "langchain",
+    "frameworkName": "LangChain",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-16T13:53:48.253Z",
+    "durationMs": 11544,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Engineer",
+      "ingressChannel": "Visual Canvas"
+    },
+    "cryptography": {
+      "rootSha256": "0dc6155b3ceb16f48cdffbec52613d7033fc5e5abd5953cd22969b9251bcf879",
+      "inputSha256": "70bcd1ae3c83c0a321c4eba7ac436c36d8f8808f201fd9e18105b48b72e9af5a",
+      "outputSha256": "437c74e942e28f5b7fad11a3fbcbac0bb1f27b1a03a0ea0ca0d049c3da4a4d1d",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 3482,
+      "promptTokens": 1219,
+      "completionTokens": 2263,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.00154,
+      "currency": "USD",
+      "humanMinutesSaved": 70,
+      "laborValueSavedUsd": 75.83,
+      "netRoiMultiplier": 49240
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Meeting Intelligence Agent",
+        "provider": "openai",
+        "modelId": "gpt-4o-mini",
+        "displayName": "OpenAI: GPT-4o-mini",
+        "promptTokens": 1219,
+        "completionTokens": 2263,
+        "totalTokens": 3482,
+        "ratePromptPerM": 0.15,
+        "rateCompletionPerM": 0.6,
+        "costUsd": 0.00154,
+        "latencyMs": 11544,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas",
+          "bytes": 4354
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Meeting Intelligence Agent (OpenAI: GPT-4o-mini)",
+        "component": "gpt-4o-mini",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 11544,
+        "costUsd": 0.00154,
+        "details": {
+          "promptTokens": 1219,
+          "completionTokens": 2263
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "0dc6155b3ceb16f48cdffbec52613d7033fc5e5abd5953cd22969b9251bcf879"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "Thanks, everyone. Let's keep this short. The purpose of today's meeting is to confirm whether ARK is ready for the internal pilot next Friday and identify anything that could block us. From the product side, the core meeting intelligence wo...",
+      "outputSnippet": "### Extracted Decisions and Action Items\n\n#### Decisions:\n1. **Confirmed Actions**: For the pilot, confirmed action items may only be created when the meeting includes an explicit owner, an explicit commitment, or both. Vague suggestions must not be represented as confirmed actions.\n2. **Low-Confidence Items**: Low-confidence extracted items will be displaye..."
+    }
+  }
+]

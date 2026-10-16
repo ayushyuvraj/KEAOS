@@ -1,0 +1,701 @@
+{
+  "activeWorkflowId": "wf-meeting-intelligence",
+  "uiState": {
+    "isDarkMode": false,
+    "isSidebarCollapsed": true,
+    "isSidebarClosed": false,
+    "isDrawerExpanded": false,
+    "showMiniMap": false,
+    "miniMapPos": {
+      "x": 0,
+      "y": 0
+    },
+    "isInspectorOpen": false,
+    "isEnforcerActive": true,
+    "viewMode": "unified-audit",
+    "isWorkflowLocked": true
+  },
+  "workflows": [
+    {
+      "id": "wf-meeting-intelligence",
+      "name": "MIA2",
+      "description": "Autonomous multi-speaker synthesis, action items with owners, and task sync.",
+      "framework": {
+        "id": "langchain",
+        "name": "LangChain",
+        "subtitle": "Composable LCEL chains and agent toolkits",
+        "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+        "defaultModel": "claude-3-5-sonnet",
+        "exportExtension": ".py",
+        "category": "Chains"
+      },
+      "activeUseCase": {
+        "id": "uc-meeting-intel",
+        "name": "MIA2",
+        "description": "Autonomous multi-speaker synthesis, action items with owners, and task sync.",
+        "framework": {
+          "id": "langchain",
+          "name": "LangChain",
+          "subtitle": "Composable LCEL chains and agent toolkits",
+          "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+          "defaultModel": "claude-3-5-sonnet",
+          "exportExtension": ".py",
+          "category": "Chains"
+        },
+        "agent": {
+          "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+          "temperature": 0.2,
+          "topP: 0.95": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "agent-core",
+          "type": "agentCore",
+          "position": {
+            "x": 520,
+            "y": 165
+          },
+          "data": {
+            "name": "MIA2",
+            "framework": {
+              "id": "langchain",
+              "name": "LangChain",
+              "subtitle": "Composable LCEL chains and agent toolkits",
+              "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+              "defaultModel": "claude-3-5-sonnet",
+              "exportExtension": ".py",
+              "category": "Chains"
+            },
+            "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+            "temperature": 0.2,
+            "topP": 0.95,
+            "attachedCounts": {
+              "model": 1,
+              "skills": 1,
+              "mcp": 1,
+              "tools": 1,
+              "gateway": 1,
+              "memory": 1,
+              "policies": 1
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 228,
+            "height": 164
+          },
+          "selected": false
+        },
+        {
+          "id": "node-model-1",
+          "type": "pillar",
+          "position": {
+            "x": 565.01347427186,
+            "y": 80.7547264465507
+          },
+          "data": {
+            "pillarType": "model",
+            "name": "OpenAI (gpt-4o-mini)",
+            "description": "OpenAI foundation model configured for live enterprise inference.",
+            "config": {
+              "provider": "openai",
+              "modelId": "gpt-4o-mini",
+              "temperature": 0.2,
+              "topP": 0.95
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-policy-1",
+          "type": "pillar",
+          "position": {
+            "x": 475.9703566019082,
+            "y": 360.8355720777102
+          },
+          "data": {
+            "pillarType": "policies",
+            "name": "PII Redactor",
+            "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+            "config": {
+              "redactSalaries": true,
+              "maskEmails": true
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-memory-1",
+          "type": "pillar",
+          "position": {
+            "x": 561.4150911844831,
+            "y": 418.4097014757391
+          },
+          "data": {
+            "pillarType": "memory",
+            "name": "Episodic Sync Memory",
+            "description": "Remembers past meeting action items to verify resolution across weeks.",
+            "config": {
+              "ttlDays": 90,
+              "store": "vector-sqlite"
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-skill-1",
+          "type": "pillar",
+          "position": {
+            "x": 657.6549750291884,
+            "y": 341.6441956117005
+          },
+          "data": {
+            "pillarType": "skills",
+            "name": "Executive Summarizer",
+            "description": "Generates TL;DR, high-level takeaways, and strategic themes.",
+            "config": {
+              "length": "concise",
+              "focus": "decisions"
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-output-8631",
+          "type": "outputNode",
+          "position": {
+            "x": 764.8517412039421,
+            "y": 217.77628528152655
+          },
+          "data": {
+            "name": "Final Output Viewer & Exporter",
+            "title": "Final Output Viewer & Exporter",
+            "outputContent": "",
+            "content": "",
+            "status": "idle",
+            "format": "markdown",
+            "runsHistory": [],
+            "sourceNodeType": null,
+            "sourceNodeId": null,
+            "sourceNodeName": null,
+            "isExpanded": false,
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 56
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-ingest-1527",
+          "type": "ingestionNode",
+          "position": {
+            "x": 473.86795213577284,
+            "y": 42.65497502918843
+          },
+          "data": {
+            "title": "Universal File & Audio Ingest",
+            "content": "",
+            "status": "idle",
+            "isExpanded": false,
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": true,
+          "dragging": false
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-model",
+          "source": "node-model-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "model-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-ingest-1",
+          "source": "node-ingest-1",
+          "sourceHandle": "data-out",
+          "target": "agent-core",
+          "targetHandle": "tools-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#0091DA",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-policy",
+          "source": "node-policy-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "policy-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#470A68",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-memory",
+          "source": "node-memory-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "memory-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#483698",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-skill-1",
+          "source": "node-skill-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "skill-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#6D2077",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-output-1",
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "node-output-1",
+          "targetHandle": "data-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "node-output-8631",
+          "targetHandle": "data-in",
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          },
+          "id": "xy-edge__agent-coreout-node-output-8631data-in"
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "node-ingest-1527",
+          "sourceHandle": "data-out",
+          "target": "agent-core",
+          "targetHandle": "tools-in",
+          "style": {
+            "stroke": "#0091DA",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          },
+          "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
+        }
+      ],
+      "createdAt": 1729080000000,
+      "updatedAt": 1792159464159,
+      "isStarred": false,
+      "tags": [
+        "Meeting Intelligence",
+        "Audio Ingestion",
+        "Summarizer",
+        "PII Redactor"
+      ],
+      "stats": {
+        "nodeCount": 7,
+        "agentCount": 1,
+        "mcpCount": 0,
+        "modelCount": 1,
+        "skillCount": 1,
+        "toolCount": 0,
+        "policyCount": 1,
+        "hasAudit": false
+      }
+    }
+  ],
+  "canvasState": {
+    "nodes": [
+      {
+        "id": "agent-core",
+        "type": "agentCore",
+        "position": {
+          "x": 520,
+          "y": 165
+        },
+        "data": {
+          "name": "MIA2",
+          "framework": {
+            "id": "langchain",
+            "name": "LangChain",
+            "subtitle": "Composable LCEL chains and agent toolkits",
+            "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+            "defaultModel": "claude-3-5-sonnet",
+            "exportExtension": ".py",
+            "category": "Chains"
+          },
+          "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+          "temperature": 0.2,
+          "topP": 0.95,
+          "attachedCounts": {
+            "model": 1,
+            "skills": 1,
+            "mcp": 1,
+            "tools": 1,
+            "gateway": 1,
+            "memory": 1,
+            "policies": 1
+          },
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 228,
+          "height": 164
+        },
+        "selected": false
+      },
+      {
+        "id": "node-model-1",
+        "type": "pillar",
+        "position": {
+          "x": 565.01347427186,
+          "y": 80.7547264465507
+        },
+        "data": {
+          "pillarType": "model",
+          "name": "OpenAI (gpt-4o-mini)",
+          "description": "OpenAI foundation model configured for live enterprise inference.",
+          "config": {
+            "provider": "openai",
+            "modelId": "gpt-4o-mini",
+            "temperature": 0.2,
+            "topP": 0.95
+          },
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-policy-1",
+        "type": "pillar",
+        "position": {
+          "x": 475.9703566019082,
+          "y": 360.8355720777102
+        },
+        "data": {
+          "pillarType": "policies",
+          "name": "PII Redactor",
+          "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+          "config": {
+            "redactSalaries": true,
+            "maskEmails": true
+          },
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-memory-1",
+        "type": "pillar",
+        "position": {
+          "x": 561.4150911844831,
+          "y": 418.4097014757391
+        },
+        "data": {
+          "pillarType": "memory",
+          "name": "Episodic Sync Memory",
+          "description": "Remembers past meeting action items to verify resolution across weeks.",
+          "config": {
+            "ttlDays": 90,
+            "store": "vector-sqlite"
+          },
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-skill-1",
+        "type": "pillar",
+        "position": {
+          "x": 657.6549750291884,
+          "y": 341.6441956117005
+        },
+        "data": {
+          "pillarType": "skills",
+          "name": "Executive Summarizer",
+          "description": "Generates TL;DR, high-level takeaways, and strategic themes.",
+          "config": {
+            "length": "concise",
+            "focus": "decisions"
+          },
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-output-8631",
+        "type": "outputNode",
+        "position": {
+          "x": 764.8517412039421,
+          "y": 217.77628528152655
+        },
+        "data": {
+          "name": "Final Output Viewer & Exporter",
+          "title": "Final Output Viewer & Exporter",
+          "outputContent": "",
+          "content": "",
+          "status": "idle",
+          "format": "markdown",
+          "runsHistory": [],
+          "sourceNodeType": null,
+          "sourceNodeId": null,
+          "sourceNodeName": null,
+          "isExpanded": false,
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 56
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-ingest-1527",
+        "type": "ingestionNode",
+        "position": {
+          "x": 473.86795213577284,
+          "y": 42.65497502918843
+        },
+        "data": {
+          "title": "Universal File & Audio Ingest",
+          "content": "",
+          "status": "idle",
+          "isExpanded": false,
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": true,
+        "dragging": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-model",
+        "source": "node-model-1",
+        "sourceHandle": "out",
+        "target": "agent-core",
+        "targetHandle": "model-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#00338D",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-ingest-1",
+        "source": "node-ingest-1",
+        "sourceHandle": "data-out",
+        "target": "agent-core",
+        "targetHandle": "tools-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#0091DA",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-policy",
+        "source": "node-policy-1",
+        "sourceHandle": "out",
+        "target": "agent-core",
+        "targetHandle": "policy-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#470A68",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-memory",
+        "source": "node-memory-1",
+        "sourceHandle": "out",
+        "target": "agent-core",
+        "targetHandle": "memory-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#483698",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-skill-1",
+        "source": "node-skill-1",
+        "sourceHandle": "out",
+        "target": "agent-core",
+        "targetHandle": "skill-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#6D2077",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-output-1",
+        "source": "agent-core",
+        "sourceHandle": "out",
+        "target": "node-output-1",
+        "targetHandle": "data-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#10B981",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "agent-core",
+        "sourceHandle": "out",
+        "target": "node-output-8631",
+        "targetHandle": "data-in",
+        "style": {
+          "stroke": "#10B981",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        },
+        "id": "xy-edge__agent-coreout-node-output-8631data-in"
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "node-ingest-1527",
+        "sourceHandle": "data-out",
+        "target": "agent-core",
+        "targetHandle": "tools-in",
+        "style": {
+          "stroke": "#0091DA",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        },
+        "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
+      }
+    ],
+    "activeUseCase": {
+      "id": "uc-meeting-intel",
+      "name": "MIA2",
+      "description": "Autonomous multi-speaker synthesis, action items with owners, and task sync.",
+      "framework": {
+        "id": "langchain",
+        "name": "LangChain",
+        "subtitle": "Composable LCEL chains and agent toolkits",
+        "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+        "defaultModel": "claude-3-5-sonnet",
+        "exportExtension": ".py",
+        "category": "Chains"
+      },
+      "agent": {
+        "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+        "temperature": 0.2,
+        "topP: 0.95": 0.95
+      }
+    },
+    "version": "v7_real_mcp_engine"
+  },
+  "syncedAt": 1792159464963
+}

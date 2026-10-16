@@ -58,10 +58,22 @@ export default function HomeWorkflowsView({
   const fileInputRef = useRef(null);
   const activeWorkflowId = useMemo(() => getActiveWorkflowId(), [workflows]);
 
-  // Synchronize workflows registry when activeUseCase changes
+  // Synchronize workflows registry when activeUseCase changes or when workspace syncs
   useEffect(() => {
     setWorkflows(loadAllWorkflows());
   }, [activeUseCase]);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setWorkflows(loadAllWorkflows());
+    };
+    window.addEventListener('keaos:workspace-synced', handleUpdate);
+    window.addEventListener('keaos:workspace-changed', handleUpdate);
+    return () => {
+      window.removeEventListener('keaos:workspace-synced', handleUpdate);
+      window.removeEventListener('keaos:workspace-changed', handleUpdate);
+    };
+  }, []);
 
   const showToast = (msg) => {
     setToastMessage(msg);

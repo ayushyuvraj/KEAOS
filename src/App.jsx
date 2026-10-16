@@ -26,6 +26,7 @@ import {
   getWorkflowById,
   saveWorkflow
 } from './utils/workflowStorage';
+import { initWorkspaceSync, initAuditLedgerSync } from './services/workspaceSyncService';
 import { getActiveApiKey } from './services/geminiService';
 import { getAllConfiguredProviders } from './services/llmService';
 import { FRAMEWORKS } from './constants/frameworks';
@@ -666,6 +667,37 @@ export default function App() {
   const [isEnforcerActive, setIsEnforcerActiveState] = useState(initialUI.isEnforcerActive);
   const [viewMode, setViewModeState] = useState('home');
   const [isWorkflowLocked, setIsWorkflowLockedState] = useState(initialUI.isWorkflowLocked || false);
+
+  // Initialize two-way disk synchronization and listen for external updates
+  useEffect(() => {
+    initWorkspaceSync();
+    initAuditLedgerSync();
+
+    const handleSynced = (e) => {
+      const detail = e.detail;
+      if (detail?.uiState) {
+        if (typeof detail.uiState.isSidebarCollapsed === 'boolean') {
+          setIsSidebarCollapsedState(detail.uiState.isSidebarCollapsed);
+        }
+        if (typeof detail.uiState.isDarkMode === 'boolean') {
+          setIsDarkModeState(detail.uiState.isDarkMode);
+        }
+      }
+      if (detail?.activeWorkflowId) {
+        const wf = getWorkflowById(detail.activeWorkflowId);
+        if (wf && wf.activeUseCase) {
+          setActiveUseCase(wf.activeUseCase);
+          if (wf.nodes && wf.nodes.length > 0) {
+            setNodes(wf.nodes);
+            setEdges(wf.edges || []);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keaos:workspace-synced', handleSynced);
+    return () => window.removeEventListener('keaos:workspace-synced', handleSynced);
+  }, [setNodes, setEdges, setActiveUseCase]);
 
   // Wrapped State Setters with localStorage Persistence
   const setIsWorkflowLocked = useCallback((val) => {
@@ -1622,7 +1654,7 @@ export default function App() {
               nodes={nodes}
               edges={edges}
               isDarkMode={isDarkMode}
-              onNavigateHome={() => setViewMode(null)}
+              onNavigateHome={() => setViewMode('canvas')}
             />
           )}
 
