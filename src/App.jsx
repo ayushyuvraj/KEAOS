@@ -16,6 +16,7 @@ import ConnectMcpModal from './components/ConnectMcpModal';
 import DeterministicWorkspaceModal from './components/DeterministicWorkspaceModal';
 import AuditExplorerView from './components/screens/AuditExplorerView';
 import ObservabilityView from './components/screens/ObservabilityView';
+import UnifiedAuditView from './components/screens/UnifiedAuditView';
 import FrontendShowroomView from './components/screens/FrontendShowroomView';
 import HomeWorkflowsView from './components/screens/HomeWorkflowsView';
 import {
@@ -1612,6 +1613,16 @@ export default function App() {
               activeUseCase={activeUseCase}
               nodes={nodes}
               edges={edges}
+            />
+          )}
+
+          {viewMode === 'unified-audit' && (
+            <UnifiedAuditView
+              activeUseCase={activeUseCase}
+              nodes={nodes}
+              edges={edges}
+              isDarkMode={isDarkMode}
+              onNavigateHome={() => setViewMode(null)}
             />
           )}
 

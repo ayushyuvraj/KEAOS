@@ -4,6 +4,7 @@ import {
 } from '../services/llmService';
 import { getEpisodicMemoryStore } from './meetingSimulatorEngine';
 import { calculateInferenceCost } from '../services/modelPricingService';
+import { recordWorkflowExecution } from '../services/unifiedAuditService';
 import { executeRealMcpTool, getRegisteredMcpServers } from '../services/mcpClientService';
 import { 
   getOfficialMcpTools, 
@@ -138,7 +139,9 @@ export async function executeUniversalAgentChat({
   agentConfig = {},
   attachedPillars = [],
   onStepProgress,
-  signal = null
+  signal = null,
+  activeUseCase = null,
+  origin = 'interactive_chat'
 }) {
   const steps = [];
   const logStep = (stepName, detail, pillarType = null, nodeId = null, latencyMs = 120) => {
@@ -751,7 +754,43 @@ Report this exact failure truthfully to the user. Explain why the operation fail
 
   logStep('Observability & ROI', `Execution completed in ${totalRuntimeMs}ms (${totalTokens} tokens). Labor ROI: ~$${humanValueSavedUsd}.`, 'observability', null, 30);
 
-  // Record to localStorage audit ledger
+  // Record to Unified Audit & Observability Ledger
+  try {
+    await recordWorkflowExecution({
+      activeUseCase: activeUseCase || {
+        id: 'copilot-chat',
+        name: agentConfig?.name || 'Interactive Co-Pilot Session',
+        framework: { id: frameworkId, name: frameworkId }
+      },
+      origin,
+      initiator: {
+        name: 'Lead Architect',
+        role: 'Studio Operator',
+        ingressChannel: 'Canvas Co-Pilot Drawer'
+      },
+      inputData: userMessage,
+      outputData: finalSanitizedResponse,
+      durationMs: totalRuntimeMs,
+      agents: [
+        {
+          agentId: agentConfig?.id || 'agent-core',
+          agentName: agentConfig?.name || 'Enterprise Agent',
+          provider,
+          modelId,
+          tokens: totalTokens,
+          costUsd,
+          latencyMs: totalRuntimeMs,
+          status: 'COMPLETED'
+        }
+      ],
+      piiSanitizedCount: redactedCount,
+      status: 'SUCCESS'
+    });
+  } catch (auditErr) {
+    console.warn('[UniversalAgent] Unified audit record fallback:', auditErr);
+  }
+
+  // Record to legacy localStorage audit ledger
   try {
     const existingLedger = JSON.parse(localStorage.getItem('keaos_audit_ledger') || '[]');
     const newRecord = {

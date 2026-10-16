@@ -178,9 +178,11 @@ export default function MeetingSimulator({
 
     const result = await runMeetingSimulation({
       transcript: transcriptText,
-      frameworkId: activeUseCase.framework.id,
-      agentConfig: activeUseCase.agent,
+      frameworkId: activeUseCase?.framework?.id || 'google-adk',
+      agentConfig: activeUseCase?.agent || {},
       attachedPillars,
+      activeUseCase,
+      origin: 'execution_tab',
       onStepProgress: (newStep, allSteps) => {
         setExecutionSteps(allSteps);
       }

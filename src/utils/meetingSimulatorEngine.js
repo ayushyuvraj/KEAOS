@@ -4,6 +4,7 @@ import {
   PROVIDERS 
 } from '../services/llmService';
 import { calculateInferenceCost } from '../services/modelPricingService';
+import { recordWorkflowExecution } from '../services/unifiedAuditService';
 
 export const EPISODIC_MEMORY_STORAGE_KEY = 'keaos_episodic_memory_store';
 
@@ -59,7 +60,9 @@ export async function runMeetingSimulation({
   frameworkId,
   agentConfig,
   attachedPillars,
-  onStepProgress
+  onStepProgress,
+  activeUseCase = null,
+  origin = 'canvas'
 }) {
   const steps = [];
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -377,7 +380,43 @@ ${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.refe
   const netRoiMultiplier = costUsd > 0 ? Math.round(humanValueSavedUsd / costUsd) : 999;
   const totalRuntimeMs = Math.round(performance.now() - startTime);
 
-  // Automatically append run to persistent Audit Ledger in localStorage
+  // Automatically record to Unified Audit & Observability Ledger
+  try {
+    await recordWorkflowExecution({
+      activeUseCase: activeUseCase || {
+        id: 'meeting-intelligence',
+        name: agentConfig?.name || 'Meeting Intelligence Workflow',
+        framework: { id: frameworkId, name: frameworkName || 'Google ADK' }
+      },
+      origin,
+      initiator: {
+        name: origin === 'execution_tab' ? 'Client Operator' : 'Lead Architect',
+        role: origin === 'execution_tab' ? 'Business User' : 'Studio Engineer',
+        ingressChannel: origin === 'execution_tab' ? 'Meeting Simulator' : 'Visual Canvas'
+      },
+      inputData: transcript,
+      outputData: finalSanitizedOutput,
+      durationMs: totalRuntimeMs,
+      agents: [
+        {
+          agentId: agentConfig?.id || 'agent-core',
+          agentName: agentConfig?.name || 'Meeting Intelligence Agent',
+          provider,
+          modelId,
+          tokens: totalTokens,
+          costUsd,
+          latencyMs: totalRuntimeMs,
+          status: 'COMPLETED'
+        }
+      ],
+      piiSanitizedCount: redactedCount,
+      status: 'SUCCESS'
+    });
+  } catch (auditErr) {
+    console.warn('[MeetingSimulator] Unified audit recording error:', auditErr);
+  }
+
+  // Automatically append run to legacy Audit Ledger in localStorage
   try {
     const existingLedgerRaw = localStorage.getItem('keaos_audit_ledger');
     const existingLedger = existingLedgerRaw ? JSON.parse(existingLedgerRaw) : [];

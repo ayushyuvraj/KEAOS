@@ -5,6 +5,7 @@ import {
   synthesizeMeetingUniversal 
 } from '../services/llmService';
 import { calculateInferenceCost, getLiveModelProfile } from '../services/modelPricingService';
+import { recordWorkflowExecution } from '../services/unifiedAuditService';
 import { DEFAULT_EVALUATORS, DEFAULT_THRESHOLDS } from '../constants/goldenDataset';
 
 /**
@@ -164,6 +165,7 @@ export async function runEvaluationSuite({
   laborRateHr = 75,
   reviewMinsSaved = 15,
   runNumber = 1,
+  activeUseCase = null,
   onProgress = null
 }) {
   if (!dataset || dataset.length === 0) {
@@ -477,6 +479,41 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
     allPassed,
     sha256Hash
   };
+
+  // Record benchmark run to Unified Audit & Observability Ledger
+  try {
+    recordWorkflowExecution({
+      activeUseCase: activeUseCase || {
+        id: 'golden-alignment-eval',
+        name: `Alignment Benchmark #${runNumber}`,
+        framework: { id: frameworkId, name: frameworkId }
+      },
+      origin: 'evaluation_suite',
+      initiator: {
+        name: 'Alignment Gatekeeper',
+        role: 'Autonomous Evaluator',
+        ingressChannel: 'Golden Dataset Benchmark Suite'
+      },
+      inputData: `Benchmark Suite Run #${runNumber} with ${totalCases} test cases evaluated against ${activeEvaluators.length} rubrics.`,
+      outputData: `Overall alignment: ${overallMatchRate}%. Gate verdict: ${allPassed ? 'PASSED' : 'FAILED'}. (${passedCases}/${totalCases} passed).`,
+      durationMs: Math.round(avgLatency * totalCases * 1000),
+      agents: [
+        {
+          agentId: 'eval-judge-agent',
+          agentName: `LLM-as-a-Judge (${modelId})`,
+          provider,
+          modelId,
+          tokens: totalPromptTokens + totalCompletionTokens,
+          costUsd: totalInferenceCostUsd,
+          latencyMs: Math.round(avgLatency * totalCases * 1000),
+          status: allPassed ? 'COMPLETED' : 'POLICY_VIOLATION'
+        }
+      ],
+      status: allPassed ? 'SUCCESS' : 'FAILED'
+    }).catch(e => console.warn('[EvaluationEngine] Unified audit record error:', e));
+  } catch (err) {
+    console.warn('[EvaluationEngine] Audit record fallback:', err);
+  }
 
   return runRecord;
 }

@@ -37,8 +37,7 @@ export default function Sidebar({
 
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'audit', label: 'Audit Ledger', icon: ShieldCheck },
-    { id: 'observability', label: 'Observability', icon: Activity }
+    { id: 'unified-audit', label: 'Audit & Observability', icon: ShieldCheck }
   ];
 
   if (isCollapsed) {

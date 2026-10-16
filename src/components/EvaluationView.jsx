@@ -182,6 +182,7 @@ export default function EvaluationView({
         laborRateHr: suite.laborRateHr ?? 75,
         reviewMinsSaved: suite.reviewMinsSaved ?? 15,
         runNumber: nextRunNumber,
+        activeUseCase,
         onProgress: (prog) => {
           setEvalProgress(prog);
         }

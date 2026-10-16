@@ -732,6 +732,8 @@ export default function CanvasExecutionDrawer({
         frameworkId: activeUseCase?.framework?.id || 'google-adk',
         agentConfig: activeUseCase?.agent || {},
         attachedPillars: globalAttachedPillars,
+        activeUseCase,
+        origin: 'canvas',
         onStepProgress: (currentStep, allSteps) => {
           setExecutionSteps([...allSteps]);
           if (onExecutionStateChange) {
@@ -799,6 +801,7 @@ export default function CanvasExecutionDrawer({
         nodes,
         edges,
         initialInput: transcriptText,
+        activeUseCase,
         onStageStart: ({ stageIndex, totalStages, agents }) => {
           setCurrentFleetStage({ stageIndex, totalStages, agents });
           if (onExecutionStateChange) {
@@ -1005,7 +1008,9 @@ export default function CanvasExecutionDrawer({
             });
           }
         },
-        signal: abortCtrl.signal
+        signal: abortCtrl.signal,
+        activeUseCase,
+        origin: 'interactive_chat'
       });
 
       const isAuthIssue = result.response && (

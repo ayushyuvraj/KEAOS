@@ -5,6 +5,7 @@
  */
 
 import { synthesizeMeetingUniversal } from '../../services/llmService';
+import { recordWorkflowExecution } from '../../services/unifiedAuditService';
 
 export async function executeShowroomWorkflow({
   userPrompt,
@@ -14,6 +15,7 @@ export async function executeShowroomWorkflow({
   edges = [],
   onProgress
 }) {
+  const startTime = performance.now();
   // 1. Resolve attached foundation model and agent core
   const agentCoreNode = nodes.find(n => n.type === 'agentCore');
   const modelNode = nodes.find(n => n.data?.pillarType === 'model');
@@ -60,6 +62,36 @@ Deliver an authoritative, elegant, and highly structured strategic briefing. Inc
         formattedText = JSON.stringify(response, null, 2);
       }
     }
+
+    const durationMs = Math.round(performance.now() - startTime);
+
+    // Record execution to unified audit ledger
+    try {
+      recordWorkflowExecution({
+        activeUseCase,
+        origin: 'showroom_frontend',
+        initiator: {
+          name: 'Client Executive',
+          role: 'Business Operator',
+          ingressChannel: 'Showroom Frontend Runtime'
+        },
+        inputData: userPrompt,
+        outputData: formattedText,
+        durationMs,
+        agents: [
+          {
+            agentId: agentCoreNode?.id || 'agent-core',
+            agentName: activeUseCase?.agent?.name || 'Frontend Advisory Agent',
+            provider,
+            modelId,
+            tokens: Math.max(220, Math.round((userPrompt.length + formattedText.length) / 4)),
+            latencyMs: durationMs,
+            status: 'COMPLETED'
+          }
+        ],
+        status: 'SUCCESS'
+      }).catch(() => {});
+    } catch (e) {}
 
     return {
       success: true,

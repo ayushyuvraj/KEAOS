@@ -4,6 +4,7 @@ import {
 } from '../services/llmService';
 import { getEpisodicMemoryStore } from './meetingSimulatorEngine';
 import { calculateInferenceCost } from '../services/modelPricingService';
+import { recordWorkflowExecution } from '../services/unifiedAuditService';
 
 /**
  * Universal SHA-256 Audit Fingerprint Generator (W3C WebCrypto)
@@ -339,6 +340,7 @@ export async function executeMultiAgentWorkflow({
   nodes = [],
   edges = [],
   initialInput = '',
+  activeUseCase = null,
   onStageStart,
   onAgentComplete,
   onWorkflowComplete
@@ -458,7 +460,43 @@ export async function executeMultiAgentWorkflow({
   const finalStageOutputs = stageResults[stageResults.length - 1] || [];
   const finalCombinedOutput = finalStageOutputs.map(o => o.output).join('\n\n---\n\n');
 
-  // Record to localStorage audit ledger
+  // Record to unified audit & observability ledger
+  try {
+    const agentsList = Object.values(agentOutputs).map(o => ({
+      agentId: o.agentId,
+      agentName: o.agentName,
+      provider: o.provider,
+      modelId: o.modelId,
+      tokens: o.tokens || 0,
+      costUsd: o.costUsd || 0,
+      latencyMs: o.latencyMs || 0,
+      status: 'COMPLETED'
+    }));
+
+    await recordWorkflowExecution({
+      activeUseCase: activeUseCase || {
+        id: 'fleet-workflow',
+        name: `Multi-Agent Fleet (${Object.values(agentOutputs).map(o => o.agentName).join(' ➔ ')})`,
+        framework: { id: 'multi-sdk-fleet', name: 'Heterogeneous Multi-SDK Fleet' }
+      },
+      origin: 'canvas',
+      initiator: {
+        name: 'Lead Architect',
+        role: 'Studio Operator',
+        ingressChannel: `Multi-Agent Fleet Pipeline (${stages.length} Stages)`
+      },
+      inputData: rawIngress,
+      outputData: finalCombinedOutput,
+      durationMs: totalWorkflowLatencyMs,
+      agents: agentsList,
+      piiSanitizedCount: 0,
+      status: 'SUCCESS'
+    });
+  } catch (err) {
+    console.warn('[MultiAgentOrchestrator] Unified audit recording fallback:', err);
+  }
+
+  // Legacy fallback synchronization
   try {
     const existingLedger = JSON.parse(localStorage.getItem('keaos_audit_ledger') || '[]');
     const newRecord = {
