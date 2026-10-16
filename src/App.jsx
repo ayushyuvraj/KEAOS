@@ -24,7 +24,8 @@ import {
   getActiveWorkflowId,
   setActiveWorkflowId,
   getWorkflowById,
-  saveWorkflow
+  saveWorkflow,
+  setWorkflowLock
 } from './utils/workflowStorage';
 import { initWorkspaceSync, initAuditLedgerSync } from './services/workspaceSyncService';
 import { getActiveApiKey } from './services/geminiService';
@@ -666,7 +667,9 @@ export default function App() {
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isEnforcerActive, setIsEnforcerActiveState] = useState(initialUI.isEnforcerActive);
   const [viewMode, setViewModeState] = useState('home');
-  const [isWorkflowLocked, setIsWorkflowLockedState] = useState(initialUI.isWorkflowLocked || false);
+  const [isWorkflowLocked, setIsWorkflowLockedState] = useState(() => {
+    return Boolean(initialActiveWorkflow?.isLocked ?? initialActiveWorkflow?.isWorkflowLocked ?? false);
+  });
 
   // Initialize two-way disk synchronization and listen for external updates
   useEffect(() => {
@@ -685,11 +688,14 @@ export default function App() {
       }
       if (detail?.activeWorkflowId) {
         const wf = getWorkflowById(detail.activeWorkflowId);
-        if (wf && wf.activeUseCase) {
-          setActiveUseCase(wf.activeUseCase);
-          if (wf.nodes && wf.nodes.length > 0) {
-            setNodes(wf.nodes);
-            setEdges(wf.edges || []);
+        if (wf) {
+          setIsWorkflowLockedState(Boolean(wf.isLocked ?? wf.isWorkflowLocked ?? false));
+          if (wf.activeUseCase) {
+            setActiveUseCase(wf.activeUseCase);
+            if (wf.nodes && wf.nodes.length > 0) {
+              setNodes(wf.nodes);
+              setEdges(wf.edges || []);
+            }
           }
         }
       }
@@ -703,7 +709,10 @@ export default function App() {
   const setIsWorkflowLocked = useCallback((val) => {
     setIsWorkflowLockedState((prev) => {
       const next = typeof val === 'function' ? val(prev) : val;
-      saveUIState({ isWorkflowLocked: next });
+      const activeId = getActiveWorkflowId();
+      if (activeId) {
+        setWorkflowLock(activeId, next);
+      }
       return next;
     });
   }, []);
@@ -844,6 +853,8 @@ export default function App() {
           framework: activeUseCase?.framework || currentWf.framework,
           nodes,
           edges,
+          isLocked: isWorkflowLocked,
+          isWorkflowLocked: isWorkflowLocked,
           activeUseCase: {
             ...currentWf.activeUseCase,
             ...activeUseCase
@@ -851,7 +862,7 @@ export default function App() {
         });
       }
     }
-  }, [nodes, edges, activeUseCase]);
+  }, [nodes, edges, activeUseCase, isWorkflowLocked]);
 
   // Synchronize document dark class & propagate isDarkMode to node datasets
   useEffect(() => {
@@ -1345,6 +1356,7 @@ export default function App() {
       }
     };
     setActiveUseCase(newUseCase);
+    setIsWorkflowLockedState(false);
     setEvaluationResult(null); // Reset evaluation for new use case
 
     if (template === 'meeting-pilot') {
@@ -1408,6 +1420,7 @@ export default function App() {
   const handleOpenWorkflow = useCallback((workflow) => {
     if (!workflow) return;
     setActiveWorkflowId(workflow.id);
+    setIsWorkflowLockedState(Boolean(workflow.isLocked ?? workflow.isWorkflowLocked ?? false));
     setActiveUseCase(workflow.activeUseCase || {
       id: `uc-${workflow.id}`,
       name: workflow.name,
@@ -1446,6 +1459,7 @@ export default function App() {
   const handleCreateBlankWorkflow = useCallback((newWf) => {
     if (!newWf) return;
     setActiveWorkflowId(newWf.id);
+    setIsWorkflowLockedState(false);
     setActiveUseCase(newWf.activeUseCase);
     setNodes([]);
     setEdges([]);

@@ -92,156 +92,179 @@ export default function Header({
           <PanelLeft className="w-4 h-4" />
         </button>
 
-        <div className="relative flex items-center gap-1.5 text-xs font-medium">
-          <button
-            onClick={() => setViewMode && setViewMode('home')}
-            className={`font-mono text-[11px] hover:underline cursor-pointer transition-colors ${
-              isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-black'
-            }`}
-            title="Go to Home Workflows"
-          >
-            Workflow
-          </button>
-          <span className={isDarkMode ? 'text-slate-600' : 'text-slate-400'}>/</span>
-          
-          {/* Editable Details / Resources Region */}
-          <div className="relative">
+        {viewMode === 'unified-audit' || viewMode === 'audit' ? (
+          <div className="flex items-center gap-2">
+            <span className={`font-mono text-xs font-bold tracking-widest uppercase ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}>
+              AUDIT
+            </span>
+          </div>
+        ) : viewMode === 'observability' ? (
+          <div className="flex items-center gap-2">
+            <span className={`font-mono text-xs font-bold tracking-widest uppercase ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}>
+              OBSERVABILITY
+            </span>
+          </div>
+        ) : (
+          <div className="relative flex items-center gap-2 text-xs font-medium">
             <button
-              onClick={() => {
-                if (isWorkflowLocked) return;
-                setIsEditingDetails(!isEditingDetails);
-              }}
-              className={`group flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all ${
-                isWorkflowLocked
-                  ? 'border-transparent text-slate-300 cursor-default'
-                  : isEditingDetails
-                    ? 'bg-[#00338D]/20 border-[#0091DA] text-[#0091DA] cursor-pointer'
-                    : isDarkMode
-                      ? 'border-transparent hover:border-[#383C4A] hover:bg-white/5 text-slate-200 cursor-pointer'
-                      : 'border-transparent hover:border-slate-300 hover:bg-slate-100 text-slate-800 cursor-pointer'
+              onClick={() => setViewMode && setViewMode('home')}
+              className={`font-mono text-xs font-bold tracking-widest uppercase cursor-pointer transition-opacity hover:opacity-80 ${
+                isDarkMode ? 'text-white' : 'text-slate-900'
               }`}
-              title={
-                isWorkflowLocked
-                  ? 'Workflow is locked for execution. Unlock to edit specifications.'
-                  : 'Click to edit workflow name & description'
-              }
+              title="Go to Home Workflows"
             >
-              <div className="flex flex-col items-start text-left">
-                <span className="font-semibold tracking-tight text-xs max-w-[200px] truncate">
-                  {activeUseCase?.name || 'Untitled Workflow'}
-                </span>
-                {activeUseCase?.description && (
-                  <span className="text-[10px] text-slate-400 font-normal max-w-[200px] truncate leading-tight">
-                    {activeUseCase.description}
-                  </span>
-                )}
-              </div>
-              {isWorkflowLocked ? (
-                <Lock className={`w-3 h-3 shrink-0 ${isDarkMode ? 'text-[#0091DA]' : 'text-[#00338D]'}`} />
-              ) : (
-                <Edit3 className="w-3 h-3 text-slate-400 group-hover:text-[#0091DA] opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
-              )}
+              WORKFLOWS
             </button>
 
-            {/* Chic Popover for Editing Name & Description */}
-            {isEditingDetails && !isWorkflowLocked && (
-              <div
-                ref={editPopoverRef}
-                className={`absolute top-full left-0 mt-2 w-80 p-4 rounded-none border shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 ${
-                  isDarkMode 
-                    ? 'bg-[#18191E] border-[#2E313C] text-white' 
-                    : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
-                }`}
-              >
-                <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-700/30">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0091DA]">
-                    Workflow Specifications
-                  </span>
-                  <button 
-                    onClick={() => setIsEditingDetails(false)}
-                    className="p-1 text-slate-400 hover:text-white transition-colors"
+            {viewMode !== 'home' && (
+              <>
+                <span className={isDarkMode ? 'text-slate-600' : 'text-slate-400'}>/</span>
+                
+                {/* Editable Details / Resources Region */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      if (isWorkflowLocked) return;
+                      setIsEditingDetails(!isEditingDetails);
+                    }}
+                    className={`group flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all ${
+                      isWorkflowLocked
+                        ? 'border-transparent text-slate-300 cursor-default'
+                        : isEditingDetails
+                          ? 'bg-[#00338D]/20 border-[#0091DA] text-[#0091DA] cursor-pointer'
+                          : isDarkMode
+                            ? 'border-transparent hover:border-[#383C4A] hover:bg-white/5 text-slate-200 cursor-pointer'
+                            : 'border-transparent hover:border-slate-300 hover:bg-slate-100 text-slate-800 cursor-pointer'
+                    }`}
+                    title={
+                      isWorkflowLocked
+                        ? 'Workflow is locked for execution. Unlock to edit specifications.'
+                        : 'Click to edit workflow name & description'
+                    }
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <div className="flex flex-col items-start text-left">
+                      <span className="font-semibold tracking-tight text-xs max-w-[200px] truncate">
+                        {activeUseCase?.name || 'Untitled Workflow'}
+                      </span>
+                      {activeUseCase?.description && (
+                        <span className="text-[10px] text-slate-400 font-normal max-w-[200px] truncate leading-tight">
+                          {activeUseCase.description}
+                        </span>
+                      )}
+                    </div>
+                    {isWorkflowLocked ? (
+                      <Lock className={`w-3 h-3 shrink-0 ${isDarkMode ? 'text-[#0091DA]' : 'text-[#00338D]'}`} />
+                    ) : (
+                      <Edit3 className="w-3 h-3 text-slate-400 group-hover:text-[#0091DA] opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+                    )}
                   </button>
+
+                  {/* Chic Popover for Editing Name & Description */}
+                  {isEditingDetails && !isWorkflowLocked && (
+                    <div
+                      ref={editPopoverRef}
+                      className={`absolute top-full left-0 mt-2 w-80 p-4 rounded-none border shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 ${
+                        isDarkMode 
+                          ? 'bg-[#18191E] border-[#2E313C] text-white' 
+                          : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-700/30">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0091DA]">
+                          Workflow Specifications
+                        </span>
+                        <button 
+                          onClick={() => setIsEditingDetails(false)}
+                          className="p-1 text-slate-400 hover:text-white transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleSaveDetails} className="space-y-3">
+                        <div>
+                          <label className="block text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
+                            Workflow Name
+                          </label>
+                          <input
+                            type="text"
+                            autoFocus
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            placeholder="e.g. Meeting Intelligence Agent"
+                            className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none font-semibold ${
+                              isDarkMode 
+                                ? 'bg-[#121317] border-[#2E313C] text-white focus:border-[#0091DA]' 
+                                : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
+                            }`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={editDesc}
+                            onChange={(e) => setEditDesc(e.target.value)}
+                            placeholder="Add an executive description for this workflow..."
+                            className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none ${
+                              isDarkMode 
+                                ? 'bg-[#121317] border-[#2E313C] text-slate-200 focus:border-[#0091DA]' 
+                                : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
+                            }`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
+                            Primary Framework
+                          </label>
+                          <select
+                            value={editFwId}
+                            onChange={(e) => setEditFwId(e.target.value)}
+                            className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none font-mono ${
+                              isDarkMode 
+                                ? 'bg-[#121317] border-[#2E313C] text-white focus:border-[#0091DA]' 
+                                : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
+                            }`}
+                          >
+                            {FRAMEWORKS.map((fw) => (
+                              <option key={fw.id} value={fw.id}>
+                                {fw.name} ({fw.subtitle})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingDetails(false)}
+                            className="px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-3 py-1 text-xs font-bold bg-[#00338D] hover:bg-[#005EB8] text-white rounded-none border border-[#0091DA]/50 shadow-sm transition-colors"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
                 </div>
-
-                <form onSubmit={handleSaveDetails} className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
-                      Workflow Name
-                    </label>
-                    <input
-                      type="text"
-                      autoFocus
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      placeholder="e.g. Meeting Intelligence Agent"
-                      className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none font-semibold ${
-                        isDarkMode 
-                          ? 'bg-[#121317] border-[#2E313C] text-white focus:border-[#0091DA]' 
-                          : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={editDesc}
-                      onChange={(e) => setEditDesc(e.target.value)}
-                      placeholder="Add an executive description for this workflow..."
-                      className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none ${
-                        isDarkMode 
-                          ? 'bg-[#121317] border-[#2E313C] text-slate-200 focus:border-[#0091DA]' 
-                          : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
-                      Primary Framework
-                    </label>
-                    <select
-                      value={editFwId}
-                      onChange={(e) => setEditFwId(e.target.value)}
-                      className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none font-mono ${
-                        isDarkMode 
-                          ? 'bg-[#121317] border-[#2E313C] text-white focus:border-[#0091DA]' 
-                          : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
-                      }`}
-                    >
-                      {FRAMEWORKS.map((fw) => (
-                        <option key={fw.id} value={fw.id}>
-                          {fw.name} ({fw.subtitle})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingDetails(false)}
-                      className="px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-3 py-1 text-xs font-bold bg-[#00338D] hover:bg-[#005EB8] text-white rounded-none border border-[#0091DA]/50 shadow-sm transition-colors"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </form>
-              </div>
+              </>
             )}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Center: Exactly Centered Segmented Pill View Switcher (Only visible when inside a workflow workspace) */}

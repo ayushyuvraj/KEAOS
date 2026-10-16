@@ -23,7 +23,8 @@ import {
   FileCode,
   AlertTriangle,
   X,
-  Check
+  Check,
+  Lock
 } from 'lucide-react';
 import { 
   loadAllWorkflows, 
@@ -477,6 +478,12 @@ export default function HomeWorkflowsView({
                             ACTIVE
                           </span>
                         )}
+                        {Boolean(wf.isLocked ?? wf.isWorkflowLocked) && (
+                          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-full bg-blue-500/20 text-[#0091DA] border border-[#0091DA]/40 flex items-center gap-1">
+                            <Lock className="w-2.5 h-2.5" />
+                            LOCKED
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1">
@@ -635,6 +642,12 @@ export default function HomeWorkflowsView({
                           {isActive && (
                             <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
                               ACTIVE
+                            </span>
+                          )}
+                          {Boolean(wf.isLocked ?? wf.isWorkflowLocked) && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-blue-500/20 text-[#0091DA] border border-[#0091DA]/40 flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" />
+                              LOCKED
                             </span>
                           )}
                         </div>

@@ -275,6 +275,8 @@ export function createMeetingIntelligenceWorkflow() {
     createdAt: Date.now() - 86400000,
     updatedAt: Date.now(),
     isStarred: true,
+    isLocked: false,
+    isWorkflowLocked: false,
     tags: ['Meeting Intelligence', 'Audio Ingestion', 'Summarizer', 'PII Redactor'],
     stats: computeWorkflowStats(initialNodes)
   };
@@ -292,6 +294,7 @@ function createInitialDefaultWorkflow() {
       : 'Meeting Intelligence Agent';
     const ucDesc = rawUseCase.description || 'Autonomous multi-speaker synthesis, action items, and task sync.';
     const ucFramework = rawUseCase.framework || FRAMEWORKS[0];
+    const initialLock = Boolean(existingCanvas.isWorkflowLocked ?? existingCanvas.isLocked ?? false);
 
     return {
       id: 'wf-meeting-intelligence',
@@ -315,6 +318,8 @@ function createInitialDefaultWorkflow() {
       createdAt: Date.now() - 86400000,
       updatedAt: Date.now(),
       isStarred: true,
+      isLocked: initialLock,
+      isWorkflowLocked: initialLock,
       tags: ['Meeting Intelligence', 'Audio Ingestion', 'Summarizer'],
       stats: computeWorkflowStats(existingCanvas.nodes)
     };
@@ -403,8 +408,11 @@ export function saveWorkflow(workflow) {
   if (!workflow || !workflow.id) return;
   const all = loadAllWorkflows();
   const index = all.findIndex((w) => w.id === workflow.id);
+  const isLocked = Boolean(workflow.isLocked ?? workflow.isWorkflowLocked ?? false);
   const updatedRecord = {
     ...workflow,
+    isLocked,
+    isWorkflowLocked: isLocked,
     updatedAt: Date.now(),
     stats: computeWorkflowStats(workflow.nodes)
   };
@@ -426,6 +434,21 @@ export function saveWorkflow(workflow) {
     console.warn('Failed to save workflows registry:', err);
   }
   return updatedRecord;
+}
+
+/**
+ * Updates the lock state of a specific workflow.
+ */
+export function setWorkflowLock(id, isLocked) {
+  if (!id) return;
+  const wf = getWorkflowById(id);
+  if (wf) {
+    return saveWorkflow({
+      ...wf,
+      isLocked: Boolean(isLocked),
+      isWorkflowLocked: Boolean(isLocked)
+    });
+  }
 }
 
 /**
@@ -464,6 +487,8 @@ export function createWorkflow({
     createdAt: Date.now(),
     updatedAt: Date.now(),
     isStarred: false,
+    isLocked: false,
+    isWorkflowLocked: false,
     tags: tags.length ? tags : ['New'],
     stats: computeWorkflowStats(isBlank ? [] : nodes)
   };

@@ -170,91 +170,9 @@ export default function UnifiedAuditView({
       />
 
       {/* =========================================================================
-          FROSTED GLASS SCREEN HEADER
-         ========================================================================= */}
-      <header className={`relative z-20 px-6 py-4 flex items-center justify-between border-b backdrop-blur-2xl backdrop-saturate-150 transition-colors ${
-        isDarkMode 
-          ? 'bg-slate-900/40 border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]' 
-          : 'bg-white/65 border-slate-200/90 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.8)]'
-      }`}>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 flex items-center justify-center bg-[#00338D]/90 text-white border border-[#0091DA]/40 shadow-[0_0_16px_rgba(0,145,218,0.35)]">
-            <ShieldCheck className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-extrabold uppercase tracking-widest font-mono">
-                Audit & Observability Ledger
-              </h1>
-              <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 flex items-center gap-1.5 shadow-[inset_0_1px_0_0_rgba(0,154,68,0.2)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#009A44] animate-pulse" />
-                W3C SHA-256 Engine Active
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium">
-              Zero-simulation institutional ledger • Real-time multi-brain accounting & cryptographic trace
-            </p>
-          </div>
-        </div>
-
-        {/* Header Actions */}
-        <div className="flex items-center gap-2">
-          {runs.length > 0 && (
-            <>
-              {showClearConfirm ? (
-                <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/30 px-2 py-1">
-                  <span className="text-[11px] font-mono text-rose-300">Wipe all records?</span>
-                  <button
-                    onClick={handleClearAll}
-                    className="px-2 py-0.5 text-[10px] font-mono font-bold bg-rose-600 hover:bg-rose-500 text-white"
-                  >
-                    Confirm
-                  </button>
-                  <button
-                    onClick={() => setShowClearConfirm(false)}
-                    className="px-1.5 py-0.5 text-[10px] font-mono text-slate-400 hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowClearConfirm(true)}
-                  className={`px-3 py-1.5 text-xs font-mono font-medium flex items-center gap-1.5 border backdrop-blur-md transition-all ${
-                    isDarkMode 
-                      ? 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-rose-400 border-white/[0.08] hover:border-rose-500/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]' 
-                      : 'bg-white/70 hover:bg-white text-slate-600 hover:text-rose-600 border-slate-300'
-                  }`}
-                  title="Purge all audit runs from persistent storage"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Clear Ledger</span>
-                </button>
-              )}
-            </>
-          )}
-
-          {selectedRun && (
-            <button
-              onClick={() => exportAuditProofJsonLd(selectedRun)}
-              className={`px-3.5 py-1.5 text-xs font-mono font-bold flex items-center gap-2 border backdrop-blur-md transition-all ${
-                isDarkMode 
-                  ? 'bg-[#00338D]/40 hover:bg-[#00338D]/60 text-white border-[#0091DA]/50 shadow-[0_0_16px_rgba(0,51,141,0.35),inset_0_1px_0_0_rgba(255,255,255,0.2)]' 
-                  : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#00338D]'
-              }`}
-              title="Download signed JSON-LD audit proof for selected run"
-            >
-              <Download className="w-3.5 h-3.5 text-[#0091DA]" />
-              <span>Export Proof ({selectedRun.runId})</span>
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* =========================================================================
           FROSTED GLASS METRIC KPI CARDS (STRICTLY REAL DATA ONLY)
          ========================================================================= */}
-      <div className="relative z-10 p-6 pb-3 grid grid-cols-4 gap-4">
+      <div className="relative z-10 pt-5 px-6 pb-3 grid grid-cols-4 gap-4">
         {/* KPI 1: Executed Workflows */}
         <div className={`p-4 border backdrop-blur-2xl backdrop-saturate-150 transition-all ${
           isDarkMode 
@@ -357,30 +275,68 @@ export default function UnifiedAuditView({
             )}
           </div>
 
-          {/* Frosted Filter Chips */}
-          <div className="flex items-center gap-1.5">
-            {[
-              { id: 'all', label: 'All Runs' },
-              { id: 'canvas', label: 'Canvas' },
-              { id: 'frontend', label: 'Frontend Apps' },
-              { id: 'evaluations', label: 'Evaluations' }
-            ].map(chip => (
-              <button
-                key={chip.id}
-                onClick={() => setOriginFilter(chip.id)}
-                className={`px-3 py-1 text-[11px] font-mono font-medium border backdrop-blur-md transition-all ${
-                  originFilter === chip.id
-                    ? isDarkMode
-                      ? 'bg-[#00338D]/80 text-white border-[#0091DA]/70 shadow-[0_0_12px_rgba(0,145,218,0.3),inset_0_1px_0_0_rgba(255,255,255,0.2)]'
-                      : 'bg-[#00338D] text-white border-[#00338D]'
-                    : isDarkMode
-                      ? 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:text-white hover:bg-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
-                      : 'bg-white/70 text-slate-600 border-slate-200 hover:text-black hover:bg-white'
-                }`}
-              >
-                {chip.label}
-              </button>
-            ))}
+          {/* Frosted Filter Chips & Clear Action */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              {[
+                { id: 'all', label: 'All Runs' },
+                { id: 'canvas', label: 'Canvas' },
+                { id: 'frontend', label: 'Frontend Apps' },
+                { id: 'evaluations', label: 'Evaluations' }
+              ].map(chip => (
+                <button
+                  key={chip.id}
+                  onClick={() => setOriginFilter(chip.id)}
+                  className={`px-3 py-1 text-[11px] font-mono font-medium border backdrop-blur-md transition-all ${
+                    originFilter === chip.id
+                      ? isDarkMode
+                        ? 'bg-[#00338D]/80 text-white border-[#0091DA]/70 shadow-[0_0_12px_rgba(0,145,218,0.3),inset_0_1px_0_0_rgba(255,255,255,0.2)]'
+                        : 'bg-[#00338D] text-white border-[#00338D]'
+                      : isDarkMode
+                        ? 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:text-white hover:bg-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
+                        : 'bg-white/70 text-slate-600 border-slate-200 hover:text-black hover:bg-white'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Clear Ledger */}
+            {runs.length > 0 && (
+              <div className="flex items-center pl-2 border-l border-white/[0.08]">
+                {showClearConfirm ? (
+                  <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5">
+                    <span className="text-[10px] font-mono text-rose-300">Wipe all?</span>
+                    <button
+                      onClick={handleClearAll}
+                      className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-rose-600 hover:bg-rose-500 text-white"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setShowClearConfirm(false)}
+                      className="px-1 py-0.5 text-[9px] font-mono text-slate-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowClearConfirm(true)}
+                    className={`px-2.5 py-1 text-[11px] font-mono font-medium flex items-center gap-1.5 border backdrop-blur-md transition-all ${
+                      isDarkMode 
+                        ? 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-rose-400 border-white/[0.08] hover:border-rose-500/30' 
+                        : 'bg-white/70 hover:bg-white text-slate-600 hover:text-rose-600 border-slate-300'
+                    }`}
+                    title="Purge all audit runs"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Clear</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -655,6 +611,13 @@ export default function UnifiedAuditView({
               </div>
 
               <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => exportAuditProofJsonLd(selectedRun)}
+                  className={`p-1.5 transition-colors border text-[#0091DA] hover:text-white hover:bg-[#00338D]/40 border-[#0091DA]/30`}
+                  title={`Export signed JSON-LD audit proof (${selectedRun.runId})`}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
                 <button
                   onClick={() => {
                     deleteAuditRun(selectedRun.runId);

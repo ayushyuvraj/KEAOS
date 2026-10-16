@@ -12,10 +12,91 @@
     },
     "isInspectorOpen": false,
     "isEnforcerActive": true,
-    "viewMode": "unified-audit",
-    "isWorkflowLocked": true
+    "viewMode": "canvas",
+    "isWorkflowLocked": false
   },
   "workflows": [
+    {
+      "id": "wf-1792161269173-n1msh",
+      "name": "Untitled Workflow",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792161269173-n1msh",
+        "name": "Untitled Workflow",
+        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "agent-core-6407",
+          "type": "agentCore",
+          "position": {
+            "x": 280,
+            "y": 200
+          },
+          "data": {
+            "name": "Autonomous Agent #1",
+            "framework": {
+              "id": "google-adk",
+              "name": "Google ADK",
+              "subtitle": "Google Agent Development Kit & GenAI SDK",
+              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+              "defaultModel": "gemini-2.0-flash",
+              "exportExtension": ".py",
+              "category": "SDK"
+            },
+            "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+            "temperature": 0.2,
+            "topP": 0.95
+          },
+          "measured": {
+            "width": 228,
+            "height": 164
+          }
+        }
+      ],
+      "edges": [],
+      "createdAt": 1792161269173,
+      "updatedAt": 1792162283541,
+      "isStarred": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 1,
+        "agentCount": 1,
+        "mcpCount": 0,
+        "modelCount": 0,
+        "skillCount": 0,
+        "toolCount": 0,
+        "policyCount": 0,
+        "hasAudit": false
+      },
+      "isLocked": false,
+      "isWorkflowLocked": false
+    },
     {
       "id": "wf-meeting-intelligence",
       "name": "MIA2",
@@ -352,7 +433,7 @@
         }
       ],
       "createdAt": 1729080000000,
-      "updatedAt": 1792159464159,
+      "updatedAt": 1792162288392,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -369,7 +450,9 @@
         "toolCount": 0,
         "policyCount": 1,
         "hasAudit": false
-      }
+      },
+      "isLocked": true,
+      "isWorkflowLocked": true
     }
   ],
   "canvasState": {
@@ -697,5 +780,5 @@
     },
     "version": "v7_real_mcp_engine"
   },
-  "syncedAt": 1792159464963
+  "syncedAt": 1792162289202
 }
