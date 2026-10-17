@@ -927,9 +927,9 @@ export default function CanvasExecutionDrawer({
   }, [activeAgentId, onExecutionStateChange]);
 
   // Handle Interactive Chat Submission
-  const handleSendChat = async (e) => {
-    if (e) e.preventDefault();
-    const promptText = chatInput.trim();
+  const handleSendChat = async (e, overridePrompt = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const promptText = (typeof overridePrompt === 'string' ? overridePrompt : chatInput).trim();
     if (!promptText || isChatRunning) return;
 
     if (!hasBrain) {
@@ -951,7 +951,9 @@ export default function CanvasExecutionDrawer({
       [activeAgentId]: [...currentThread, newUserMsg]
     }));
 
-    setChatInput('');
+    if (overridePrompt === null) {
+      setChatInput('');
+    }
 
     // Check for natural language intent to log in / connect Microsoft account
     const isMsLoginIntent = /(log\s*in|sign\s*in|connect|link|authenticate).*(microsoft|outlook|m365|office)/i.test(promptText);
@@ -1092,6 +1094,30 @@ export default function CanvasExecutionDrawer({
       }, 20);
     }
   };
+
+  // Listen for agent steering events from Human-in-the-Loop Approval Gate (Flavor B)
+  useEffect(() => {
+    const handleSteerAgent = (e) => {
+      const { agentId, feedback } = e.detail || {};
+      if (!feedback) return;
+
+      const targetAgentId = agentId || activeAgentId || allAgentNodes[0]?.id;
+      if (!targetAgentId) return;
+
+      setActiveAgentId(targetAgentId);
+      setIsExpanded(true);
+      setDrawerMode('chat');
+
+      const steeringPrompt = `[HUMAN REVIEWER FEEDBACK & STEERING]:\n"${feedback.trim()}"\n\nPlease refine and update your output addressing the reviewer's instructions above.`;
+
+      setTimeout(() => {
+        handleSendChat(null, steeringPrompt);
+      }, 150);
+    };
+
+    window.addEventListener('keaos:steer-agent', handleSteerAgent);
+    return () => window.removeEventListener('keaos:steer-agent', handleSteerAgent);
+  }, [activeAgentId, allAgentNodes, isExpanded, hasBrain]);
 
   const handleClearChat = () => {
     setChatHistories(prev => ({

@@ -59,6 +59,8 @@ import OutputDisplayNode from './nodes/OutputDisplayNode';
 import IngestionNode from './nodes/IngestionNode';
 import DeterministicNode from './nodes/DeterministicNode';
 import TriggerNode from './nodes/TriggerNode';
+import RouterNode from './nodes/RouterNode';
+import ApprovalNode from './nodes/ApprovalNode';
 import { executeDeterministicTask } from '../services/deterministicRunner';
 import { fireTriggerEvent, disarmScheduleTrigger, disarmPollingWatcher } from '../services/triggerEngine';
 import { loadCanvasViewport, saveCanvasViewport } from '../utils/persistentState';
@@ -69,7 +71,9 @@ const nodeTypes = {
   outputNode: OutputDisplayNode,
   ingestionNode: IngestionNode,
   deterministicNode: DeterministicNode,
-  triggerNode: TriggerNode
+  triggerNode: TriggerNode,
+  routerNode: RouterNode,
+  approvalNode: ApprovalNode
 };
 
 const edgeTypes = {
@@ -307,6 +311,26 @@ function CanvasInner({
           }, 60);
         }
 
+        // 4. Identify all Approval Nodes connected directly to this executing Agent Core
+        const connectedApprovalNodes = nds.filter((n) => {
+          if (n.type !== 'approvalNode' || n.data?.isDeactivated) return false;
+          return (edges || []).some((ed) => {
+            return (executingAgentIds.has(ed.source) && ed.target === n.id);
+          });
+        });
+
+        if (connectedApprovalNodes.length > 0) {
+          connectedApprovalNodes.forEach((apNode) => {
+            window.dispatchEvent(new CustomEvent('keaos:approval-requested', {
+              detail: {
+                nodeId: apNode.id,
+                payload: richAgentPayload,
+                sourceAgentName: nds.find((a) => executingAgentIds.has(a.id))?.data?.name || 'Autonomous Agent'
+              }
+            }));
+          });
+        }
+
         return nds.map((n) => {
           // 1. Update the executing agent node itself so it records its lastOutput
           if (executingAgentIds.has(n.id)) {
@@ -377,6 +401,20 @@ function CanvasInner({
                 lastUpstreamTime: Date.now(),
                 lastStatus: 'running',
                 isRunning: true
+              }
+            };
+          }
+
+          // 4. Update connected Approval Nodes (Governance)
+          if (connectedApprovalNodes.some((ca) => ca.id === n.id)) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                pendingPayload: richAgentPayload,
+                approvalStatus: 'pending',
+                sourceAgentName: nds.find((a) => executingAgentIds.has(a.id))?.data?.name || 'Autonomous Agent',
+                lastUpstreamTime: Date.now()
               }
             };
           }
@@ -541,6 +579,32 @@ function CanvasInner({
             }
           }
 
+          // 4. Propagate to downstream Approval Nodes (Governance)
+          if (n.type === 'approvalNode') {
+            const isConnected = (edges || []).some(
+              (ed) => ed.source === detail.nodeId && ed.target === n.id
+            );
+            if (isConnected) {
+              window.dispatchEvent(new CustomEvent('keaos:approval-requested', {
+                detail: {
+                  nodeId: n.id,
+                  payload: detail.output,
+                  sourceAgentName: ruleName
+                }
+              }));
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  pendingPayload: detail.output,
+                  approvalStatus: 'pending',
+                  sourceAgentName: ruleName,
+                  lastUpstreamTime: Date.now()
+                }
+              };
+            }
+          }
+
           return n;
         });
       });
@@ -548,6 +612,141 @@ function CanvasInner({
 
     window.addEventListener('keaos:deterministic-executed', handleDeterministicExecuted);
     return () => window.removeEventListener('keaos:deterministic-executed', handleDeterministicExecuted);
+  }, [edges, setNodes]);
+
+  // Listen for real-time Approval Node resolution events
+  useEffect(() => {
+    const handleApprovalResolved = (e) => {
+      const detail = e.detail;
+      if (!detail || !detail.nodeId) return;
+
+      const { nodeId, decision, record, activeBranch, effectivePayload, feedback } = detail;
+
+      setNodes((nds) => {
+        // 1. Update the Approval Node itself
+        const updatedNds = nds.map((n) => {
+          if (n.id === nodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                approvalStatus: decision === 'rejected' ? 'rejected' 
+                  : decision === 'steer_and_refine' ? 'refining' 
+                  : 'approved',
+                lastDecisionRecord: record,
+                lastResolutionTime: Date.now()
+              }
+            };
+          }
+          return n;
+        });
+
+        // 2. Route down the active branch (e.g. approved-out vs rejected-out)
+        const downstreamEdges = (edges || []).filter((ed) => {
+          if (ed.source !== nodeId) return false;
+          if (activeBranch === 'approved-out') {
+            return ed.sourceHandle === 'approved-out' || !ed.sourceHandle;
+          }
+          if (activeBranch === 'rejected-out') {
+            return ed.sourceHandle === 'rejected-out';
+          }
+          return false;
+        });
+
+        const downstreamNodeIds = new Set(downstreamEdges.map((ed) => ed.target));
+
+        if (downstreamNodeIds.size > 0) {
+          downstreamNodeIds.forEach((targetId) => {
+            const targetNode = nds.find((n) => n.id === targetId);
+            if (!targetNode || targetNode.data?.isDeactivated) return;
+
+            if (targetNode.type === 'outputNode') {
+              const strategy = targetNode.data?.persistenceStrategy || 'append';
+              const prevHistory = Array.isArray(targetNode.data?.runsHistory) ? targetNode.data.runsHistory : [];
+              const formattedContent = typeof effectivePayload === 'object' 
+                ? JSON.stringify(effectivePayload, null, 2) 
+                : String(effectivePayload || '');
+
+              const newRun = {
+                runNumber: strategy === 'overwrite' ? 1 : prevHistory.length + 1,
+                timestamp: new Date().toLocaleTimeString(),
+                content: formattedContent,
+                tokens: 0,
+                latencyMs: 0,
+                costUsd: 0,
+                source: 'governance',
+                sourceNodeType: 'approvalNode',
+                sourceNodeId: nodeId,
+                sourceNodeName: nds.find((n) => n.id === nodeId)?.data?.name || 'Approval Gate'
+              };
+
+              setNodes((currentNodes) => currentNodes.map((cn) => {
+                if (cn.id === targetId) {
+                  return {
+                    ...cn,
+                    data: {
+                      ...cn.data,
+                      outputContent: formattedContent,
+                      runsHistory: strategy === 'overwrite' ? [newRun] : [...prevHistory, newRun],
+                      status: 'ready'
+                    }
+                  };
+                }
+                return cn;
+              }));
+            } else if (targetNode.type === 'deterministicNode') {
+              window.dispatchEvent(new CustomEvent('keaos:deterministic-executing', {
+                detail: { nodeId: targetId, isRunning: true }
+              }));
+              setTimeout(async () => {
+                const code = targetNode.data?.code;
+                const lang = targetNode.data?.language || 'auto';
+                try {
+                  const res = await executeDeterministicTask({
+                    nodeId: targetId,
+                    language: lang,
+                    code,
+                    inputData: effectivePayload
+                  });
+                  window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
+                    detail: {
+                      nodeId: targetId,
+                      output: res.output,
+                      tableData: res.tableData,
+                      latencyMs: res.latencyMs,
+                      success: res.success !== false,
+                      sourceAgentName: 'Approval Gate'
+                    }
+                  }));
+                } catch (err) {
+                  console.error('Downstream deterministic execution error from approval gate:', err);
+                }
+              }, 50);
+            }
+          });
+        }
+
+        // 3. If decision is steer_and_refine, trigger steering prompt on upstream agent!
+        if (decision === 'steer_and_refine' && feedback) {
+          const upstreamEdge = (edges || []).find((ed) => ed.target === nodeId);
+          if (upstreamEdge) {
+            const upstreamAgentId = upstreamEdge.source;
+            window.dispatchEvent(new CustomEvent('keaos:steer-agent', {
+              detail: {
+                agentId: upstreamAgentId,
+                feedback,
+                originalPayload: record?.payload
+              }
+            }));
+          }
+        }
+
+        return updatedNds;
+      });
+    };
+
+    window.addEventListener('keaos:approval-resolved', handleApprovalResolved);
+    return () => window.removeEventListener('keaos:approval-resolved', handleApprovalResolved);
   }, [edges, setNodes]);
 
   // Listen for real-time Deterministic Code update events from Co-Pilot
@@ -1506,12 +1705,36 @@ function CanvasInner({
 
       // 5. Trigger Node feeding Agent Core or Deterministic Box
       if (sourceNode.type === 'triggerNode') {
-        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode' || targetNode.type === 'routerNode') {
           return true;
         }
       }
       if (targetNode.type === 'triggerNode') {
         return false;
+      }
+
+      // 6. Conditional Router connections (Logics)
+      if (targetNode.type === 'routerNode') {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'outputNode' || sourceNode.type === 'routerNode' || sourceNode.type === 'approvalNode') {
+          return true;
+        }
+      }
+      if (sourceNode.type === 'routerNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode') {
+          return true;
+        }
+      }
+
+      // 7. Human-in-the-Loop Approval Gate connections (Governance)
+      if (targetNode.type === 'approvalNode') {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'routerNode' || sourceNode.type === 'outputNode' || sourceNode.type === 'approvalNode') {
+          return true;
+        }
+      }
+      if (sourceNode.type === 'approvalNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode') {
+          return true;
+        }
       }
 
       // If user drags directly from other non-mcp nodes into gateway, show alert
@@ -1644,6 +1867,22 @@ function CanvasInner({
       } else if (sourceNode?.type === 'triggerNode' || targetNode?.type === 'triggerNode') {
         strokeColor = '#00A3A6'; // Cyber Teal for Trigger Ingress Stream
         strokeWidth = 2.2;
+        strokeDasharray = '5 4';
+      } else if (sourceNode?.type === 'routerNode') {
+        strokeColor = params.sourceHandle === 'true-out' ? '#10B981' : '#0091DA';
+        strokeWidth = 2.2;
+        strokeDasharray = '5 4';
+      } else if (targetNode?.type === 'routerNode') {
+        strokeColor = '#0091DA';
+        strokeWidth = 2.0;
+        strokeDasharray = '5 4';
+      } else if (sourceNode?.type === 'approvalNode') {
+        strokeColor = params.sourceHandle === 'approved-out' ? '#10B981' : '#EF4444';
+        strokeWidth = 2.2;
+        strokeDasharray = '5 4';
+      } else if (targetNode?.type === 'approvalNode') {
+        strokeColor = '#EAAA00';
+        strokeWidth = 2.0;
         strokeDasharray = '5 4';
       }
 
@@ -1856,7 +2095,9 @@ function CanvasInner({
         (n.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
         (n.data?.pillarType && n.data.pillarType === executionState.pillarType) ||
         (n.type === 'deterministicNode' && (executionState.nodeId === n.id || executionState.step?.includes('Deterministic'))) ||
-        (n.type === 'triggerNode' && executionState.nodeId === n.id)
+        (n.type === 'triggerNode' && executionState.nodeId === n.id) ||
+        (n.type === 'routerNode' && (executionState.nodeId === n.id || executionState.step?.includes('Router'))) ||
+        (n.type === 'approvalNode' && (executionState.nodeId === n.id || executionState.step?.includes('Approval') || executionState.step?.includes('Sign-off')))
       );
 
       // Dynamically calculate attachedCounts and connectedModelName specifically for THIS agent node
@@ -2174,6 +2415,14 @@ function CanvasInner({
         resolvedColor = '#EAAA00';
       } else if (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') {
         resolvedColor = '#10B981';
+      } else if (sourceNode?.type === 'routerNode') {
+        resolvedColor = edge.sourceHandle === 'true-out' ? '#10B981' : '#0091DA';
+      } else if (targetNode?.type === 'routerNode') {
+        resolvedColor = '#0091DA';
+      } else if (sourceNode?.type === 'approvalNode') {
+        resolvedColor = edge.sourceHandle === 'approved-out' ? '#10B981' : '#EF4444';
+      } else if (targetNode?.type === 'approvalNode') {
+        resolvedColor = '#EAAA00';
       } else if (sourceNode?.type === 'agentCore' && targetNode?.type === 'agentCore') {
         resolvedColor = '#6366F1';
       } else if (edge.style?.stroke) {

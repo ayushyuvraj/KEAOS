@@ -1,5 +1,323 @@
 [
   {
+    "runId": "RUN-102204",
+    "workflowId": "uc-wf-1792162747408-90syy",
+    "workflowName": "Functionality Extension 1",
+    "frameworkId": "openai-swarm",
+    "frameworkName": "OpenAI Swarm",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-17T07:11:42.204Z",
+    "durationMs": 11293,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (2 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "ccf1c3d9482e7ef3f0d8ed88d164d0c6aa659b642f55569aed7ad2af02828718",
+      "inputSha256": "70bcd1ae3c83c0a321c4eba7ac436c36d8f8808f201fd9e18105b48b72e9af5a",
+      "outputSha256": "cc85d788a4b5adfd57d946ca566f3416526dd17fb22146cc75eccb53c85c6de8",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 6907,
+      "promptTokens": 2417,
+      "completionTokens": 4490,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.00306,
+      "currency": "USD",
+      "humanMinutesSaved": 138,
+      "laborValueSavedUsd": 149.5,
+      "netRoiMultiplier": 48856
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Orchestrator",
+        "provider": "openai",
+        "modelId": "gpt-4o-mini",
+        "displayName": "OpenAI: GPT-4o-mini",
+        "promptTokens": 987,
+        "completionTokens": 1833,
+        "totalTokens": 2820,
+        "ratePromptPerM": 0.15,
+        "rateCompletionPerM": 0.6,
+        "costUsd": 0.00125,
+        "latencyMs": 5151,
+        "status": "COMPLETED"
+      },
+      {
+        "agentId": "agent-core-4055",
+        "agentName": "Autonomous Agent #3",
+        "provider": "openai",
+        "modelId": "gpt-4o-mini",
+        "displayName": "OpenAI: GPT-4o-mini",
+        "promptTokens": 698,
+        "completionTokens": 1297,
+        "totalTokens": 1995,
+        "ratePromptPerM": 0.15,
+        "rateCompletionPerM": 0.6,
+        "costUsd": 0.00088,
+        "latencyMs": 3983,
+        "status": "COMPLETED"
+      },
+      {
+        "agentId": "agent-core-1593",
+        "agentName": "Specialist Agent #2",
+        "provider": "openai",
+        "modelId": "gpt-4o-mini",
+        "displayName": "OpenAI: GPT-4o-mini",
+        "promptTokens": 732,
+        "completionTokens": 1360,
+        "totalTokens": 2092,
+        "ratePromptPerM": 0.15,
+        "rateCompletionPerM": 0.6,
+        "costUsd": 0.00093,
+        "latencyMs": 6138,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (2 Stages)",
+          "bytes": 4354
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Orchestrator (OpenAI: GPT-4o-mini)",
+        "component": "gpt-4o-mini",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 5151,
+        "costUsd": 0.00125,
+        "details": {
+          "promptTokens": 987,
+          "completionTokens": 1833
+        }
+      },
+      {
+        "spanId": "span-agent-2",
+        "phase": "AGENT_EXECUTION",
+        "name": "Autonomous Agent #3 (OpenAI: GPT-4o-mini)",
+        "component": "gpt-4o-mini",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 3983,
+        "costUsd": 0.00088,
+        "details": {
+          "promptTokens": 698,
+          "completionTokens": 1297
+        }
+      },
+      {
+        "spanId": "span-agent-3",
+        "phase": "AGENT_EXECUTION",
+        "name": "Specialist Agent #2 (OpenAI: GPT-4o-mini)",
+        "component": "gpt-4o-mini",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 6138,
+        "costUsd": 0.00093,
+        "details": {
+          "promptTokens": 732,
+          "completionTokens": 1360
+        }
+      },
+      {
+        "spanId": "span-5",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "ccf1c3d9482e7ef3f0d8ed88d164d0c6aa659b642f55569aed7ad2af02828718"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "Thanks, everyone. Let's keep this short. The purpose of today's meeting is to confirm whether ARK is ready for the internal pilot next Friday and identify anything that could block us. From the product side, the core meeting intelligence wo...",
+      "outputSnippet": "# Meeting Summary Review and Action Plan\n\n## Key Findings\n1. **Core Workflow Functionality**: The meeting intelligence workflow is operational, allowing users to upload transcripts for processing, which results in decisions, action items, risks, and summaries.\n2. **Extraction Logic Improvement**: The system currently misclassifies vague suggestions as commit..."
+    }
+  },
+  {
+    "runId": "RUN-848243",
+    "workflowId": "uc-wf-1792162747408-90syy",
+    "workflowName": "Functionality Extension 1",
+    "frameworkId": "openai-swarm",
+    "frameworkName": "OpenAI Swarm",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-17T07:07:28.243Z",
+    "durationMs": 11601,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (2 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "6167330be4aa0a723d40b1ceeb26999c99ce3da4ba96e8a02da9abfa1c4159d3",
+      "inputSha256": "70bcd1ae3c83c0a321c4eba7ac436c36d8f8808f201fd9e18105b48b72e9af5a",
+      "outputSha256": "7b0d1abc0df8396a3f1773416bdb9adf9b7705407233e336dbbe6ed9fd0ea78f",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 6739,
+      "promptTokens": 2359,
+      "completionTokens": 4380,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.00298,
+      "currency": "USD",
+      "humanMinutesSaved": 135,
+      "laborValueSavedUsd": 146.25,
+      "netRoiMultiplier": 49077
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Orchestrator",
+        "provider": "openai",
+        "modelId": "gpt-4o-mini",
+        "displayName": "OpenAI: GPT-4o-mini",
+        "promptTokens": 975,
+        "completionTokens": 1811,
+        "totalTokens": 2786,
+        "ratePromptPerM": 0.15,
+        "rateCompletionPerM": 0.6,
+        "costUsd": 0.00123,
+        "latencyMs": 5765,
+        "status": "COMPLETED"
+      },
+      {
+        "agentId": "agent-core-1593",
+        "agentName": "Specialist Agent #2",
+        "provider": "openai",
+        "modelId": "gpt-4o-mini",
+        "displayName": "OpenAI: GPT-4o-mini",
+        "promptTokens": 696,
+        "completionTokens": 1292,
+        "totalTokens": 1988,
+        "ratePromptPerM": 0.15,
+        "rateCompletionPerM": 0.6,
+        "costUsd": 0.00088,
+        "latencyMs": 4709,
+        "status": "COMPLETED"
+      },
+      {
+        "agentId": "agent-core-4055",
+        "agentName": "Autonomous Agent #3",
+        "provider": "openai",
+        "modelId": "gpt-4o-mini",
+        "displayName": "OpenAI: GPT-4o-mini",
+        "promptTokens": 688,
+        "completionTokens": 1277,
+        "totalTokens": 1965,
+        "ratePromptPerM": 0.15,
+        "rateCompletionPerM": 0.6,
+        "costUsd": 0.00087,
+        "latencyMs": 5831,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (2 Stages)",
+          "bytes": 4354
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Orchestrator (OpenAI: GPT-4o-mini)",
+        "component": "gpt-4o-mini",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 5765,
+        "costUsd": 0.00123,
+        "details": {
+          "promptTokens": 975,
+          "completionTokens": 1811
+        }
+      },
+      {
+        "spanId": "span-agent-2",
+        "phase": "AGENT_EXECUTION",
+        "name": "Specialist Agent #2 (OpenAI: GPT-4o-mini)",
+        "component": "gpt-4o-mini",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 4709,
+        "costUsd": 0.00088,
+        "details": {
+          "promptTokens": 696,
+          "completionTokens": 1292
+        }
+      },
+      {
+        "spanId": "span-agent-3",
+        "phase": "AGENT_EXECUTION",
+        "name": "Autonomous Agent #3 (OpenAI: GPT-4o-mini)",
+        "component": "gpt-4o-mini",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 5831,
+        "costUsd": 0.00087,
+        "details": {
+          "promptTokens": 688,
+          "completionTokens": 1277
+        }
+      },
+      {
+        "spanId": "span-5",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "6167330be4aa0a723d40b1ceeb26999c99ce3da4ba96e8a02da9abfa1c4159d3"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "Thanks, everyone. Let's keep this short. The purpose of today's meeting is to confirm whether ARK is ready for the internal pilot next Friday and identify anything that could block us. From the product side, the core meeting intelligence wo...",
+      "outputSnippet": "# Meeting Summary: ARK Internal Pilot Readiness\n\n## Key Findings\n1. **Core Workflow Functionality**: The core meeting intelligence workflow is operational, allowing users to upload transcripts and receive decisions, action items, risks, and summaries.\n2. **Extraction Logic Improvement**: Current confidence scoring needs enhancement to prevent vague suggestio..."
+    }
+  },
+  {
     "runId": "RUN-447187",
     "workflowId": "uc-wf-1792162747408-90syy",
     "workflowName": "Functionality Extension 1",

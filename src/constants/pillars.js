@@ -402,7 +402,11 @@ export const SOCKET_RULES = {
   'in': 'deterministicNode',
   'out': 'deterministicNode',
   'trigger-out': 'triggerNode',
-  'trigger-in': 'triggerNode'
+  'trigger-in': 'triggerNode',
+  'true-out': 'routerNode',
+  'false-out': 'routerNode',
+  'approved-out': 'approvalNode',
+  'rejected-out': 'approvalNode'
 };
 
 

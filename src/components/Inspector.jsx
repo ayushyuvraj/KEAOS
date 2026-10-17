@@ -44,6 +44,8 @@ import {
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import TriggerInspectorPanel from './TriggerInspectorPanel';
+import RouterInspectorPanel from './RouterInspectorPanel';
+import ApprovalInspectorPanel from './ApprovalInspectorPanel';
 import { 
   armScheduleTrigger, 
   disarmScheduleTrigger, 
@@ -1235,15 +1237,15 @@ export default function Inspector({
                   <InfoTooltip text="Component role and connectivity profile in the workspace." align="left" />
                 </span>
                 <span className="text-[10px] font-mono px-2.5 py-0.5 bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30 rounded-full font-semibold">
-                  Socket: {selectedNode.type === 'triggerNode' ? 'trigger-out' : pillarDef?.socketId}
+                  Socket: {selectedNode.type === 'triggerNode' ? 'trigger-out' : selectedNode.type === 'routerNode' ? 'in → true/false' : selectedNode.type === 'approvalNode' ? 'in → approved/rejected' : pillarDef?.socketId}
                 </span>
               </span>
               <div className={`p-3 ${t.subCard} rounded-xl flex items-center justify-between`}>
                 <span className={`text-xs font-bold ${t.title} capitalize`}>
-                  {selectedNode.type === 'triggerNode' ? 'Triggers & Ingress' : nodeData.pillarType}
+                  {selectedNode.type === 'triggerNode' ? 'Triggers & Ingress' : selectedNode.type === 'routerNode' ? 'Logics' : selectedNode.type === 'approvalNode' ? 'Governance' : nodeData.pillarType}
                 </span>
                 <span className={`text-[10px] font-mono ${t.subText}`}>
-                  {selectedNode.type === 'triggerNode' ? 'Trigger Node' : 'Pillar Block'}
+                  {selectedNode.type === 'triggerNode' ? 'Trigger Node' : selectedNode.type === 'routerNode' ? 'Conditional Router' : selectedNode.type === 'approvalNode' ? 'Approval Gate' : 'Pillar Block'}
                 </span>
               </div>
             </div>
@@ -1267,7 +1269,7 @@ export default function Inspector({
                 <InfoTooltip text="High-level summary of what this capability does in the agent workflow." align="right" />
               </span>
               <p className={`text-xs leading-relaxed ${t.title}`}>
-                {nodeData.description || 'Specialized reasoning capability attached to the agent workflow.'}
+                {nodeData.description || (selectedNode.type === 'routerNode' ? 'Evaluates incoming payload against configured condition and directs flow out of True or False ports.' : selectedNode.type === 'approvalNode' ? 'Pauses workflow execution for human review and routes out of Approved or Rejected ports.' : 'Specialized reasoning capability attached to the agent workflow.')}
               </p>
             </div>
 
@@ -1277,6 +1279,26 @@ export default function Inspector({
                 selectedNode={selectedNode}
                 nodes={nodes}
                 edges={edges}
+                onUpdateNodeData={onUpdateNodeData}
+                isDarkMode={isDarkMode}
+                t={t}
+              />
+            )}
+
+            {/* Router Configuration & Condition Bench */}
+            {selectedNode.type === 'routerNode' && (
+              <RouterInspectorPanel
+                selectedNode={selectedNode}
+                onUpdateNodeData={onUpdateNodeData}
+                isDarkMode={isDarkMode}
+                t={t}
+              />
+            )}
+
+            {/* Approval Gate Configuration & Decision Bench */}
+            {selectedNode.type === 'approvalNode' && (
+              <ApprovalInspectorPanel
+                selectedNode={selectedNode}
                 onUpdateNodeData={onUpdateNodeData}
                 isDarkMode={isDarkMode}
                 t={t}

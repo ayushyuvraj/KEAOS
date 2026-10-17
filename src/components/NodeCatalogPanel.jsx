@@ -323,6 +323,55 @@ const NODE_CATEGORIES = [
     ]
   },
   {
+    id: 'logics',
+    label: 'Logics',
+    subtitle: 'Conditional decision forks, branching switches & flow controls',
+    icon: GitFork,
+    color: '#0091DA', // Pacific Blue
+    bgColor: '#E6F4FC',
+    badge: 'ROUTER',
+    socketId: 'in',
+    items: [
+      {
+        id: 'router-conditional-switch',
+        name: 'Conditional Router',
+        description: 'Subtle visual decision fork. Evaluates incoming data and routes execution to True or False branches.',
+        isRouterNode: true,
+        config: {
+          targetField: 'status',
+          operator: '==',
+          comparisonValue: 'approved',
+          trueLabel: 'True / Match',
+          falseLabel: 'False / Default'
+        }
+      }
+    ]
+  },
+  {
+    id: 'governance',
+    label: 'Governance',
+    subtitle: 'Human sign-offs, compliance gates & risk checkpoints',
+    icon: ShieldCheck,
+    color: '#EAAA00', // Amber Gold
+    bgColor: '#FDF7E6',
+    badge: 'SIGN-OFF',
+    socketId: 'in',
+    items: [
+      {
+        id: 'approval-gate-primary',
+        name: 'Approval Gate',
+        description: 'Human-in-the-Loop checkpoint. Pauses execution for explicit human review, sign-off, or rejection.',
+        isApprovalNode: true,
+        config: {
+          reviewerRole: 'Compliance Officer',
+          instructions: 'Verify that payload meets compliance and audit criteria before releasing downstream.',
+          requireReasonOnReject: true,
+          timeoutPolicy: 'manual'
+        }
+      }
+    ]
+  },
+  {
     id: 'triggers',
     label: 'Triggers & Ingress',
     subtitle: 'Manual one-click dispatches, instant webhooks, and event-driven pipeline starters',

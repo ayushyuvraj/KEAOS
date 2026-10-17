@@ -1235,6 +1235,89 @@ export default function App() {
       return;
     }
 
+    if (pillarKey === 'logics' || pillarKey === 'routerNode' || item?.isRouterNode) {
+      const newNodeId = `node-router-${Date.now().toString().slice(-4)}`;
+      let count = 1;
+      setNodes((nds) => {
+        const existing = nds.filter(n => n.type === 'routerNode');
+        count = existing.length + 1;
+        const agentNode = nds.find(n => n.type === 'agentCore');
+        const xPos = agentNode ? agentNode.position.x - 220 : 360;
+        const yPos = agentNode 
+          ? agentNode.position.y + 140 + (existing.length * 80)
+          : 300 + (existing.length * 80);
+
+        const newNode = {
+          id: newNodeId,
+          type: 'routerNode',
+          position: { x: xPos, y: yPos },
+          data: {
+            name: item.name && item.name !== 'Conditional Router'
+              ? `${item.name} #${count}`
+              : `Conditional Router #${count}`,
+            description: item.description || 'Evaluates incoming payload against configured condition and directs flow to True or False branches.',
+            targetField: item.config?.targetField || 'status',
+            operator: item.config?.operator || '==',
+            comparisonValue: item.config?.comparisonValue || 'approved',
+            trueLabel: item.config?.trueLabel || 'True / Match',
+            falseLabel: item.config?.falseLabel || 'False / Default',
+            lastEvaluatedBranch: null,
+            status: 'idle',
+            isDarkMode
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `⚡ Added Conditional Router to Canvas` }
+      }));
+      return;
+    }
+
+    if (pillarKey === 'governance' || pillarKey === 'approvalNode' || item?.isApprovalNode) {
+      const newNodeId = `node-approval-${Date.now().toString().slice(-4)}`;
+      let count = 1;
+      setNodes((nds) => {
+        const existing = nds.filter(n => n.type === 'approvalNode');
+        count = existing.length + 1;
+        const agentNode = nds.find(n => n.type === 'agentCore');
+        const xPos = agentNode ? agentNode.position.x + 240 : 540;
+        const yPos = agentNode 
+          ? agentNode.position.y + 140 + (existing.length * 80)
+          : 320 + (existing.length * 80);
+
+        const newNode = {
+          id: newNodeId,
+          type: 'approvalNode',
+          position: { x: xPos, y: yPos },
+          data: {
+            name: item.name && item.name !== 'Approval Gate'
+              ? `${item.name} #${count}`
+              : `Approval Gate #${count}`,
+            description: item.description || 'Human-in-the-Loop checkpoint. Pauses execution for explicit human review, sign-off, or rejection.',
+            reviewerRole: item.config?.reviewerRole || 'Compliance Officer',
+            instructions: item.config?.instructions || 'Verify that payload meets compliance and audit criteria before releasing downstream.',
+            requireReasonOnReject: item.config?.requireReasonOnReject ?? true,
+            timeoutPolicy: item.config?.timeoutPolicy || 'manual',
+            approvalStatus: 'idle',
+            lastEvaluatedBranch: null,
+            isDarkMode
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `🛡️ Added Approval Gate to Canvas` }
+      }));
+      return;
+    }
+
     if (pillarKey === 'triggers' || pillarKey === 'triggerNode' || item?.isTriggerNode) {
       const newNodeId = `node-trigger-${Date.now().toString().slice(-4)}`;
       let count = 1;
