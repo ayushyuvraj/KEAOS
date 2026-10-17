@@ -104,8 +104,8 @@
           "id": "node-model-1",
           "type": "pillar",
           "position": {
-            "x": 565.01347427186,
-            "y": 80.7547264465507
+            "x": 569.5670749204646,
+            "y": 73.92432547364375
           },
           "data": {
             "pillarType": "model",
@@ -123,7 +123,7 @@
             "width": 140,
             "height": 60
           },
-          "selected": false,
+          "selected": true,
           "dragging": false
         },
         {
@@ -386,7 +386,7 @@
             "width": 140,
             "height": 60
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
         },
         {
@@ -452,23 +452,37 @@
           },
           "selected": false,
           "dragging": false
+        },
+        {
+          "id": "node-gateway-4472",
+          "type": "pillar",
+          "position": {
+            "x": 647.3919719455744,
+            "y": 12.950269558172486
+          },
+          "data": {
+            "pillarType": "gateway",
+            "toolId": "gw-fallback-router",
+            "name": "Model Fallback Router",
+            "description": "Reroutes traffic to secondary model if primary encounters 429/500.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "fallbackModel": "gemini-1.5-flash",
+              "timeoutSeconds": 15
+            },
+            "tools": null,
+            "itemId": "gw-fallback-router"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
         }
       ],
       "edges": [
-        {
-          "id": "edge-model",
-          "source": "node-model-1",
-          "sourceHandle": "out",
-          "target": "agent-core",
-          "targetHandle": "model-in",
-          "type": "deletable",
-          "animated": false,
-          "style": {
-            "stroke": "#00338D",
-            "strokeWidth": 1.8,
-            "strokeDasharray": "4 4"
-          }
-        },
         {
           "id": "edge-ingest-1",
           "source": "node-ingest-1",
@@ -630,10 +644,25 @@
             "strokeDasharray": "6 4"
           },
           "id": "xy-edge__agent-coreout-agent-core-4055agent-in"
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "node-model-1",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "model-in",
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          },
+          "id": "xy-edge__node-model-1out-agent-coremodel-in"
         }
       ],
       "createdAt": 1792162747408,
-      "updatedAt": 1792211089099,
+      "updatedAt": 1792212313393,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -642,7 +671,7 @@
         "PII Redactor"
       ],
       "stats": {
-        "nodeCount": 11,
+        "nodeCount": 12,
         "agentCount": 3,
         "mcpCount": 0,
         "modelCount": 1,
@@ -1069,8 +1098,8 @@
         "id": "node-model-1",
         "type": "pillar",
         "position": {
-          "x": 565.01347427186,
-          "y": 80.7547264465507
+          "x": 569.5670749204646,
+          "y": 73.92432547364375
         },
         "data": {
           "pillarType": "model",
@@ -1088,7 +1117,7 @@
           "width": 140,
           "height": 60
         },
-        "selected": false,
+        "selected": true,
         "dragging": false
       },
       {
@@ -1351,7 +1380,7 @@
           "width": 140,
           "height": 60
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       },
       {
@@ -1417,23 +1446,37 @@
         },
         "selected": false,
         "dragging": false
+      },
+      {
+        "id": "node-gateway-4472",
+        "type": "pillar",
+        "position": {
+          "x": 647.3919719455744,
+          "y": 12.950269558172486
+        },
+        "data": {
+          "pillarType": "gateway",
+          "toolId": "gw-fallback-router",
+          "name": "Model Fallback Router",
+          "description": "Reroutes traffic to secondary model if primary encounters 429/500.",
+          "customDirective": null,
+          "referenceDoc": null,
+          "config": {
+            "fallbackModel": "gemini-1.5-flash",
+            "timeoutSeconds": 15
+          },
+          "tools": null,
+          "itemId": "gw-fallback-router"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
       }
     ],
     "edges": [
-      {
-        "id": "edge-model",
-        "source": "node-model-1",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "model-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00338D",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
       {
         "id": "edge-ingest-1",
         "source": "node-ingest-1",
@@ -1595,6 +1638,21 @@
           "strokeDasharray": "6 4"
         },
         "id": "xy-edge__agent-coreout-agent-core-4055agent-in"
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "node-model-1",
+        "sourceHandle": "out",
+        "target": "agent-core",
+        "targetHandle": "model-in",
+        "style": {
+          "stroke": "#00338D",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        },
+        "id": "xy-edge__node-model-1out-agent-coremodel-in"
       }
     ],
     "activeUseCase": {
@@ -2631,5 +2689,5 @@
       ]
     }
   ],
-  "syncedAt": 1792211410875
+  "syncedAt": 1792212314199
 }
