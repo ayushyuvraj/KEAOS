@@ -30,7 +30,8 @@ import {
   CheckCircle2,
   ChevronRight,
   Minus,
-  Sliders
+  Sliders,
+  Layers
 } from 'lucide-react';
 import MarkdownViewer from './common/MarkdownViewer';
 import { runMeetingSimulation } from '../utils/meetingSimulatorEngine';

@@ -334,50 +334,38 @@ export const PILLARS = {
   },
   tools: {
     id: 'tools',
-    label: 'Tools & Ingestion',
-    socketId: 'tool-in',
+    label: 'Tools',
+    socketId: 'tools-in',
     color: '#0091DA', // Pacific Blue
     bgColor: '#E6F4FC',
     borderColor: '#0091DA',
     badge: 'TOOL',
-    description: 'Input processors, parsers, and custom utilities',
+    description: 'Multimodal file, audio, document, and text ingestion pipeline',
     maxConnections: 10,
     items: [
       {
-        id: 'tool-audio-transcribe',
-        name: 'MP3 Audio Transcription Tool',
-        description: 'Accepts MP3 audio, runs Whisper/Speech-to-Text with speaker diarization.',
-        config: { format: 'mp3', diarization: true, language: 'auto' },
-        category: 'ingestion'
+        id: 'ingest-universal-file',
+        name: 'Universal File & Audio Ingest',
+        description: 'Accepts audio (MP3, WAV, M4A) with auto-transcription, PDFs, DOCX, CSV spreadsheets, and raw notes on canvas.',
+        section: 'Ingestion',
+        config: { fileType: 'auto' },
+        isIngestionNode: true
       },
       {
-        id: 'tool-doc-parser',
-        name: 'TXT / VTT Document Parser',
-        description: 'Ingests uploaded meeting documents, parses timestamps and speaker names.',
-        config: { supportedFormats: ['.txt', '.vtt', '.srt', '.docx'], cleanArtifacts: true },
-        category: 'ingestion'
+        id: 'ingest-audio-stream',
+        name: 'Dedicated Audio Ingestion Port',
+        description: 'Optimized for recorded executive meetings, phone calls, and earnings calls with speaker diarization.',
+        section: 'Ingestion',
+        config: { fileType: 'audio' },
+        isIngestionNode: true
       },
       {
-        id: 'tool-text-box-ingest',
-        name: 'Direct Text Ingest Tool',
-        description: 'Captures raw pasted meeting notes and formats into structured context.',
-        config: { maxChars: 500000, autoSanitizeWhitespace: true },
-        category: 'ingestion'
-      },
-      {
-        id: 'tool-calendar-query',
-        name: 'Calendar Sync Tool',
-        description: 'Queries attendee status and agenda from corporate calendar API.',
-        config: { syncIntervalMins: 15 },
-        category: 'utility'
-      },
-      {
-        id: 'tool-deterministic-box',
-        name: 'Deterministic Logic Box',
-        description: 'Zero-token mathematical joins, table pivots, VLOOKUP, variable transforms, and custom Python/SQL/JS logic.',
-        config: { language: 'python', engine: 'auto' },
-        category: 'deterministic',
-        isDeterministicNode: true
+        id: 'ingest-raw-text',
+        name: 'Raw Direct Text Stream',
+        description: 'Instant manual text paste area for immediate prompts, policies, or quick test payloads.',
+        section: 'Ingestion',
+        config: { fileType: 'text' },
+        isIngestionNode: true
       }
     ]
   }

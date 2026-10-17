@@ -3,8 +3,8 @@ export function generateFrameworkCode(frameworkId, agentConfig, attachments) {
   const modelName = modelNode?.config?.modelId || modelNode?.name || attachments.model?.name || 'gemini-2.0-flash';
   const modelTemperature = modelNode?.config?.temperature !== undefined ? modelNode.config.temperature : (agentConfig?.temperature ?? 0.2);
   const systemPrompt = agentConfig.prompt || 'You are an enterprise Meeting Intelligence Assistant.';
-  const hasAudioTool = attachments.tools?.some(t => t.id === 'tool-audio-transcribe');
-  const hasDocTool = attachments.tools?.some(t => t.id === 'tool-doc-parser');
+  const hasAudioTool = attachments.tools?.some(t => t.id === 'tool-audio-transcribe' || t.id === 'ingest-audio-stream' || t.id === 'ingest-universal-file' || t.fileType === 'audio');
+  const hasDocTool = attachments.tools?.some(t => t.id === 'tool-doc-parser' || t.id === 'ingest-universal-file' || t.id === 'ingest-raw-text' || t.fileType === 'auto' || t.fileType === 'text');
   const hasPii = attachments.policies?.some(p => p.id === 'pol-pii-masker');
   const connectedMcpServers = Array.isArray(attachments.mcp) ? attachments.mcp : (attachments.mcp ? [attachments.mcp] : []);
   const hasNeo4jMcp = connectedMcpServers.some(m => 

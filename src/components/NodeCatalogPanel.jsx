@@ -448,12 +448,12 @@ const NODE_CATEGORIES = [
   {
     id: 'tools',
     label: 'Tools',
-    subtitle: 'Audio Transcription (Whisper), Document Parser, Text Box Ingest',
+    subtitle: 'File, audio & data ingestion pipelines (Audio, Documents, Raw Text)',
     icon: Wrench,
     color: '#0091DA', // Pacific Blue
     bgColor: '#E6F4FC',
     badge: 'TOOL',
-    socketId: 'tool-in',
+    socketId: 'tools-in',
     items: PILLARS.tools?.items || []
   },
   {
@@ -509,42 +509,6 @@ const NODE_CATEGORIES = [
         }
       }
     ]
-  },
-  {
-    id: 'ingestionNode',
-    label: 'File & Data Ingestion',
-    subtitle: 'Upload audio (MP3/WAV), documents (PDF/DOCX), spreadsheets (CSV/Excel) or raw text',
-    icon: UploadCloud,
-    color: '#0091DA', // Pacific Blue
-    bgColor: '#E6F4FC',
-    badge: 'INGESTION PORT',
-    socketId: 'tools-in',
-    items: [
-      {
-        id: 'ingest-universal-file',
-        name: 'Universal File & Audio Ingest',
-        description: 'Accepts audio (MP3, WAV, M4A) with auto-transcription, PDFs, DOCX, CSV spreadsheets, and raw notes on canvas.',
-        config: {
-          fileType: 'auto'
-        }
-      },
-      {
-        id: 'ingest-audio-stream',
-        name: 'Dedicated Audio Ingestion Port',
-        description: 'Optimized for recorded executive meetings, phone calls, and earnings calls with speaker diarization.',
-        config: {
-          fileType: 'audio'
-        }
-      },
-      {
-        id: 'ingest-raw-text',
-        name: 'Raw Direct Text Stream',
-        description: 'Instant manual text paste area for immediate prompts, policies, or quick test payloads.',
-        config: {
-          fileType: 'text'
-        }
-      }
-    ]
   }
 ];
 
@@ -556,6 +520,7 @@ export default function NodeCatalogPanel({
   isEmbedded = false
 }) {
   const [activeCategoryId, setActiveCategoryId] = useState(null);
+  const [selectedToolSection, setSelectedToolSection] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [addedItemId, setAddedItemId] = useState(null);
 
@@ -608,10 +573,12 @@ export default function NodeCatalogPanel({
       if (categoryId) {
         setActiveCategoryId(categoryId);
         setSelectedModelProvider(null);
+        setSelectedToolSection(null);
         setSearchQuery('');
       } else {
         setActiveCategoryId(null);
         setSelectedModelProvider(null);
+        setSelectedToolSection(null);
         setSearchQuery('');
       }
     };
@@ -757,12 +724,14 @@ export default function NodeCatalogPanel({
   const handleSelectCategory = (categoryId) => {
     setActiveCategoryId(categoryId);
     setSelectedModelProvider(null);
+    setSelectedToolSection(null);
     setSearchQuery('');
   };
 
   const handleBackToCategories = () => {
     setActiveCategoryId(null);
     setSelectedModelProvider(null);
+    setSelectedToolSection(null);
     setSearchQuery('');
   };
 
@@ -919,7 +888,9 @@ export default function NodeCatalogPanel({
                 onClick={
                   activeCategory.id === 'model' && selectedModelProvider
                     ? () => { setSelectedModelProvider(null); setDiscoveryError(null); }
-                    : handleBackToCategories
+                    : activeCategory.id === 'tools' && selectedToolSection
+                      ? () => setSelectedToolSection(null)
+                      : handleBackToCategories
                 }
                 className={`btn-tactile flex items-center gap-1.5 text-xs font-semibold rounded-lg px-2 py-1 -ml-2 transition-colors ${
                   isDarkMode 
@@ -931,7 +902,9 @@ export default function NodeCatalogPanel({
                 <span>
                   {activeCategory.id === 'model' && selectedModelProvider
                     ? 'All Providers'
-                    : 'All Categories'}
+                    : activeCategory.id === 'tools' && selectedToolSection
+                      ? 'All Tools'
+                      : 'All Categories'}
                 </span>
               </button>
 
@@ -952,6 +925,8 @@ export default function NodeCatalogPanel({
                   const CurrentLogo = MODEL_PROVIDERS.find(p => p.id === selectedModelProvider)?.logo || Cpu;
                   return <CurrentLogo className="w-5 h-5 shrink-0" />;
                 })()
+              ) : activeCategory.id === 'tools' && selectedToolSection ? (
+                <UploadCloud className="w-5 h-5 shrink-0 text-[#0091DA]" />
               ) : (
                 React.createElement(activeCategory.icon || Wrench, { 
                   className: 'w-5 h-5 shrink-0',
@@ -964,7 +939,9 @@ export default function NodeCatalogPanel({
                 }`}>
                   {activeCategory.id === 'model' && selectedModelProvider
                     ? `${MODEL_PROVIDERS.find(p => p.id === selectedModelProvider)?.name} Models`
-                    : activeCategory.label}
+                    : activeCategory.id === 'tools' && selectedToolSection
+                      ? 'Ingestion'
+                      : activeCategory.label}
                 </h3>
                 <span className={`text-[11px] font-medium ${
                   isDarkMode ? 'text-slate-400' : 'text-slate-500'
@@ -979,6 +956,10 @@ export default function NodeCatalogPanel({
                       ? registeredMcpServers.length > 0
                         ? `${registeredMcpServers.length} ${registeredMcpServers.length === 1 ? 'server' : 'servers'} connected`
                         : 'Select an integration to connect'
+                    : activeCategory.id === 'tools'
+                      ? selectedToolSection
+                        ? `${activeCategory.items.length} ${activeCategory.items.length === 1 ? 'component' : 'components'} available`
+                        : '1 tool suite available'
                     : `${activeCategory.items.length} ${activeCategory.items.length === 1 ? 'component' : 'components'} available`}
                 </span>
               </div>
@@ -1868,74 +1849,106 @@ export default function NodeCatalogPanel({
                 </div>
               )}
 
-              {activeCategory.items
-                .filter(item => !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.description?.toLowerCase().includes(searchQuery.toLowerCase()))
-                .map(item => {
-                  let ItemIcon = activeCategory.icon;
-                  if (item.id === 'tool-audio-transcribe') ItemIcon = Mic;
-                  if (item.id === 'tool-doc-parser') ItemIcon = FileText;
-                  if (item.id === 'tool-text-box-ingest') ItemIcon = Type;
-                  const isCustom = item.config?.isCustom;
+              {/* Ingestion Section inside Tools - Clean Minimal Single-Row identical to ss1 */}
+              {activeCategory.id === 'tools' && !selectedToolSection && !searchQuery.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedToolSection('ingestion')}
+                  className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                    isDarkMode 
+                      ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                      : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <UploadCloud 
+                      className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" 
+                      style={{ color: '#0091DA' }} 
+                    />
+                    <h4 className={`text-[13px] font-medium tracking-tight truncate ${
+                      isDarkMode ? 'text-white' : 'text-slate-800'
+                    }`}>
+                      Ingestion
+                    </h4>
+                  </div>
 
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleItemAdd(activeCategory.id, item)}
-                      className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
-                        isDarkMode 
-                          ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
-                          : 'hover:bg-slate-100/90 active:bg-slate-200/70'
-                      }`}
-                    >
-                      <div className="flex-1 min-w-0 flex items-center gap-3">
-                        <ItemIcon 
-                          className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" 
-                          style={{ color: activeCategory.color }} 
-                        />
-                        <h4 className={`text-[13px] font-medium tracking-tight truncate ${
-                          isDarkMode ? 'text-white' : 'text-slate-800'
-                        }`}>
-                          {item.name}
-                        </h4>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-all duration-150 shrink-0 ${
+                    isDarkMode 
+                      ? 'text-slate-500 group-hover:text-white group-hover:translate-x-0.5' 
+                      : 'text-slate-400 group-hover:text-slate-800 group-hover:translate-x-0.5'
+                  }`} />
+                </button>
+              ) : (
+                /* Detail items list - Clean Minimal Single-Row matching ss1 */
+                activeCategory.items
+                  .filter(item => !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(item => {
+                    let ItemIcon = activeCategory.icon;
+                    if (item.id === 'ingest-universal-file' || item.id === 'tool-doc-parser') ItemIcon = UploadCloud;
+                    if (item.id === 'ingest-audio-stream' || item.id === 'tool-audio-transcribe') ItemIcon = Mic;
+                    if (item.id === 'ingest-raw-text' || item.id === 'tool-text-box-ingest') ItemIcon = Type;
+                    const isCustom = item.config?.isCustom;
 
-                        {isCustom && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 shrink-0">
-                            CUSTOM
-                          </span>
-                        )}
-                      </div>
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleItemAdd(activeCategory.id, item)}
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                          isDarkMode 
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0 flex items-center gap-3">
+                          <ItemIcon 
+                            className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" 
+                            style={{ color: activeCategory.color }} 
+                          />
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${
+                            isDarkMode ? 'text-white' : 'text-slate-800'
+                          }`}>
+                            {item.name}
+                          </h4>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {isCustom && (
+                          {isCustom && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 shrink-0">
+                              CUSTOM
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isCustom && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteCustomSkill(item.id, e)}
+                              className="p-1 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                              title="Delete Custom Skill"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
                           <button
                             type="button"
-                            onClick={(e) => handleDeleteCustomSkill(item.id, e)}
-                            className="p-1 rounded text-slate-400 hover:text-red-400 transition-colors"
-                            title="Delete Custom Skill"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleItemAdd(activeCategory.id, item);
+                            }}
+                            className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
+                              addedItemId === item.id
+                                ? 'bg-[#009A44] text-white border-[#009A44]'
+                                : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-xs'
+                            }`}
+                            title="Add to Canvas"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            {addedItemId === item.id ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                           </button>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleItemAdd(activeCategory.id, item);
-                          }}
-                          className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
-                            addedItemId === item.id
-                              ? 'bg-[#009A44] text-white border-[#009A44]'
-                              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-xs'
-                          }`}
-                          title="Add to Canvas"
-                        >
-                          {addedItemId === item.id ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+              )}
             </div>
           )
         ) : (

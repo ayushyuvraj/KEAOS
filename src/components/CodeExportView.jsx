@@ -16,7 +16,7 @@ export default function CodeExportView({ activeUseCase, nodes, edges = [] }) {
     model: nodes.find(n => n.data?.pillarType === 'model')?.data,
     skills: nodes.filter(n => n.data?.pillarType === 'skills').map(n => n.data),
     mcp: nodes.filter(n => n.data?.pillarType === 'mcp').map(n => n.data),
-    tools: nodes.filter(n => n.data?.pillarType === 'tools').map(n => n.data),
+    tools: nodes.filter(n => n.data?.pillarType === 'tools' || n.type === 'ingestionNode').map(n => n.data),
     gateway: nodes.filter(n => n.data?.pillarType === 'gateway').map(n => n.data),
     memory: nodes.filter(n => n.data?.pillarType === 'memory').map(n => n.data),
     policies: nodes.filter(n => n.data?.pillarType === 'policies').map(n => n.data)

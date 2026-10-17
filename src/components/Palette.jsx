@@ -333,10 +333,9 @@ export default function Palette({ onAddNode }) {
                   ) : (
                     filteredItems.map((item) => {
                       let ItemIcon = Icon;
-                      if (item.id === 'tool-audio-transcribe') ItemIcon = Mic;
-                      if (item.id === 'tool-doc-parser') ItemIcon = FileText;
-                      if (item.id === 'tool-text-box-ingest') ItemIcon = Type;
-                      if (item.id === 'tool-deterministic-box') ItemIcon = Code2;
+                      if (item.id === 'ingest-universal-file' || item.id === 'tool-doc-parser') ItemIcon = UploadCloud;
+                      if (item.id === 'ingest-audio-stream' || item.id === 'tool-audio-transcribe') ItemIcon = Mic;
+                      if (item.id === 'ingest-raw-text' || item.id === 'tool-text-box-ingest') ItemIcon = Type;
 
                       return (
                         <div

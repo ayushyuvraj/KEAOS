@@ -85,17 +85,17 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
       }
     },
-    // 3. Hands / Tool Ingestion Node (Positioned to the upper left)
+    // 3. Hands / Ingestion Node (Positioned directly above the top-left Ingestion socket)
     {
-      id: 'node-tool-1',
-      type: 'pillar',
+      id: 'node-ingest-1',
+      type: 'ingestionNode',
       position: { x: 230, y: -20 },
       data: {
-        pillarType: 'tools',
-        toolId: 'tool-audio-transcribe',
-        name: 'Audio Transcriber',
-        description: 'Accepts MP3 audio, runs Whisper/Speech-to-Text with speaker diarization.',
-        config: { format: 'mp3', diarization: true }
+        title: 'Universal File & Audio Ingest',
+        content: '',
+        status: 'idle',
+        fileType: 'auto',
+        isExpanded: false
       }
     },
     // 4. Reach / MCP Egress Gateway Node (Positioned directly above the top-right MCP socket)
@@ -159,18 +159,6 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         format: 'markdown',
         isExpanded: false
       }
-    },
-    // 9. Input Ingestion Node (Positioned directly above the top-left Tools socket)
-    {
-      id: 'node-ingest-1',
-      type: 'ingestionNode',
-      position: { x: 410, y: -20 },
-      data: {
-        title: 'Data & Audio Ingestion',
-        content: '',
-        status: 'idle',
-        isExpanded: false
-      }
     }
   ];
 
@@ -189,16 +177,6 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       id: 'edge-ingest-1',
       source: 'node-ingest-1',
       sourceHandle: 'data-out',
-      target: 'agent-core',
-      targetHandle: 'tools-in',
-      type: 'deletable',
-      animated: false,
-      style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
-    },
-    {
-      id: 'edge-tool',
-      source: 'node-tool-1',
-      sourceHandle: 'out',
       target: 'agent-core',
       targetHandle: 'tools-in',
       type: 'deletable',
@@ -1168,8 +1146,9 @@ export default function App() {
       return;
     }
 
-    if (pillarKey === 'ingestionNode') {
+    if (pillarKey === 'ingestionNode' || pillarKey === 'tools' || item?.isIngestionNode || item?.id?.startsWith('ingest-')) {
       const newNodeId = `node-ingest-${Date.now().toString().slice(-4)}`;
+      const fileType = item?.config?.fileType || (item?.id === 'ingest-audio-stream' ? 'audio' : item?.id === 'ingest-raw-text' ? 'text' : 'auto');
       setNodes((nds) => {
         const agentNode = nds.find(n => n.type === 'agentCore');
         const xPos = agentNode ? agentNode.position.x - 340 : 260;
@@ -1181,6 +1160,9 @@ export default function App() {
           position: { x: xPos, y: yPos },
           data: {
             title: item.name || 'Data & Audio Ingestion',
+            fileName: '',
+            fileSize: '',
+            fileType,
             content: '',
             status: 'idle',
             isExpanded: false
@@ -1213,7 +1195,7 @@ export default function App() {
 
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
-        detail: { message: `📥 Added Ingestion Component to Canvas` }
+        detail: { message: `📥 Added Ingestion Component (${item.name || 'Ingestion'}) to Canvas` }
       }));
       return;
     }
