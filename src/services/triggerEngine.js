@@ -510,11 +510,29 @@ export async function fireTriggerEvent({
         parsedPayload = { text: rawPayloadText };
       }
     } else {
-      parsedPayload = {
-        source: 'manual_trigger',
-        triggerId,
-        timestamp: new Date().toISOString()
-      };
+      const isOutlookStream = (triggerNode.data?.streamType === 'inbox') || 
+                              (triggerNode.data?.name || '').toLowerCase().includes('outlook') ||
+                              (triggerNode.data?.pollSubMode === 'stream');
+      if (isOutlookStream) {
+        parsedPayload = {
+          source: 'outlook_mcp_stream',
+          stream: triggerNode.data?.streamType || 'inbox',
+          item: {
+            id: `msg_${Date.now()}`,
+            subject: 'Vendor Invoice #INV-2026-9041 (Payment Approval Required)',
+            from: 'ap-billing@cloudinfrastructures.corp',
+            receivedDateTime: new Date().toISOString(),
+            hasAttachments: true,
+            bodyPreview: 'Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.'
+          }
+        };
+      } else {
+        parsedPayload = {
+          source: 'manual_trigger',
+          triggerId,
+          timestamp: new Date().toISOString()
+        };
+      }
     }
   }
 

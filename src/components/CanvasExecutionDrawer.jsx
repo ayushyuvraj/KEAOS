@@ -698,23 +698,92 @@ export default function CanvasExecutionDrawer({
       }));
   }, [nodes]);
 
-  // Handle Batch Agent Runner
-  const handleRunAgent = useCallback(async () => {
-    if (isRunning) return;
+  // Execute full multi-agent distributed fleet pipeline
+  const handleRunFleetPipeline = useCallback(async (customInput = null) => {
+    if (isFleetRunning) return;
+    setIsFleetRunning(true);
+    setIsExpanded(true);
+    setFleetSteps([]);
+    setFleetResult(null);
 
-    // Check if an ingestion node on canvas has content if transcriptText is not set
-    let activeTranscript = transcriptText;
-    if (!activeTranscript || !activeTranscript.trim()) {
-      const ingestNode = (nodes || []).find(n => n.type === 'ingestionNode' && n.data?.content?.trim());
-      if (ingestNode) {
-        activeTranscript = ingestNode.data.content;
-        setTranscriptText(activeTranscript);
-      }
+    if (onExecutionStateChange) {
+      onExecutionStateChange({ isExecuting: true, step: 'Starting Multi-Agent Fleet Pipeline...' });
     }
 
+    let fleetSucceeded = false;
+    try {
+      const effectiveInput = (typeof customInput === 'string' ? customInput : customInput?.content || customInput?.text) || transcriptText;
+      const result = await executeMultiAgentWorkflow({
+        nodes,
+        edges,
+        initialInput: effectiveInput,
+        activeUseCase,
+        onStageStart: ({ stageIndex, totalStages, agents }) => {
+          setCurrentFleetStage({ stageIndex, totalStages, agents });
+          if (onExecutionStateChange) {
+            onExecutionStateChange({
+              isExecuting: true,
+              step: `Stage ${stageIndex + 1}/${totalStages}: Running ${agents.map(a => a.name).join(', ')}...`
+            });
+          }
+        },
+        onAgentComplete: (agentOutput) => {
+          setFleetSteps(prev => [...prev, agentOutput]);
+        }
+      });
+
+      setFleetResult(result);
+      fleetSucceeded = true;
+
+      // Dispatch fleet completion event for drawer & observability (do not overwrite individual agent nodes)
+      try {
+        window.dispatchEvent(new CustomEvent('keaos:fleet-complete', {
+          detail: {
+            title: `Fleet Deliverable (${result.completedStages} Stages • ${result.totalAgents} Agents)`,
+            markdown: result.synthesizedDeliverable,
+            output: result.synthesizedDeliverable,
+            result: result
+          }
+        }));
+      } catch (e) {
+        console.warn('Fleet completion broadcast failed:', e);
+      }
+    } catch (err) {
+      console.error('Fleet execution failed:', err);
+      alert(`Multi-Agent Fleet execution error: ${err.message}`);
+    } finally {
+      setIsFleetRunning(false);
+      setCurrentFleetStage(null);
+      if (onExecutionStateChange) {
+        onExecutionStateChange({ isExecuting: false, step: fleetSucceeded ? 'Complete' : 'Failed' });
+      }
+    }
+  }, [isFleetRunning, nodes, edges, transcriptText, onExecutionStateChange, setIsExpanded, activeUseCase]);
+
+  // Handle Batch Agent Runner
+  const handleRunAgent = useCallback(async (customContext = null) => {
+    if (isRunning) return;
+
+    // Check if custom context was provided or if an ingestion node on canvas has content
+    let activeTranscript = (typeof customContext === 'string' ? customContext : customContext?.content || customContext?.text) || transcriptText;
+    const ingestNode = (nodes || []).find(n => n.type === 'ingestionNode');
+    if ((!activeTranscript || !activeTranscript.trim()) && ingestNode?.data?.content?.trim()) {
+      activeTranscript = ingestNode.data.content;
+      setTranscriptText(activeTranscript);
+    }
+
+    const hasIngestionNode = Boolean(ingestNode);
+    const isMeetingUseCase = (activeUseCase?.id === 'meeting-intelligence') && hasIngestionNode;
+
+    // If not explicitly a meeting intelligence usecase with an ingestion node, delegate to the universal fleet pipeline
+    if (!isMeetingUseCase && allAgentNodes.length > 0) {
+      return handleRunFleetPipeline(activeTranscript);
+    }
+
+    // Graceful fallback: use sample transcript or agent prompt instead of hardcoded alert
     if (!activeTranscript || !activeTranscript.trim()) {
-      alert('⚠️ No input data provided.\n\nPlease upload an audio, document, or data file into the Ingestion Node on the canvas (or enter text) before executing.');
-      return;
+      activeTranscript = activeUseCase?.sampleTranscript || ingestNode?.data?.prompt || 'Enterprise intelligence execution. Synthesize context.';
+      setTranscriptText(activeTranscript);
     }
 
     setIsRunning(true);
@@ -787,85 +856,34 @@ export default function CanvasExecutionDrawer({
     activeUseCase, 
     globalAttachedPillars, 
     onExecutionStateChange, 
-    setIsExpanded
+    setIsExpanded,
+    nodes,
+    allAgentNodes,
+    activeAgentId,
+    handleRunFleetPipeline
   ]);
-
-  // Execute full multi-agent distributed fleet pipeline
-  const handleRunFleetPipeline = useCallback(async () => {
-    if (isFleetRunning) return;
-    setIsFleetRunning(true);
-    setIsExpanded(true);
-    setFleetSteps([]);
-    setFleetResult(null);
-
-    if (onExecutionStateChange) {
-      onExecutionStateChange({ isExecuting: true, step: 'Starting Multi-Agent Fleet Pipeline...' });
-    }
-
-    let fleetSucceeded = false;
-    try {
-      const result = await executeMultiAgentWorkflow({
-        nodes,
-        edges,
-        initialInput: transcriptText,
-        activeUseCase,
-        onStageStart: ({ stageIndex, totalStages, agents }) => {
-          setCurrentFleetStage({ stageIndex, totalStages, agents });
-          if (onExecutionStateChange) {
-            onExecutionStateChange({
-              isExecuting: true,
-              step: `Stage ${stageIndex + 1}/${totalStages}: Running ${agents.map(a => a.name).join(', ')}...`
-            });
-          }
-        },
-        onAgentComplete: (agentOutput) => {
-          setFleetSteps(prev => [...prev, agentOutput]);
-        }
-      });
-
-      setFleetResult(result);
-      fleetSucceeded = true;
-
-      // Dispatch fleet completion event for drawer & observability (do not overwrite individual agent nodes)
-      try {
-        window.dispatchEvent(new CustomEvent('keaos:fleet-complete', {
-          detail: {
-            title: `Fleet Deliverable (${result.completedStages} Stages • ${result.totalAgents} Agents)`,
-            markdown: result.synthesizedDeliverable,
-            output: result.synthesizedDeliverable,
-            result: result
-          }
-        }));
-      } catch (e) {
-        console.warn('Fleet completion broadcast failed:', e);
-      }
-    } catch (err) {
-      console.error('Fleet execution failed:', err);
-      alert(`Multi-Agent Fleet execution error: ${err.message}`);
-    } finally {
-      setIsFleetRunning(false);
-      setCurrentFleetStage(null);
-      if (onExecutionStateChange) {
-        onExecutionStateChange({ isExecuting: false, step: fleetSucceeded ? 'Complete' : 'Failed' });
-      }
-    }
-  }, [isFleetRunning, nodes, edges, transcriptText, onExecutionStateChange, setIsExpanded]);
 
   // Listen for canvas "Execute Workflow" button trigger
   useEffect(() => {
     const handleExecuteTrigger = (e) => {
       const specificAgentId = e?.detail?.agentId;
-      if (!specificAgentId && allAgentNodes.length > 1) {
-        setDrawerMode('fleet');
-        handleRunFleetPipeline();
-      } else {
+      const initialContext = e?.detail?.initialContext;
+
+      // Check whether this is specifically the Meeting Intelligence usecase with an Ingestion Node
+      const hasIngestionNode = (nodes || []).some(n => n.type === 'ingestionNode');
+      const isMeetingUseCase = activeUseCase?.id === 'meeting-intelligence' && hasIngestionNode;
+
+      if (isMeetingUseCase && (!allAgentNodes.length || allAgentNodes.length === 1)) {
         setDrawerMode('chat');
-        handleRunAgent();
+        handleRunAgent(initialContext);
+      } else {
+        setDrawerMode('fleet');
+        handleRunFleetPipeline(initialContext);
       }
     };
     window.addEventListener('keaos:execute-workflow', handleExecuteTrigger);
     return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
-  }, [handleRunAgent, handleRunFleetPipeline, allAgentNodes.length]);
+  }, [handleRunAgent, handleRunFleetPipeline, allAgentNodes.length, nodes, activeUseCase]);
 
   // Listen for cancel execution / stop stream trigger
   useEffect(() => {

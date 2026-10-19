@@ -1566,6 +1566,63 @@ function CanvasInner({
     }
   }, [onUpdateNodeData, setNodes]);
 
+  // Centralized, Topology-Aware Workflow Execution Dispatcher
+  const handleExecuteWorkflow = useCallback(() => {
+    if (executionState.isExecuting) return;
+
+    // 1. Check if active Trigger nodes exist on canvas (e.g. Outlook Stream Watcher, Pollers, Webhooks, Schedules)
+    const activeTriggers = (nodes || []).filter(
+      (n) => n.type === 'triggerNode' && !n.data?.isDeactivated
+    );
+
+    if (activeTriggers.length > 0) {
+      // Trigger node(s) exist: fire them through the trigger engine
+      activeTriggers.forEach((triggerNode) => {
+        window.dispatchEvent(
+          new CustomEvent('keaos:fire-trigger-node', {
+            detail: {
+              nodeId: triggerNode.id,
+              triggerType: triggerNode.data?.triggerType || 'poll',
+              payloadText: triggerNode.data?.payloadText || null
+            }
+          })
+        );
+      });
+      return;
+    }
+
+    // 2. Check if there are only standalone deterministic nodes without agents or triggers
+    const activeAgents = (nodes || []).filter(
+      (n) => n.type === 'agentCore' && !n.data?.isDeactivated
+    );
+    if (activeAgents.length === 0) {
+      const activeDetNodes = (nodes || []).filter(
+        (n) => n.type === 'deterministicNode' && !n.data?.isDeactivated
+      );
+      if (activeDetNodes.length > 0) {
+        const rootDetNodes = activeDetNodes.filter(
+          (n) => !edges.some((e) => e.target === n.id && (nodes || []).find((src) => src.id === e.source && !src.data?.isDeactivated))
+        );
+        const targetsToRun = rootDetNodes.length > 0 ? rootDetNodes : activeDetNodes;
+        targetsToRun.forEach((detNode) => {
+          window.dispatchEvent(
+            new CustomEvent('keaos:fire-trigger-node', {
+              detail: {
+                nodeId: detNode.id,
+                payloadText: null
+              }
+            })
+          );
+        });
+        return;
+      }
+    }
+
+    // 3. If NO trigger node exists, execute directly through the workflow execution event!
+    // This allows ANY workflow to execute at any time via the Execute Workflow button or Ctrl+Enter.
+    window.dispatchEvent(new CustomEvent('keaos:execute-workflow'));
+  }, [executionState.isExecuting, nodes, edges]);
+
   // Global Keyboard Shortcuts Listener:
   // - 'D' / 'd': Toggle Deactivate / Activate on selected or hovered node
   // - 'Ctrl+D': Duplicate selected or hovered node
@@ -1592,7 +1649,7 @@ function CanvasInner({
       if (isCtrlOrCmd) {
         if (key === 'Enter') {
           e.preventDefault();
-          window.dispatchEvent(new CustomEvent('keaos:execute-workflow'));
+          handleExecuteWorkflow();
           const toastMsg = '⚡ Executing Workflow...';
           setToastNotification(toastMsg);
           setTimeout(() => {
@@ -2544,9 +2601,7 @@ function CanvasInner({
       {/* Top-Left Prominent Canvas Action Overlay: Minimalist Execute Workflow & Stop */}
       <div className="absolute top-4 left-6 z-20 flex items-center gap-2">
         <button
-          onClick={() => {
-            window.dispatchEvent(new CustomEvent('keaos:execute-workflow'));
-          }}
+          onClick={handleExecuteWorkflow}
           disabled={executionState.isExecuting}
           className={`btn-tactile px-4 py-2 font-bold text-xs flex items-center gap-2 rounded-none shadow-md transition-all border cursor-pointer ${
             executionState.isExecuting

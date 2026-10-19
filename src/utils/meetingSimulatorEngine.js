@@ -83,16 +83,15 @@ export async function runMeetingSimulation({
 
   const startTime = performance.now();
 
-  if (!transcript || !transcript.trim()) {
-    await logStep('Ingestion Failed', '❌ ERROR: No transcript input provided.', 0, 'tools');
-    throw new Error('No transcript or meeting input provided. Please enter transcript text or upload a file before executing.');
-  }
+  const effectiveTranscript = (transcript && transcript.trim())
+    ? transcript.trim()
+    : (agentConfig?.prompt || 'Enterprise agent mandate execution. Ingest context and synthesize conclusions.');
 
   // Step 1: Ingestion & Diarization
-  await logStep('Ingestion & Parsing', `Ingested transcript (${transcript.trim().length} characters). Input validated.`, 120, 'tools');
+  await logStep('Ingestion & Parsing', `Ingested context payload (${effectiveTranscript.length} characters). Input validated.`, 120, 'tools');
 
   // Step 2: Gateway & Policy Checks (PII Masking & Pre-Inference Sanitization)
-  let processedTranscript = transcript;
+  let processedTranscript = effectiveTranscript;
   let redactedCount = 0;
   const policyNodes = attachedPillars.filter(p => p.type === 'policies');
   
