@@ -3553,7 +3553,7 @@
                 "sourceNodeName": "Mail & Attachment Extractor"
               }
             ],
-            "isExpanded": true,
+            "isExpanded": false,
             "isDarkMode": false,
             "sourceNodeType": "deterministic",
             "sourceNodeId": "node-deterministic-outlook",
@@ -3566,8 +3566,8 @@
             "name": "Tabular Continuous Output Viewer"
           },
           "measured": {
-            "width": 520,
-            "height": 420
+            "width": 140,
+            "height": 56
           },
           "selected": false,
           "dragging": false
@@ -4728,7 +4728,7 @@
         }
       ],
       "createdAt": 1792382477311,
-      "updatedAt": 1792408254503,
+      "updatedAt": 1792408331409,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -5228,8 +5228,8 @@
           "name": "Tabular Continuous Output Viewer"
         },
         "measured": {
-          "width": 520,
-          "height": 420
+          "width": 140,
+          "height": 56
         },
         "selected": false,
         "dragging": false
@@ -7446,5 +7446,5 @@
       ]
     }
   ],
-  "syncedAt": 1792408255327
+  "syncedAt": 1792408332217
 }
