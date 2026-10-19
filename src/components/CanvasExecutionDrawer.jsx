@@ -702,7 +702,8 @@ export default function CanvasExecutionDrawer({
   const handleRunFleetPipeline = useCallback(async (customInput = null) => {
     if (isFleetRunning) return;
     setIsFleetRunning(true);
-    setIsExpanded(true);
+    // Explicit mandate: NEVER force open the bottom drawer/chat on execute across all workflows
+    if (setIsExpanded) setIsExpanded(false);
     setFleetSteps([]);
     setFleetResult(null);
 
@@ -723,7 +724,20 @@ export default function CanvasExecutionDrawer({
           if (onExecutionStateChange) {
             onExecutionStateChange({
               isExecuting: true,
+              activeAgentId: agents[0]?.id,
+              nodeId: agents[0]?.id,
               step: `Stage ${stageIndex + 1}/${totalStages}: Running ${agents.map(a => a.name).join(', ')}...`
+            });
+          }
+        },
+        onStepProgress: (progress) => {
+          if (onExecutionStateChange) {
+            onExecutionStateChange({
+              isExecuting: true,
+              activeAgentId: progress.agentId,
+              nodeId: progress.agentId,
+              pillarType: progress.pillarType,
+              step: progress.step
             });
           }
         },
@@ -786,6 +800,8 @@ export default function CanvasExecutionDrawer({
       setTranscriptText(activeTranscript);
     }
 
+    // Explicit mandate: NEVER force open the bottom drawer/chat on execute across all workflows
+    if (setIsExpanded) setIsExpanded(false);
     setIsRunning(true);
     setExecutionSteps([]);
     setSimulationResult(null);
@@ -866,6 +882,9 @@ export default function CanvasExecutionDrawer({
   // Listen for canvas "Execute Workflow" button trigger
   useEffect(() => {
     const handleExecuteTrigger = (e) => {
+      // Explicit mandate: NEVER force open the bottom drawer/chat on execute across all workflows
+      if (setIsExpanded) setIsExpanded(false);
+
       const specificAgentId = e?.detail?.agentId;
       const initialContext = e?.detail?.initialContext;
 
@@ -874,16 +893,14 @@ export default function CanvasExecutionDrawer({
       const isMeetingUseCase = activeUseCase?.id === 'meeting-intelligence' && hasIngestionNode;
 
       if (isMeetingUseCase && (!allAgentNodes.length || allAgentNodes.length === 1)) {
-        setDrawerMode('chat');
         handleRunAgent(initialContext);
       } else {
-        setDrawerMode('fleet');
         handleRunFleetPipeline(initialContext);
       }
     };
     window.addEventListener('keaos:execute-workflow', handleExecuteTrigger);
     return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
-  }, [handleRunAgent, handleRunFleetPipeline, allAgentNodes.length, nodes, activeUseCase]);
+  }, [handleRunAgent, handleRunFleetPipeline, allAgentNodes.length, nodes, activeUseCase, setIsExpanded]);
 
   // Listen for cancel execution / stop stream trigger
   useEffect(() => {

@@ -632,11 +632,11 @@ function getOutlookStreamWorkflowNodesAndEdges(framework) {
   const item = data?.item || data || {};
   return {
     record_id: item.id || ('REC-' + Date.now().toString().slice(-4)),
-    sender: item.from || 'ap-billing@cloudinfrastructures.corp',
-    subject: item.subject || 'Vendor Invoice #INV-2026-9041',
-    received_at: item.receivedDateTime || new Date().toISOString(),
-    has_attachments: Boolean(item.hasAttachments),
-    summary: (item.bodyPreview || item.content || '').slice(0, 120),
+    sender: item.from || item.sender || 'Direct Ingress',
+    subject: item.subject || item.title || item.name || 'Ingested Message',
+    received_at: item.receivedDateTime || item.timestamp || new Date().toISOString(),
+    has_attachments: Boolean(item.hasAttachments || item.attachments?.length),
+    summary: (item.bodyPreview || item.content || item.summary || item.text || '').slice(0, 120),
     status: 'EXTRACTED'
   };
 }`,

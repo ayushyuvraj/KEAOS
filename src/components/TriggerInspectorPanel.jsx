@@ -31,44 +31,11 @@ import {
   armOutlookStreamWatcher,
   disarmOutlookStreamWatcher
 } from '../services/triggerEngine';
+import { 
+  executeRealMcpTool, 
+  getStoredMicrosoftOAuthCredentials 
+} from '../services/mcpClientService';
 import { OUTLOOK_OFFICIAL_ACTIONS } from '../constants/mcpOfficialCatalogs';
-
-// Quick Sample Datasets for Instant File Ingestion Testing
-const SAMPLE_FILES = {
-  invoice: {
-    fileName: 'Enterprise_Invoice_INV-2026-9041.pdf',
-    fileSize: 142850,
-    fileType: 'application/pdf',
-    content: JSON.stringify({
-      invoiceId: 'INV-2026-9041',
-      vendor: 'Institutional Cloud Infrastructure Ltd',
-      amountDueUSD: 48500.00,
-      paymentTerms: 'NET-30',
-      lineItems: [
-        { description: 'High-Concurrency Agent Runtime Cluster', qty: 4, unitPrice: 8500 },
-        { description: 'Hardware Cryptographic HSM Vault Tier', qty: 1, unitPrice: 14500 }
-      ],
-      dueDate: '2026-11-15'
-    }, null, 2)
-  },
-  transcript: {
-    fileName: 'Executive_Board_Strategy_Review.txt',
-    fileSize: 18400,
-    fileType: 'text/plain',
-    content: `[00:01:15] Chief Risk Officer: We need automated validation on all outbound LLM prompts.
-[00:02:40] Head of Infrastructure: The new KEAOS deterministic pipeline handles mathematical calculations with 0 token spend.
-[00:03:55] Action Item: Deploy cryptographically audited trigger pipeline before Friday.`
-  },
-  financials: {
-    fileName: 'Q3_Enterprise_Portfolio_Reconciliation.csv',
-    fileSize: 32100,
-    fileType: 'text/csv',
-    content: `TransactionId,AccountId,DebitUSD,CreditUSD,Status
-TX-8801,ACC-CORP-01,125000.00,0.00,CLEARED
-TX-8802,ACC-CORP-02,0.00,125000.00,CLEARED
-TX-8803,ACC-ESCROW-09,45000.00,0.00,FLAGGED_AUDIT`
-  }
-};
 
 export default function TriggerInspectorPanel({
   selectedNode,
@@ -270,38 +237,26 @@ export default function TriggerInspectorPanel({
   };
 
   const handleSimulateWebhook = () => {
-    const simulatedWebhookPayload = {
-      event: 'stripe.payment_intent.succeeded',
-      id: `evt_test_${Date.now()}`,
-      created: Math.floor(Date.now() / 1000),
-      data: {
-        object: {
-          id: `pi_live_${Date.now().toString().slice(-6)}`,
-          amount: 45000,
-          currency: 'usd',
-          status: 'succeeded',
-          customer_email: 'finance-director@enterprise-client.com'
-        }
+    let webhookPayload = null;
+    if (payloadText && payloadText.trim()) {
+      try {
+        webhookPayload = JSON.parse(payloadText);
+      } catch {
+        webhookPayload = { text: payloadText.trim() };
       }
-    };
-    fireTrigger(JSON.stringify(simulatedWebhookPayload, null, 2));
+    } else {
+      webhookPayload = {
+        event: 'ingress.webhook.received',
+        id: `whk_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        headers: { 'content-type': 'application/json' },
+        source: 'external_webhook'
+      };
+    }
+    fireTrigger(JSON.stringify(webhookPayload, null, 2));
   };
 
   // --- FILE WATCHER HANDLERS ---
-  const handleLoadSampleFile = (key) => {
-    const sample = SAMPLE_FILES[key];
-    if (!sample) return;
-    const payload = {
-      source: 'file_watcher_drop',
-      fileName: sample.fileName,
-      fileSize: sample.fileSize,
-      fileType: sample.fileType,
-      content: sample.content,
-      ingestedAt: new Date().toISOString()
-    };
-    onUpdateNodeData(selectedNode.id, { payloadText: JSON.stringify(payload, null, 2) });
-    fireTrigger(JSON.stringify(payload, null, 2));
-  };
 
   const handleFileDrop = async (e) => {
     e.preventDefault();
@@ -384,92 +339,127 @@ export default function TriggerInspectorPanel({
     }
   };
 
-  const handlePollOnceTest = () => {
-    const pollSamplePayload = {
-      source: 'api_polling_watcher',
-      endpoint: pollEndpoint,
-      status: 'UP',
-      latencyMs: Math.floor(Math.random() * 40) + 12,
-      checkedAt: new Date().toISOString(),
-      payload: {
-        activeQueues: 3,
-        systemHealth: 'OPTIMAL',
-        unprocessedRecords: Math.floor(Math.random() * 15)
+  const handlePollOnceTest = async () => {
+    let resultPayload = null;
+    const startTime = performance.now();
+    if (pollEndpoint && pollEndpoint.startsWith('http')) {
+      try {
+        const res = await fetch(pollEndpoint);
+        const text = await res.text();
+        let json = null;
+        try { json = JSON.parse(text); } catch { json = { body: text }; }
+        resultPayload = {
+          source: 'api_polling_watcher',
+          endpoint: pollEndpoint,
+          status: res.status,
+          ok: res.ok,
+          latencyMs: Math.round(performance.now() - startTime),
+          checkedAt: new Date().toISOString(),
+          data: json
+        };
+      } catch (err) {
+        resultPayload = {
+          source: 'api_polling_watcher',
+          endpoint: pollEndpoint,
+          status: 'FETCH_ERROR',
+          error: err.message,
+          latencyMs: Math.round(performance.now() - startTime),
+          checkedAt: new Date().toISOString()
+        };
       }
-    };
-    fireTrigger(JSON.stringify(pollSamplePayload, null, 2));
+    } else if (payloadText && payloadText.trim()) {
+      try {
+        resultPayload = JSON.parse(payloadText);
+      } catch {
+        resultPayload = { text: payloadText.trim(), timestamp: new Date().toISOString() };
+      }
+    } else {
+      resultPayload = {
+        source: 'api_polling_watcher',
+        endpoint: pollEndpoint || 'local_stream',
+        checkedAt: new Date().toISOString(),
+        status: 'DISPATCHED'
+      };
+    }
+    fireTrigger(JSON.stringify(resultPayload, null, 2));
   };
 
-  // Simulates a 5-minute interval where 3 discrete emails arrive
-  // Dispatches each email independently so downstream nodes append 3 distinct rows without jumbling
+  // Queries live stream items from real connected MCP server or user configured payload
+  // Dispatches each discrete item independently so downstream nodes append separate rows without jumbling
   const handlePollBatchTest = async () => {
     setIsSimulatingBatch(true);
-    const sampleBatch = [
-      {
-        id: `msg_batch_001_${Date.now()}`,
-        subject: 'Vendor Invoice #INV-2026-9041 (Payment Approval Required)',
-        from: 'ap-billing@cloudinfrastructures.corp',
-        receivedDateTime: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
-        hasAttachments: true,
-        bodyPreview: 'Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.'
-      },
-      {
-        id: `msg_batch_002_${Date.now()}`,
-        subject: 'Hardware Maintenance Statement #ST-8812 (Net 15)',
-        from: 'accounts@hardwarevaults.io',
-        receivedDateTime: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-        hasAttachments: true,
-        bodyPreview: 'Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.'
-      },
-      {
-        id: `msg_batch_003_${Date.now()}`,
-        subject: 'Automated Dispatch Receipt #RCP-3304',
-        from: 'system-mailer@enterprise.corp',
-        receivedDateTime: new Date(Date.now() - 30 * 1000).toISOString(),
-        hasAttachments: false,
-        bodyPreview: 'Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.'
-      }
-    ];
+    try {
+      let realBatch = [];
+      const creds = getStoredMicrosoftOAuthCredentials();
+      const mcpNode = (nodes || []).find(n => (n.data?.name || '').toLowerCase().includes('outlook') || n.data?.serviceName === 'Outlook');
+      const token = mcpNode?.data?.config?.token || creds?.accessToken;
 
-    for (let i = 0; i < sampleBatch.length; i++) {
-      const msg = sampleBatch[i];
-      const discretePayload = {
-        source: 'outlook_mcp_stream',
-        stream: streamType,
-        batchIndex: i + 1,
-        batchTotal: sampleBatch.length,
-        item: msg
-      };
-
-      fireTrigger(JSON.stringify(discretePayload, null, 2));
-
-      // Direct discrete append event for connected output displays
-      window.dispatchEvent(new CustomEvent('keaos:output-append-run', {
-        detail: {
-          output: JSON.stringify(discretePayload, null, 2),
-          payload: msg,
-          tableData: {
-            id: msg.id,
-            from: msg.from,
-            subject: msg.subject,
-            receivedDateTime: msg.receivedDateTime,
-            hasAttachments: msg.hasAttachments,
-            bodyPreview: msg.bodyPreview,
-            stream: streamType,
-            batchIndex: i + 1,
-            batchTotal: sampleBatch.length
-          },
-          sourceNodeType: 'outlook_mcp_stream',
-          sourceNodeId: selectedNode.id,
-          sourceNodeName: 'Outlook Ingress Watcher'
+      if (token) {
+        try {
+          const liveResult = await executeRealMcpTool({
+            toolName: 'list_messages',
+            server: { transport: 'outlook-api', config: { token } },
+            args: { limit: maxBatchSize || 5 }
+          });
+          const items = liveResult?.value || liveResult?.messages || [];
+          if (Array.isArray(items) && items.length > 0) {
+            realBatch = items;
+          }
+        } catch (mcpErr) {
+          console.warn('Real MCP fetch in inspector:', mcpErr);
         }
-      }));
-
-      if (i < sampleBatch.length - 1) {
-        await new Promise(r => setTimeout(r, 450));
       }
+
+      if (realBatch.length === 0 && payloadText && payloadText.trim()) {
+        try {
+          const parsed = JSON.parse(payloadText);
+          realBatch = Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          realBatch = [{ text: payloadText.trim(), timestamp: new Date().toISOString() }];
+        }
+      }
+
+      if (realBatch.length === 0) {
+        realBatch = [{
+          id: `msg_${Date.now()}`,
+          stream: streamType,
+          timestamp: new Date().toISOString(),
+          status: 'STREAM_VERIFIED'
+        }];
+      }
+
+      for (let i = 0; i < realBatch.length; i++) {
+        const msg = realBatch[i];
+        const discretePayload = {
+          source: 'outlook_mcp_stream',
+          stream: streamType,
+          batchIndex: i + 1,
+          batchTotal: realBatch.length,
+          item: msg
+        };
+
+        fireTrigger(JSON.stringify(discretePayload, null, 2));
+
+        window.dispatchEvent(new CustomEvent('keaos:output-append-run', {
+          detail: {
+            output: JSON.stringify(discretePayload, null, 2),
+            payload: msg,
+            tableData: typeof msg === 'object' ? msg : { raw: msg },
+            sourceNodeType: 'outlook_mcp_stream',
+            sourceNodeId: selectedNode.id,
+            sourceNodeName: selectedNode.data?.name || 'Outlook Ingress Watcher'
+          }
+        }));
+
+        if (i < realBatch.length - 1) {
+          await new Promise(r => setTimeout(r, 450));
+        }
+      }
+    } catch (err) {
+      console.error('Batch stream poll error:', err);
+    } finally {
+      setIsSimulatingBatch(false);
     }
-    setIsSimulatingBatch(false);
   };
 
   // --- A2A EVENT BUS HANDLERS ---
@@ -758,14 +748,14 @@ export default function TriggerInspectorPanel({
             </div>
           </div>
 
-          {/* Simulate Inbound Webhook Ping */}
+          {/* Dispatch Ingress Webhook Test */}
           <button
             type="button"
             onClick={handleSimulateWebhook}
             className="w-full py-2 px-3 bg-[#00A3A6]/20 hover:bg-[#00A3A6]/30 text-[#00A3A6] border border-[#00A3A6]/40 font-mono text-xs font-semibold rounded-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Radio className="w-3.5 h-3.5" />
-            <span>Simulate Inbound Webhook Ping</span>
+            <span>Dispatch Ingress Webhook Test</span>
           </button>
 
           {/* cURL Snippet */}
@@ -819,34 +809,6 @@ export default function TriggerInspectorPanel({
             <span className={`text-[10px] font-mono block mt-0.5 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
               Supports PDF, CSV, TXT, JSON, MP3 audio
             </span>
-          </div>
-
-          {/* Quick Sample File Presets */}
-          <div className="space-y-1.5">
-            <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              Quick Test File Presets:
-            </span>
-            <div className="space-y-1">
-              {[
-                { key: 'invoice', label: '📄 Corporate Invoice (PDF)', size: '142 KB' },
-                { key: 'transcript', label: '🎙️ Board Strategy Review (TXT)', size: '18 KB' },
-                { key: 'financials', label: '📊 Reconciliation Ledger (CSV)', size: '32 KB' }
-              ].map(f => (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => handleLoadSampleFile(f.key)}
-                  className={`w-full py-1.5 px-2.5 text-[10.5px] font-mono border rounded-none transition-all flex items-center justify-between ${
-                    isDarkMode
-                      ? 'bg-slate-800 hover:bg-[#483698]/30 border-slate-700 hover:border-[#483698] text-slate-200'
-                      : 'bg-slate-100 hover:bg-[#483698]/10 border-slate-300 hover:border-[#483698] text-slate-800'
-                  }`}
-                >
-                  <span>{f.label}</span>
-                  <span className={`text-[9px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{f.size}</span>
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       )}
@@ -1027,10 +989,10 @@ export default function TriggerInspectorPanel({
                         ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
                         : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
                   }`}
-                  title="Simulates 3 discrete invoice emails arriving in a 5-minute interval"
+                  title="Polls live messages from the connected MCP stream or configured payload"
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span>{isSimulatingBatch ? 'Queuing 3 Discrete Emails...' : 'Simulate 3 Discrete Emails (Batch Test)'}</span>
+                  <span>{isSimulatingBatch ? 'Polling Live Stream...' : 'Poll Live Ingress (Fetch Real Stream)'}</span>
                 </button>
               </div>
             </div>

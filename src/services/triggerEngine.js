@@ -8,7 +8,12 @@
 
 import { executeDeterministicTask } from './deterministicRunner';
 import { recordWorkflowExecution } from './unifiedAuditService';
-import { executeRealMcpTool, getRegisteredMcpServers, DEFAULT_OFFICIAL_MCP_SERVERS } from './mcpClientService';
+import { 
+  executeRealMcpTool, 
+  getRegisteredMcpServers, 
+  getStoredMicrosoftOAuthCredentials,
+  DEFAULT_OFFICIAL_MCP_SERVERS 
+} from './mcpClientService';
 import { identifyMcpService } from '../constants/mcpOfficialCatalogs';
 
 // Ingress Deduplication Cache (TTL: 24 Hours)
@@ -510,26 +515,39 @@ export async function fireTriggerEvent({
         parsedPayload = { text: rawPayloadText };
       }
     } else {
-      const isOutlookStream = (triggerNode.data?.streamType === 'inbox') || 
-                              (triggerNode.data?.name || '').toLowerCase().includes('outlook') ||
-                              (triggerNode.data?.pollSubMode === 'stream');
-      if (isOutlookStream) {
+      // Real Trigger Ingress: Check if connected to an active MCP with live credentials (e.g. Microsoft 365 Outlook)
+      let mcpLiveItem = null;
+      try {
+        const creds = getStoredMicrosoftOAuthCredentials();
+        const mcpNode = (nodes || []).find(n => (n.data?.name || '').toLowerCase().includes('outlook') || n.data?.serviceName === 'Outlook');
+        const token = mcpNode?.data?.config?.token || creds?.accessToken;
+        if (token) {
+          const liveResult = await executeRealMcpTool({
+            toolName: 'list_messages',
+            server: { transport: 'outlook-api', config: { token } },
+            args: { limit: 1 }
+          });
+          const messages = liveResult?.value || liveResult?.messages || [];
+          if (messages.length > 0) {
+            mcpLiveItem = messages[0];
+          }
+        }
+      } catch (err) {
+        console.warn('Live MCP poll check:', err);
+      }
+
+      if (mcpLiveItem) {
         parsedPayload = {
           source: 'outlook_mcp_stream',
           stream: triggerNode.data?.streamType || 'inbox',
-          item: {
-            id: `msg_${Date.now()}`,
-            subject: 'Vendor Invoice #INV-2026-9041 (Payment Approval Required)',
-            from: 'ap-billing@cloudinfrastructures.corp',
-            receivedDateTime: new Date().toISOString(),
-            hasAttachments: true,
-            bodyPreview: 'Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.'
-          }
+          item: mcpLiveItem
         };
       } else {
         parsedPayload = {
-          source: 'manual_trigger',
+          source: 'ingress_trigger',
           triggerId,
+          triggerName,
+          triggerType: triggerNode.data?.triggerType || 'manual',
           timestamp: new Date().toISOString()
         };
       }
@@ -562,10 +580,23 @@ export async function fireTriggerEvent({
   const targetNodeIds = outboundEdges.map(e => e.target);
   const targetNodes = (nodes || []).filter(n => targetNodeIds.includes(n.id) && !n.data?.isDeactivated);
 
+  // Observable Step 1: Trigger Node Glows & Pulses on Canvas (Visual Parity with Workflow 1)
+  window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
+    detail: { 
+      isExecuting: true, 
+      nodeId: triggerId, 
+      pillarType: 'gateway',
+      step: `⚡ Ingress Trigger Fired: "${triggerName}"` 
+    }
+  }));
+
   // Pulse outgoing canvas wires
   window.dispatchEvent(new CustomEvent('keaos:trigger-pulse', {
     detail: { triggerId, targetNodeIds }
   }));
+
+  // Visual pacing window so human eye clearly sees the trigger activate
+  await new Promise(r => setTimeout(r, 380));
 
   if (targetNodes.length === 0) {
     // Audit even if orphan trigger
@@ -583,6 +614,10 @@ export async function fireTriggerEvent({
       // Non-blocking
     }
 
+    window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
+      detail: { isExecuting: false, step: 'Complete' }
+    }));
+
     return {
       success: true,
       orphaned: true,
@@ -594,13 +629,25 @@ export async function fireTriggerEvent({
 
   const results = [];
 
-  // 5. Fan-out execution to all connected targets
+  // 5. Fan-out execution to all connected targets with visible sequential progression
   for (const target of targetNodes) {
     // TARGET A: Deterministic Box (Zero-token logic execution)
     if (target.type === 'deterministicNode') {
+      // Highlight the active Deterministic node on canvas!
+      window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
+        detail: { 
+          isExecuting: true, 
+          nodeId: target.id, 
+          step: `Executing Deterministic Logic Box: "${target.data?.name || 'Schema Normalizer'}"` 
+        }
+      }));
+
       window.dispatchEvent(new CustomEvent('keaos:deterministic-executing', {
         detail: { nodeId: target.id, isRunning: true }
       }));
+
+      // Observable visual pacing
+      await new Promise(r => setTimeout(r, 360));
 
       try {
         const detResult = await executeDeterministicTask({

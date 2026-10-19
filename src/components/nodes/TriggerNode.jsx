@@ -73,6 +73,7 @@ export default function TriggerNode({ id, data, selected }) {
   const TriggerIcon = typeConfig.icon;
 
   const [isFiring, setIsFiring] = useState(false);
+  const isExecuting = Boolean(data?.isExecuting) || isFiring;
   const [lastStatus, setLastStatus] = useState(data?.lastStatus || 'idle');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [nodeTitle, setNodeTitle] = useState(data?.name || typeConfig.label);
@@ -283,9 +284,9 @@ export default function TriggerNode({ id, data, selected }) {
         <button
           type="button"
           onClick={handleDiscClick}
-          disabled={isDeactivated || isFiring}
+          disabled={isDeactivated || isExecuting}
           className={`w-[60px] h-[60px] rounded-full flex items-center justify-center border-2 transition-all duration-150 relative shadow-lg cursor-pointer active:scale-95 ${
-            isFiring
+            isExecuting
               ? 'scale-110 shadow-2xl'
               : lastStatus === 'success'
                 ? 'border-[#009A44] bg-[#009A44]/15 ring-2 ring-[#009A44]/30'
@@ -297,14 +298,14 @@ export default function TriggerNode({ id, data, selected }) {
                       ? 'bg-[#0B101D] hover:scale-105'
                       : 'bg-white hover:scale-105'
           } ${
-            selected && !isFiring
+            selected && !isExecuting
               ? 'ring-4 ring-[#0091DA]/30'
               : ''
           }`}
           style={{
-            borderColor: isFiring ? '#009A44' : isDraggingOver ? '#483698' : selected ? '#0091DA' : accentColor,
+            borderColor: isExecuting ? '#009A44' : isDraggingOver ? '#483698' : selected ? '#0091DA' : accentColor,
             color: accentColor,
-            boxShadow: isFiring 
+            boxShadow: isExecuting 
               ? `0 0 28px ${typeConfig.glowColor}` 
               : selected 
                 ? `0 0 16px ${typeConfig.glowColor}` 
@@ -312,8 +313,8 @@ export default function TriggerNode({ id, data, selected }) {
           }}
           title={triggerType === 'manual' ? 'Click to Fire Manual Trigger' : `Click to configure ${typeConfig.label} in Inspector`}
         >
-          {/* Expanding Concentric Sonar Wave when Firing */}
-          {isFiring && (
+          {/* Expanding Concentric Sonar Wave when Firing or Executing */}
+          {isExecuting && (
             <>
               <span 
                 className="absolute -inset-3 rounded-full animate-ping opacity-60 pointer-events-none" 
@@ -327,7 +328,7 @@ export default function TriggerNode({ id, data, selected }) {
           )}
 
           {/* Active Schedule Breathing Glow Ring */}
-          {triggerType === 'schedule' && isArmed && !isFiring && (
+          {triggerType === 'schedule' && isArmed && !isExecuting && (
             <span 
               className="absolute -inset-1 rounded-full animate-pulse opacity-30 pointer-events-none"
               style={{ backgroundColor: accentColor }}
@@ -335,7 +336,7 @@ export default function TriggerNode({ id, data, selected }) {
           )}
 
           {/* Core Glyph: Absolute Minimal Precision Icon */}
-          {isFiring ? (
+          {isExecuting ? (
             <Zap className="w-5 h-5 text-white animate-bounce" />
           ) : lastStatus === 'success' ? (
             <CheckCircle2 className="w-5 h-5 text-[#009A44]" />

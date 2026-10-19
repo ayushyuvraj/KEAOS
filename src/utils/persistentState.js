@@ -28,7 +28,7 @@ export function loadUIState() {
     const raw = localStorage.getItem(UI_STATE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULT_UI_STATE, ...parsed };
+      return { ...DEFAULT_UI_STATE, ...parsed, isDrawerExpanded: false };
     }
   } catch (e) {
     console.warn('Failed to load UI state from localStorage:', e);

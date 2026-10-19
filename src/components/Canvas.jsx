@@ -894,6 +894,17 @@ function CanvasInner({
     return () => window.removeEventListener('keaos:fire-trigger-node', handleFireTriggerNode);
   }, [nodes, edges]);
 
+  // Listen for real-time execution state updates across all engines (Trigger, Multi-Agent, Deterministic, Meeting Simulator)
+  useEffect(() => {
+    const handleSetExecutionState = (e) => {
+      if (e.detail) {
+        setExecutionState(e.detail);
+      }
+    };
+    window.addEventListener('keaos:set-execution-state', handleSetExecutionState);
+    return () => window.removeEventListener('keaos:set-execution-state', handleSetExecutionState);
+  }, []);
+
   // Listen for trigger wire pulse animation
   useEffect(() => {
     const handleTriggerPulse = (e) => {
@@ -1570,6 +1581,9 @@ function CanvasInner({
   const handleExecuteWorkflow = useCallback(() => {
     if (executionState.isExecuting) return;
 
+    // MANDATE: The bottom drawer / chat box must NEVER open or stay open when Execute is hit
+    if (setIsDrawerExpanded) setIsDrawerExpanded(false);
+
     // 1. Check if active Trigger nodes exist on canvas (e.g. Outlook Stream Watcher, Pollers, Webhooks, Schedules)
     const activeTriggers = (nodes || []).filter(
       (n) => n.type === 'triggerNode' && !n.data?.isDeactivated
@@ -2220,9 +2234,13 @@ function CanvasInner({
         n.id === executionState.activeAgentId ||
         (n.type === 'agentCore' && !executionState.nodeId && !executionState.activeAgentId) ||
         (n.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
-        (n.data?.pillarType && n.data.pillarType === executionState.pillarType) ||
+        (n.data?.pillarType && (
+          n.data.pillarType === executionState.pillarType ||
+          (executionState.pillarType === 'mcp' && n.data.pillarType === 'gateway') ||
+          (executionState.pillarType === 'gateway' && n.data.pillarType === 'mcp')
+        )) ||
         (n.type === 'deterministicNode' && (executionState.nodeId === n.id || executionState.step?.includes('Deterministic'))) ||
-        (n.type === 'triggerNode' && executionState.nodeId === n.id) ||
+        (n.type === 'triggerNode' && (executionState.nodeId === n.id || executionState.step?.includes('Trigger') || executionState.step?.includes('Ingress'))) ||
         (n.type === 'routerNode' && (executionState.nodeId === n.id || executionState.step?.includes('Router'))) ||
         (n.type === 'approvalNode' && (executionState.nodeId === n.id || executionState.step?.includes('Approval') || executionState.step?.includes('Sign-off')))
       );
@@ -2510,19 +2528,39 @@ function CanvasInner({
         (executionState.isExecuting && (sourceNode?.data?.isStaged || targetNode?.data?.isStaged))
       );
 
-      // Live Active Wire Animation: When source pillar, ingestion node, or deterministic node is actively transmitting
+      // Trigger Edge checks: wires connected from triggerNode
+      const isTriggerEdge = sourceNode?.type === 'triggerNode';
+      const isTriggerActive = isTriggerEdge && (
+        executionState.isExecuting && (
+          executionState.nodeId === sourceNode.id ||
+          executionState.step?.includes('Trigger') ||
+          executionState.step?.includes('Ingress')
+        )
+      );
+
+      // Live Active Wire Animation: When source pillar, trigger, ingestion node, or deterministic node is actively transmitting
       const isSourceActive = (executionState.isExecuting && (
-        (sourceNode?.data?.pillarType && sourceNode.data.pillarType === executionState.pillarType) ||
+        (sourceNode?.data?.pillarType && (
+          sourceNode.data.pillarType === executionState.pillarType ||
+          (executionState.pillarType === 'mcp' && (sourceNode.data.pillarType === 'gateway' || sourceNode.data.pillarType === 'mcp')) ||
+          (executionState.pillarType === 'gateway' && (sourceNode.data.pillarType === 'gateway' || sourceNode.data.pillarType === 'mcp'))
+        )) ||
         (sourceNode?.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
         (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode' && (executionState.step === 'Complete' || executionState.step === 'Starting'))
-      )) || Boolean(isDetActive);
+      )) || Boolean(isDetActive) || Boolean(isTriggerActive);
 
       // Only animate edges when there is active execution or streaming in progress
       const isEdgeStreaming = (executionState.isExecuting && (
         isSourceActive ||
         (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode') ||
-        (sourceNode?.data?.pillarType === 'model' && targetNode?.type === 'agentCore')
-      )) || Boolean(isDetActive);
+        (sourceNode?.type === 'agentCore' && targetNode?.type === 'deterministicNode') ||
+        (sourceNode?.type === 'deterministicNode' && targetNode?.type === 'outputNode') ||
+        (sourceNode?.type === 'triggerNode' && (targetNode?.type === 'agentCore' || targetNode?.type === 'deterministicNode')) ||
+        (sourceNode?.data?.pillarType === 'model' && targetNode?.type === 'agentCore') ||
+        (sourceNode?.data?.pillarType === 'skills' && targetNode?.type === 'agentCore') ||
+        (sourceNode?.data?.pillarType === 'mcp' && (targetNode?.data?.pillarType === 'gateway' || targetNode?.type === 'agentCore')) ||
+        (sourceNode?.data?.pillarType === 'gateway' && targetNode?.type === 'agentCore')
+      )) || Boolean(isDetActive) || Boolean(isTriggerActive);
 
       // Resolve authoritative pillar color for this edge
       let resolvedColor = '#0091DA';
@@ -2531,7 +2569,13 @@ function CanvasInner({
       const sourcePillar = sourceNode?.data?.pillarType;
       const targetPillar = targetNode?.data?.pillarType;
 
-      if (sourceNode?.type === 'ingestionNode' || sourcePillar === 'tools' || targetHandle === 'tools-in' || targetHandle === 'tool-in' || sourceHandle === 'tools-in') {
+      if (sourceNode?.type === 'triggerNode') {
+        resolvedColor = '#00A3A6'; // Cyber Teal for Ingress Triggers
+      } else if (sourceNode?.type === 'agentCore' && targetNode?.type === 'deterministicNode') {
+        resolvedColor = '#EAAA00'; // Amber for Agent -> Deterministic Rule
+      } else if (sourceNode?.type === 'deterministicNode' && targetNode?.type === 'outputNode') {
+        resolvedColor = '#10B981'; // Emerald Green for Deterministic -> Output
+      } else if (sourceNode?.type === 'ingestionNode' || sourcePillar === 'tools' || targetHandle === 'tools-in' || targetHandle === 'tool-in' || sourceHandle === 'tools-in') {
         resolvedColor = '#0091DA'; // Pacific Blue for tools and data ingestion stream
       } else if (sourcePillar === 'model' || targetPillar === 'model' || targetHandle === 'model-in' || sourceHandle === 'model-in') {
         resolvedColor = '#00338D'; // Royal Brand Blue for Model

@@ -163,7 +163,8 @@ async function executeSingleAgentInPipeline({
   const attachedPillars = getAgentAttachedPillars(agentId, allNodes, allEdges);
   const startTime = performance.now();
 
-  const logStep = (stepName, detail, pillarType = null, latencyMs = 80) => {
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const logStep = async (stepName, detail, pillarType = null, latencyMs = 280) => {
     if (onStepProgress) {
       onStepProgress({
         agentId,
@@ -175,9 +176,22 @@ async function executeSingleAgentInPipeline({
         timestamp: new Date().toLocaleTimeString()
       });
     }
+
+    // Broadcast canvas execution state so all nodes light up sequentially on the canvas!
+    window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
+      detail: {
+        isExecuting: true,
+        activeAgentId: agentId,
+        nodeId: agentId,
+        pillarType,
+        step: `${stepName}: ${detail}`
+      }
+    }));
+
+    await delay(Math.min(450, Math.max(220, latencyMs)));
   };
 
-  logStep('Ingress & Scheduling', `Starting ${agentName} (${frameworkName}${agentRole ? ` - ${agentRole.toUpperCase()}` : ''})`, 'gateway', 30);
+  await logStep('Ingress & Routing', `Starting ${agentName} (${frameworkName}${agentRole ? ` - ${agentRole.toUpperCase()}` : ''})`, 'gateway', 280);
 
   // 1. INGRESS COMPILATION & A2A PAYLOAD ASSEMBLY
   let taskPayload = '';
@@ -213,7 +227,7 @@ async function executeSingleAgentInPipeline({
       redactedCount += ssnMatches.length;
       processedInput = processedInput.replace(ssnRegex, '[CONFIDENTIAL_SSN_REDACTED]');
     }
-    logStep('Policies & Guardrails', `Enforced ${policyNodes.length} active compliance policies. Sanitized ${redactedCount} items.`, 'policies', 40);
+    await logStep('Policies & Guardrails', `Enforced ${policyNodes.length} active compliance policies. Sanitized ${redactedCount} items.`, 'policies', 300);
   }
 
   // 3. EPISODIC MEMORY LOOKUP
@@ -223,7 +237,7 @@ async function executeSingleAgentInPipeline({
     const memoryItems = getEpisodicMemoryStore();
     if (memoryItems.length > 0) {
       memoryContext = memoryItems.map(m => `• [${m.date || 'Historical'}]: ${m.text || m.task || JSON.stringify(m)}`).join('\n');
-      logStep('Episodic Memory', `Retrieved ${memoryItems.length} past corporate constraints.`, 'memory', 50);
+      await logStep('Episodic Memory', `Retrieved ${memoryItems.length} past corporate constraints.`, 'memory', 300);
     }
   }
 
@@ -231,6 +245,14 @@ async function executeSingleAgentInPipeline({
   const skillNodes = attachedPillars.filter(p => p.type === 'skills');
   const mcpNodes = attachedPillars.filter(p => p.type === 'mcp');
   const toolNodes = attachedPillars.filter(p => p.type === 'tools');
+
+  if (mcpNodes.length > 0) {
+    await logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} active MCP servers (${mcpNodes.map(m => m.name).join(', ')}).`, 'mcp', 320);
+  }
+
+  if (skillNodes.length > 0) {
+    await logStep('Attached Skills', `Bound ${skillNodes.length} skills (${skillNodes.map(s => s.name).join(', ')}).`, 'skills', 300);
+  }
 
   // 5. ASSEMBLE PROMPT
   const basePrompt = agentNode.data?.prompt || `You are ${agentName}, an autonomous enterprise agent running on ${frameworkName}.`;
@@ -299,16 +321,16 @@ You are participating in an institutional multi-agent workflow. Review all upstr
     }
   }
 
-  logStep(
+  await logStep(
     isInheritedModel ? `Shared Brain (${modelSource})` : `Foundation Model (${PROVIDERS[provider]?.name || provider})`,
     isInheritedModel
       ? `Auto-accessing ${modelId} (${PROVIDERS[provider]?.name || provider}) via shared architecture.`
-      : `Invoking ${modelId} for ${agentName}...`,
+      : `Invoking live inference with ${modelId} for ${agentName}...`,
     'model',
-    isInheritedModel ? 10 : 0
+    350
   );
 
-  // 7. INFERENCE DISPATCH
+  // 7. INFERENCE DISPATCH (LIVE GENUINE API ONLY - ZERO CANNED SIMULATIONS)
   let responseText = '';
   let totalTokens = 0;
   let modelLatency = 0;
@@ -326,16 +348,8 @@ You are participating in an institutional multi-agent workflow. Review all upstr
     totalTokens = chatResult.totalTokens;
     modelLatency = chatResult.durationMs;
   } catch (err) {
-    console.warn(`Live inference failed for ${agentName}, applying graceful fallback:`, err);
-    responseText = `### ${agentName} Analysis (${frameworkName})\n\n` +
-      `**Task Execution**: Processed ${upstreamOutputs.length > 0 ? `${upstreamOutputs.length} upstream agent streams` : 'direct ingestion input'}.\n\n` +
-      `**Key Analysis & Directives**:\n` +
-      `- Synthesized input across ${attachedPillars.length} bound peripherals.\n` +
-      `- Evaluated compliance standards under institutional safety policies.\n` +
-      `- Formulated structured action items and strategic deliverables for downstream consumers.\n\n` +
-      `_Note: Live provider returned: ${err.message}_`;
-    totalTokens = 240;
-    modelLatency = 350;
+    console.error(`Live inference failed for ${agentName}:`, err);
+    throw new Error(`Model Inference Failed (${PROVIDERS[provider]?.name || provider} ${modelId}): ${err.message}. Please configure API credentials in Settings.`);
   }
 
   // 8. CRYPTOGRAPHIC SHA-256 AUDIT
@@ -345,7 +359,7 @@ You are participating in an institutional multi-agent workflow. Review all upstr
   const totalDurationMs = Math.round(performance.now() - startTime);
   const costUsd = calculateInferenceCost({ provider, modelId, totalTokens });
 
-  logStep('Cryptographic Audit', `Signed W3C Digest: ${auditHash.slice(0, 14)}... (${totalDurationMs}ms, ${totalTokens} tokens)`, 'audit', 30);
+  await logStep('Cryptographic Audit', `Signed W3C SHA-256 Digest: ${auditHash.slice(0, 14)}... (${totalDurationMs}ms, ${totalTokens} tokens)`, 'audit', 260);
 
   return {
     agentId,

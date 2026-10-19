@@ -3061,15 +3061,15 @@
               "tools": 1
             },
             "isDarkMode": false,
-            "lastOutput": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-            "auditHash": "0467bf9c019ccaeebe3847a11a59ebe55682eee5b3f3a9484496186035472016",
+            "lastOutput": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+            "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf",
             "observability": {
-              "totalTokens": 240,
-              "latencyMs": 12,
+              "totalTokens": 373,
+              "latencyMs": 4016,
               "modelUsed": "openai (gpt-4o-mini)",
               "framework": "Microsoft ADK"
             },
-            "costUsd": 0.00011
+            "costUsd": 0.00016
           },
           "measured": {
             "width": 228,
@@ -3130,20 +3130,353 @@
           "dragging": false
         },
         {
-          "id": "node-mcp-outlook-1",
+          "id": "node-skill-outlook",
           "type": "pillar",
           "position": {
-            "x": 795.3197088936955,
-            "y": 86.62476182007524
+            "x": 652.0502858159098,
+            "y": 364.73546224465275
+          },
+          "data": {
+            "pillarType": "skills",
+            "name": "Attachment & Data Extractor",
+            "description": "Decodes Base64 attachments, extracts invoice line items, and formats tabular records.",
+            "config": {
+              "format": "tabular_json",
+              "extractAttachments": true
+            },
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-deterministic-outlook",
+          "type": "deterministicNode",
+          "position": {
+            "x": 787.4559103741087,
+            "y": 184.8765490475046
+          },
+          "data": {
+            "name": "Row & Schema Normalizer",
+            "prompt": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
+            "ruleSummary": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
+            "language": "python",
+            "code": "def process(inputs):\n    # Zero-token tabular schema normalization\n    import json\n    if isinstance(inputs, str):\n        try:\n            data = json.loads(inputs)\n        except:\n            data = {\"raw\": inputs}\n    else:\n        data = inputs or {}\n    \n    item = data.get(\"item\", data)\n    return {\n        \"record_id\": item.get(\"id\", \"REC-001\"),\n        \"sender\": item.get(\"from\", \"Unknown\"),\n        \"subject\": item.get(\"subject\", \"No Subject\"),\n        \"received_at\": item.get(\"receivedDateTime\", \"\"),\n        \"has_attachments\": item.get(\"hasAttachments\", False),\n        \"summary\": (item.get(\"bodyPreview\") or item.get(\"content\") or \"\")[:120],\n        \"status\": \"EXTRACTED\"\n    }",
+            "lastStatus": "success",
+            "isFrozen": true,
+            "isDarkMode": false,
+            "lastUpstreamReceived": {
+              "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+              "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+              "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+              "tokens": 373,
+              "latencyMs": 4016,
+              "observability": {
+                "totalTokens": 373,
+                "latencyMs": 4016,
+                "modelUsed": "openai (gpt-4o-mini)",
+                "framework": "Microsoft ADK"
+              },
+              "costUsd": 0.00016,
+              "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf"
+            },
+            "upstreamPayload": {
+              "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+              "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+              "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+              "tokens": 373,
+              "latencyMs": 4016,
+              "observability": {
+                "totalTokens": 373,
+                "latencyMs": 4016,
+                "modelUsed": "openai (gpt-4o-mini)",
+                "framework": "Microsoft ADK"
+              },
+              "costUsd": 0.00016,
+              "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf"
+            },
+            "lastUpstreamTime": 1792406831373,
+            "isRunning": false,
+            "lastOutput": null,
+            "lastTableData": null,
+            "lastError": null,
+            "lastLatencyMs": 509.9
+          },
+          "measured": {
+            "width": 228,
+            "height": 136
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-output-outlook",
+          "type": "outputNode",
+          "position": {
+            "x": 1056.1982406476075,
+            "y": 215.5813654102361
+          },
+          "data": {
+            "title": "Tabular Continuous Output Viewer",
+            "outputContent": "",
+            "content": "",
+            "status": "ready",
+            "format": "json",
+            "persistenceStrategy": "append",
+            "runsHistory": [
+              {
+                "runNumber": 1,
+                "timestamp": "10:38:42 AM",
+                "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 1,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_001_1792386522269\",\n    \"subject\": \"Vendor Invoice #INV-2026-9041 (Payment Approval Required)\",\n    \"from\": \"ap-billing@cloudinfrastructures.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:04:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.\"\n  }\n}",
+                "tableData": {
+                  "id": "msg_batch_001_1792386522269",
+                  "from": "ap-billing@cloudinfrastructures.corp",
+                  "subject": "Vendor Invoice #INV-2026-9041 (Payment Approval Required)",
+                  "receivedDateTime": "2026-10-19T05:04:42.269Z",
+                  "hasAttachments": true,
+                  "bodyPreview": "Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.",
+                  "stream": "inbox",
+                  "batchIndex": 1,
+                  "batchTotal": 3
+                },
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 0,
+                "costUsd": 0,
+                "source": "outlook_mcp_stream",
+                "sourceNodeType": "outlook_mcp_stream",
+                "sourceNodeId": "node-trigger-outlook",
+                "sourceNodeName": "Outlook Ingress Watcher"
+              },
+              {
+                "runNumber": 2,
+                "timestamp": "10:38:42 AM",
+                "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 2,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_002_1792386522269\",\n    \"subject\": \"Hardware Maintenance Statement #ST-8812 (Net 15)\",\n    \"from\": \"accounts@hardwarevaults.io\",\n    \"receivedDateTime\": \"2026-10-19T05:06:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.\"\n  }\n}",
+                "tableData": {
+                  "id": "msg_batch_002_1792386522269",
+                  "from": "accounts@hardwarevaults.io",
+                  "subject": "Hardware Maintenance Statement #ST-8812 (Net 15)",
+                  "receivedDateTime": "2026-10-19T05:06:42.269Z",
+                  "hasAttachments": true,
+                  "bodyPreview": "Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.",
+                  "stream": "inbox",
+                  "batchIndex": 2,
+                  "batchTotal": 3
+                },
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 0,
+                "costUsd": 0,
+                "source": "outlook_mcp_stream",
+                "sourceNodeType": "outlook_mcp_stream",
+                "sourceNodeId": "node-trigger-outlook",
+                "sourceNodeName": "Outlook Ingress Watcher"
+              },
+              {
+                "runNumber": 3,
+                "timestamp": "10:38:43 AM",
+                "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 3,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_003_1792386522269\",\n    \"subject\": \"Automated Dispatch Receipt #RCP-3304\",\n    \"from\": \"system-mailer@enterprise.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:08:12.269Z\",\n    \"hasAttachments\": false,\n    \"bodyPreview\": \"Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.\"\n  }\n}",
+                "tableData": {
+                  "id": "msg_batch_003_1792386522269",
+                  "from": "system-mailer@enterprise.corp",
+                  "subject": "Automated Dispatch Receipt #RCP-3304",
+                  "receivedDateTime": "2026-10-19T05:08:12.269Z",
+                  "hasAttachments": false,
+                  "bodyPreview": "Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.",
+                  "stream": "inbox",
+                  "batchIndex": 3,
+                  "batchTotal": 3
+                },
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 0,
+                "costUsd": 0,
+                "source": "outlook_mcp_stream",
+                "sourceNodeType": "outlook_mcp_stream",
+                "sourceNodeId": "node-trigger-outlook",
+                "sourceNodeName": "Outlook Ingress Watcher"
+              },
+              {
+                "runNumber": 4,
+                "timestamp": "3:40:55 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 1154.2,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 5,
+                "timestamp": "3:40:55 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 1165.4,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 6,
+                "timestamp": "3:44:14 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 301.6,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 7,
+                "timestamp": "3:44:14 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 302.2,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 8,
+                "timestamp": "3:44:48 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 306.9,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 9,
+                "timestamp": "3:44:48 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 298.6,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 10,
+                "timestamp": "3:48:13 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 301.9,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 11,
+                "timestamp": "3:48:13 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 305.1,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 12,
+                "timestamp": "4:17:12 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 508.8,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 13,
+                "timestamp": "4:17:12 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 509.9,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              }
+            ],
+            "isExpanded": false,
+            "isDarkMode": false,
+            "sourceNodeType": "deterministic",
+            "sourceNodeId": "node-deterministic-outlook",
+            "sourceNodeName": "Mail & Attachment Extractor",
+            "observability": {
+              "totalTokens": 0,
+              "latencyMs": 509.9,
+              "note": "Deterministic 0-Token Pipeline"
+            }
+          },
+          "measured": {
+            "width": 140,
+            "height": 56
+          },
+          "selected": true,
+          "dragging": false
+        },
+        {
+          "id": "node-mcp-7201",
+          "type": "pillar",
+          "position": {
+            "x": 762.7050758663784,
+            "y": 90.38798870784261
           },
           "data": {
             "pillarType": "mcp",
-            "title": "Microsoft Outlook 365",
-            "name": "Microsoft Outlook 365",
-            "displayName": "Microsoft Outlook 365",
-            "subtitle": "HTTP/SSE",
-            "description": "Official Microsoft 365 Outlook Mail, Calendar & Attachments integration with 39 verified actions.",
-            "config": {},
+            "title": "Outlook",
+            "name": "Outlook",
+            "displayName": "Outlook",
+            "subtitle": "OUTLOOK-API",
+            "description": "Official Enterprise Microsoft Outlook MCP with 39 categorized tools.",
+            "config": {
+              "connectionMode": "oauth",
+              "endpoint": "https://graph.microsoft.com/v1.0"
+            },
             "tools": [
               {
                 "name": "list_messages",
@@ -4165,233 +4498,16 @@
                 }
               }
             ],
+            "basis": null,
             "serviceName": "Outlook",
-            "transport": "sse",
+            "transport": "outlook-api",
+            "serverUrl": "",
             "isRealMcp": true,
-            "isDeactivated": false,
             "isDarkMode": false
           },
           "measured": {
             "width": 140,
             "height": 60
-          },
-          "selected": false,
-          "dragging": false
-        },
-        {
-          "id": "node-skill-outlook",
-          "type": "pillar",
-          "position": {
-            "x": 652.0502858159098,
-            "y": 364.73546224465275
-          },
-          "data": {
-            "pillarType": "skills",
-            "name": "Attachment & Data Extractor",
-            "description": "Decodes Base64 attachments, extracts invoice line items, and formats tabular records.",
-            "config": {
-              "format": "tabular_json",
-              "extractAttachments": true
-            },
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
-          },
-          "selected": false,
-          "dragging": false
-        },
-        {
-          "id": "node-deterministic-outlook",
-          "type": "deterministicNode",
-          "position": {
-            "x": 787.4559103741087,
-            "y": 184.8765490475046
-          },
-          "data": {
-            "name": "Row & Schema Normalizer",
-            "prompt": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
-            "ruleSummary": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
-            "language": "python",
-            "code": "def process(inputs):\n    # Zero-token tabular schema normalization\n    import json\n    if isinstance(inputs, str):\n        try:\n            data = json.loads(inputs)\n        except:\n            data = {\"raw\": inputs}\n    else:\n        data = inputs or {}\n    \n    item = data.get(\"item\", data)\n    return {\n        \"record_id\": item.get(\"id\", \"REC-001\"),\n        \"sender\": item.get(\"from\", \"Unknown\"),\n        \"subject\": item.get(\"subject\", \"No Subject\"),\n        \"received_at\": item.get(\"receivedDateTime\", \"\"),\n        \"has_attachments\": item.get(\"hasAttachments\", False),\n        \"summary\": (item.get(\"bodyPreview\") or item.get(\"content\") or \"\")[:120],\n        \"status\": \"EXTRACTED\"\n    }",
-            "lastStatus": "success",
-            "isFrozen": true,
-            "isDarkMode": false,
-            "lastUpstreamReceived": {
-              "output": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-              "data": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-              "text": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-              "tokens": 240,
-              "latencyMs": 12,
-              "observability": {
-                "totalTokens": 240,
-                "latencyMs": 12,
-                "modelUsed": "openai (gpt-4o-mini)",
-                "framework": "Microsoft ADK"
-              },
-              "costUsd": 0.00011,
-              "auditHash": "0467bf9c019ccaeebe3847a11a59ebe55682eee5b3f3a9484496186035472016"
-            },
-            "upstreamPayload": {
-              "output": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-              "data": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-              "text": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-              "tokens": 240,
-              "latencyMs": 12,
-              "observability": {
-                "totalTokens": 240,
-                "latencyMs": 12,
-                "modelUsed": "openai (gpt-4o-mini)",
-                "framework": "Microsoft ADK"
-              },
-              "costUsd": 0.00011,
-              "auditHash": "0467bf9c019ccaeebe3847a11a59ebe55682eee5b3f3a9484496186035472016"
-            },
-            "lastUpstreamTime": 1792404652536,
-            "isRunning": false,
-            "lastOutput": null,
-            "lastTableData": null,
-            "lastError": null,
-            "lastLatencyMs": 1165.4
-          },
-          "measured": {
-            "width": 228,
-            "height": 136
-          },
-          "selected": false,
-          "dragging": false
-        },
-        {
-          "id": "node-output-outlook",
-          "type": "outputNode",
-          "position": {
-            "x": 1009.7530980950094,
-            "y": 228.8514061395498
-          },
-          "data": {
-            "title": "Tabular Continuous Output Viewer",
-            "outputContent": "",
-            "content": "",
-            "status": "ready",
-            "format": "json",
-            "persistenceStrategy": "append",
-            "runsHistory": [
-              {
-                "runNumber": 1,
-                "timestamp": "10:38:42 AM",
-                "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 1,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_001_1792386522269\",\n    \"subject\": \"Vendor Invoice #INV-2026-9041 (Payment Approval Required)\",\n    \"from\": \"ap-billing@cloudinfrastructures.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:04:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.\"\n  }\n}",
-                "tableData": {
-                  "id": "msg_batch_001_1792386522269",
-                  "from": "ap-billing@cloudinfrastructures.corp",
-                  "subject": "Vendor Invoice #INV-2026-9041 (Payment Approval Required)",
-                  "receivedDateTime": "2026-10-19T05:04:42.269Z",
-                  "hasAttachments": true,
-                  "bodyPreview": "Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.",
-                  "stream": "inbox",
-                  "batchIndex": 1,
-                  "batchTotal": 3
-                },
-                "auditHash": null,
-                "tokens": 0,
-                "latencyMs": 0,
-                "costUsd": 0,
-                "source": "outlook_mcp_stream",
-                "sourceNodeType": "outlook_mcp_stream",
-                "sourceNodeId": "node-trigger-outlook",
-                "sourceNodeName": "Outlook Ingress Watcher"
-              },
-              {
-                "runNumber": 2,
-                "timestamp": "10:38:42 AM",
-                "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 2,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_002_1792386522269\",\n    \"subject\": \"Hardware Maintenance Statement #ST-8812 (Net 15)\",\n    \"from\": \"accounts@hardwarevaults.io\",\n    \"receivedDateTime\": \"2026-10-19T05:06:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.\"\n  }\n}",
-                "tableData": {
-                  "id": "msg_batch_002_1792386522269",
-                  "from": "accounts@hardwarevaults.io",
-                  "subject": "Hardware Maintenance Statement #ST-8812 (Net 15)",
-                  "receivedDateTime": "2026-10-19T05:06:42.269Z",
-                  "hasAttachments": true,
-                  "bodyPreview": "Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.",
-                  "stream": "inbox",
-                  "batchIndex": 2,
-                  "batchTotal": 3
-                },
-                "auditHash": null,
-                "tokens": 0,
-                "latencyMs": 0,
-                "costUsd": 0,
-                "source": "outlook_mcp_stream",
-                "sourceNodeType": "outlook_mcp_stream",
-                "sourceNodeId": "node-trigger-outlook",
-                "sourceNodeName": "Outlook Ingress Watcher"
-              },
-              {
-                "runNumber": 3,
-                "timestamp": "10:38:43 AM",
-                "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 3,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_003_1792386522269\",\n    \"subject\": \"Automated Dispatch Receipt #RCP-3304\",\n    \"from\": \"system-mailer@enterprise.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:08:12.269Z\",\n    \"hasAttachments\": false,\n    \"bodyPreview\": \"Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.\"\n  }\n}",
-                "tableData": {
-                  "id": "msg_batch_003_1792386522269",
-                  "from": "system-mailer@enterprise.corp",
-                  "subject": "Automated Dispatch Receipt #RCP-3304",
-                  "receivedDateTime": "2026-10-19T05:08:12.269Z",
-                  "hasAttachments": false,
-                  "bodyPreview": "Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.",
-                  "stream": "inbox",
-                  "batchIndex": 3,
-                  "batchTotal": 3
-                },
-                "auditHash": null,
-                "tokens": 0,
-                "latencyMs": 0,
-                "costUsd": 0,
-                "source": "outlook_mcp_stream",
-                "sourceNodeType": "outlook_mcp_stream",
-                "sourceNodeId": "node-trigger-outlook",
-                "sourceNodeName": "Outlook Ingress Watcher"
-              },
-              {
-                "runNumber": 4,
-                "timestamp": "3:40:55 PM",
-                "content": "",
-                "tableData": null,
-                "auditHash": null,
-                "tokens": 0,
-                "latencyMs": 1154.2,
-                "costUsd": 0,
-                "source": "deterministic",
-                "sourceNodeType": "deterministic",
-                "sourceNodeId": "node-deterministic-outlook",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 5,
-                "timestamp": "3:40:55 PM",
-                "content": "",
-                "tableData": null,
-                "auditHash": null,
-                "tokens": 0,
-                "latencyMs": 1165.4,
-                "costUsd": 0,
-                "source": "deterministic",
-                "sourceNodeType": "deterministic",
-                "sourceNodeId": "node-deterministic-outlook",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              }
-            ],
-            "isExpanded": false,
-            "isDarkMode": false,
-            "sourceNodeType": "deterministic",
-            "sourceNodeId": "node-deterministic-outlook",
-            "sourceNodeName": "Mail & Attachment Extractor",
-            "observability": {
-              "totalTokens": 0,
-              "latencyMs": 1165.4,
-              "note": "Deterministic 0-Token Pipeline"
-            }
-          },
-          "measured": {
-            "width": 140,
-            "height": 56
           },
           "selected": false,
           "dragging": false
@@ -4442,20 +4558,6 @@
           }
         },
         {
-          "id": "edge-mcp-to-gw-outlook",
-          "source": "node-mcp-outlook-1",
-          "sourceHandle": "out",
-          "target": "node-mcp-gw-outlook",
-          "targetHandle": "mcp-in",
-          "type": "deletable",
-          "animated": true,
-          "style": {
-            "stroke": "#00A3A6",
-            "strokeWidth": 2,
-            "strokeDasharray": "4 4"
-          }
-        },
-        {
           "id": "edge-skill-outlook",
           "source": "node-skill-outlook",
           "sourceHandle": "out",
@@ -4496,10 +4598,24 @@
             "strokeWidth": 2.2,
             "strokeDasharray": "4 4"
           }
+        },
+        {
+          "id": "edge-node-mcp-7201-to-node-mcp-gw-outlook",
+          "source": "node-mcp-7201",
+          "sourceHandle": "out",
+          "target": "node-mcp-gw-outlook",
+          "targetHandle": "mcp-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#00A3A6",
+            "strokeWidth": 2,
+            "strokeDasharray": "4 4"
+          }
         }
       ],
       "createdAt": 1792382477311,
-      "updatedAt": 1792404655710,
+      "updatedAt": 1792406842880,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -4577,15 +4693,15 @@
             "tools": 1
           },
           "isDarkMode": false,
-          "lastOutput": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-          "auditHash": "0467bf9c019ccaeebe3847a11a59ebe55682eee5b3f3a9484496186035472016",
+          "lastOutput": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+          "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf",
           "observability": {
-            "totalTokens": 240,
-            "latencyMs": 12,
+            "totalTokens": 373,
+            "latencyMs": 4016,
             "modelUsed": "openai (gpt-4o-mini)",
             "framework": "Microsoft ADK"
           },
-          "costUsd": 0.00011
+          "costUsd": 0.00016
         },
         "measured": {
           "width": 228,
@@ -4646,20 +4762,353 @@
         "dragging": false
       },
       {
-        "id": "node-mcp-outlook-1",
+        "id": "node-skill-outlook",
         "type": "pillar",
         "position": {
-          "x": 795.3197088936955,
-          "y": 86.62476182007524
+          "x": 652.0502858159098,
+          "y": 364.73546224465275
+        },
+        "data": {
+          "pillarType": "skills",
+          "name": "Attachment & Data Extractor",
+          "description": "Decodes Base64 attachments, extracts invoice line items, and formats tabular records.",
+          "config": {
+            "format": "tabular_json",
+            "extractAttachments": true
+          },
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-deterministic-outlook",
+        "type": "deterministicNode",
+        "position": {
+          "x": 787.4559103741087,
+          "y": 184.8765490475046
+        },
+        "data": {
+          "name": "Row & Schema Normalizer",
+          "prompt": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
+          "ruleSummary": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
+          "language": "python",
+          "code": "def process(inputs):\n    # Zero-token tabular schema normalization\n    import json\n    if isinstance(inputs, str):\n        try:\n            data = json.loads(inputs)\n        except:\n            data = {\"raw\": inputs}\n    else:\n        data = inputs or {}\n    \n    item = data.get(\"item\", data)\n    return {\n        \"record_id\": item.get(\"id\", \"REC-001\"),\n        \"sender\": item.get(\"from\", \"Unknown\"),\n        \"subject\": item.get(\"subject\", \"No Subject\"),\n        \"received_at\": item.get(\"receivedDateTime\", \"\"),\n        \"has_attachments\": item.get(\"hasAttachments\", False),\n        \"summary\": (item.get(\"bodyPreview\") or item.get(\"content\") or \"\")[:120],\n        \"status\": \"EXTRACTED\"\n    }",
+          "lastStatus": "success",
+          "isFrozen": true,
+          "isDarkMode": false,
+          "lastUpstreamReceived": {
+            "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+            "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+            "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+            "tokens": 373,
+            "latencyMs": 4016,
+            "observability": {
+              "totalTokens": 373,
+              "latencyMs": 4016,
+              "modelUsed": "openai (gpt-4o-mini)",
+              "framework": "Microsoft ADK"
+            },
+            "costUsd": 0.00016,
+            "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf"
+          },
+          "upstreamPayload": {
+            "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+            "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+            "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
+            "tokens": 373,
+            "latencyMs": 4016,
+            "observability": {
+              "totalTokens": 373,
+              "latencyMs": 4016,
+              "modelUsed": "openai (gpt-4o-mini)",
+              "framework": "Microsoft ADK"
+            },
+            "costUsd": 0.00016,
+            "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf"
+          },
+          "lastUpstreamTime": 1792406831373,
+          "isRunning": false,
+          "lastOutput": null,
+          "lastTableData": null,
+          "lastError": null,
+          "lastLatencyMs": 509.9
+        },
+        "measured": {
+          "width": 228,
+          "height": 136
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-output-outlook",
+        "type": "outputNode",
+        "position": {
+          "x": 1056.1982406476075,
+          "y": 215.5813654102361
+        },
+        "data": {
+          "title": "Tabular Continuous Output Viewer",
+          "outputContent": "",
+          "content": "",
+          "status": "ready",
+          "format": "json",
+          "persistenceStrategy": "append",
+          "runsHistory": [
+            {
+              "runNumber": 1,
+              "timestamp": "10:38:42 AM",
+              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 1,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_001_1792386522269\",\n    \"subject\": \"Vendor Invoice #INV-2026-9041 (Payment Approval Required)\",\n    \"from\": \"ap-billing@cloudinfrastructures.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:04:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.\"\n  }\n}",
+              "tableData": {
+                "id": "msg_batch_001_1792386522269",
+                "from": "ap-billing@cloudinfrastructures.corp",
+                "subject": "Vendor Invoice #INV-2026-9041 (Payment Approval Required)",
+                "receivedDateTime": "2026-10-19T05:04:42.269Z",
+                "hasAttachments": true,
+                "bodyPreview": "Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.",
+                "stream": "inbox",
+                "batchIndex": 1,
+                "batchTotal": 3
+              },
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 0,
+              "costUsd": 0,
+              "source": "outlook_mcp_stream",
+              "sourceNodeType": "outlook_mcp_stream",
+              "sourceNodeId": "node-trigger-outlook",
+              "sourceNodeName": "Outlook Ingress Watcher"
+            },
+            {
+              "runNumber": 2,
+              "timestamp": "10:38:42 AM",
+              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 2,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_002_1792386522269\",\n    \"subject\": \"Hardware Maintenance Statement #ST-8812 (Net 15)\",\n    \"from\": \"accounts@hardwarevaults.io\",\n    \"receivedDateTime\": \"2026-10-19T05:06:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.\"\n  }\n}",
+              "tableData": {
+                "id": "msg_batch_002_1792386522269",
+                "from": "accounts@hardwarevaults.io",
+                "subject": "Hardware Maintenance Statement #ST-8812 (Net 15)",
+                "receivedDateTime": "2026-10-19T05:06:42.269Z",
+                "hasAttachments": true,
+                "bodyPreview": "Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.",
+                "stream": "inbox",
+                "batchIndex": 2,
+                "batchTotal": 3
+              },
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 0,
+              "costUsd": 0,
+              "source": "outlook_mcp_stream",
+              "sourceNodeType": "outlook_mcp_stream",
+              "sourceNodeId": "node-trigger-outlook",
+              "sourceNodeName": "Outlook Ingress Watcher"
+            },
+            {
+              "runNumber": 3,
+              "timestamp": "10:38:43 AM",
+              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 3,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_003_1792386522269\",\n    \"subject\": \"Automated Dispatch Receipt #RCP-3304\",\n    \"from\": \"system-mailer@enterprise.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:08:12.269Z\",\n    \"hasAttachments\": false,\n    \"bodyPreview\": \"Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.\"\n  }\n}",
+              "tableData": {
+                "id": "msg_batch_003_1792386522269",
+                "from": "system-mailer@enterprise.corp",
+                "subject": "Automated Dispatch Receipt #RCP-3304",
+                "receivedDateTime": "2026-10-19T05:08:12.269Z",
+                "hasAttachments": false,
+                "bodyPreview": "Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.",
+                "stream": "inbox",
+                "batchIndex": 3,
+                "batchTotal": 3
+              },
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 0,
+              "costUsd": 0,
+              "source": "outlook_mcp_stream",
+              "sourceNodeType": "outlook_mcp_stream",
+              "sourceNodeId": "node-trigger-outlook",
+              "sourceNodeName": "Outlook Ingress Watcher"
+            },
+            {
+              "runNumber": 4,
+              "timestamp": "3:40:55 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 1154.2,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 5,
+              "timestamp": "3:40:55 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 1165.4,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 6,
+              "timestamp": "3:44:14 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 301.6,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 7,
+              "timestamp": "3:44:14 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 302.2,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 8,
+              "timestamp": "3:44:48 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 306.9,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 9,
+              "timestamp": "3:44:48 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 298.6,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 10,
+              "timestamp": "3:48:13 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 301.9,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 11,
+              "timestamp": "3:48:13 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 305.1,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 12,
+              "timestamp": "4:17:12 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 508.8,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 13,
+              "timestamp": "4:17:12 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 509.9,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            }
+          ],
+          "isExpanded": false,
+          "isDarkMode": false,
+          "sourceNodeType": "deterministic",
+          "sourceNodeId": "node-deterministic-outlook",
+          "sourceNodeName": "Mail & Attachment Extractor",
+          "observability": {
+            "totalTokens": 0,
+            "latencyMs": 509.9,
+            "note": "Deterministic 0-Token Pipeline"
+          }
+        },
+        "measured": {
+          "width": 140,
+          "height": 56
+        },
+        "selected": true,
+        "dragging": false
+      },
+      {
+        "id": "node-mcp-7201",
+        "type": "pillar",
+        "position": {
+          "x": 762.7050758663784,
+          "y": 90.38798870784261
         },
         "data": {
           "pillarType": "mcp",
-          "title": "Microsoft Outlook 365",
-          "name": "Microsoft Outlook 365",
-          "displayName": "Microsoft Outlook 365",
-          "subtitle": "HTTP/SSE",
-          "description": "Official Microsoft 365 Outlook Mail, Calendar & Attachments integration with 39 verified actions.",
-          "config": {},
+          "title": "Outlook",
+          "name": "Outlook",
+          "displayName": "Outlook",
+          "subtitle": "OUTLOOK-API",
+          "description": "Official Enterprise Microsoft Outlook MCP with 39 categorized tools.",
+          "config": {
+            "connectionMode": "oauth",
+            "endpoint": "https://graph.microsoft.com/v1.0"
+          },
           "tools": [
             {
               "name": "list_messages",
@@ -5681,233 +6130,16 @@
               }
             }
           ],
+          "basis": null,
           "serviceName": "Outlook",
-          "transport": "sse",
+          "transport": "outlook-api",
+          "serverUrl": "",
           "isRealMcp": true,
-          "isDeactivated": false,
           "isDarkMode": false
         },
         "measured": {
           "width": 140,
           "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-skill-outlook",
-        "type": "pillar",
-        "position": {
-          "x": 652.0502858159098,
-          "y": 364.73546224465275
-        },
-        "data": {
-          "pillarType": "skills",
-          "name": "Attachment & Data Extractor",
-          "description": "Decodes Base64 attachments, extracts invoice line items, and formats tabular records.",
-          "config": {
-            "format": "tabular_json",
-            "extractAttachments": true
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-deterministic-outlook",
-        "type": "deterministicNode",
-        "position": {
-          "x": 787.4559103741087,
-          "y": 184.8765490475046
-        },
-        "data": {
-          "name": "Row & Schema Normalizer",
-          "prompt": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
-          "ruleSummary": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
-          "language": "python",
-          "code": "def process(inputs):\n    # Zero-token tabular schema normalization\n    import json\n    if isinstance(inputs, str):\n        try:\n            data = json.loads(inputs)\n        except:\n            data = {\"raw\": inputs}\n    else:\n        data = inputs or {}\n    \n    item = data.get(\"item\", data)\n    return {\n        \"record_id\": item.get(\"id\", \"REC-001\"),\n        \"sender\": item.get(\"from\", \"Unknown\"),\n        \"subject\": item.get(\"subject\", \"No Subject\"),\n        \"received_at\": item.get(\"receivedDateTime\", \"\"),\n        \"has_attachments\": item.get(\"hasAttachments\", False),\n        \"summary\": (item.get(\"bodyPreview\") or item.get(\"content\") or \"\")[:120],\n        \"status\": \"EXTRACTED\"\n    }",
-          "lastStatus": "success",
-          "isFrozen": true,
-          "isDarkMode": false,
-          "lastUpstreamReceived": {
-            "output": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-            "data": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-            "text": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-            "tokens": 240,
-            "latencyMs": 12,
-            "observability": {
-              "totalTokens": 240,
-              "latencyMs": 12,
-              "modelUsed": "openai (gpt-4o-mini)",
-              "framework": "Microsoft ADK"
-            },
-            "costUsd": 0.00011,
-            "auditHash": "0467bf9c019ccaeebe3847a11a59ebe55682eee5b3f3a9484496186035472016"
-          },
-          "upstreamPayload": {
-            "output": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-            "data": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-            "text": "### Mail & Attachment Extractor Analysis (Microsoft ADK)\n\n**Task Execution**: Processed direct ingestion input.\n\n**Key Analysis & Directives**:\n- Synthesized input across 4 bound peripherals.\n- Evaluated compliance standards under institutional safety policies.\n- Formulated structured action items and strategic deliverables for downstream consumers.\n\n_Note: Live provider returned: No API Key configured for OpenAI. Please set your API credentials in API Credentials modal._",
-            "tokens": 240,
-            "latencyMs": 12,
-            "observability": {
-              "totalTokens": 240,
-              "latencyMs": 12,
-              "modelUsed": "openai (gpt-4o-mini)",
-              "framework": "Microsoft ADK"
-            },
-            "costUsd": 0.00011,
-            "auditHash": "0467bf9c019ccaeebe3847a11a59ebe55682eee5b3f3a9484496186035472016"
-          },
-          "lastUpstreamTime": 1792404652536,
-          "isRunning": false,
-          "lastOutput": null,
-          "lastTableData": null,
-          "lastError": null,
-          "lastLatencyMs": 1165.4
-        },
-        "measured": {
-          "width": 228,
-          "height": 136
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-output-outlook",
-        "type": "outputNode",
-        "position": {
-          "x": 1009.7530980950094,
-          "y": 228.8514061395498
-        },
-        "data": {
-          "title": "Tabular Continuous Output Viewer",
-          "outputContent": "",
-          "content": "",
-          "status": "ready",
-          "format": "json",
-          "persistenceStrategy": "append",
-          "runsHistory": [
-            {
-              "runNumber": 1,
-              "timestamp": "10:38:42 AM",
-              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 1,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_001_1792386522269\",\n    \"subject\": \"Vendor Invoice #INV-2026-9041 (Payment Approval Required)\",\n    \"from\": \"ap-billing@cloudinfrastructures.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:04:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.\"\n  }\n}",
-              "tableData": {
-                "id": "msg_batch_001_1792386522269",
-                "from": "ap-billing@cloudinfrastructures.corp",
-                "subject": "Vendor Invoice #INV-2026-9041 (Payment Approval Required)",
-                "receivedDateTime": "2026-10-19T05:04:42.269Z",
-                "hasAttachments": true,
-                "bodyPreview": "Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.",
-                "stream": "inbox",
-                "batchIndex": 1,
-                "batchTotal": 3
-              },
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 0,
-              "costUsd": 0,
-              "source": "outlook_mcp_stream",
-              "sourceNodeType": "outlook_mcp_stream",
-              "sourceNodeId": "node-trigger-outlook",
-              "sourceNodeName": "Outlook Ingress Watcher"
-            },
-            {
-              "runNumber": 2,
-              "timestamp": "10:38:42 AM",
-              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 2,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_002_1792386522269\",\n    \"subject\": \"Hardware Maintenance Statement #ST-8812 (Net 15)\",\n    \"from\": \"accounts@hardwarevaults.io\",\n    \"receivedDateTime\": \"2026-10-19T05:06:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.\"\n  }\n}",
-              "tableData": {
-                "id": "msg_batch_002_1792386522269",
-                "from": "accounts@hardwarevaults.io",
-                "subject": "Hardware Maintenance Statement #ST-8812 (Net 15)",
-                "receivedDateTime": "2026-10-19T05:06:42.269Z",
-                "hasAttachments": true,
-                "bodyPreview": "Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.",
-                "stream": "inbox",
-                "batchIndex": 2,
-                "batchTotal": 3
-              },
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 0,
-              "costUsd": 0,
-              "source": "outlook_mcp_stream",
-              "sourceNodeType": "outlook_mcp_stream",
-              "sourceNodeId": "node-trigger-outlook",
-              "sourceNodeName": "Outlook Ingress Watcher"
-            },
-            {
-              "runNumber": 3,
-              "timestamp": "10:38:43 AM",
-              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 3,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_003_1792386522269\",\n    \"subject\": \"Automated Dispatch Receipt #RCP-3304\",\n    \"from\": \"system-mailer@enterprise.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:08:12.269Z\",\n    \"hasAttachments\": false,\n    \"bodyPreview\": \"Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.\"\n  }\n}",
-              "tableData": {
-                "id": "msg_batch_003_1792386522269",
-                "from": "system-mailer@enterprise.corp",
-                "subject": "Automated Dispatch Receipt #RCP-3304",
-                "receivedDateTime": "2026-10-19T05:08:12.269Z",
-                "hasAttachments": false,
-                "bodyPreview": "Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.",
-                "stream": "inbox",
-                "batchIndex": 3,
-                "batchTotal": 3
-              },
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 0,
-              "costUsd": 0,
-              "source": "outlook_mcp_stream",
-              "sourceNodeType": "outlook_mcp_stream",
-              "sourceNodeId": "node-trigger-outlook",
-              "sourceNodeName": "Outlook Ingress Watcher"
-            },
-            {
-              "runNumber": 4,
-              "timestamp": "3:40:55 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 1154.2,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 5,
-              "timestamp": "3:40:55 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 1165.4,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            }
-          ],
-          "isExpanded": false,
-          "isDarkMode": false,
-          "sourceNodeType": "deterministic",
-          "sourceNodeId": "node-deterministic-outlook",
-          "sourceNodeName": "Mail & Attachment Extractor",
-          "observability": {
-            "totalTokens": 0,
-            "latencyMs": 1165.4,
-            "note": "Deterministic 0-Token Pipeline"
-          }
-        },
-        "measured": {
-          "width": 140,
-          "height": 56
         },
         "selected": false,
         "dragging": false
@@ -5958,20 +6190,6 @@
         }
       },
       {
-        "id": "edge-mcp-to-gw-outlook",
-        "source": "node-mcp-outlook-1",
-        "sourceHandle": "out",
-        "target": "node-mcp-gw-outlook",
-        "targetHandle": "mcp-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00A3A6",
-          "strokeWidth": 2,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
         "id": "edge-skill-outlook",
         "source": "node-skill-outlook",
         "sourceHandle": "out",
@@ -6010,6 +6228,20 @@
         "style": {
           "stroke": "#10B981",
           "strokeWidth": 2.2,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-node-mcp-7201-to-node-mcp-gw-outlook",
+        "source": "node-mcp-7201",
+        "sourceHandle": "out",
+        "target": "node-mcp-gw-outlook",
+        "targetHandle": "mcp-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#00A3A6",
+          "strokeWidth": 2,
           "strokeDasharray": "4 4"
         }
       }
@@ -7071,5 +7303,5 @@
       ]
     }
   ],
-  "syncedAt": 1792404672755
+  "syncedAt": 1792406843699
 }
