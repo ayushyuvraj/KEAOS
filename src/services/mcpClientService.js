@@ -2788,6 +2788,58 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments`);
     }
 
+    if (toolName === 'read_attachment_content' || toolName === 'get_attachment_content' || toolName === 'get_message_attachment') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId) throw new Error('messageId is required to read attachment content.');
+      
+      let attachId = args.attachmentId || args.attachment_id;
+      let targetAttachment = null;
+      
+      if (attachId) {
+        targetAttachment = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachId)}`);
+      } else {
+        const listRes = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments`);
+        const files = (listRes?.value || []).filter(a => a['@odata.type'] === '#microsoft.graph.fileAttachment' || a.contentBytes);
+        if (!files.length) {
+          return { success: false, message: `No file attachments found on message ${msgId}.` };
+        }
+        targetAttachment = files[0];
+      }
+      
+      if (!targetAttachment) {
+        return { success: false, message: 'Attachment could not be retrieved from mailbox.' };
+      }
+      
+      const fileName = targetAttachment.name || 'attachment';
+      const contentType = targetAttachment.contentType || 'application/octet-stream';
+      const base64Bytes = targetAttachment.contentBytes || '';
+      let decodedText = '';
+      
+      try {
+        if (base64Bytes) {
+          const binaryStr = atob(base64Bytes);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          const decoder = new TextDecoder('utf-8', { fatal: false });
+          decodedText = decoder.decode(bytes);
+        }
+      } catch (decErr) {
+        decodedText = `[File attachment: ${fileName} (${targetAttachment.size || 0} bytes, type: ${contentType})]`;
+      }
+      
+      return {
+        success: true,
+        attachmentId: targetAttachment.id,
+        name: fileName,
+        contentType,
+        sizeBytes: targetAttachment.size,
+        content: decodedText,
+        isTextReadable: !decodedText.includes('\u0000') && decodedText.length > 0
+      };
+    }
+
     if (toolName === 'add_message_attachment') {
       const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
       if (!msgId) throw new Error('messageId is required to attach file.');

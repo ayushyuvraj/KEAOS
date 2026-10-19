@@ -8,6 +8,8 @@
 
 import { executeDeterministicTask } from './deterministicRunner';
 import { recordWorkflowExecution } from './unifiedAuditService';
+import { executeRealMcpTool, getRegisteredMcpServers, DEFAULT_OFFICIAL_MCP_SERVERS } from './mcpClientService';
+import { identifyMcpService } from '../constants/mcpOfficialCatalogs';
 
 // Ingress Deduplication Cache (TTL: 24 Hours)
 const deduplicationCache = new Map();
@@ -247,6 +249,184 @@ export function disarmPollingWatcher(nodeId) {
   }
 }
 
+// Active Outlook MCP Stream Watchers Registry (Key: nodeId)
+const activeOutlookWatchers = new Map();
+
+/**
+ * Arms an Outlook MCP Stream Watcher with Zero-Trust Gateway enforcement
+ * and Discrete Batch Queue processing (N incoming items -> N discrete downstream rows).
+ */
+export function armOutlookStreamWatcher(nodeId, {
+  stream = 'inbox', // 'inbox' | 'sentitems' | 'calendar' | 'tasks' | 'contacts'
+  intervalSeconds = 60,
+  maxBatchSize = 25,
+  disabledTools = [],
+  filter = '',
+  search = ''
+}) {
+  disarmOutlookStreamWatcher(nodeId);
+
+  // 1. Zero-Trust Gateway Policy Check
+  const requiredTool = (stream === 'calendar') ? 'list_events' :
+                       (stream === 'tasks') ? 'list_tasks' :
+                       (stream === 'contacts') ? 'list_contacts' : 'list_messages';
+
+  if (Array.isArray(disabledTools) && disabledTools.includes(requiredTool)) {
+    const errorMsg = `[GATEWAY ZERO-TRUST PERIMETER]: Stream "${stream}" requires capability "${requiredTool}", which is BLOCKED by operator policy.`;
+    console.warn(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  const seenItemIds = new Set();
+  const watcherState = {
+    nodeId,
+    stream,
+    intervalSeconds,
+    maxBatchSize,
+    requiredTool,
+    disabledTools,
+    intervalId: null,
+    isArmed: true,
+    lastPolledAt: null,
+    processedCount: 0
+  };
+
+  const executeStreamPoll = async () => {
+    try {
+      watcherState.lastPolledAt = new Date().toISOString();
+
+      // Dynamic perimeter re-check: ensure tool has not been disabled mid-session
+      if (Array.isArray(watcherState.disabledTools) && watcherState.disabledTools.includes(requiredTool)) {
+        console.warn(`[Gateway Policy Active] Stream polling skipped: ${requiredTool} is blocked at Gateway perimeter.`);
+        return;
+      }
+
+      // Discover active Outlook MCP server from registry
+      const registered = getRegisteredMcpServers();
+      const outlookServer = (registered || []).find(s => identifyMcpService(s) === 'outlook') || DEFAULT_OFFICIAL_MCP_SERVERS[0];
+
+      let rawItems = [];
+
+      if (outlookServer && outlookServer.config?.token) {
+        try {
+          if (stream === 'inbox' || stream === 'sentitems') {
+            const folderName = stream === 'sentitems' ? 'sentitems' : 'inbox';
+            const pollArgs = {
+              folder: folderName,
+              limit: Math.min(50, maxBatchSize || 25),
+              filter: filter || (stream === 'inbox' ? 'isRead eq false' : '')
+            };
+            if (search) pollArgs.search = search;
+
+            const res = await executeRealMcpTool(outlookServer, 'list_messages', pollArgs, { disabledTools });
+            if (res && Array.isArray(res.value)) {
+              rawItems = res.value;
+            }
+          } else if (stream === 'calendar') {
+            const res = await executeRealMcpTool(outlookServer, 'list_events', {
+              limit: Math.min(50, maxBatchSize || 25)
+            }, { disabledTools });
+            if (res && Array.isArray(res.value)) {
+              rawItems = res.value;
+            }
+          } else if (stream === 'tasks') {
+            const res = await executeRealMcpTool(outlookServer, 'list_tasks', {
+              limit: Math.min(50, maxBatchSize || 25)
+            }, { disabledTools });
+            if (res && Array.isArray(res.value)) {
+              rawItems = res.value;
+            }
+          }
+        } catch (fetchErr) {
+          console.warn(`[Outlook Stream Poll Notice]: ${fetchErr.message}`);
+        }
+      }
+
+      // Filter out already processed items using watermarking
+      const newItems = rawItems.filter(item => item && item.id && !seenItemIds.has(item.id));
+      newItems.forEach(item => seenItemIds.add(item.id));
+
+      if (newItems.length === 0) {
+        // Idle check: Zero tokens consumed, zero downstream events fired
+        return;
+      }
+
+      // DISCRETE QUEUE FAN-OUT:
+      // If N items arrive in this interval, dispatch each one independently so downstream
+      // agents and tabular sinks process them as N individual rows without mixing or jumbling!
+      for (let idx = 0; idx < newItems.length; idx++) {
+        const item = newItems[idx];
+        watcherState.processedCount++;
+
+        const discretePayload = {
+          source: 'outlook_mcp_stream',
+          stream,
+          batchIndex: idx + 1,
+          batchTotal: newItems.length,
+          item: {
+            id: item.id,
+            subject: item.subject || `Notification #${item.id}`,
+            sender: item.from?.emailAddress?.address || item.from || 'sender@enterprise.corp',
+            receivedDateTime: item.receivedDateTime || item.sentDateTime || item.createdDateTime || new Date().toISOString(),
+            hasAttachments: Boolean(item.hasAttachments),
+            bodyPreview: item.bodyPreview || item.body?.content || ''
+          }
+        };
+
+        window.dispatchEvent(new CustomEvent('keaos:fire-trigger-node', {
+          detail: {
+            nodeId,
+            triggerType: 'poll',
+            payloadText: JSON.stringify(discretePayload, null, 2),
+            batchIndex: idx + 1,
+            batchTotal: newItems.length,
+            stream
+          }
+        }));
+
+        // Allow 350ms delay between queued items for orderly sequential row ingestion
+        if (idx < newItems.length - 1) {
+          await new Promise(r => setTimeout(r, 350));
+        }
+      }
+    } catch (pollErr) {
+      console.warn('Stream poll execution error:', pollErr);
+    }
+  };
+
+  watcherState.intervalId = setInterval(executeStreamPoll, Math.max(5000, intervalSeconds * 1000));
+  activeOutlookWatchers.set(nodeId, watcherState);
+  return watcherState;
+}
+
+/**
+ * Disarms an Outlook Stream Watcher
+ */
+export function disarmOutlookStreamWatcher(nodeId) {
+  if (activeOutlookWatchers.has(nodeId)) {
+    const watcher = activeOutlookWatchers.get(nodeId);
+    if (watcher.intervalId) clearInterval(watcher.intervalId);
+    activeOutlookWatchers.delete(nodeId);
+  }
+}
+
+/**
+ * Gets Outlook Stream Watcher Status
+ */
+export function getOutlookWatcherStatus(nodeId) {
+  if (!activeOutlookWatchers.has(nodeId)) {
+    return { isArmed: false, stream: null, processedCount: 0 };
+  }
+  const w = activeOutlookWatchers.get(nodeId);
+  return {
+    isArmed: w.isArmed,
+    stream: w.stream,
+    intervalSeconds: w.intervalSeconds,
+    lastPolledAt: w.lastPolledAt,
+    processedCount: w.processedCount
+  };
+}
+
 /**
  * Helper to process dropped or selected files into a clean payload
  */
@@ -467,6 +647,30 @@ export async function fireTriggerEvent({
         targetType: 'agentCore',
         success: true,
         dispatched: true
+      });
+    }
+
+    // TARGET C: Direct Output Display Node (Continuous Tabular Stream)
+    else if (target.type === 'outputNode') {
+      const formattedOutput = typeof parsedPayload === 'object'
+        ? JSON.stringify(parsedPayload, null, 2)
+        : String(parsedPayload || '');
+
+      window.dispatchEvent(new CustomEvent('keaos:output-append-run', {
+        detail: {
+          targetNodeId: target.id,
+          output: formattedOutput,
+          payload: parsedPayload,
+          sourceNodeType: 'trigger',
+          sourceNodeId: triggerId,
+          sourceNodeName: triggerName
+        }
+      }));
+
+      results.push({
+        targetId: target.id,
+        targetType: 'outputNode',
+        success: true
       });
     }
   }

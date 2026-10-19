@@ -51,6 +51,8 @@ import {
   GITHUB_OFFICIAL_ACTIONS, 
   SLACK_OFFICIAL_ACTIONS, 
   JIRA_OFFICIAL_ACTIONS,
+  NEO4J_OFFICIAL_ACTIONS,
+  OUTLOOK_OFFICIAL_ACTIONS,
   identifyMcpService
 } from '../constants/mcpOfficialCatalogs';
 
@@ -324,6 +326,10 @@ export default function CanvasExecutionDrawer({
             upTools = SLACK_OFFICIAL_ACTIONS;
           } else if (upService === 'jira' && upTools.length < JIRA_OFFICIAL_ACTIONS.length) {
             upTools = JIRA_OFFICIAL_ACTIONS;
+          } else if (upService === 'neo4j' && upTools.length < NEO4J_OFFICIAL_ACTIONS.length) {
+            upTools = NEO4J_OFFICIAL_ACTIONS;
+          } else if (upService === 'outlook' && upTools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
+            upTools = OUTLOOK_OFFICIAL_ACTIONS;
           }
           routedMcpPillars.push({
             id: upSrc.data.toolId || upSrc.id,

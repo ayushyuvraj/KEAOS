@@ -115,10 +115,15 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
             <label className="block text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] mb-2 font-mono">
               Initial Workspace Template
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
-                onClick={() => setTemplate('meeting-pilot')}
+                onClick={() => {
+                  setTemplate('meeting-pilot');
+                  setName('Meeting Intelligence Agent');
+                  setDescription('Multi-speaker transcript synthesis, action item extraction, and task dispatching.');
+                  setSelectedFrameworkId('google-adk');
+                }}
                 className={`btn-tactile p-3 text-left border rounded-none transition-all ${
                   template === 'meeting-pilot'
                     ? 'border-[#00338D] bg-[#E6EDF7] text-[#0B0F19] shadow-sm'
@@ -136,7 +141,37 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
 
               <button
                 type="button"
-                onClick={() => setTemplate('multi-agent-triad')}
+                onClick={() => {
+                  setTemplate('outlook-stream-intelligence');
+                  setName('Outlook Mail & Attachment Intelligence');
+                  setDescription('Continuous MCP stream monitoring (Inbox/Sent/Calendar), zero-trust Gateway filtering, attachment decoding, and discrete tabular extraction.');
+                  setSelectedFrameworkId('microsoft-adk');
+                }}
+                className={`btn-tactile p-3 text-left border rounded-none transition-all ${
+                  template === 'outlook-stream-intelligence'
+                    ? 'border-[#00A3A6] bg-[#00A3A6]/10 text-[#0B0F19] shadow-sm ring-1 ring-[#00A3A6]'
+                    : 'border-[#E0E0E0] bg-[#FFFFFF] text-[#666666] hover:border-[#00A3A6]'
+                }`}
+              >
+                <div className="font-bold text-xs text-[#0B0F19] flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00A3A6]" />
+                    Outlook Stream & Attachments
+                  </span>
+                  {template === 'outlook-stream-intelligence' && <Check className="w-3.5 h-3.5 text-[#00A3A6]" />}
+                </div>
+                <p className="text-[10px] text-[#475569] mt-1 leading-snug">
+                  MCP Mail Watcher (Inbox/Sent), zero-trust Gateway permission enforcer, attachment decoding & discrete tabular rows.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTemplate('multi-agent-triad');
+                  setName('Enterprise Triad Multi-Agent Fleet');
+                  setDescription('3 Connected Agents: Google Scribe ➔ MS Orchestrator ➔ LangGraph Risk Auditor with A2A DAG channels.');
+                }}
                 className={`btn-tactile p-3 text-left border rounded-none transition-all ${
                   template === 'multi-agent-triad'
                     ? 'border-[#6366F1] bg-[#EEF2FF] text-[#0B0F19] shadow-sm'
@@ -157,7 +192,11 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
 
               <button
                 type="button"
-                onClick={() => setTemplate('blank')}
+                onClick={() => {
+                  setTemplate('blank');
+                  setName('Autonomous Agent');
+                  setDescription('Custom enterprise agent graph built from scratch.');
+                }}
                 className={`btn-tactile p-3 text-left border rounded-none transition-all ${
                   template === 'blank'
                     ? 'border-[#00338D] bg-[#E6EDF7] text-[#0B0F19] shadow-sm'

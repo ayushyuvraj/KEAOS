@@ -7,6 +7,7 @@
 
 import { FRAMEWORKS } from '../constants/frameworks';
 import { loadCanvasState } from './persistentState';
+import { OUTLOOK_OFFICIAL_ACTIONS } from '../constants/mcpOfficialCatalogs';
 
 export const WORKFLOWS_REGISTRY_KEY = 'keaos_workflows_registry';
 export const ACTIVE_WORKFLOW_ID_KEY = 'keaos_active_workflow_id';
@@ -283,6 +284,264 @@ export function createMeetingIntelligenceWorkflow() {
 }
 
 /**
+ * Pre-configured Outlook Stream & Attachment Intelligence workflow
+ */
+export function createOutlookStreamWorkflow() {
+  const fw = FRAMEWORKS.find(f => f.id === 'microsoft-adk') || FRAMEWORKS[0];
+
+  const initialNodes = [
+    // 1. Ingress Trigger Node (Outlook Stream Watcher, 60px Origin Disc)
+    {
+      id: 'node-trigger-outlook',
+      type: 'triggerNode',
+      position: { x: 140, y: 220 },
+      data: {
+        name: 'Outlook Ingress Watcher',
+        triggerType: 'poll',
+        pollSubMode: 'stream',
+        streamType: 'inbox',
+        pollIntervalSeconds: 300,
+        maxBatchSize: 20,
+        isPollingActive: false,
+        lastStatus: 'idle',
+        label: 'OUTLOOK STREAM'
+      }
+    },
+    // 2. Central Robot AI Agent Core
+    {
+      id: 'agent-core',
+      type: 'agentCore',
+      position: { x: 520, y: 165 },
+      data: {
+        name: 'Mail & Attachment Extractor',
+        framework: fw,
+        prompt: 'You are an institutional Mail & Attachment Intelligence Agent. Ingest incoming emails and attachments from Outlook MCP streams. Evaluate relevance, extract structured metadata (sender, subject, invoice/deliverable items, monetary values, action owners, due dates), and output standardized records.',
+        temperature: 0.1,
+        topP: 0.95,
+        attachedCounts: {
+          model: 1,
+          skills: 1,
+          gateway: 1,
+          tools: 1
+        }
+      }
+    },
+    // 3. Foundation Model Node (Positioned at Top-Center)
+    {
+      id: 'node-model-outlook',
+      type: 'pillar',
+      position: { x: 595, y: -20 },
+      data: {
+        pillarType: 'model',
+        name: 'Claude 3.5 Sonnet',
+        description: 'High-reasoning intelligence with strict JSON schema guarantees.',
+        config: { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.1, topP: 0.95 }
+      }
+    },
+    // 4. MCP Egress Gateway (Positioned at Top-Right)
+    {
+      id: 'node-mcp-gw-outlook',
+      type: 'pillar',
+      position: { x: 780, y: -20 },
+      data: {
+        pillarType: 'gateway',
+        itemId: 'gw-mcp-controller',
+        name: 'MCP Egress Gateway',
+        description: 'Zero-trust capability mediator. Filters and permits only verified Microsoft 365 tools.',
+        config: { gatewayType: 'mcp-egress', auditAllActions: true, disabledTools: [] }
+      }
+    },
+    // 5. Official Microsoft Outlook 365 MCP Server (Positioned above/right of Gateway)
+    {
+      id: 'node-mcp-outlook-1',
+      type: 'pillar',
+      position: { x: 1060, y: -20 },
+      data: {
+        pillarType: 'mcp',
+        title: 'Microsoft Outlook 365',
+        name: 'Microsoft Outlook 365',
+        displayName: 'Microsoft Outlook 365',
+        subtitle: 'HTTP/SSE',
+        description: `Official Microsoft 365 Outlook Mail, Calendar & Attachments integration with ${OUTLOOK_OFFICIAL_ACTIONS.length} verified actions.`,
+        config: {},
+        tools: OUTLOOK_OFFICIAL_ACTIONS,
+        serviceName: 'Outlook',
+        transport: 'sse',
+        isRealMcp: true
+      }
+    },
+    // 6. Specialized Skills Node (Bottom Right)
+    {
+      id: 'node-skill-outlook',
+      type: 'pillar',
+      position: { x: 780, y: 440 },
+      data: {
+        pillarType: 'skills',
+        name: 'Attachment & Data Extractor',
+        description: 'Decodes Base64 attachments, extracts invoice line items, and formats tabular records.',
+        config: { format: 'tabular_json', extractAttachments: true }
+      }
+    },
+    // 7. Deterministic Box / Table Normalizer (Zero-token compute)
+    {
+      id: 'node-deterministic-outlook',
+      type: 'deterministicNode',
+      position: { x: 800, y: 220 },
+      data: {
+        name: 'Row & Schema Normalizer',
+        prompt: 'Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)',
+        ruleSummary: 'Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)',
+        language: 'javascript',
+        code: `function process(inputs) {
+  let data = inputs;
+  if (typeof inputs === 'string') {
+    try { data = JSON.parse(inputs); } catch (e) { data = { raw: inputs }; }
+  }
+  const item = data?.item || data || {};
+  return {
+    record_id: item.id || ('REC-' + Date.now().toString().slice(-4)),
+    sender: item.from || 'ap-billing@cloudinfrastructures.corp',
+    subject: item.subject || 'Vendor Invoice #INV-2026-9041',
+    received_at: item.receivedDateTime || new Date().toISOString(),
+    has_attachments: Boolean(item.hasAttachments),
+    summary: (item.bodyPreview || item.content || '').slice(0, 120),
+    status: 'EXTRACTED'
+  };
+}`,
+        lastStatus: 'idle'
+      }
+    },
+    // 8. Output Component Node (Positioned at far right, in continuous append mode)
+    {
+      id: 'node-output-outlook',
+      type: 'outputNode',
+      position: { x: 1080, y: 200 },
+      data: {
+        title: 'Tabular Continuous Output Viewer',
+        outputContent: '',
+        content: '',
+        status: 'idle',
+        format: 'json',
+        persistenceStrategy: 'append',
+        runsHistory: [],
+        isExpanded: false
+      }
+    }
+  ];
+
+  const initialEdges = [
+    // Trigger -> Row & Schema Normalizer (Direct zero-token stream)
+    {
+      id: 'edge-trigger-to-normalizer',
+      source: 'node-trigger-outlook',
+      sourceHandle: 'trigger-out',
+      target: 'node-deterministic-outlook',
+      targetHandle: 'in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#00A3A6', strokeWidth: 2, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-trigger-to-agent',
+      source: 'node-trigger-outlook',
+      sourceHandle: 'trigger-out',
+      target: 'agent-core',
+      targetHandle: 'tools-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#00A3A6', strokeWidth: 2, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-model-outlook',
+      source: 'node-model-outlook',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'model-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#00338D', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-mcp-gw-outlook',
+      source: 'node-mcp-gw-outlook',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'mcp-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#00A3A6', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-mcp-to-gw-outlook',
+      source: 'node-mcp-outlook-1',
+      sourceHandle: 'out',
+      target: 'node-mcp-gw-outlook',
+      targetHandle: 'mcp-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#00A3A6', strokeWidth: 2.0, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-skill-outlook',
+      source: 'node-skill-outlook',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'skill-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#6D2077', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-agent-to-deterministic',
+      source: 'agent-core',
+      sourceHandle: 'out',
+      target: 'node-deterministic-outlook',
+      targetHandle: 'in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#EAAA00', strokeWidth: 2.0, strokeDasharray: '4 4' }
+    },
+    {
+      id: 'edge-deterministic-to-output',
+      source: 'node-deterministic-outlook',
+      sourceHandle: 'out',
+      target: 'node-output-outlook',
+      targetHandle: 'data-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#10B981', strokeWidth: 2.2, strokeDasharray: '4 4' }
+    }
+  ];
+
+  return {
+    id: 'wf-outlook-stream-intelligence',
+    name: 'Outlook Mail & Attachment Intelligence',
+    description: 'Continuous MCP stream monitoring (Inbox, Sent Items, Calendar), attachment decoding, and discrete tabular extraction.',
+    framework: fw,
+    activeUseCase: {
+      id: 'uc-outlook-stream',
+      name: 'Outlook Mail & Attachment Intelligence',
+      description: 'Continuous MCP stream monitoring (Inbox, Sent Items, Calendar), attachment decoding, and discrete tabular extraction.',
+      framework: fw,
+      agent: {
+        prompt: 'You are an institutional Mail & Attachment Intelligence Agent. Ingest incoming emails and attachments from Outlook MCP streams. Evaluate relevance, extract structured metadata, and output standardized records.',
+        temperature: 0.1,
+        topP: 0.95
+      }
+    },
+    nodes: initialNodes,
+    edges: initialEdges,
+    createdAt: Date.now() - 3600000,
+    updatedAt: Date.now(),
+    isStarred: true,
+    isLocked: false,
+    isWorkflowLocked: false,
+    tags: ['Outlook MCP', 'Attachment Decoding', 'Stream Ingress', 'Tabular Rows'],
+    stats: computeWorkflowStats(initialNodes)
+  };
+}
+
+/**
  * Creates the initial enterprise workflow from existing saved canvas state or default setup.
  */
 function createInitialDefaultWorkflow() {
@@ -338,6 +597,16 @@ export function loadAllWorkflows() {
     if (raw) {
       let parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        // Ensure the official Outlook Stream Intelligence template workflow is available in registry
+        if (!parsed.some(w => w.id === 'wf-outlook-stream-intelligence')) {
+          const outlookWf = createOutlookStreamWorkflow();
+          parsed.push(outlookWf);
+          try {
+            localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(parsed));
+          } catch (e) {
+            // Non-blocking
+          }
+        }
         return parsed;
       }
     }
@@ -345,9 +614,10 @@ export function loadAllWorkflows() {
     console.warn('Failed to parse workflows registry from localStorage:', err);
   }
 
-  // If no registry exists yet, bootstrap with initial default workflow
+  // If no registry exists yet, bootstrap with initial default workflow + Outlook Stream workflow
   const initialWf = createInitialDefaultWorkflow();
-  const initialList = [initialWf];
+  const outlookWf = createOutlookStreamWorkflow();
+  const initialList = [initialWf, outlookWf];
   try {
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(initialList));
     localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, initialWf.id);

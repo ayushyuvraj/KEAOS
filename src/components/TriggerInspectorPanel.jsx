@@ -16,7 +16,10 @@ import {
   Radio,
   Sliders,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Mail,
+  Layers
 } from 'lucide-react';
 import { 
   armScheduleTrigger, 
@@ -24,8 +27,11 @@ import {
   getScheduleStatus, 
   processFileForTrigger, 
   armPollingWatcher, 
-  disarmPollingWatcher 
+  disarmPollingWatcher,
+  armOutlookStreamWatcher,
+  disarmOutlookStreamWatcher
 } from '../services/triggerEngine';
+import { OUTLOOK_OFFICIAL_ACTIONS } from '../constants/mcpOfficialCatalogs';
 
 // Quick Sample Datasets for Instant File Ingestion Testing
 const SAMPLE_FILES = {
@@ -95,6 +101,41 @@ export default function TriggerInspectorPanel({
   const [pollEndpoint, setPollEndpoint] = useState(triggerConfig.endpointUrl || 'https://api.example.com/v1/status');
   const [pollWatermark, setPollWatermark] = useState(triggerConfig.deduplicateWatermark !== false);
   const [isPollingActive, setIsPollingActive] = useState(Boolean(triggerConfig.isPollingActive));
+
+  // MCP Stream & Zero-Trust Gateway Ingress state
+  const [pollSubMode, setPollSubMode] = useState(triggerConfig.pollSubMode || 'stream'); // 'stream' | 'rest'
+  const [streamType, setStreamType] = useState(triggerConfig.streamType || 'inbox'); // 'inbox' | 'sentitems' | 'calendar' | 'tasks' | 'contacts'
+  const [batchMode, setBatchMode] = useState(triggerConfig.batchMode !== false);
+  const [maxBatchSize, setMaxBatchSize] = useState(triggerConfig.maxBatchSize || 25);
+  const [isSimulatingBatch, setIsSimulatingBatch] = useState(false);
+
+  // Derive Gateway Zero-Trust permissions & connected MCP active state
+  const gatewayNode = (nodes || []).find(n => n.type === 'pillar' && n.data?.pillarType === 'gateway') ||
+                      (nodes || []).find(n => n.data?.gatewayType === 'mcp-egress');
+  const disabledTools = Array.isArray(gatewayNode?.data?.disabledTools) 
+    ? gatewayNode.data.disabledTools 
+    : (Array.isArray(gatewayNode?.disabledTools) ? gatewayNode.disabledTools : []);
+
+  const outlookMcpNode = (nodes || []).find(n => 
+    n.type === 'pillar' && n.data?.pillarType === 'mcp' && 
+    (n.data?.serviceName === 'Outlook' || n.data?.name?.toLowerCase().includes('outlook'))
+  );
+  const isMcpDeactivated = Boolean(outlookMcpNode?.data?.isDeactivated);
+  const isGatewayDeactivated = Boolean(gatewayNode?.data?.isDeactivated);
+  const isUnavailable = isMcpDeactivated || isGatewayDeactivated;
+
+  const totalOutlookCount = OUTLOOK_OFFICIAL_ACTIONS.length;
+  const blockedOutlookCount = isUnavailable 
+    ? totalOutlookCount 
+    : OUTLOOK_OFFICIAL_ACTIONS.filter(t => disabledTools.includes(t.name)).length;
+  const permittedOutlookCount = isUnavailable ? 0 : totalOutlookCount - blockedOutlookCount;
+
+  // Stream capability permissions governed by Gateway & MCP active state
+  const isInboxPermitted = !isUnavailable && !disabledTools.includes('list_messages');
+  const isSentItemsPermitted = !isUnavailable && !disabledTools.includes('list_messages');
+  const isCalendarPermitted = !isUnavailable && !disabledTools.includes('list_events');
+  const isTasksPermitted = !isUnavailable && !disabledTools.includes('list_tasks');
+  const isContactsPermitted = !isUnavailable && !disabledTools.includes('list_contacts');
 
   // File Watcher state
   const [isDragging, setIsDragging] = useState(false);
@@ -296,17 +337,50 @@ export default function TriggerInspectorPanel({
   const handleTogglePolling = () => {
     if (isPollingActive) {
       disarmPollingWatcher(selectedNode.id);
+      disarmOutlookStreamWatcher(selectedNode.id);
       setIsPollingActive(false);
       onUpdateNodeData(selectedNode.id, { config: { ...triggerConfig, isPollingActive: false } });
     } else {
-      armPollingWatcher(selectedNode.id, {
-        endpointUrl: pollEndpoint,
-        intervalSeconds: pollInterval,
-        deduplicate: pollWatermark,
-        payloadText: nodeData.payloadText
-      });
-      setIsPollingActive(true);
-      onUpdateNodeData(selectedNode.id, { config: { ...triggerConfig, isPollingActive: true, endpointUrl: pollEndpoint, pollIntervalSeconds: pollInterval } });
+      if (pollSubMode === 'stream') {
+        try {
+          armOutlookStreamWatcher(selectedNode.id, {
+            stream: streamType,
+            intervalSeconds: pollInterval,
+            maxBatchSize,
+            disabledTools
+          });
+          setIsPollingActive(true);
+          onUpdateNodeData(selectedNode.id, {
+            config: {
+              ...triggerConfig,
+              isPollingActive: true,
+              pollSubMode: 'stream',
+              streamType,
+              pollIntervalSeconds: pollInterval,
+              maxBatchSize
+            }
+          });
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        }
+      } else {
+        armPollingWatcher(selectedNode.id, {
+          endpointUrl: pollEndpoint,
+          intervalSeconds: pollInterval,
+          deduplicate: pollWatermark,
+          payloadText: nodeData.payloadText
+        });
+        setIsPollingActive(true);
+        onUpdateNodeData(selectedNode.id, {
+          config: {
+            ...triggerConfig,
+            isPollingActive: true,
+            pollSubMode: 'rest',
+            endpointUrl: pollEndpoint,
+            pollIntervalSeconds: pollInterval
+          }
+        });
+      }
     }
   };
 
@@ -324,6 +398,78 @@ export default function TriggerInspectorPanel({
       }
     };
     fireTrigger(JSON.stringify(pollSamplePayload, null, 2));
+  };
+
+  // Simulates a 5-minute interval where 3 discrete emails arrive
+  // Dispatches each email independently so downstream nodes append 3 distinct rows without jumbling
+  const handlePollBatchTest = async () => {
+    setIsSimulatingBatch(true);
+    const sampleBatch = [
+      {
+        id: `msg_batch_001_${Date.now()}`,
+        subject: 'Vendor Invoice #INV-2026-9041 (Payment Approval Required)',
+        from: 'ap-billing@cloudinfrastructures.corp',
+        receivedDateTime: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+        hasAttachments: true,
+        bodyPreview: 'Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.'
+      },
+      {
+        id: `msg_batch_002_${Date.now()}`,
+        subject: 'Hardware Maintenance Statement #ST-8812 (Net 15)',
+        from: 'accounts@hardwarevaults.io',
+        receivedDateTime: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+        hasAttachments: true,
+        bodyPreview: 'Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.'
+      },
+      {
+        id: `msg_batch_003_${Date.now()}`,
+        subject: 'Automated Dispatch Receipt #RCP-3304',
+        from: 'system-mailer@enterprise.corp',
+        receivedDateTime: new Date(Date.now() - 30 * 1000).toISOString(),
+        hasAttachments: false,
+        bodyPreview: 'Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.'
+      }
+    ];
+
+    for (let i = 0; i < sampleBatch.length; i++) {
+      const msg = sampleBatch[i];
+      const discretePayload = {
+        source: 'outlook_mcp_stream',
+        stream: streamType,
+        batchIndex: i + 1,
+        batchTotal: sampleBatch.length,
+        item: msg
+      };
+
+      fireTrigger(JSON.stringify(discretePayload, null, 2));
+
+      // Direct discrete append event for connected output displays
+      window.dispatchEvent(new CustomEvent('keaos:output-append-run', {
+        detail: {
+          output: JSON.stringify(discretePayload, null, 2),
+          payload: msg,
+          tableData: {
+            id: msg.id,
+            from: msg.from,
+            subject: msg.subject,
+            receivedDateTime: msg.receivedDateTime,
+            hasAttachments: msg.hasAttachments,
+            bodyPreview: msg.bodyPreview,
+            stream: streamType,
+            batchIndex: i + 1,
+            batchTotal: sampleBatch.length
+          },
+          sourceNodeType: 'outlook_mcp_stream',
+          sourceNodeId: selectedNode.id,
+          sourceNodeName: 'Outlook Ingress Watcher'
+        }
+      }));
+
+      if (i < sampleBatch.length - 1) {
+        await new Promise(r => setTimeout(r, 450));
+      }
+    }
+    setIsSimulatingBatch(false);
   };
 
   // --- A2A EVENT BUS HANDLERS ---
@@ -705,89 +851,274 @@ export default function TriggerInspectorPanel({
         </div>
       )}
 
-      {/* --- D. API POLLING WATCHER --- */}
+      {/* --- D. API / MCP STREAM POLLING WATCHER --- */}
       {triggerType === 'poll' && (
         <div className="space-y-3 pt-1">
-          <div className="space-y-1">
-            <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              Endpoint URL to Poll
-            </span>
-            <input
-              type="text"
-              value={pollEndpoint}
-              onChange={(e) => setPollEndpoint(e.target.value)}
-              placeholder="https://api.example.com/v1/status"
-              className={`w-full p-2 text-xs font-mono rounded-none ${t.input}`}
-            />
+          {/* Sub-mode Tabs: Outlook Stream vs Generic REST */}
+          <div className={`flex border rounded-none overflow-hidden text-xs font-mono ${isDarkMode ? 'border-slate-700' : 'border-slate-300'}`}>
+            <button
+              type="button"
+              onClick={() => setPollSubMode('stream')}
+              className={`flex-1 py-1.5 text-center transition-all flex items-center justify-center gap-1.5 ${
+                pollSubMode === 'stream' 
+                  ? 'bg-[#00338D] text-white font-bold' 
+                  : isDarkMode ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Mail className="w-3.5 h-3.5" />
+              <span>Outlook Stream</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPollSubMode('rest')}
+              className={`flex-1 py-1.5 text-center transition-all flex items-center justify-center gap-1.5 ${
+                pollSubMode === 'rest' 
+                  ? 'bg-[#00338D] text-white font-bold' 
+                  : isDarkMode ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Generic REST</span>
+            </button>
           </div>
 
-          <div className="space-y-1">
-            <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              Polling Frequency
-            </span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {[
-                { label: 'Every 10s (Test)', sec: 10 },
-                { label: 'Every 30s', sec: 30 },
-                { label: 'Every 1 min', sec: 60 },
-                { label: 'Every 5 min', sec: 300 }
-              ].map(p => (
+          {/* STREAM INGRESS MODE (GATEWAY GOVERNED) */}
+          {pollSubMode === 'stream' ? (
+            <div className="space-y-3">
+              {/* Institutional Gateway Zero-Trust Enforcement Banner */}
+              <div className={`p-2.5 rounded-none border text-xs font-mono flex items-center justify-between ${
+                permittedOutlookCount === 0
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  : blockedOutlookCount > 0 
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' 
+                    : 'bg-[#009A44]/10 border-[#009A44]/30 text-emerald-300'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className={`w-4 h-4 shrink-0 ${permittedOutlookCount === 0 ? 'text-rose-400' : 'text-[#00A3A6]'}`} />
+                  <span className="font-semibold text-[11px]">
+                    Gateway Policy: {permittedOutlookCount} / {totalOutlookCount} Capabilities Permitted
+                    {isMcpDeactivated && ' (MCP Deactivated)'}
+                  </span>
+                </div>
+                {blockedOutlookCount > 0 && (
+                  <span className={`text-[9.5px] px-1.5 py-0.2 font-bold border ${
+                    permittedOutlookCount === 0 
+                      ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' 
+                      : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                  }`}>
+                    {blockedOutlookCount} Blocked
+                  </span>
+                )}
+              </div>
+
+              {/* Resource Stream Selector with Gateway Permission Locking */}
+              <div className="space-y-1.5">
+                <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Stream to Monitor (Strictly Gateway Governed)
+                </span>
+                <div className="space-y-1">
+                  {[
+                    { key: 'inbox', label: '📥 Inbox (Incoming Mail)', tool: 'list_messages', permitted: isInboxPermitted },
+                    { key: 'sentitems', label: '📤 Sent Items (User & Auto-Generated)', tool: 'list_messages', permitted: isSentItemsPermitted },
+                    { key: 'calendar', label: '📅 Calendar (Meeting Invites)', tool: 'list_events', permitted: isCalendarPermitted },
+                    { key: 'tasks', label: '☑️ Tasks & To-Do Lists', tool: 'list_tasks', permitted: isTasksPermitted },
+                    { key: 'contacts', label: '👥 Contacts Directory', tool: 'list_contacts', permitted: isContactsPermitted }
+                  ].map(s => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      disabled={!s.permitted}
+                      onClick={() => s.permitted && setStreamType(s.key)}
+                      className={`w-full py-1.5 px-2.5 text-[10.5px] font-mono border rounded-none transition-all flex items-center justify-between text-left ${
+                        !s.permitted
+                          ? 'opacity-40 bg-slate-900 border-dashed border-slate-700 text-slate-500 cursor-not-allowed'
+                          : streamType === s.key
+                            ? 'bg-[#00338D] text-white border-[#0091DA] font-bold shadow-sm'
+                            : isDarkMode
+                              ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+                              : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+                      }`}
+                    >
+                      <span className="truncate">{s.label}</span>
+                      <span className="text-[9px] shrink-0 font-bold">
+                        {isMcpDeactivated 
+                          ? '🔒 MCP DEACTIVATED' 
+                          : s.permitted 
+                            ? (streamType === s.key ? '✓ ACTIVE' : 'PERMITTED') 
+                            : '🔒 BLOCKED BY GATEWAY'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Polling Interval Presets */}
+              <div className="space-y-1">
+                <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Scan Cadence (Zero Tokens When Idle)
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { label: 'Every 30s (Dev)', sec: 30 },
+                    { label: 'Every 1 min', sec: 60 },
+                    { label: 'Every 5 min', sec: 300 },
+                    { label: 'Every 15 min', sec: 900 }
+                  ].map(p => (
+                    <button
+                      key={p.sec}
+                      type="button"
+                      onClick={() => setPollInterval(p.sec)}
+                      className={`py-1 px-2 text-[10.5px] font-mono border rounded-none transition-all text-left truncate ${
+                        pollInterval === p.sec
+                          ? 'bg-[#009A44] text-white border-emerald-400 font-bold'
+                          : isDarkMode
+                            ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                            : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                      }`}
+                    >
+                      {pollInterval === p.sec ? '✓ ' : ''}{p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Discrete Multi-Email Batch Queue Setting */}
+              <div className={`p-2 border rounded-none ${t.subCard} border ${t.border} space-y-1.5`}>
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={batchMode}
+                    onChange={(e) => setBatchMode(e.target.checked)}
+                    className="mt-0.5 rounded-none border-slate-700 text-[#009A44] focus:ring-0"
+                  />
+                  <div>
+                    <span className={`text-xs font-mono font-bold block ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                      Discrete Multi-Item Batch Queue
+                    </span>
+                    <span className={`text-[10px] font-mono leading-relaxed block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                      When N emails arrive in a scan (e.g. 16 emails), process each independently as a separate row. Never mix or jumble items.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
                 <button
-                  key={p.sec}
                   type="button"
-                  onClick={() => setPollInterval(p.sec)}
-                  className={`py-1 px-2 text-[10.5px] font-mono border rounded-none transition-all text-left truncate ${
-                    pollInterval === p.sec
-                      ? 'bg-[#009A44] text-white border-emerald-400 font-bold'
-                      : isDarkMode
-                        ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                        : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                  onClick={handleTogglePolling}
+                  className={`w-full py-2 px-3 font-mono text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                    isPollingActive
+                      ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/40'
+                      : 'bg-[#009A44] hover:bg-[#008037] text-white'
                   }`}
                 >
-                  {pollInterval === p.sec ? '✓ ' : ''}{p.label}
+                  {isPollingActive ? '🛑 Disarm Stream Watcher' : '⚡ Arm Stream Watcher'}
                 </button>
-              ))}
+
+                <button
+                  type="button"
+                  disabled={isSimulatingBatch}
+                  onClick={handlePollBatchTest}
+                  className={`w-full py-2 px-3 border font-mono text-xs font-semibold rounded-none transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    isSimulatingBatch
+                      ? 'bg-[#00A3A6]/20 text-[#00A3A6] border-[#00A3A6] animate-pulse'
+                      : isDarkMode
+                        ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+                        : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+                  }`}
+                  title="Simulates 3 discrete invoice emails arriving in a 5-minute interval"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{isSimulatingBatch ? 'Queuing 3 Discrete Emails...' : 'Simulate 3 Discrete Emails (Batch Test)'}</span>
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* GENERIC REST POLLING MODE (EXISTING, 100% PRESERVED) */
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Endpoint URL to Poll
+                </span>
+                <input
+                  type="text"
+                  value={pollEndpoint}
+                  onChange={(e) => setPollEndpoint(e.target.value)}
+                  placeholder="https://api.example.com/v1/status"
+                  className={`w-full p-2 text-xs font-mono rounded-none ${t.input}`}
+                />
+              </div>
 
-          {/* Watermark Checkbox */}
-          <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
-            <input
-              type="checkbox"
-              checked={pollWatermark}
-              onChange={(e) => setPollWatermark(e.target.checked)}
-              className="rounded-none border-slate-700 text-[#009A44] focus:ring-0"
-            />
-            <span className={`text-xs font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-              Only trigger downstream if SHA-256 fingerprint changes
-            </span>
-          </label>
+              <div className="space-y-1">
+                <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Polling Frequency
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { label: 'Every 10s (Test)', sec: 10 },
+                    { label: 'Every 30s', sec: 30 },
+                    { label: 'Every 1 min', sec: 60 },
+                    { label: 'Every 5 min', sec: 300 }
+                  ].map(p => (
+                    <button
+                      key={p.sec}
+                      type="button"
+                      onClick={() => setPollInterval(p.sec)}
+                      className={`py-1 px-2 text-[10.5px] font-mono border rounded-none transition-all text-left truncate ${
+                        pollInterval === p.sec
+                          ? 'bg-[#009A44] text-white border-emerald-400 font-bold'
+                          : isDarkMode
+                            ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                            : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                      }`}
+                    >
+                      {pollInterval === p.sec ? '✓ ' : ''}{p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {/* Polling Actions */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <button
-              type="button"
-              onClick={handleTogglePolling}
-              className={`py-2 px-3 font-mono text-xs font-semibold rounded-none transition-all cursor-pointer ${
-                isPollingActive
-                  ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/40'
-                  : 'bg-[#009A44] hover:bg-[#008037] text-white'
-              }`}
-            >
-              {isPollingActive ? 'Stop Poller' : 'Start Poller'}
-            </button>
-            <button
-              type="button"
-              onClick={handlePollOnceTest}
-              className={`py-2 px-3 border font-mono text-xs font-semibold rounded-none transition-all cursor-pointer ${
-                isDarkMode
-                  ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
-                  : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
-              }`}
-            >
-              Poll Once (Test)
-            </button>
-          </div>
+              {/* Watermark Checkbox */}
+              <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={pollWatermark}
+                  onChange={(e) => setPollWatermark(e.target.checked)}
+                  className="rounded-none border-slate-700 text-[#009A44] focus:ring-0"
+                />
+                <span className={`text-xs font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Only trigger downstream if SHA-256 fingerprint changes
+                </span>
+              </label>
+
+              {/* Polling Actions */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleTogglePolling}
+                  className={`py-2 px-3 font-mono text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                    isPollingActive
+                      ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/40'
+                      : 'bg-[#009A44] hover:bg-[#008037] text-white'
+                  }`}
+                >
+                  {isPollingActive ? 'Stop Poller' : 'Start Poller'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePollOnceTest}
+                  className={`py-2 px-3 border font-mono text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                    isDarkMode
+                      ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+                      : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+                  }`}
+                >
+                  Poll Once (Test)
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

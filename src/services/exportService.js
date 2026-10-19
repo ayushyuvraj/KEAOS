@@ -103,21 +103,65 @@ function triggerDownload(blob, filename) {
 export function exportToSpreadsheet(runs = [], filename = 'Executive_Output.csv', options = {}) {
   if (!runs || runs.length === 0) return false;
 
-  const headers = ['Run #', 'Timestamp', 'Summary', 'Key Decisions', 'Action Items', 'Audit Hash', 'Tokens', 'Latency (ms)'];
-  
-  const rows = runs.map((run, idx) => {
-    const extracted = extractStructuredRunData(run.content || run.rawOutput);
-    return [
-      run.runNumber || idx + 1,
-      run.timestamp || new Date().toLocaleString(),
-      extracted.summary,
-      extracted.decisions,
-      extracted.actionItems,
-      run.auditHash || 'W3C-VERIFIED',
-      run.tokens || run.observability?.totalTokens || 0,
-      run.latencyMs || run.observability?.latencyMs || 0
-    ];
+  // 1. Detect if runs are structured records with uniform custom keys (e.g. email / invoice records)
+  const structuredRecords = runs.map(r => {
+    let raw = r.content || r.rawOutput;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {}
+    } else if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+      return raw;
+    }
+    return null;
   });
+
+  const hasUniformStructuredRecords = structuredRecords.some(Boolean) && 
+    structuredRecords.filter(Boolean).length >= Math.ceil(runs.length * 0.5);
+
+  let headers = [];
+  let rows = [];
+
+  if (hasUniformStructuredRecords) {
+    // Collect all unique keys from the structured records
+    const customKeySet = new Set();
+    structuredRecords.forEach(rec => {
+      if (rec) {
+        Object.keys(rec).forEach(k => {
+          if (typeof rec[k] !== 'object') customKeySet.add(k);
+        });
+      }
+    });
+    const customKeys = Array.from(customKeySet);
+    headers = ['Item #', 'Timestamp', ...customKeys, 'SHA-256 Audit Fingerprint'];
+    rows = runs.map((run, idx) => {
+      const rec = structuredRecords[idx] || {};
+      return [
+        run.runNumber || idx + 1,
+        run.timestamp || new Date().toLocaleString(),
+        ...customKeys.map(k => rec[k] !== undefined ? rec[k] : ''),
+        run.auditHash || 'W3C-VERIFIED'
+      ];
+    });
+  } else {
+    headers = ['Run #', 'Timestamp', 'Summary', 'Key Decisions', 'Action Items', 'Audit Hash', 'Tokens', 'Latency (ms)'];
+    rows = runs.map((run, idx) => {
+      const extracted = extractStructuredRunData(run.content || run.rawOutput);
+      return [
+        run.runNumber || idx + 1,
+        run.timestamp || new Date().toLocaleString(),
+        extracted.summary,
+        extracted.decisions,
+        extracted.actionItems,
+        run.auditHash || 'W3C-VERIFIED',
+        run.tokens || run.observability?.totalTokens || 0,
+        run.latencyMs || run.observability?.latencyMs || 0
+      ];
+    });
+  }
 
   const escapeCell = (val) => {
     const str = String(val ?? '');

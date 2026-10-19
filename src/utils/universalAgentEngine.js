@@ -285,14 +285,16 @@ export async function executeUniversalAgentChat({
       }
 
       // Register all tools for this MCP into availableToolsMap
+      const isServerDeactivated = Boolean(m.isDeactivated || m.data?.isDeactivated);
       const tools = m.tools || m.data?.tools || [];
       for (const t of tools) {
-        const isBlocked = disabledTools.includes(t.name);
+        const isBlocked = isServerDeactivated || disabledTools.includes(t.name);
         availableToolsMap.set(t.name.toLowerCase(), {
           tool: t,
           toolName: t.name,
           mcpServer: m,
-          isBlocked
+          isBlocked,
+          isServerDeactivated
         });
       }
 
@@ -416,9 +418,10 @@ ${s.customDirective ? `- Custom Directive: ${s.customDirective}\n` : ''}${s.refe
 The following Model Context Protocol (MCP) servers are wired to this agent on the visual canvas. You have authenticated access to these external systems and their live tools through the Ingress/Egress Gateway.
 
 ${mcpNodes.map((m, idx) => {
+  const isServerDeactivated = Boolean(m.isDeactivated || m.data?.isDeactivated);
   const allTools = m.tools || m.data?.tools || [];
-  const activeTools = allTools.filter(t => !disabledTools.includes(t.name));
-  const blockedTools = allTools.filter(t => disabledTools.includes(t.name));
+  const activeTools = isServerDeactivated ? [] : allTools.filter(t => !disabledTools.includes(t.name));
+  const blockedTools = isServerDeactivated ? allTools : allTools.filter(t => disabledTools.includes(t.name));
   const b = m.basis || m.data?.basis || {};
 
   let text = `MCP Server ${idx + 1}: "${m.displayName || m.name}" (${m.serviceName || m.transport || 'API Protocol'})\n`;

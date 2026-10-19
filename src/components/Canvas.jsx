@@ -614,6 +614,76 @@ function CanvasInner({
     return () => window.removeEventListener('keaos:deterministic-executed', handleDeterministicExecuted);
   }, [edges, setNodes]);
 
+  // Listen for direct output append run events (e.g. from Trigger or Ingress queues)
+  useEffect(() => {
+    const handleOutputAppendRun = (e) => {
+      const detail = e.detail;
+      if (!detail) return;
+      const { targetNodeId, output, payload, sourceNodeType, sourceNodeId, sourceNodeName } = detail;
+
+      setNodes((nds) => {
+        // If specific targetNodeId is given, use it. Otherwise, find output nodes connected to sourceNodeId or any output node.
+        const connectedOutputIds = new Set();
+        if (targetNodeId) {
+          connectedOutputIds.add(targetNodeId);
+        } else if (sourceNodeId) {
+          (edges || []).forEach(ed => {
+            if (ed.source === sourceNodeId) {
+              const tgt = nds.find(n => n.id === ed.target && n.type === 'outputNode');
+              if (tgt) connectedOutputIds.add(tgt.id);
+            }
+          });
+        }
+        if (connectedOutputIds.size === 0) {
+          const firstOut = nds.find(n => n.type === 'outputNode');
+          if (firstOut) connectedOutputIds.add(firstOut.id);
+        }
+
+        return nds.map((n) => {
+          if (n.type === 'outputNode' && connectedOutputIds.has(n.id)) {
+            const strategy = n.data?.persistenceStrategy || 'append';
+            const prevHistory = Array.isArray(n.data?.runsHistory) ? n.data.runsHistory : [];
+            const formattedContent = typeof output === 'string'
+              ? output
+              : typeof payload === 'object'
+                ? JSON.stringify(payload, null, 2)
+                : String(payload || '');
+
+            const newRun = {
+              runNumber: strategy === 'overwrite' ? 1 : prevHistory.length + 1,
+              timestamp: new Date().toLocaleTimeString(),
+              content: formattedContent,
+              tableData: detail.tableData || (typeof payload === 'object' ? payload : null),
+              auditHash: null,
+              tokens: 0,
+              latencyMs: detail.latencyMs || 0,
+              costUsd: 0,
+              source: sourceNodeType || 'trigger',
+              sourceNodeType: sourceNodeType || 'triggerNode',
+              sourceNodeId: sourceNodeId || '',
+              sourceNodeName: sourceNodeName || 'Trigger'
+            };
+
+            const nextHistory = strategy === 'overwrite' ? [newRun] : [...prevHistory, newRun];
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                outputContent: formattedContent,
+                runsHistory: nextHistory,
+                status: 'ready'
+              }
+            };
+          }
+          return n;
+        });
+      });
+    };
+
+    window.addEventListener('keaos:output-append-run', handleOutputAppendRun);
+    return () => window.removeEventListener('keaos:output-append-run', handleOutputAppendRun);
+  }, [edges, setNodes]);
+
   // Listen for real-time Approval Node resolution events
   useEffect(() => {
     const handleApprovalResolved = (e) => {
@@ -2140,14 +2210,19 @@ function CanvasInner({
             tools = JIRA_OFFICIAL_ACTIONS;
           } else if (srv === 'neo4j' && tools.length < NEO4J_OFFICIAL_ACTIONS.length) {
             tools = NEO4J_OFFICIAL_ACTIONS;
+          } else if (srv === 'outlook' && tools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
+            tools = OUTLOOK_OFFICIAL_ACTIONS;
           }
+
+          const isServerDeactivated = Boolean(mcpNode.data?.isDeactivated);
 
           tools.forEach(tool => {
             routedTools.push({
               ...tool,
               serverName: mcpNode.data?.name || 'MCP Server',
               serverId: mcpNode.id,
-              isBlocked: disabledTools.includes(tool.name)
+              isServerDeactivated,
+              isBlocked: isServerDeactivated || disabledTools.includes(tool.name)
             });
           });
         });

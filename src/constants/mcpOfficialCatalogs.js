@@ -1084,6 +1084,21 @@ export const OUTLOOK_OFFICIAL_ACTIONS = [
     }
   },
   {
+    name: 'read_attachment_content',
+    displayName: 'Read & Decode Attachment',
+    category: 'Folders & Attachments',
+    type: 'read',
+    description: 'Downloads and decodes base64 attachment content into clean, readable text or structured table data (GET /me/messages/{id}/attachments/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID containing the attachment' },
+        attachmentId: { type: 'string', description: 'Optional specific attachment ID (or reads first file attachment if omitted)' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
     name: 'add_message_attachment',
     displayName: 'Add Attachment',
     category: 'Folders & Attachments',

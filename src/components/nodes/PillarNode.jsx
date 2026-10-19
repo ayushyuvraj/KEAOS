@@ -94,7 +94,10 @@ export default function PillarNode({ id, data, selected }) {
   } else if (srv === 'outlook' && tools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
     tools = OUTLOOK_OFFICIAL_ACTIONS;
   }
-  const allowedCount = routedTools.filter(t => !disabledTools.includes(t.name)).length;
+  const gatewayIsDeactivated = Boolean(isDeactivated);
+  const allowedCount = gatewayIsDeactivated
+    ? 0
+    : routedTools.filter(t => !t.isServerDeactivated && !disabledTools.includes(t.name)).length;
 
   // Filter and categorize Gateway routed tools
   const filteredRoutedTools = routedTools.filter(t => {
@@ -253,12 +256,27 @@ export default function PillarNode({ id, data, selected }) {
             setShowGatewayFlyout(!showGatewayFlyout);
           }}
           className={`mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all border ${
-            disabledTools.length > 0
-              ? 'bg-amber-500/15 text-amber-500 border-amber-500/40 hover:bg-amber-500/25 shadow-xs'
-              : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/40 hover:bg-emerald-500/25 shadow-xs'
+            allowedCount === 0
+              ? isDarkMode
+                ? 'bg-rose-500/15 text-rose-400 border-rose-500/40 hover:bg-rose-500/25 shadow-xs'
+                : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100 shadow-xs'
+              : allowedCount < routedTools.length
+                ? isDarkMode
+                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 hover:bg-amber-500/25 shadow-xs'
+                  : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 shadow-xs'
+                : isDarkMode
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/25 shadow-xs'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-xs'
           }`}
+          title={allowedCount === 0 ? 'No features available (MCP Server Deactivated or Blocked)' : `${allowedCount} of ${routedTools.length} features available`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${disabledTools.length > 0 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            allowedCount === 0 
+              ? 'bg-rose-500' 
+              : allowedCount < routedTools.length 
+                ? 'bg-amber-500' 
+                : 'bg-emerald-500'
+          }`} />
           <span>{allowedCount}/{routedTools.length} Features</span>
         </button>
       )}
@@ -271,10 +289,17 @@ export default function PillarNode({ id, data, selected }) {
             e.stopPropagation();
             setShowMcpFlyout(!showMcpFlyout);
           }}
-          className="mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold bg-[#00A3A6]/15 text-[#00A3A6] border border-[#00A3A6]/40 hover:bg-[#00A3A6]/25 rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all shadow-xs"
+          className={`mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all shadow-xs border ${
+            isDeactivated
+              ? isDarkMode
+                ? 'bg-slate-800/80 text-slate-400 border-slate-700 hover:bg-slate-800'
+                : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'
+              : 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40 hover:bg-[#00A3A6]/25'
+          }`}
+          title={isDeactivated ? 'MCP Server is Deactivated (0 features active)' : `${tools.length} Features available`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00A3A6]" />
-          <span>{tools.length} Features</span>
+          <span className={`w-1.5 h-1.5 rounded-full ${isDeactivated ? 'bg-slate-400' : 'bg-[#00A3A6]'}`} />
+          <span>{isDeactivated ? `0/${tools.length} Features` : `${tools.length} Features`}</span>
         </button>
       )}
     </div>
@@ -604,15 +629,19 @@ export default function PillarNode({ id, data, selected }) {
               Actions ({routedTools.length})
             </span>
             <span className={`font-bold px-1.5 py-0.5 border ${
-              disabledTools.length > 0
+              allowedCount === 0
                 ? isDarkMode 
-                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' 
-                  : 'bg-amber-50 text-amber-800 border-amber-300'
-                : isDarkMode 
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
-                  : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' 
+                  : 'bg-rose-50 text-rose-800 border-rose-300'
+                : allowedCount < routedTools.length
+                  ? isDarkMode 
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' 
+                    : 'bg-amber-50 text-amber-800 border-amber-300'
+                  : isDarkMode 
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-300'
             }`}>
-              {allowedCount} Allowed • {disabledTools.length} Blocked
+              {allowedCount} Allowed • {routedTools.length - allowedCount} Blocked / Offline
             </span>
           </div>
 
@@ -645,7 +674,9 @@ export default function PillarNode({ id, data, selected }) {
                     </span>
                   </div>
                   {catTools.map((tool) => {
-                    const isBlocked = disabledTools.includes(tool.name);
+                    const isServerDeactivated = Boolean(tool.isServerDeactivated);
+                    const isExplicitlyBlocked = disabledTools.includes(tool.name);
+                    const isBlocked = isServerDeactivated || isExplicitlyBlocked || gatewayIsDeactivated;
                     const isDestructive = tool.type === 'destructive';
                     const isRead = tool.type === 'read';
 
@@ -673,13 +704,15 @@ export default function PillarNode({ id, data, selected }) {
                                 {tool.displayName || tool.name}
                               </span>
                               <span className={`text-[7px] font-mono font-bold px-1 py-0.2 rounded-none border ${
-                                isDestructive 
-                                  ? isDarkMode ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'bg-rose-100 text-rose-700 border-rose-300'
-                                  : isRead 
-                                    ? isDarkMode ? 'bg-teal-500/20 text-teal-400 border-teal-500/40' : 'bg-teal-100 text-teal-700 border-teal-300'
-                                    : isDarkMode ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-amber-100 text-amber-800 border-amber-300'
+                                isServerDeactivated
+                                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                                  : isDestructive 
+                                    ? isDarkMode ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'bg-rose-100 text-rose-700 border-rose-300'
+                                    : isRead 
+                                      ? isDarkMode ? 'bg-teal-500/20 text-teal-400 border-teal-500/40' : 'bg-teal-100 text-teal-700 border-teal-300'
+                                      : isDarkMode ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-amber-100 text-amber-800 border-amber-300'
                               }`}>
-                                {tool.type?.toUpperCase() || 'TOOL'}
+                                {isServerDeactivated ? 'OFFLINE' : (tool.type?.toUpperCase() || 'TOOL')}
                               </span>
                             </div>
                             <span className={`text-[9px] font-mono block truncate ${
@@ -698,20 +731,35 @@ export default function PillarNode({ id, data, selected }) {
 
                           <button
                             type="button"
+                            disabled={isServerDeactivated || gatewayIsDeactivated}
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (isServerDeactivated || gatewayIsDeactivated) return;
                               if (onToggleTool) {
-                                onToggleTool(tool.name, isBlocked ? true : false);
+                                onToggleTool(tool.name, isExplicitlyBlocked ? true : false);
                               }
                             }}
-                            className={`shrink-0 px-2 py-1 text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-1 cursor-pointer rounded-none border ${
-                              isBlocked
-                                ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-700 shadow-xs'
-                                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-700 shadow-xs'
+                            className={`shrink-0 px-2 py-1 text-[9px] font-mono font-bold uppercase transition-all flex items-center gap-1 rounded-none border ${
+                              isServerDeactivated
+                                ? 'bg-slate-700 text-slate-300 border-slate-600 cursor-not-allowed opacity-80'
+                                : isExplicitlyBlocked
+                                  ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-700 shadow-xs cursor-pointer'
+                                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-700 shadow-xs cursor-pointer'
                             }`}
-                            title={isBlocked ? `Click to enable ${tool.name}` : `Click to disable ${tool.name}`}
+                            title={
+                              isServerDeactivated 
+                                ? 'MCP Server is deactivated on Canvas. Reactivate server to enable.' 
+                                : isExplicitlyBlocked
+                                  ? `Click to enable ${tool.name}` 
+                                  : `Click to disable ${tool.name}`
+                            }
                           >
-                            {isBlocked ? (
+                            {isServerDeactivated ? (
+                              <>
+                                <Ban className="w-2.5 h-2.5" />
+                                <span>SERVER OFFLINE</span>
+                              </>
+                            ) : isExplicitlyBlocked ? (
                               <>
                                 <Ban className="w-2.5 h-2.5" />
                                 <span>BLOCKED</span>

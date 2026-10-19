@@ -1425,14 +1425,18 @@ export default function Inspector({
             {/* MCP Egress Gateway Controller & Tool Route Table */}
             {nodeData.pillarType === 'gateway' && (() => {
               // Find connected incoming MCP server nodes
-              const incomingMcpEdges = (edges || []).filter(e => e.target === selectedNode.id);
+              const incomingMcpEdges = (edges || []).filter(e => 
+                (e.target === selectedNode.id && nodes.find(n => n.id === e.source)?.data?.pillarType === 'mcp') ||
+                (e.source === selectedNode.id && nodes.find(n => n.id === e.target)?.data?.pillarType === 'mcp')
+              );
               const connectedMcpNodes = incomingMcpEdges
-                .map(e => nodes.find(n => n.id === e.source && n.data?.pillarType === 'mcp'))
+                .map(e => e.target === selectedNode.id ? nodes.find(n => n.id === e.source) : nodes.find(n => n.id === e.target))
                 .filter(Boolean);
 
               // Collect all tools from all connected MCP nodes
               const routedTools = [];
               connectedMcpNodes.forEach(mcpNode => {
+                const isServerDeactivated = Boolean(mcpNode.data?.isDeactivated);
                 const srv = identifyMcpService(mcpNode.data, mcpNode.id);
                 const itemDef = PILLARS.mcp?.items?.find(it => it.id === mcpNode.data?.itemId || it.id === mcpNode.data?.toolId || it.name === mcpNode.data?.name);
                 let tools = mcpNode.data?.tools || itemDef?.tools || [];
@@ -1447,11 +1451,19 @@ export default function Inspector({
                 } else if (srv === 'outlook' && tools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
                   tools = OUTLOOK_OFFICIAL_ACTIONS;
                 }
-                tools.forEach(tool => routedTools.push({ ...tool, serverName: mcpNode.data?.name || 'MCP Server', serverId: mcpNode.id }));
+                tools.forEach(tool => routedTools.push({ 
+                  ...tool, 
+                  serverName: mcpNode.data?.name || 'MCP Server', 
+                  serverId: mcpNode.id,
+                  isServerDeactivated
+                }));
               });
 
+              const gatewayIsDeactivated = Boolean(nodeData?.isDeactivated);
               const disabledTools = Array.isArray(nodeData.disabledTools) ? nodeData.disabledTools : [];
-              const allowedCount = routedTools.filter(t => !disabledTools.includes(t.name)).length;
+              const allowedCount = gatewayIsDeactivated
+                ? 0
+                : routedTools.filter(t => !t.isServerDeactivated && !disabledTools.includes(t.name)).length;
 
               const handleToggle = (toolName) => {
                 const isBlocked = disabledTools.includes(toolName);
@@ -1566,7 +1578,9 @@ export default function Inspector({
                         return (
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                              <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold ${t.subText}`}>
+                              <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold ${
+                                allowedCount === 0 ? 'text-rose-500 font-bold' : t.subText
+                              }`}>
                                 Gateway Feature Rules ({allowedCount}/{routedTools.length} Permitted)
                               </span>
                               <span className="text-[9px] font-mono text-slate-400">
@@ -1590,7 +1604,8 @@ export default function Inspector({
                                     </div>
 
                                     {catTools.map((tool, idx) => {
-                                      const isBlocked = disabledTools.includes(tool.name);
+                                      const isServerDeactivated = Boolean(tool.isServerDeactivated);
+                                      const isBlocked = isServerDeactivated || disabledTools.includes(tool.name) || gatewayIsDeactivated;
                                       const isRead = tool.type === 'read';
                                       const isDestructive = tool.type === 'destructive';
 
@@ -1621,25 +1636,42 @@ export default function Inspector({
                                             </div>
                                             <div className="flex items-center gap-1.5 shrink-0">
                                               <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
-                                                isDestructive
-                                                  ? 'bg-rose-500/15 text-rose-400 border-rose-500/40'
-                                                  : isRead
-                                                    ? 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40'
-                                                    : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+                                                isServerDeactivated
+                                                  ? 'bg-amber-500/15 text-amber-500 border-amber-500/40'
+                                                  : isDestructive
+                                                    ? 'bg-rose-500/15 text-rose-400 border-rose-500/40'
+                                                    : isRead
+                                                      ? 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40'
+                                                      : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
                                               }`}>
-                                                {tool.type?.toUpperCase()}
+                                                {isServerDeactivated ? 'OFFLINE' : tool.type?.toUpperCase()}
                                               </span>
                                               <button
                                                 type="button"
-                                                onClick={() => handleToggle(tool.name)}
-                                                className={`px-2 py-0.5 rounded font-mono text-[9px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer border ${
-                                                  isBlocked
-                                                    ? 'bg-rose-500 text-white border-rose-600 hover:bg-rose-600 shadow-xs'
-                                                    : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/40'
+                                                disabled={isServerDeactivated || gatewayIsDeactivated}
+                                                onClick={() => {
+                                                  if (isServerDeactivated || gatewayIsDeactivated) return;
+                                                  handleToggle(tool.name);
+                                                }}
+                                                className={`px-2 py-0.5 rounded font-mono text-[9px] font-bold uppercase transition-all flex items-center gap-1 border ${
+                                                  isServerDeactivated
+                                                    ? 'bg-slate-700 text-slate-300 border-slate-600 cursor-not-allowed opacity-80'
+                                                    : disabledTools.includes(tool.name)
+                                                      ? 'bg-rose-500 text-white border-rose-600 hover:bg-rose-600 shadow-xs cursor-pointer'
+                                                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/40 cursor-pointer'
                                                 }`}
-                                                title={isBlocked ? 'Click to permit capability' : 'Click to block capability'}
+                                                title={
+                                                  isServerDeactivated 
+                                                    ? 'MCP Server is deactivated on Canvas. Reactivate server to enable.'
+                                                    : disabledTools.includes(tool.name) ? 'Click to permit capability' : 'Click to block capability'
+                                                }
                                               >
-                                                {isBlocked ? (
+                                                {isServerDeactivated ? (
+                                                  <>
+                                                    <Ban className="w-2.5 h-2.5" />
+                                                    <span>SERVER OFFLINE</span>
+                                                  </>
+                                                ) : disabledTools.includes(tool.name) ? (
                                                   <>
                                                     <Ban className="w-2.5 h-2.5" />
                                                     <span>BLOCKED</span>
