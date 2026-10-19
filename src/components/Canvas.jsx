@@ -6,7 +6,8 @@ import {
   BackgroundVariant,
   addEdge,
   ReactFlowProvider,
-  ConnectionMode
+  ConnectionMode,
+  ConnectionLineType
 } from '@xyflow/react';
 import AgentCoreNode from './nodes/AgentCoreNode';
 import PillarNode from './nodes/PillarNode';
@@ -2029,6 +2030,10 @@ function CanvasInner({
 
       takeSnapshot();
 
+      // Mark that connection was successfully completed
+      didConnectRef.current = true;
+      pendingConnectionRef.current = null;
+
       setEdges((eds) =>
         addEdge(
           {
@@ -2051,31 +2056,55 @@ function CanvasInner({
   );
 
   const isConnectingRef = useRef(false);
+  const didConnectRef = useRef(false);
+  const pendingConnectionRef = useRef(null);
 
-  // Triggered the instant a connector wire is dragged from any handle on any agent or circle
+  // Triggered the instant a connector wire begins dragging from any handle
   const handleConnectStart = useCallback(
     (event, params) => {
       if (isWorkflowLocked) return;
       isConnectingRef.current = true;
+      didConnectRef.current = false;
+      pendingConnectionRef.current = {
+        event,
+        nodeId: params?.nodeId,
+        handleId: params?.handleId,
+        handleType: params?.handleType
+      };
+      // Note: We do NOT open the catalog panel on press/drag start.
+      // Panel will open on cursor release (handleConnectEnd) ONLY if released in empty canvas space.
+    },
+    [isWorkflowLocked]
+  );
 
-      // 1. Immediately open the Add component panel on the right
-      setIsAddMenuOpen(true);
-      if (setIsInspectorOpen) {
-        setIsInspectorOpen(false);
-      }
-
-      // 2. Resolve contextual category matching
-      const nodeId = params?.nodeId;
-      const handleId = params?.handleId;
+  // Triggered when cursor is released after dragging a connector wire
+  const handleConnectEnd = useCallback(() => {
+    // Only open the catalog if the wire was dropped in empty space (did NOT connect to a target handle)
+    if (!didConnectRef.current && pendingConnectionRef.current) {
+      const { nodeId, handleId } = pendingConnectionRef.current;
       const sourceNode = (nodes || []).find((n) => n.id === nodeId);
 
       let targetCategory = null;
 
       if (sourceNode?.type === 'agentCore') {
-        if (handleId && SOCKET_RULES[handleId]) {
-          targetCategory = SOCKET_RULES[handleId];
-        } else if (handleId === 'agent-out' || handleId === 'agent-upstream') {
+        if (handleId === 'model-in') {
+          targetCategory = 'model';
+        } else if (handleId === 'tools-in' || handleId === 'tool-in') {
+          targetCategory = 'tools';
+        } else if (handleId === 'mcp-in') {
+          targetCategory = 'gateway';
+        } else if (handleId === 'policy-in' || handleId === 'policies-in') {
+          targetCategory = 'policies';
+        } else if (handleId === 'memory-in') {
+          targetCategory = 'memory';
+        } else if (handleId === 'skill-in' || handleId === 'skills-in') {
+          targetCategory = 'skills';
+        } else if (handleId === 'out' || handleId === 'data-out') {
+          targetCategory = 'outputNode';
+        } else if (handleId === 'agent-in' || handleId === 'agent-out' || handleId === 'agent-upstream') {
           targetCategory = 'agentCore';
+        } else if (handleId && SOCKET_RULES[handleId]) {
+          targetCategory = SOCKET_RULES[handleId];
         }
       } else if (sourceNode?.type === 'pillar') {
         const pillarType = sourceNode.data?.pillarType;
@@ -2090,23 +2119,45 @@ function CanvasInner({
         targetCategory = 'tools';
       } else if (sourceNode?.type === 'outputNode') {
         targetCategory = 'outputNode';
+      } else if (sourceNode?.type === 'triggerNode') {
+        targetCategory = 'agentCore';
+      } else if (sourceNode?.type === 'deterministicNode') {
+        targetCategory = 'outputNode';
       }
 
-      // 3. Dispatch selection event so the Add Catalog jumps to the relevant category
+      // If source was an AgentCoreNode, notify App so it remembers the originating slot for auto-wiring
+      if (sourceNode?.type === 'agentCore') {
+        window.dispatchEvent(
+          new CustomEvent('keaos:open-slot-catalog', {
+            detail: {
+              agentId: sourceNode.id,
+              agentName: sourceNode.data?.name,
+              slotId: handleId,
+              categoryId: targetCategory
+            }
+          })
+        );
+      }
+
+      setIsAddMenuOpen(true);
+      if (setIsInspectorOpen) {
+        setIsInspectorOpen(false);
+      }
+
       window.dispatchEvent(
         new CustomEvent('keaos:select-catalog-category', {
           detail: { categoryId: targetCategory }
         })
       );
-    },
-    [setIsAddMenuOpen, setIsInspectorOpen, nodes, isWorkflowLocked]
-  );
+    }
 
-  const handleConnectEnd = useCallback(() => {
+    pendingConnectionRef.current = null;
+    didConnectRef.current = false;
+
     setTimeout(() => {
       isConnectingRef.current = false;
     }, 200);
-  }, []);
+  }, [nodes, setIsAddMenuOpen, setIsInspectorOpen]);
 
   const handleToggleEnforcer = (e) => {
     if (e) {

@@ -1,5 +1,5 @@
 // KEAOS Studio Main Orchestrator
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -74,11 +74,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         }
       }
     },
-    // 2. Brain / Model Node (Positioned directly above the center Model socket)
+    // 2. Brain / Model Node (Positioned snugly right above the center Model socket)
     {
       id: 'node-model-1',
       type: 'pillar',
-      position: { x: 595, y: -20 },
+      position: { x: 564, y: 55 },
       data: {
         pillarType: 'model',
         name: 'Gemini 2.0 Flash',
@@ -86,11 +86,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
       }
     },
-    // 3. Hands / Ingestion Node (Positioned directly above the top-left Ingestion socket)
+    // 3. Hands / Ingestion Node (Positioned snugly right above the top-left Tools socket)
     {
       id: 'node-ingest-1',
       type: 'ingestionNode',
-      position: { x: 230, y: -20 },
+      position: { x: 474, y: 55 },
       data: {
         title: 'Universal File & Audio Ingest',
         content: '',
@@ -116,7 +116,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
     {
       id: 'node-policy-1',
       type: 'pillar',
-      position: { x: 410, y: 440 },
+      position: { x: 380, y: 440 },
       data: {
         pillarType: 'policies',
         name: 'PII Redactor',
@@ -128,7 +128,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
     {
       id: 'node-memory-1',
       type: 'pillar',
-      position: { x: 595, y: 440 },
+      position: { x: 564, y: 440 },
       data: {
         pillarType: 'memory',
         name: 'Episodic Sync Memory',
@@ -140,7 +140,7 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
     {
       id: 'node-skill-1',
       type: 'pillar',
-      position: { x: 780, y: 440 },
+      position: { x: 750, y: 440 },
       data: {
         pillarType: 'skills',
         name: 'Executive Summarizer',
@@ -148,11 +148,11 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
         config: { length: 'concise', focus: 'decisions' }
       }
     },
-    // 8. Output Component Node (Positioned directly to the right of the centered Output Arm)
+    // 8. Output Component Node (Positioned snugly right of the centered Output Arm)
     {
       id: 'node-output-1',
       type: 'outputNode',
-      position: { x: 800, y: 260 },
+      position: { x: 790, y: 207 },
       data: {
         title: 'Agent Intelligence Output',
         content: '',
@@ -883,11 +883,23 @@ export default function App() {
   const [miniMapPos, setMiniMapPosState] = useState(initialUI.miniMapPos);
   const [isInspectorOpen, setIsInspectorOpenState] = useState(initialUI.isInspectorOpen);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const activeSlotTargetRef = useRef(null);
   const [isEnforcerActive, setIsEnforcerActiveState] = useState(initialUI.isEnforcerActive);
   const [viewMode, setViewModeState] = useState('home');
   const [isWorkflowLocked, setIsWorkflowLockedState] = useState(() => {
     return Boolean(initialActiveWorkflow?.isLocked ?? initialActiveWorkflow?.isWorkflowLocked ?? false);
   });
+
+  // Listen for slot click / wire release from AgentCoreNode or Canvas to remember originating slot
+  useEffect(() => {
+    const handleOpenSlotCatalog = (e) => {
+      activeSlotTargetRef.current = e.detail; // { agentId, agentName, slotId, categoryId }
+      setIsAddMenuOpen(true);
+      setIsInspectorOpenState(false);
+    };
+    window.addEventListener('keaos:open-slot-catalog', handleOpenSlotCatalog);
+    return () => window.removeEventListener('keaos:open-slot-catalog', handleOpenSlotCatalog);
+  }, []);
 
   // Initialize two-way disk synchronization and listen for external updates
   useEffect(() => {
@@ -1206,17 +1218,30 @@ export default function App() {
     setSelectedNode((curr) => (curr?.id === nodeId ? null : curr));
   }, [setNodes, setEdges]);
 
-  // Deploy a verified real MCP server to the Canvas and auto-wire to Gateway
+  // Deploy a verified real MCP server to the Canvas and auto-wire to Gateway or Agent
   const handleAddRealMcpToCanvas = useCallback((mcpData) => {
     const mcpId = `node-mcp-${Date.now().toString().slice(-4)}`;
+    const targetSlot = activeSlotTargetRef.current;
+    const targetAgentId = targetSlot?.agentId;
     let targetGwNodeId = null;
 
     setNodes((nds) => {
-      // Find the gateway node if present
+      const agentNode = targetAgentId 
+        ? nds.find(n => n.id === targetAgentId) 
+        : nds.find(n => n.type === 'agentCore');
+
       const gwNode = nds.find(n => n.type === 'pillar' && n.data?.pillarType === 'gateway');
       if (gwNode) targetGwNodeId = gwNode.id;
-      const xPos = gwNode ? gwNode.position.x + 280 : 1060;
-      const yPos = gwNode ? gwNode.position.y : 165;
+
+      let xPos = 1060;
+      let yPos = 165;
+      if (gwNode) {
+        xPos = gwNode.position.x + 280;
+        yPos = gwNode.position.y;
+      } else if (agentNode) {
+        xPos = agentNode.position.x + 280;
+        yPos = agentNode.position.y - 120;
+      }
 
       const srv = identifyMcpService(mcpData);
       let effectiveTools = mcpData.tools || [];
@@ -1256,20 +1281,34 @@ export default function App() {
       return [...nds, newNode];
     });
 
-    // Auto-wire to gateway properly
+    // Auto-wire to gateway or target agent
     setTimeout(() => {
       setEdges((eds) => {
         const already = eds.some(e => e.source === mcpId || e.target === mcpId);
         if (already) return eds;
-        const gwNodeId = targetGwNodeId || (eds.find(e => e.targetHandle === 'mcp-in')?.source);
-        if (gwNodeId) {
+        if (targetGwNodeId) {
           return [
             ...eds,
             {
-              id: `edge-${mcpId}-to-${gwNodeId}`,
+              id: `edge-${mcpId}-to-${targetGwNodeId}`,
               source: mcpId,
               sourceHandle: 'out',
-              target: gwNodeId,
+              target: targetGwNodeId,
+              targetHandle: 'mcp-in',
+              type: 'deletable',
+              animated: true,
+              style: { stroke: '#00A3A6', strokeWidth: 2, strokeDasharray: '4 4' }
+            }
+          ];
+        } else {
+          const targetAgent = targetAgentId || eds.find(e => e.target?.startsWith('agent-core') || e.source?.startsWith('agent-core'))?.target || (nodes.find(n => n.type === 'agentCore')?.id || 'agent-core');
+          return [
+            ...eds,
+            {
+              id: `edge-${mcpId}-to-${targetAgent}`,
+              source: mcpId,
+              sourceHandle: 'out',
+              target: targetAgent,
               targetHandle: 'mcp-in',
               type: 'deletable',
               animated: true,
@@ -1277,17 +1316,20 @@ export default function App() {
             }
           ];
         }
-        return eds;
       });
+      activeSlotTargetRef.current = null;
     }, 50);
 
     window.dispatchEvent(new CustomEvent('keaos:toast', {
       detail: { message: `🔌 Deployed ${mcpData.name} (${mcpData.tools?.length || 0} tools) to Gateway` }
     }));
-  }, [isDarkMode, handleDeleteNode, setNodes, setEdges]);
+  }, [isDarkMode, handleDeleteNode, setNodes, setEdges, nodes]);
 
-  // Add node from Palette / Catalog
+  // Add node from Palette / Catalog with slot context awareness & auto-wiring
   const handleAddNode = useCallback((pillarKey, item) => {
+    const targetSlot = activeSlotTargetRef.current; // { agentId, agentName, slotId, categoryId }
+    const targetAgentId = targetSlot?.agentId;
+
     if (pillarKey === 'mcp') {
       handleAddRealMcpToCanvas(item);
       setIsAddMenuOpen(false);
@@ -1321,6 +1363,23 @@ export default function App() {
         return [...nds, newNode];
       });
 
+      if (targetAgentId) {
+        setEdges((eds) => [
+          ...eds,
+          {
+            id: `edge-${targetAgentId}-to-${newNodeId}`,
+            source: targetAgentId,
+            sourceHandle: 'out',
+            target: newNodeId,
+            targetHandle: 'agent-in',
+            type: 'deletable',
+            animated: true,
+            style: { stroke: '#6366F1', strokeWidth: 2.2, strokeDasharray: '6 4' }
+          }
+        ]);
+      }
+
+      activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `🤖 Deployed AI Agent to Canvas` }
@@ -1331,9 +1390,12 @@ export default function App() {
     if (pillarKey === 'outputNode') {
       const newNodeId = `node-output-${Date.now().toString().slice(-4)}`;
       setNodes((nds) => {
-        const agentNode = nds.find(n => n.type === 'agentCore');
-        const xPos = agentNode ? agentNode.position.x + 360 : 700;
-        const yPos = agentNode ? agentNode.position.y : 220;
+        const agentNode = targetAgentId 
+          ? nds.find(n => n.id === targetAgentId) 
+          : nds.find(n => n.type === 'agentCore');
+        const existingOuts = nds.filter(n => n.type === 'outputNode');
+        const xPos = agentNode ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790;
+        const yPos = agentNode ? agentNode.position.y + 42 : 207;
 
         const newNode = {
           id: newNodeId,
@@ -1357,27 +1419,25 @@ export default function App() {
         return [...nds, newNode];
       });
 
-      // Auto-wire from agent-core only if this is the very first output node and no output edge exists
+      // Auto-wire from target agent's out handle
       setEdges((eds) => {
-        const hasAnyOutputEdges = eds.some(e => e.targetHandle === 'data-in' || (e.source === 'agent-core' && e.sourceHandle === 'out'));
-        if (!hasAnyOutputEdges) {
-          return [
-            ...eds,
-            {
-              id: `edge-output-${Date.now().toString().slice(-4)}`,
-              source: 'agent-core',
-              sourceHandle: 'out',
-              target: newNodeId,
-              targetHandle: 'data-in',
-              type: 'deletable',
-              animated: false,
-              style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
-            }
-          ];
-        }
-        return eds;
+        const sourceAgent = targetAgentId || eds.find(e => e.source?.startsWith('agent-core') || e.target?.startsWith('agent-core'))?.source || (nodes.find(n => n.type === 'agentCore')?.id || 'agent-core');
+        return [
+          ...eds,
+          {
+            id: `edge-output-${Date.now().toString().slice(-4)}`,
+            source: sourceAgent,
+            sourceHandle: 'out',
+            target: newNodeId,
+            targetHandle: 'data-in',
+            type: 'deletable',
+            animated: false,
+            style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+          }
+        ];
       });
 
+      activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `✨ Added Output Component to Canvas` }
@@ -1385,13 +1445,17 @@ export default function App() {
       return;
     }
 
-    if (pillarKey === 'ingestionNode' || pillarKey === 'tools' || item?.isIngestionNode || item?.id?.startsWith('ingest-')) {
+    if (pillarKey === 'ingestionNode' || item?.isIngestionNode || item?.id?.startsWith('ingest-')) {
       const newNodeId = `node-ingest-${Date.now().toString().slice(-4)}`;
       const fileType = item?.config?.fileType || (item?.id === 'ingest-audio-stream' ? 'audio' : item?.id === 'ingest-raw-text' ? 'text' : 'auto');
+
       setNodes((nds) => {
-        const agentNode = nds.find(n => n.type === 'agentCore');
-        const xPos = agentNode ? agentNode.position.x - 340 : 260;
-        const yPos = agentNode ? agentNode.position.y : 220;
+        const agentNode = targetAgentId 
+          ? nds.find(n => n.id === targetAgentId) 
+          : nds.find(n => n.type === 'agentCore');
+        const existingIngests = nds.filter(n => n.type === 'ingestionNode');
+        const xPos = agentNode ? agentNode.position.x - 46 - (existingIngests.length * 30) : 474;
+        const yPos = agentNode ? agentNode.position.y - 110 : 55;
 
         const newNode = {
           id: newNodeId,
@@ -1411,27 +1475,25 @@ export default function App() {
         return [...nds, newNode];
       });
 
-      // Auto-wire to agent-core if tools-in edge not yet present
+      // Auto-wire to target agent's tools-in
       setEdges((eds) => {
-        const hasToolsInput = eds.some(e => e.target === 'agent-core' && e.targetHandle === 'tools-in');
-        if (!hasToolsInput) {
-          return [
-            ...eds,
-            {
-              id: `edge-ingest-${Date.now().toString().slice(-4)}`,
-              source: newNodeId,
-              sourceHandle: 'data-out',
-              target: 'agent-core',
-              targetHandle: 'tools-in',
-              type: 'deletable',
-              animated: false,
-              style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
-            }
-          ];
-        }
-        return eds;
+        const destAgent = targetAgentId || eds.find(e => e.target?.startsWith('agent-core'))?.target || (nodes.find(n => n.type === 'agentCore')?.id || 'agent-core');
+        return [
+          ...eds,
+          {
+            id: `edge-ingest-${Date.now().toString().slice(-4)}`,
+            source: newNodeId,
+            sourceHandle: 'data-out',
+            target: destAgent,
+            targetHandle: 'tools-in',
+            type: 'deletable',
+            animated: false,
+            style: { stroke: '#0091DA', strokeWidth: 1.8, strokeDasharray: '4 4' }
+          }
+        ];
       });
 
+      activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `📥 Added Ingestion Component (${item.name || 'Ingestion'}) to Canvas` }
@@ -1445,8 +1507,9 @@ export default function App() {
       setNodes((nds) => {
         const existing = nds.filter(n => n.type === 'deterministicNode');
         count = existing.length + 1;
-        const xPos = 480 + (existing.length * 40);
-        const yPos = 300 + (existing.length * 40);
+        const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
+        const xPos = agentNode ? agentNode.position.x + 280 : 480 + (existing.length * 40);
+        const yPos = agentNode ? agentNode.position.y + 120 + (existing.length * 60) : 300 + (existing.length * 40);
 
         const newNode = {
           id: newNodeId,
@@ -1467,6 +1530,23 @@ export default function App() {
         return [...nds, newNode];
       });
 
+      if (targetAgentId) {
+        setEdges((eds) => [
+          ...eds,
+          {
+            id: `edge-${targetAgentId}-to-${newNodeId}`,
+            source: targetAgentId,
+            sourceHandle: 'out',
+            target: newNodeId,
+            targetHandle: 'in',
+            type: 'deletable',
+            animated: false,
+            style: { stroke: '#EAAA00', strokeWidth: 2.0, strokeDasharray: '4 4' }
+          }
+        ]);
+      }
+
+      activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `⚡ Added Deterministic Logic Box to Canvas` }
@@ -1480,7 +1560,7 @@ export default function App() {
       setNodes((nds) => {
         const existing = nds.filter(n => n.type === 'routerNode');
         count = existing.length + 1;
-        const agentNode = nds.find(n => n.type === 'agentCore');
+        const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
         const xPos = agentNode ? agentNode.position.x - 220 : 360;
         const yPos = agentNode 
           ? agentNode.position.y + 140 + (existing.length * 80)
@@ -1509,6 +1589,7 @@ export default function App() {
         return [...nds, newNode];
       });
 
+      activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `⚡ Added Conditional Router to Canvas` }
@@ -1522,7 +1603,7 @@ export default function App() {
       setNodes((nds) => {
         const existing = nds.filter(n => n.type === 'approvalNode');
         count = existing.length + 1;
-        const agentNode = nds.find(n => n.type === 'agentCore');
+        const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
         const xPos = agentNode ? agentNode.position.x + 240 : 540;
         const yPos = agentNode 
           ? agentNode.position.y + 140 + (existing.length * 80)
@@ -1550,6 +1631,7 @@ export default function App() {
         return [...nds, newNode];
       });
 
+      activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `🛡️ Added Approval Gate to Canvas` }
@@ -1565,7 +1647,7 @@ export default function App() {
         const existingSameType = nds.filter(n => n.type === 'triggerNode' && (n.data?.triggerType === trgType));
         count = existingSameType.length + 1;
         const existingAllTriggers = nds.filter(n => n.type === 'triggerNode');
-        const agentNode = nds.find(n => n.type === 'agentCore');
+        const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
         const xPos = agentNode ? agentNode.position.x - 320 : 180;
         const yPos = agentNode 
           ? agentNode.position.y + (existingAllTriggers.length * 90) 
@@ -1590,6 +1672,7 @@ export default function App() {
         return [...nds, newNode];
       });
 
+      activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
         detail: { message: `⚡ Added Trigger (${item.name}) to Canvas` }
@@ -1597,38 +1680,115 @@ export default function App() {
       return;
     }
 
+    // Standard Pillars: model, tools, gateway, memory, policies, skills, etc.
     const newNodeId = `node-${pillarKey}-${Date.now().toString().slice(-4)}`;
+    let targetHandleId = targetSlot?.slotId;
 
-    // Position staggered near center
-    const xPos = 400 + Math.random() * 200;
-    const yPos = 150 + Math.random() * 250;
+    if (!targetHandleId) {
+      if (pillarKey === 'model') targetHandleId = 'model-in';
+      else if (pillarKey === 'tools') targetHandleId = 'tools-in';
+      else if (pillarKey === 'gateway') targetHandleId = 'mcp-in';
+      else if (pillarKey === 'policies') targetHandleId = 'policy-in';
+      else if (pillarKey === 'memory') targetHandleId = 'memory-in';
+      else if (pillarKey === 'skills') targetHandleId = 'skill-in';
+    }
 
-    const newNode = {
-      id: newNodeId,
-      type: 'pillar',
-      position: { x: xPos, y: yPos },
-      data: {
-        pillarType: pillarKey,
-        toolId: item.id,
-        name: item.name,
-        description: item.description,
-        customDirective: item.customDirective || null,
-        referenceDoc: item.referenceDoc || null,
-        config: item.config || {},
-        tools: item.tools || null,
-        itemId: item.id,
-        onDelete: handleDeleteNode
+    setNodes((nds) => {
+      const targetAgent = targetAgentId 
+        ? nds.find(n => n.id === targetAgentId) 
+        : nds.find(n => n.type === 'agentCore');
+
+      let xPos = 400 + Math.random() * 200;
+      let yPos = 150 + Math.random() * 250;
+
+      if (targetAgent) {
+        if (pillarKey === 'model') {
+          const modelCount = nds.filter(n => n.data?.pillarType === 'model').length;
+          xPos = targetAgent.position.x + 44 + (modelCount * 30);
+          yPos = targetAgent.position.y - 110;
+        } else if (pillarKey === 'tools') {
+          const toolCount = nds.filter(n => n.data?.pillarType === 'tools' || n.type === 'ingestionNode').length;
+          xPos = targetAgent.position.x - 46 - (toolCount * 30);
+          yPos = targetAgent.position.y - 110;
+        } else if (pillarKey === 'gateway') {
+          xPos = targetAgent.position.x + 134;
+          yPos = targetAgent.position.y - 110;
+        } else if (pillarKey === 'policies') {
+          const policyCount = nds.filter(n => n.data?.pillarType === 'policies').length;
+          xPos = targetAgent.position.x - 46 - (policyCount * 30);
+          yPos = targetAgent.position.y + 160;
+        } else if (pillarKey === 'memory') {
+          xPos = targetAgent.position.x + 44;
+          yPos = targetAgent.position.y + 160;
+        } else if (pillarKey === 'skills') {
+          const skillCount = nds.filter(n => n.data?.pillarType === 'skills').length;
+          xPos = targetAgent.position.x + 134 + (skillCount * 30);
+          yPos = targetAgent.position.y + 160;
+        }
       }
-    };
 
-    setNodes((nds) => [...nds, newNode]);
-    setSelectedNode(newNode);
+      const newNode = {
+        id: newNodeId,
+        type: 'pillar',
+        position: { x: xPos, y: yPos },
+        data: {
+          pillarType: pillarKey,
+          toolId: item.id,
+          name: item.name,
+          description: item.description,
+          customDirective: item.customDirective || null,
+          referenceDoc: item.referenceDoc || null,
+          config: item.config || {},
+          tools: item.tools || null,
+          itemId: item.id,
+          onDelete: handleDeleteNode
+        }
+      };
+
+      setSelectedNode(newNode);
+      return [...nds, newNode];
+    });
+
+    // Auto-wire to designated or first agent
+    setEdges((eds) => {
+      const destAgentId = targetAgentId || eds.find(e => e.target?.startsWith('agent-core') || e.source?.startsWith('agent-core'))?.target || (nodes.find(n => n.type === 'agentCore')?.id || 'agent-core');
+      if (!destAgentId || !targetHandleId) return eds;
+
+      // Single-connection socket enforcement (model, gateway, memory)
+      const isSingleConn = ['model-in', 'mcp-in', 'memory-in'].includes(targetHandleId);
+      const filteredEds = isSingleConn
+        ? eds.filter(e => !(e.target === destAgentId && e.targetHandle === targetHandleId))
+        : eds;
+
+      let strokeColor = '#00338D';
+      if (pillarKey === 'tools') strokeColor = '#0091DA';
+      else if (pillarKey === 'gateway') strokeColor = '#00A3A6';
+      else if (pillarKey === 'policies') strokeColor = '#470A68';
+      else if (pillarKey === 'memory') strokeColor = '#483698';
+      else if (pillarKey === 'skills') strokeColor = '#6D2077';
+
+      return [
+        ...filteredEds,
+        {
+          id: `edge-${pillarKey}-${Date.now().toString().slice(-4)}`,
+          source: newNodeId,
+          sourceHandle: 'out',
+          target: destAgentId,
+          targetHandle: targetHandleId,
+          type: 'deletable',
+          animated: false,
+          style: { stroke: strokeColor, strokeWidth: 1.8, strokeDasharray: '4 4' }
+        }
+      ];
+    });
+
+    activeSlotTargetRef.current = null;
     setIsInspectorOpen(true);
     setIsAddMenuOpen(false);
     window.dispatchEvent(new CustomEvent('keaos:toast', {
-      detail: { message: `➕ Added "${item.name}" to Canvas` }
+      detail: { message: `➕ Added "${item.name}" & connected to agent` }
     }));
-  }, [setNodes, activeUseCase, handleDeleteNode, setIsInspectorOpen]);
+  }, [setNodes, activeUseCase, handleDeleteNode, setIsInspectorOpen, handleAddRealMcpToCanvas, setEdges, nodes, isDarkMode]);
 
   // Update Agent Config
   const handleUpdateAgentConfig = (updates) => {

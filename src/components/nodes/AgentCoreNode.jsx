@@ -112,6 +112,19 @@ export default function AgentCoreNode({ id, data, selected }) {
     window.dispatchEvent(new CustomEvent('keaos:spawn-downstream-agent', { detail: { sourceAgentId: id } }));
   };
 
+  const handleSlotClick = (e, slotId, categoryId) => {
+    if (isLocked) return;
+    if (e && e.stopPropagation) e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('keaos:open-slot-catalog', {
+      detail: {
+        agentId: id,
+        agentName: localName,
+        slotId,
+        categoryId
+      }
+    }));
+  };
+
   return (
     <div className="relative group select-none flex flex-col items-center">
       {/* ============================================================ */}
@@ -122,20 +135,22 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* TOP-LEFT: TOOLS PORT (Position.Top) - Pacific Blue #0091DA */}
         <div className="flex flex-col items-center group/socket">
           <div
-            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs ${
+            onClick={(e) => handleSlotClick(e, 'tools-in', 'tools')}
+            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs cursor-pointer hover:scale-125 active:scale-95 ${
               hasTools
                 ? 'bg-[#0091DA] border-[#0091DA] text-white shadow-[0_0_8px_rgba(0,145,218,0.5)]'
                 : isDarkMode
                   ? 'bg-[#181B24] border-[#0091DA]/60 text-[#0091DA] hover:bg-[#0091DA]/20 hover:border-[#0091DA]'
                   : 'bg-white border-[#0091DA] text-[#0091DA] hover:bg-[#0091DA]/10'
             }`}
-            title="Tools Socket: Connect Ingestion & Execution Tools"
+            title="Tools Socket: Click or Drag to connect Ingestion & Execution Tools"
           >
             <Plus className="w-2.5 h-2.5 stroke-[3] pointer-events-none" />
             <Handle
               type="target"
               position={Position.Top}
               id="tools-in"
+              onClick={(e) => handleSlotClick(e, 'tools-in', 'tools')}
               style={{
                 width: '16px',
                 height: '16px',
@@ -160,7 +175,8 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* TOP-CENTER: FOUNDATION MODEL PORT (Position.Top) - Royal Brand Blue #00338D */}
         <div className="flex flex-col items-center group/model">
           <div
-            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs ${
+            onClick={(e) => handleSlotClick(e, 'model-in', 'model')}
+            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs cursor-pointer hover:scale-125 active:scale-95 ${
               hasModel
                 ? isExecuting
                   ? 'bg-[#00338D] border-[#0091DA] text-white ring-2 ring-[#0091DA]/50 animate-pulse shadow-[0_0_10px_#0091DA]'
@@ -173,10 +189,10 @@ export default function AgentCoreNode({ id, data, selected }) {
             }`}
             title={
               hasModel
-                ? `Model Connected: ${connectedModelName || 'Active Brain'}`
+                ? `Model Connected: ${connectedModelName || 'Active Brain'} (Click to change)`
                 : isSharedBrain
-                  ? `Shared Brain: "${inheritedModelName}"`
-                  : "Model Socket: Connect Foundation Model (Gemini, Claude, GPT, Ollama)"
+                  ? `Shared Brain: "${inheritedModelName}" (Click to configure)`
+                  : "Model Socket: Click to open Foundation Models"
             }
           >
             <Plus className="w-2.5 h-2.5 stroke-[3] pointer-events-none" />
@@ -184,6 +200,7 @@ export default function AgentCoreNode({ id, data, selected }) {
               type="target"
               position={Position.Top}
               id="model-in"
+              onClick={(e) => handleSlotClick(e, 'model-in', 'model')}
               style={{
                 width: '16px',
                 height: '16px',
@@ -222,20 +239,22 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* TOP-RIGHT: MCP SERVERS PORT (Position.Top) - Cyber Teal #00A3A6 */}
         <div className="flex flex-col items-center group/socket">
           <div
-            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs ${
+            onClick={(e) => handleSlotClick(e, 'mcp-in', 'gateway')}
+            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs cursor-pointer hover:scale-125 active:scale-95 ${
               hasMcp
                 ? 'bg-[#00A3A6] border-[#00A3A6] text-white shadow-[0_0_8px_rgba(0,163,166,0.5)]'
                 : isDarkMode
                   ? 'bg-[#181B24] border-[#00A3A6]/60 text-[#00A3A6] hover:bg-[#00A3A6]/20 hover:border-[#00A3A6]'
                   : 'bg-white border-[#00A3A6] text-[#00A3A6] hover:bg-[#00A3A6]/10'
             }`}
-            title="Reach Socket: Connect MCP Servers"
+            title="Gateway & MCP Socket: Click to open Gateway & MCP Servers"
           >
             <Plus className="w-2.5 h-2.5 stroke-[3] pointer-events-none" />
             <Handle
               type="target"
               position={Position.Top}
               id="mcp-in"
+              onClick={(e) => handleSlotClick(e, 'mcp-in', 'gateway')}
               style={{
                 width: '16px',
                 height: '16px',
@@ -248,7 +267,7 @@ export default function AgentCoreNode({ id, data, selected }) {
                 border: 'none',
                 background: 'transparent'
               }}
-              title="Reach: MCP Protocol"
+              title="Reach: MCP & Gateway Protocol"
             />
           </div>
           {/* Stem line down to chassis */}
@@ -302,13 +321,25 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* TOP INTERNAL LABELS (TOOLS, MODEL, GATEWAY/MCP)              */}
         {/* ============================================================ */}
         <div className="w-full flex items-center justify-between px-1.5 pt-0 pb-0.5 -mt-0.5 text-[8px] font-mono font-bold tracking-wider">
-          <span className={`transition-colors ${hasTools ? 'text-[#0091DA] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span 
+            onClick={(e) => handleSlotClick(e, 'tools-in', 'tools')}
+            className={`cursor-pointer hover:underline transition-colors ${hasTools ? 'text-[#0091DA] font-extrabold' : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            title="Click to open Tools catalog"
+          >
             TOOLS
           </span>
-          <span className={`transition-colors ${hasModel ? 'text-[#00338D] dark:text-[#60A5FA] font-extrabold' : isSharedBrain ? 'text-indigo-400 font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span 
+            onClick={(e) => handleSlotClick(e, 'model-in', 'model')}
+            className={`cursor-pointer hover:underline transition-colors ${hasModel ? 'text-[#00338D] dark:text-[#60A5FA] font-extrabold' : isSharedBrain ? 'text-indigo-400 font-extrabold' : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            title="Click to open Foundation Models"
+          >
             {hasModel ? 'MODEL' : isSharedBrain ? 'SHARED' : 'MODEL'}
           </span>
-          <span className={`transition-colors ${hasMcp ? 'text-[#00A3A6] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span 
+            onClick={(e) => handleSlotClick(e, 'mcp-in', 'gateway')}
+            className={`cursor-pointer hover:underline transition-colors ${hasMcp ? 'text-[#00A3A6] font-extrabold' : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            title="Click to open Gateway & MCP Servers"
+          >
             Gateway/MCP
           </span>
         </div>
@@ -352,17 +383,19 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* RIGHT ARM: OUTPUT STREAM / A2A EGRESS (Position.Right, Centered)*/}
         {/* ============================================================ */}
         <div
-          className={`absolute -right-[13px] top-1/2 -translate-y-1/2 w-3.5 h-7 rounded-r-md border-y border-r flex flex-col items-center justify-center transition-colors shadow-md group/out ${
+          onClick={(e) => handleSlotClick(e, 'out', 'outputNode')}
+          className={`absolute -right-[13px] top-1/2 -translate-y-1/2 w-3.5 h-7 rounded-r-md border-y border-r flex flex-col items-center justify-center transition-colors shadow-md group/out cursor-pointer hover:scale-110 active:scale-95 ${
             isDarkMode
               ? 'bg-[#0091DA]/20 border-[#0091DA]/60 text-[#38BDF8]'
               : 'bg-[#0091DA]/15 border-[#0091DA]/50 text-[#005EB8]'
           }`}
-          title="Output Arm: Emits agent reasoning & A2A dispatch stream"
+          title="Output Arm: Emits agent reasoning (Click to open Output Components)"
         >
           <Handle
             type="source"
             position={Position.Right}
             id="out"
+            onClick={(e) => handleSlotClick(e, 'out', 'outputNode')}
             style={{
               top: '50%',
               transform: 'translateY(-50%) rotate(45deg)',
@@ -374,9 +407,9 @@ export default function AgentCoreNode({ id, data, selected }) {
               borderWidth: '2px',
               right: '-4px'
             }}
-            title="Agent output & A2A dispatch stream"
+            title="Agent output & A2A dispatch stream (Click to open Output Components)"
           />
-          <Bot className="w-2.5 h-2.5" />
+          <Bot className="w-2.5 h-2.5 pointer-events-none" />
 
           {/* Quick Action buttons on hover */}
           {!isLocked && (
@@ -397,7 +430,7 @@ export default function AgentCoreNode({ id, data, selected }) {
               <div 
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.dispatchEvent(new CustomEvent('keaos:spawn-output-node', { detail: { sourceAgentId: id } }));
+                  handleSlotClick(e, 'out', 'outputNode');
                 }}
                 className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95 ${
                   isDarkMode
@@ -596,13 +629,25 @@ export default function AgentCoreNode({ id, data, selected }) {
         {/* BOTTOM INTERNAL LABELS (GUARD, MEMORY, SKILLS)               */}
         {/* ============================================================ */}
         <div className="w-full flex items-center justify-between px-1.5 pt-0.5 pb-0 text-[8px] font-mono font-bold tracking-wider mt-0.5 -mb-0.5">
-          <span className={`transition-colors ${hasPolicies ? 'text-[#470A68] dark:text-[#E879F9] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span 
+            onClick={(e) => handleSlotClick(e, 'policy-in', 'policies')}
+            className={`cursor-pointer hover:underline transition-colors ${hasPolicies ? 'text-[#470A68] dark:text-[#E879F9] font-extrabold' : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            title="Click to open Policies & Guardrails"
+          >
             GUARDRAILS
           </span>
-          <span className={`transition-colors ${hasMemory ? 'text-[#483698] dark:text-[#A78BFA] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span 
+            onClick={(e) => handleSlotClick(e, 'memory-in', 'memory')}
+            className={`cursor-pointer hover:underline transition-colors ${hasMemory ? 'text-[#483698] dark:text-[#A78BFA] font-extrabold' : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            title="Click to open Memory Store"
+          >
             MEMORY
           </span>
-          <span className={`transition-colors ${hasSkills ? 'text-[#6D2077] dark:text-[#F472B6] font-extrabold' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span 
+            onClick={(e) => handleSlotClick(e, 'skill-in', 'skills')}
+            className={`cursor-pointer hover:underline transition-colors ${hasSkills ? 'text-[#6D2077] dark:text-[#F472B6] font-extrabold' : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            title="Click to open Specialized Skills"
+          >
             SKILLS
           </span>
         </div>
@@ -620,20 +665,22 @@ export default function AgentCoreNode({ id, data, selected }) {
             hasPolicies ? 'bg-[#470A68]' : isDarkMode ? 'bg-[#470A68]/50' : 'bg-[#470A68]/60'
           }`} />
           <div
-            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs ${
+            onClick={(e) => handleSlotClick(e, 'policy-in', 'policies')}
+            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs cursor-pointer hover:scale-125 active:scale-95 ${
               hasPolicies
                 ? 'bg-[#470A68] border-[#470A68] text-white shadow-[0_0_8px_rgba(71,10,104,0.5)]'
                 : isDarkMode
                   ? 'bg-[#181B24] border-[#470A68]/60 text-[#C084FC] hover:bg-[#470A68]/20 hover:border-[#470A68]'
                   : 'bg-white border-[#470A68] text-[#470A68] hover:bg-[#470A68]/10'
             }`}
-            title="Footing: Policies & Guardrails Socket"
+            title="Policies & Guardrails Socket: Click to open Policies"
           >
             <Plus className="w-2.5 h-2.5 stroke-[3] pointer-events-none" />
             <Handle
               type="target"
               position={Position.Bottom}
               id="policy-in"
+              onClick={(e) => handleSlotClick(e, 'policy-in', 'policies')}
               style={{
                 width: '16px',
                 height: '16px',
@@ -658,20 +705,22 @@ export default function AgentCoreNode({ id, data, selected }) {
             hasMemory ? 'bg-[#483698]' : isDarkMode ? 'bg-[#483698]/50' : 'bg-[#483698]/60'
           }`} />
           <div
-            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs ${
+            onClick={(e) => handleSlotClick(e, 'memory-in', 'memory')}
+            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs cursor-pointer hover:scale-125 active:scale-95 ${
               hasMemory
                 ? 'bg-[#483698] border-[#483698] text-white shadow-[0_0_8px_rgba(72,54,152,0.5)]'
                 : isDarkMode
                   ? 'bg-[#181B24] border-[#483698]/60 text-[#A78BFA] hover:bg-[#483698]/20 hover:border-[#483698]'
                   : 'bg-white border-[#483698] text-[#483698] hover:bg-[#483698]/10'
             }`}
-            title="Footing: Memory Socket"
+            title="Memory Socket: Click to open Memory Store"
           >
             <Plus className="w-2.5 h-2.5 stroke-[3] pointer-events-none" />
             <Handle
               type="target"
               position={Position.Bottom}
               id="memory-in"
+              onClick={(e) => handleSlotClick(e, 'memory-in', 'memory')}
               style={{
                 width: '16px',
                 height: '16px',
@@ -696,20 +745,22 @@ export default function AgentCoreNode({ id, data, selected }) {
             hasSkills ? 'bg-[#6D2077]' : isDarkMode ? 'bg-[#6D2077]/50' : 'bg-[#6D2077]/60'
           }`} />
           <div
-            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs ${
+            onClick={(e) => handleSlotClick(e, 'skill-in', 'skills')}
+            className={`relative w-4 h-4 rounded-full flex items-center justify-center border transition-all shadow-xs cursor-pointer hover:scale-125 active:scale-95 ${
               hasSkills
                 ? 'bg-[#6D2077] border-[#6D2077] text-white shadow-[0_0_8px_rgba(109,32,119,0.5)]'
                 : isDarkMode
                   ? 'bg-[#181B24] border-[#6D2077]/60 text-[#F472B6] hover:bg-[#6D2077]/20 hover:border-[#6D2077]'
                   : 'bg-white border-[#6D2077] text-[#6D2077] hover:bg-[#6D2077]/10'
             }`}
-            title="Footing: Skills & Capabilities Socket"
+            title="Skills & Capabilities Socket: Click to open Skills"
           >
             <Plus className="w-2.5 h-2.5 stroke-[3] pointer-events-none" />
             <Handle
               type="target"
               position={Position.Bottom}
               id="skill-in"
+              onClick={(e) => handleSlotClick(e, 'skill-in', 'skills')}
               style={{
                 width: '16px',
                 height: '16px',

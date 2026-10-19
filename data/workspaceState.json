@@ -1,5 +1,5 @@
 {
-  "activeWorkflowId": "wf-outlook-stream-intelligence",
+  "activeWorkflowId": "wf-1792407757415-ddcww",
   "uiState": {
     "isDarkMode": false,
     "isSidebarCollapsed": false,
@@ -10,7 +10,7 @@
       "x": 0,
       "y": 0
     },
-    "isInspectorOpen": false,
+    "isInspectorOpen": true,
     "isEnforcerActive": true,
     "viewMode": "canvas",
     "isWorkflowLocked": false
@@ -53,8 +53,8 @@
           "id": "agent-core-2073",
           "type": "agentCore",
           "position": {
-            "x": 592.9405930070848,
-            "y": 587.0911752858722
+            "x": 563.9122239123609,
+            "y": 168.25327834771335
           },
           "data": {
             "name": "Autonomous Agent #1",
@@ -69,7 +69,8 @@
             },
             "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
             "temperature": 0.2,
-            "topP": 0.95
+            "topP": 0.95,
+            "isDarkMode": true
           },
           "measured": {
             "width": 228,
@@ -77,11 +78,58 @@
           },
           "selected": false,
           "dragging": false
+        },
+        {
+          "id": "node-trigger-4690",
+          "type": "triggerNode",
+          "position": {
+            "x": 397.34788912732995,
+            "y": 223.5454099567112
+          },
+          "data": {
+            "name": "API Polling Watcher #1",
+            "triggerType": "poll",
+            "description": "Smart periodic REST/GraphQL watcher with SHA-256 watermark deduplication. Only triggers on payload changes.",
+            "config": {
+              "triggerType": "poll",
+              "pollIntervalSeconds": 60,
+              "endpointUrl": "https://api.example.com/v1/status",
+              "deduplicateWatermark": true,
+              "defaultPayload": "{\n  \"source\": \"api_poller\",\n  \"status\": \"healthy\"\n}"
+            },
+            "lastFired": null,
+            "lastStatus": "idle",
+            "status": "idle",
+            "payloadText": "{\n  \"source\": \"api_poller\",\n  \"status\": \"healthy\"\n}",
+            "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": true,
+          "dragging": false
         }
       ],
-      "edges": [],
+      "edges": [
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "node-trigger-4690",
+          "sourceHandle": "trigger-out",
+          "target": "agent-core-2073",
+          "targetHandle": "agent-in",
+          "style": {
+            "stroke": "#00A3A6",
+            "strokeWidth": 2.2,
+            "strokeDasharray": "5 4"
+          },
+          "id": "xy-edge__node-trigger-4690trigger-out-agent-core-2073agent-in"
+        }
+      ],
       "createdAt": 1792407757415,
-      "updatedAt": 1792408120358,
+      "updatedAt": 1792418183946,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -89,7 +137,7 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 1,
+        "nodeCount": 2,
         "agentCount": 1,
         "mcpCount": 0,
         "modelCount": 0,
@@ -3553,7 +3601,7 @@
                 "sourceNodeName": "Mail & Attachment Extractor"
               }
             ],
-            "isExpanded": false,
+            "isExpanded": true,
             "isDarkMode": false,
             "sourceNodeType": "deterministic",
             "sourceNodeId": "node-deterministic-outlook",
@@ -3566,8 +3614,8 @@
             "name": "Tabular Continuous Output Viewer"
           },
           "measured": {
-            "width": 140,
-            "height": 56
+            "width": 520,
+            "height": 420
           },
           "selected": false,
           "dragging": false
@@ -4728,7 +4776,7 @@
         }
       ],
       "createdAt": 1792382477311,
-      "updatedAt": 1792408331409,
+      "updatedAt": 1792408253007,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -4753,120 +4801,58 @@
   "canvasState": {
     "nodes": [
       {
-        "id": "node-trigger-outlook",
-        "type": "triggerNode",
-        "position": {
-          "x": 439.8037420587998,
-          "y": 75.74296930225111
-        },
-        "data": {
-          "name": "Outlook Ingress Watcher",
-          "triggerType": "poll",
-          "pollSubMode": "stream",
-          "streamType": "inbox",
-          "pollIntervalSeconds": 300,
-          "maxBatchSize": 20,
-          "isPollingActive": false,
-          "lastStatus": "idle",
-          "label": "OUTLOOK STREAM",
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "agent-core",
+        "id": "agent-core-2073",
         "type": "agentCore",
         "position": {
-          "x": 520,
-          "y": 165
+          "x": 563.9122239123609,
+          "y": 168.25327834771335
         },
         "data": {
-          "name": "Mail & Attachment Extractor",
+          "name": "Autonomous Agent #1",
           "framework": {
-            "id": "microsoft-adk",
-            "name": "Microsoft ADK",
-            "subtitle": "Microsoft Semantic Kernel & Enterprise Agent Framework",
-            "description": "Institutional-grade enterprise agent framework with plugin pipelines, native memory filters, and Copilot integration.",
-            "defaultModel": "gpt-4o",
+            "id": "google-adk",
+            "name": "Google ADK",
+            "subtitle": "Google Agent Development Kit & GenAI SDK",
+            "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+            "defaultModel": "gemini-2.0-flash",
             "exportExtension": ".py",
-            "category": "Enterprise"
+            "category": "SDK"
           },
-          "prompt": "You are an institutional Mail & Attachment Intelligence Agent. Ingest incoming emails and attachments from Outlook MCP streams. Evaluate relevance, extract structured metadata (sender, subject, invoice/deliverable items, monetary values, action owners, due dates), and output standardized records.",
-          "temperature": 0.1,
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
           "topP": 0.95,
-          "attachedCounts": {
-            "model": 1,
-            "skills": 1,
-            "gateway": 1,
-            "tools": 1
-          },
-          "isDarkMode": false,
-          "lastOutput": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
-          "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319",
-          "observability": {
-            "totalTokens": 417,
-            "latencyMs": 4986,
-            "modelUsed": "openai (gpt-4o-mini)",
-            "framework": "Microsoft ADK"
-          },
-          "costUsd": 0.00018
+          "isDarkMode": true
         },
         "measured": {
           "width": 228,
           "height": 172
         },
-        "selected": false
-      },
-      {
-        "id": "node-model-outlook",
-        "type": "pillar",
-        "position": {
-          "x": 557.3677311223264,
-          "y": 85.37035285748613
-        },
-        "data": {
-          "pillarType": "model",
-          "name": "OpenAI (gpt-4o-mini)",
-          "description": "OpenAI foundation model configured for live enterprise inference.",
-          "config": {
-            "provider": "openai",
-            "modelId": "gpt-4o-mini",
-            "temperature": 0.1,
-            "topP": 0.95
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
         "selected": false,
         "dragging": false
       },
       {
-        "id": "node-mcp-gw-outlook",
-        "type": "pillar",
+        "id": "node-trigger-4690",
+        "type": "triggerNode",
         "position": {
-          "x": 655.813512703677,
-          "y": 85.37035285748613
+          "x": 397.34788912732995,
+          "y": 223.5454099567112
         },
         "data": {
-          "pillarType": "gateway",
-          "itemId": "gw-mcp-controller",
-          "name": "MCP Egress Gateway",
-          "description": "Zero-trust capability mediator. Filters and permits only verified Microsoft 365 tools.",
+          "name": "API Polling Watcher #1",
+          "triggerType": "poll",
+          "description": "Smart periodic REST/GraphQL watcher with SHA-256 watermark deduplication. Only triggers on payload changes.",
           "config": {
-            "gatewayType": "mcp-egress",
-            "auditAllActions": true,
-            "disabledTools": []
+            "triggerType": "poll",
+            "pollIntervalSeconds": 60,
+            "endpointUrl": "https://api.example.com/v1/status",
+            "deduplicateWatermark": true,
+            "defaultPayload": "{\n  \"source\": \"api_poller\",\n  \"status\": \"healthy\"\n}"
           },
-          "isDarkMode": false,
-          "disabledTools": []
+          "lastFired": null,
+          "lastStatus": "idle",
+          "status": "idle",
+          "payloadText": "{\n  \"source\": \"api_poller\",\n  \"status\": \"healthy\"\n}",
+          "isDarkMode": true
         },
         "measured": {
           "width": 140,
@@ -4874,1537 +4860,41 @@
         },
         "selected": true,
         "dragging": false
-      },
-      {
-        "id": "node-skill-outlook",
-        "type": "pillar",
-        "position": {
-          "x": 652.0502858159098,
-          "y": 364.73546224465275
-        },
-        "data": {
-          "pillarType": "skills",
-          "name": "Attachment & Data Extractor",
-          "description": "Decodes Base64 attachments, extracts invoice line items, and formats tabular records.",
-          "config": {
-            "format": "tabular_json",
-            "extractAttachments": true
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-deterministic-outlook",
-        "type": "deterministicNode",
-        "position": {
-          "x": 787.4559103741087,
-          "y": 184.8765490475046
-        },
-        "data": {
-          "name": "Row & Schema Normalizer",
-          "prompt": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
-          "ruleSummary": "Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)",
-          "language": "python",
-          "code": "def process(inputs):\n    # Zero-token tabular schema normalization\n    import json\n    if isinstance(inputs, str):\n        try:\n            data = json.loads(inputs)\n        except:\n            data = {\"raw\": inputs}\n    else:\n        data = inputs or {}\n    \n    item = data.get(\"item\", data)\n    return {\n        \"record_id\": item.get(\"id\", \"REC-001\"),\n        \"sender\": item.get(\"from\", \"Unknown\"),\n        \"subject\": item.get(\"subject\", \"No Subject\"),\n        \"received_at\": item.get(\"receivedDateTime\", \"\"),\n        \"has_attachments\": item.get(\"hasAttachments\", False),\n        \"summary\": (item.get(\"bodyPreview\") or item.get(\"content\") or \"\")[:120],\n        \"status\": \"EXTRACTED\"\n    }",
-          "lastStatus": "success",
-          "isFrozen": true,
-          "isDarkMode": false,
-          "lastUpstreamReceived": {
-            "output": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
-            "data": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
-            "text": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
-            "tokens": 417,
-            "latencyMs": 4986,
-            "observability": {
-              "totalTokens": 417,
-              "latencyMs": 4986,
-              "modelUsed": "openai (gpt-4o-mini)",
-              "framework": "Microsoft ADK"
-            },
-            "costUsd": 0.00018,
-            "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319"
-          },
-          "upstreamPayload": {
-            "output": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
-            "data": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
-            "text": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
-            "tokens": 417,
-            "latencyMs": 4986,
-            "observability": {
-              "totalTokens": 417,
-              "latencyMs": 4986,
-              "modelUsed": "openai (gpt-4o-mini)",
-              "framework": "Microsoft ADK"
-            },
-            "costUsd": 0.00018,
-            "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319"
-          },
-          "lastUpstreamTime": 1792407706172,
-          "isRunning": false,
-          "lastOutput": null,
-          "lastTableData": null,
-          "lastError": null,
-          "lastLatencyMs": 299.2
-        },
-        "measured": {
-          "width": 228,
-          "height": 136
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-output-outlook",
-        "type": "outputNode",
-        "position": {
-          "x": 1056.1982406476075,
-          "y": 215.5813654102361
-        },
-        "data": {
-          "title": "Tabular Continuous Output Viewer",
-          "outputContent": "",
-          "content": "",
-          "status": "ready",
-          "format": "json",
-          "persistenceStrategy": "append",
-          "runsHistory": [
-            {
-              "runNumber": 1,
-              "timestamp": "10:38:42 AM",
-              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 1,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_001_1792386522269\",\n    \"subject\": \"Vendor Invoice #INV-2026-9041 (Payment Approval Required)\",\n    \"from\": \"ap-billing@cloudinfrastructures.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:04:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.\"\n  }\n}",
-              "tableData": {
-                "id": "msg_batch_001_1792386522269",
-                "from": "ap-billing@cloudinfrastructures.corp",
-                "subject": "Vendor Invoice #INV-2026-9041 (Payment Approval Required)",
-                "receivedDateTime": "2026-10-19T05:04:42.269Z",
-                "hasAttachments": true,
-                "bodyPreview": "Please find attached invoice INV-2026-9041 for Q3 compute infrastructure cluster. Total due: $48,500.00. Payment due in 30 days.",
-                "stream": "inbox",
-                "batchIndex": 1,
-                "batchTotal": 3
-              },
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 0,
-              "costUsd": 0,
-              "source": "outlook_mcp_stream",
-              "sourceNodeType": "outlook_mcp_stream",
-              "sourceNodeId": "node-trigger-outlook",
-              "sourceNodeName": "Outlook Ingress Watcher"
-            },
-            {
-              "runNumber": 2,
-              "timestamp": "10:38:42 AM",
-              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 2,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_002_1792386522269\",\n    \"subject\": \"Hardware Maintenance Statement #ST-8812 (Net 15)\",\n    \"from\": \"accounts@hardwarevaults.io\",\n    \"receivedDateTime\": \"2026-10-19T05:06:42.269Z\",\n    \"hasAttachments\": true,\n    \"bodyPreview\": \"Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.\"\n  }\n}",
-              "tableData": {
-                "id": "msg_batch_002_1792386522269",
-                "from": "accounts@hardwarevaults.io",
-                "subject": "Hardware Maintenance Statement #ST-8812 (Net 15)",
-                "receivedDateTime": "2026-10-19T05:06:42.269Z",
-                "hasAttachments": true,
-                "bodyPreview": "Enclosed is the statement for HSM vault tier security appliance lease renewal. Total amount: $14,500.00.",
-                "stream": "inbox",
-                "batchIndex": 2,
-                "batchTotal": 3
-              },
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 0,
-              "costUsd": 0,
-              "source": "outlook_mcp_stream",
-              "sourceNodeType": "outlook_mcp_stream",
-              "sourceNodeId": "node-trigger-outlook",
-              "sourceNodeName": "Outlook Ingress Watcher"
-            },
-            {
-              "runNumber": 3,
-              "timestamp": "10:38:43 AM",
-              "content": "{\n  \"source\": \"outlook_mcp_stream\",\n  \"stream\": \"inbox\",\n  \"batchIndex\": 3,\n  \"batchTotal\": 3,\n  \"item\": {\n    \"id\": \"msg_batch_003_1792386522269\",\n    \"subject\": \"Automated Dispatch Receipt #RCP-3304\",\n    \"from\": \"system-mailer@enterprise.corp\",\n    \"receivedDateTime\": \"2026-10-19T05:08:12.269Z\",\n    \"hasAttachments\": false,\n    \"bodyPreview\": \"Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.\"\n  }\n}",
-              "tableData": {
-                "id": "msg_batch_003_1792386522269",
-                "from": "system-mailer@enterprise.corp",
-                "subject": "Automated Dispatch Receipt #RCP-3304",
-                "receivedDateTime": "2026-10-19T05:08:12.269Z",
-                "hasAttachments": false,
-                "bodyPreview": "Automated notification: Batch data sync job completed with 1,420 records processed. No immediate action required.",
-                "stream": "inbox",
-                "batchIndex": 3,
-                "batchTotal": 3
-              },
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 0,
-              "costUsd": 0,
-              "source": "outlook_mcp_stream",
-              "sourceNodeType": "outlook_mcp_stream",
-              "sourceNodeId": "node-trigger-outlook",
-              "sourceNodeName": "Outlook Ingress Watcher"
-            },
-            {
-              "runNumber": 4,
-              "timestamp": "3:40:55 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 1154.2,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 5,
-              "timestamp": "3:40:55 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 1165.4,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 6,
-              "timestamp": "3:44:14 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 301.6,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 7,
-              "timestamp": "3:44:14 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 302.2,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 8,
-              "timestamp": "3:44:48 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 306.9,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 9,
-              "timestamp": "3:44:48 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 298.6,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 10,
-              "timestamp": "3:48:13 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 301.9,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 11,
-              "timestamp": "3:48:13 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 305.1,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 12,
-              "timestamp": "4:17:12 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 508.8,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 13,
-              "timestamp": "4:17:12 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 509.9,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 14,
-              "timestamp": "4:31:47 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 294.7,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            },
-            {
-              "runNumber": 15,
-              "timestamp": "4:31:47 PM",
-              "content": "",
-              "tableData": null,
-              "auditHash": null,
-              "tokens": 0,
-              "latencyMs": 299.2,
-              "costUsd": 0,
-              "source": "deterministic",
-              "sourceNodeType": "deterministic",
-              "sourceNodeId": "node-deterministic-outlook",
-              "sourceNodeName": "Mail & Attachment Extractor"
-            }
-          ],
-          "isExpanded": false,
-          "isDarkMode": false,
-          "sourceNodeType": "deterministic",
-          "sourceNodeId": "node-deterministic-outlook",
-          "sourceNodeName": "Mail & Attachment Extractor",
-          "observability": {
-            "totalTokens": 0,
-            "latencyMs": 299.2,
-            "note": "Deterministic 0-Token Pipeline"
-          },
-          "name": "Tabular Continuous Output Viewer"
-        },
-        "measured": {
-          "width": 140,
-          "height": 56
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-mcp-7201",
-        "type": "pillar",
-        "position": {
-          "x": 762.7050758663784,
-          "y": 90.38798870784261
-        },
-        "data": {
-          "pillarType": "mcp",
-          "title": "Outlook",
-          "name": "Outlook",
-          "displayName": "Outlook",
-          "subtitle": "OUTLOOK-API",
-          "description": "Official Enterprise Microsoft Outlook MCP with 39 categorized tools.",
-          "config": {
-            "connectionMode": "oauth",
-            "endpoint": "https://graph.microsoft.com/v1.0"
-          },
-          "tools": [
-            {
-              "name": "list_messages",
-              "displayName": "List Emails",
-              "category": "Mail Operations",
-              "type": "read",
-              "description": "Lists messages from the user mailbox or a specific folder (GET /me/messages).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "folder": {
-                    "type": "string",
-                    "description": "Folder name or ID (e.g., inbox, drafts, sentitems, archive)"
-                  },
-                  "limit": {
-                    "type": "number",
-                    "description": "Maximum number of messages to return (default: 10, max: 50)"
-                  },
-                  "filter": {
-                    "type": "string",
-                    "description": "OData filter query (e.g., isRead eq false or from/emailAddress/address eq 'exec@corp.com')"
-                  },
-                  "search": {
-                    "type": "string",
-                    "description": "KQL search keyword across subject, body, or sender"
-                  }
-                }
-              }
-            },
-            {
-              "name": "get_message",
-              "displayName": "Get Email Details",
-              "category": "Mail Operations",
-              "type": "read",
-              "description": "Retrieves complete message content, HTML body, internet headers, and recipient arrays (GET /me/messages/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The unique Microsoft Graph ID of the message"
-                  }
-                },
-                "required": [
-                  "messageId"
-                ]
-              }
-            },
-            {
-              "name": "search_messages",
-              "displayName": "Search Emails",
-              "category": "Mail Operations",
-              "type": "read",
-              "description": "Executes full-text keyword search across email subjects, sender addresses, and body text.",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "query": {
-                    "type": "string",
-                    "description": "Search term or keyword to search for"
-                  },
-                  "limit": {
-                    "type": "number",
-                    "description": "Maximum search results to return (default: 10)"
-                  }
-                },
-                "required": [
-                  "query"
-                ]
-              }
-            },
-            {
-              "name": "send_mail",
-              "displayName": "Send Email",
-              "category": "Mail Operations",
-              "type": "write",
-              "description": "Sends a new email message to recipients (POST /me/sendMail).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "to": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "List of recipient email addresses"
-                  },
-                  "cc": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Optional CC recipient email addresses"
-                  },
-                  "bcc": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Optional BCC recipient email addresses"
-                  },
-                  "subject": {
-                    "type": "string",
-                    "description": "Email subject line"
-                  },
-                  "body": {
-                    "type": "string",
-                    "description": "Email body text or HTML content"
-                  },
-                  "importance": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "normal",
-                      "high"
-                    ],
-                    "description": "Importance priority level"
-                  }
-                },
-                "required": [
-                  "to",
-                  "subject",
-                  "body"
-                ]
-              }
-            },
-            {
-              "name": "create_draft",
-              "displayName": "Create Draft Email",
-              "category": "Mail Operations",
-              "type": "write",
-              "description": "Composes a new draft message in the Drafts folder without sending (POST /me/messages).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "to": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Recipient email addresses"
-                  },
-                  "subject": {
-                    "type": "string",
-                    "description": "Draft subject line"
-                  },
-                  "body": {
-                    "type": "string",
-                    "description": "Draft body content"
-                  }
-                },
-                "required": [
-                  "subject",
-                  "body"
-                ]
-              }
-            },
-            {
-              "name": "update_draft",
-              "displayName": "Update Draft Email",
-              "category": "Mail Operations",
-              "type": "write",
-              "description": "Modifies subject, body, or recipients of an existing unsent draft message (PATCH /me/messages/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The draft message ID to update"
-                  },
-                  "to": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Updated recipient list"
-                  },
-                  "subject": {
-                    "type": "string",
-                    "description": "Updated subject line"
-                  },
-                  "body": {
-                    "type": "string",
-                    "description": "Updated body content"
-                  }
-                },
-                "required": [
-                  "messageId"
-                ]
-              }
-            },
-            {
-              "name": "send_draft",
-              "displayName": "Send Draft Email",
-              "category": "Mail Operations",
-              "type": "write",
-              "description": "Dispatches an existing draft message to its specified recipients (POST /me/messages/{id}/send).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The draft message ID to send"
-                  }
-                },
-                "required": [
-                  "messageId"
-                ]
-              }
-            },
-            {
-              "name": "reply_mail",
-              "displayName": "Reply to Email",
-              "category": "Mail Operations",
-              "type": "write",
-              "description": "Sends a reply message to the original sender of an email (POST /me/messages/{id}/reply).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The message ID being replied to"
-                  },
-                  "comment": {
-                    "type": "string",
-                    "description": "Reply text message to send"
-                  }
-                },
-                "required": [
-                  "messageId",
-                  "comment"
-                ]
-              }
-            },
-            {
-              "name": "reply_all_mail",
-              "displayName": "Reply All to Email",
-              "category": "Mail Operations",
-              "type": "write",
-              "description": "Sends a reply to all recipients and the sender of an email thread (POST /me/messages/{id}/replyAll).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The message ID being replied to"
-                  },
-                  "comment": {
-                    "type": "string",
-                    "description": "Reply text message to send to all recipients"
-                  }
-                },
-                "required": [
-                  "messageId",
-                  "comment"
-                ]
-              }
-            },
-            {
-              "name": "forward_mail",
-              "displayName": "Forward Email",
-              "category": "Mail Operations",
-              "type": "write",
-              "description": "Forwards an email to specified recipients with optional forwarding commentary (POST /me/messages/{id}/forward).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The message ID to forward"
-                  },
-                  "to": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Recipient email addresses to forward to"
-                  },
-                  "comment": {
-                    "type": "string",
-                    "description": "Optional forward message body commentary"
-                  }
-                },
-                "required": [
-                  "messageId",
-                  "to"
-                ]
-              }
-            },
-            {
-              "name": "delete_message",
-              "displayName": "Delete Email",
-              "category": "Mail Operations",
-              "type": "destructive",
-              "description": "Permanently deletes an email message or moves it to Deleted Items (DELETE /me/messages/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The message ID to delete"
-                  }
-                },
-                "required": [
-                  "messageId"
-                ]
-              }
-            },
-            {
-              "name": "move_message",
-              "displayName": "Move Email",
-              "category": "Mail Operations",
-              "type": "write",
-              "description": "Moves an email message to a specified destination mail folder (POST /me/messages/{id}/move).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The message ID to move"
-                  },
-                  "destinationId": {
-                    "type": "string",
-                    "description": "Destination folder ID or well-known name (e.g., archive, junkemail)"
-                  }
-                },
-                "required": [
-                  "messageId",
-                  "destinationId"
-                ]
-              }
-            },
-            {
-              "name": "list_mail_folders",
-              "displayName": "List Mail Folders",
-              "category": "Folders & Attachments",
-              "type": "read",
-              "description": "Lists all mail folders in the user mailbox (GET /me/mailFolders).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "includeHidden": {
-                    "type": "boolean",
-                    "description": "Whether to include system or hidden folders"
-                  }
-                }
-              }
-            },
-            {
-              "name": "create_mail_folder",
-              "displayName": "Create Mail Folder",
-              "category": "Folders & Attachments",
-              "type": "write",
-              "description": "Creates a new mail folder under root or a parent folder (POST /me/mailFolders).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "displayName": {
-                    "type": "string",
-                    "description": "Name of the new folder"
-                  },
-                  "parentFolderId": {
-                    "type": "string",
-                    "description": "Optional parent folder ID to create subfolder under"
-                  }
-                },
-                "required": [
-                  "displayName"
-                ]
-              }
-            },
-            {
-              "name": "list_message_attachments",
-              "displayName": "List Attachments",
-              "category": "Folders & Attachments",
-              "type": "read",
-              "description": "Retrieves all file attachments and metadata for a specific message (GET /me/messages/{id}/attachments).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The message ID to fetch attachments from"
-                  }
-                },
-                "required": [
-                  "messageId"
-                ]
-              }
-            },
-            {
-              "name": "read_attachment_content",
-              "displayName": "Read & Decode Attachment",
-              "category": "Folders & Attachments",
-              "type": "read",
-              "description": "Downloads and decodes base64 attachment content into clean, readable text or structured table data (GET /me/messages/{id}/attachments/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The message ID containing the attachment"
-                  },
-                  "attachmentId": {
-                    "type": "string",
-                    "description": "Optional specific attachment ID (or reads first file attachment if omitted)"
-                  }
-                },
-                "required": [
-                  "messageId"
-                ]
-              }
-            },
-            {
-              "name": "add_message_attachment",
-              "displayName": "Add Attachment",
-              "category": "Folders & Attachments",
-              "type": "write",
-              "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "messageId": {
-                    "type": "string",
-                    "description": "The draft message ID"
-                  },
-                  "name": {
-                    "type": "string",
-                    "description": "Filename of the attachment"
-                  },
-                  "contentType": {
-                    "type": "string",
-                    "description": "MIME type of the file (e.g., application/pdf)"
-                  },
-                  "contentBytes": {
-                    "type": "string",
-                    "description": "Base64-encoded file content"
-                  }
-                },
-                "required": [
-                  "messageId",
-                  "name",
-                  "contentBytes"
-                ]
-              }
-            },
-            {
-              "name": "list_events",
-              "displayName": "List Calendar Events",
-              "category": "Calendar & Scheduling",
-              "type": "read",
-              "description": "Lists upcoming calendar events from the default calendar (GET /me/events).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "limit": {
-                    "type": "number",
-                    "description": "Maximum events to return (default: 10)"
-                  },
-                  "filter": {
-                    "type": "string",
-                    "description": "OData filter query"
-                  }
-                }
-              }
-            },
-            {
-              "name": "get_calendar_view",
-              "displayName": "Get Calendar Schedule",
-              "category": "Calendar & Scheduling",
-              "type": "read",
-              "description": "Retrieves occurrences of events within a specific time window (GET /me/calendarView).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "startDateTime": {
-                    "type": "string",
-                    "description": "Start time ISO string (e.g., 2026-10-09T08:00:00Z)"
-                  },
-                  "endDateTime": {
-                    "type": "string",
-                    "description": "End time ISO string (e.g., 2026-10-09T18:00:00Z)"
-                  }
-                },
-                "required": [
-                  "startDateTime",
-                  "endDateTime"
-                ]
-              }
-            },
-            {
-              "name": "get_event",
-              "displayName": "Get Event Details",
-              "category": "Calendar & Scheduling",
-              "type": "read",
-              "description": "Retrieves complete event metadata, location, attendees, and Teams meeting links (GET /me/events/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "The unique Microsoft Graph ID of the event"
-                  }
-                },
-                "required": [
-                  "eventId"
-                ]
-              }
-            },
-            {
-              "name": "create_event",
-              "displayName": "Schedule Event",
-              "category": "Calendar & Scheduling",
-              "type": "write",
-              "description": "Schedules a calendar event with attendees, agenda, and optional online Teams meeting (POST /me/events).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "subject": {
-                    "type": "string",
-                    "description": "Event title / meeting subject"
-                  },
-                  "start": {
-                    "type": "string",
-                    "description": "Start time ISO string (e.g., 2026-10-10T14:00:00)"
-                  },
-                  "end": {
-                    "type": "string",
-                    "description": "End time ISO string (e.g., 2026-10-10T15:00:00)"
-                  },
-                  "timeZone": {
-                    "type": "string",
-                    "description": "Time zone identifier (default: UTC)"
-                  },
-                  "attendees": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "List of attendee email addresses"
-                  },
-                  "body": {
-                    "type": "string",
-                    "description": "Meeting description / agenda notes"
-                  },
-                  "location": {
-                    "type": "string",
-                    "description": "Physical meeting location or room"
-                  },
-                  "isOnlineMeeting": {
-                    "type": "boolean",
-                    "description": "Whether to generate a Microsoft Teams online meeting link"
-                  }
-                },
-                "required": [
-                  "subject",
-                  "start",
-                  "end"
-                ]
-              }
-            },
-            {
-              "name": "update_event",
-              "displayName": "Update Event",
-              "category": "Calendar & Scheduling",
-              "type": "write",
-              "description": "Modifies timing, attendees, location, or agenda of an existing event (PATCH /me/events/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "The event ID to update"
-                  },
-                  "subject": {
-                    "type": "string",
-                    "description": "Updated subject"
-                  },
-                  "start": {
-                    "type": "string",
-                    "description": "Updated start time ISO string"
-                  },
-                  "end": {
-                    "type": "string",
-                    "description": "Updated end time ISO string"
-                  },
-                  "body": {
-                    "type": "string",
-                    "description": "Updated agenda notes"
-                  },
-                  "location": {
-                    "type": "string",
-                    "description": "Updated location"
-                  }
-                },
-                "required": [
-                  "eventId"
-                ]
-              }
-            },
-            {
-              "name": "delete_event",
-              "displayName": "Cancel / Delete Event",
-              "category": "Calendar & Scheduling",
-              "type": "destructive",
-              "description": "Cancels a meeting and removes it from the calendar (DELETE /me/events/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "The event ID to cancel / delete"
-                  }
-                },
-                "required": [
-                  "eventId"
-                ]
-              }
-            },
-            {
-              "name": "accept_event",
-              "displayName": "Accept Meeting",
-              "category": "Calendar & Scheduling",
-              "type": "write",
-              "description": "Formally accepts a calendar meeting invitation (POST /me/events/{id}/accept).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "The event ID to accept"
-                  },
-                  "comment": {
-                    "type": "string",
-                    "description": "Optional acceptance response message"
-                  }
-                },
-                "required": [
-                  "eventId"
-                ]
-              }
-            },
-            {
-              "name": "decline_event",
-              "displayName": "Decline Meeting",
-              "category": "Calendar & Scheduling",
-              "type": "write",
-              "description": "Declines a calendar meeting invitation (POST /me/events/{id}/decline).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "The event ID to decline"
-                  },
-                  "comment": {
-                    "type": "string",
-                    "description": "Optional decline reasoning comment"
-                  }
-                },
-                "required": [
-                  "eventId"
-                ]
-              }
-            },
-            {
-              "name": "tentatively_accept_event",
-              "displayName": "Tentative Accept Meeting",
-              "category": "Calendar & Scheduling",
-              "type": "write",
-              "description": "Tentatively accepts a calendar meeting invitation (POST /me/events/{id}/tentativelyAccept).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "eventId": {
-                    "type": "string",
-                    "description": "The event ID to tentatively accept"
-                  },
-                  "comment": {
-                    "type": "string",
-                    "description": "Optional comment"
-                  }
-                },
-                "required": [
-                  "eventId"
-                ]
-              }
-            },
-            {
-              "name": "find_meeting_times",
-              "displayName": "Find Optimal Meeting Times",
-              "category": "Calendar & Scheduling",
-              "type": "read",
-              "description": "Checks free/busy availability of requested attendees and suggests optimal meeting slots (POST /me/findMeetingTimes).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "attendees": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Attendee email addresses to coordinate"
-                  },
-                  "meetingDurationMinutes": {
-                    "type": "number",
-                    "description": "Duration of the proposed meeting in minutes (default: 30)"
-                  },
-                  "startWindow": {
-                    "type": "string",
-                    "description": "Start boundary ISO string"
-                  },
-                  "endWindow": {
-                    "type": "string",
-                    "description": "End boundary ISO string"
-                  }
-                },
-                "required": [
-                  "attendees"
-                ]
-              }
-            },
-            {
-              "name": "list_contacts",
-              "displayName": "List Contacts",
-              "category": "Contacts & People",
-              "type": "read",
-              "description": "Lists contacts from the user personal address book (GET /me/contacts).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "limit": {
-                    "type": "number",
-                    "description": "Maximum contacts to return (default: 20)"
-                  },
-                  "filter": {
-                    "type": "string",
-                    "description": "OData filter expression"
-                  }
-                }
-              }
-            },
-            {
-              "name": "get_contact",
-              "displayName": "Get Contact Details",
-              "category": "Contacts & People",
-              "type": "read",
-              "description": "Retrieves complete profile, emails, phones, and job title of a contact (GET /me/contacts/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "contactId": {
-                    "type": "string",
-                    "description": "The unique contact ID"
-                  }
-                },
-                "required": [
-                  "contactId"
-                ]
-              }
-            },
-            {
-              "name": "create_contact",
-              "displayName": "Create Contact",
-              "category": "Contacts & People",
-              "type": "write",
-              "description": "Adds a new person to the address book (POST /me/contacts).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "givenName": {
-                    "type": "string",
-                    "description": "First name"
-                  },
-                  "surname": {
-                    "type": "string",
-                    "description": "Last name"
-                  },
-                  "emailAddress": {
-                    "type": "string",
-                    "description": "Primary email address"
-                  },
-                  "companyName": {
-                    "type": "string",
-                    "description": "Company or organization"
-                  },
-                  "jobTitle": {
-                    "type": "string",
-                    "description": "Job title"
-                  },
-                  "mobilePhone": {
-                    "type": "string",
-                    "description": "Mobile phone number"
-                  }
-                },
-                "required": [
-                  "givenName",
-                  "emailAddress"
-                ]
-              }
-            },
-            {
-              "name": "update_contact",
-              "displayName": "Update Contact",
-              "category": "Contacts & People",
-              "type": "write",
-              "description": "Updates information for an existing contact (PATCH /me/contacts/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "contactId": {
-                    "type": "string",
-                    "description": "The contact ID to update"
-                  },
-                  "givenName": {
-                    "type": "string",
-                    "description": "Updated first name"
-                  },
-                  "surname": {
-                    "type": "string",
-                    "description": "Updated last name"
-                  },
-                  "emailAddress": {
-                    "type": "string",
-                    "description": "Updated email address"
-                  },
-                  "companyName": {
-                    "type": "string",
-                    "description": "Updated company"
-                  },
-                  "jobTitle": {
-                    "type": "string",
-                    "description": "Updated title"
-                  }
-                },
-                "required": [
-                  "contactId"
-                ]
-              }
-            },
-            {
-              "name": "delete_contact",
-              "displayName": "Delete Contact",
-              "category": "Contacts & People",
-              "type": "destructive",
-              "description": "Removes a contact from personal address book (DELETE /me/contacts/{id}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "contactId": {
-                    "type": "string",
-                    "description": "The contact ID to remove"
-                  }
-                },
-                "required": [
-                  "contactId"
-                ]
-              }
-            },
-            {
-              "name": "list_todo_lists",
-              "displayName": "List To Do Lists",
-              "category": "Tasks & To Do",
-              "type": "read",
-              "description": "Enumerates Microsoft To Do task lists and folders (GET /me/todo/lists).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {}
-              }
-            },
-            {
-              "name": "list_tasks",
-              "displayName": "List Tasks",
-              "category": "Tasks & To Do",
-              "type": "read",
-              "description": "Lists tasks within a specific To Do list (GET /me/todo/lists/{id}/tasks).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "listId": {
-                    "type": "string",
-                    "description": "The To Do list ID (or default list if omitted)"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "notStarted",
-                      "inProgress",
-                      "completed"
-                    ],
-                    "description": "Filter tasks by status"
-                  }
-                }
-              }
-            },
-            {
-              "name": "create_task",
-              "displayName": "Create Task",
-              "category": "Tasks & To Do",
-              "type": "write",
-              "description": "Creates a new task in Microsoft To Do (POST /me/todo/lists/{id}/tasks).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "listId": {
-                    "type": "string",
-                    "description": "Optional list ID (uses default task list if omitted)"
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "Task title / description"
-                  },
-                  "dueDateTime": {
-                    "type": "string",
-                    "description": "Due date ISO string (e.g., 2026-10-15T18:00:00Z)"
-                  },
-                  "importance": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "normal",
-                      "high"
-                    ],
-                    "description": "Task importance"
-                  },
-                  "body": {
-                    "type": "string",
-                    "description": "Task notes or checklist details"
-                  }
-                },
-                "required": [
-                  "title"
-                ]
-              }
-            },
-            {
-              "name": "update_task",
-              "displayName": "Update Task",
-              "category": "Tasks & To Do",
-              "type": "write",
-              "description": "Updates task title, completion status, or due date (PATCH /me/todo/lists/{id}/tasks/{taskId}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "listId": {
-                    "type": "string",
-                    "description": "The list ID containing the task"
-                  },
-                  "taskId": {
-                    "type": "string",
-                    "description": "The task ID to update"
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "Updated title"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "notStarted",
-                      "inProgress",
-                      "completed"
-                    ],
-                    "description": "Updated status"
-                  },
-                  "dueDateTime": {
-                    "type": "string",
-                    "description": "Updated due date ISO string"
-                  }
-                },
-                "required": [
-                  "taskId"
-                ]
-              }
-            },
-            {
-              "name": "delete_task",
-              "displayName": "Delete Task",
-              "category": "Tasks & To Do",
-              "type": "destructive",
-              "description": "Permanently deletes a task from Microsoft To Do (DELETE /me/todo/lists/{id}/tasks/{taskId}).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "listId": {
-                    "type": "string",
-                    "description": "The list ID containing the task"
-                  },
-                  "taskId": {
-                    "type": "string",
-                    "description": "The task ID to remove"
-                  }
-                },
-                "required": [
-                  "taskId"
-                ]
-              }
-            },
-            {
-              "name": "list_message_rules",
-              "displayName": "List Inbox Rules",
-              "category": "Mailbox Settings",
-              "type": "read",
-              "description": "Lists automated inbox sorting, forwarding, and categorization rules (GET /me/mailFolders/inbox/messageRules).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {}
-              }
-            },
-            {
-              "name": "get_mailbox_settings",
-              "displayName": "Get Mailbox Settings",
-              "category": "Mailbox Settings",
-              "type": "read",
-              "description": "Inspects user timezone, working hours, language, and automatic Out-of-Office (OOO) status (GET /me/mailboxSettings).",
-              "inputSchema": {
-                "type": "object",
-                "properties": {}
-              }
-            }
-          ],
-          "basis": null,
-          "serviceName": "Outlook",
-          "transport": "outlook-api",
-          "serverUrl": "",
-          "isRealMcp": true,
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
       }
     ],
     "edges": [
       {
-        "id": "edge-trigger-to-agent",
-        "source": "node-trigger-outlook",
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "node-trigger-4690",
         "sourceHandle": "trigger-out",
-        "target": "agent-core",
-        "targetHandle": "tools-in",
-        "type": "deletable",
-        "animated": false,
+        "target": "agent-core-2073",
+        "targetHandle": "agent-in",
         "style": {
           "stroke": "#00A3A6",
           "strokeWidth": 2.2,
-          "strokeDasharray": "4 4",
-          "filter": "none"
-        }
-      },
-      {
-        "id": "edge-model-outlook",
-        "source": "node-model-outlook",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "model-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00338D",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-mcp-gw-outlook",
-        "source": "node-mcp-gw-outlook",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "mcp-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00A3A6",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-skill-outlook",
-        "source": "node-skill-outlook",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "skill-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#6D2077",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-agent-to-deterministic",
-        "source": "agent-core",
-        "sourceHandle": "out",
-        "target": "node-deterministic-outlook",
-        "targetHandle": "in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#EAAA00",
-          "strokeWidth": 2,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-deterministic-to-output",
-        "source": "node-deterministic-outlook",
-        "sourceHandle": "out",
-        "target": "node-output-outlook",
-        "targetHandle": "data-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#10B981",
-          "strokeWidth": 2.2,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-node-mcp-7201-to-node-mcp-gw-outlook",
-        "source": "node-mcp-7201",
-        "sourceHandle": "out",
-        "target": "node-mcp-gw-outlook",
-        "targetHandle": "mcp-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00A3A6",
-          "strokeWidth": 2,
-          "strokeDasharray": "4 4"
-        }
+          "strokeDasharray": "5 4"
+        },
+        "id": "xy-edge__node-trigger-4690trigger-out-agent-core-2073agent-in"
       }
     ],
     "activeUseCase": {
-      "id": "uc-outlook-stream",
-      "name": "Outlook Mail & Attachment Intelligence",
-      "description": "Continuous MCP stream monitoring (Inbox, Sent Items, Calendar), attachment decoding, and discrete tabular extraction.",
+      "id": "uc-wf-1792407757415-ddcww",
+      "name": "test2",
+      "description": "",
       "framework": {
-        "id": "microsoft-adk",
-        "name": "Microsoft ADK",
-        "subtitle": "Microsoft Semantic Kernel & Enterprise Agent Framework",
-        "description": "Institutional-grade enterprise agent framework with plugin pipelines, native memory filters, and Copilot integration.",
-        "defaultModel": "gpt-4o",
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
         "exportExtension": ".py",
-        "category": "Enterprise"
+        "category": "SDK"
       },
       "agent": {
-        "prompt": "You are an institutional Mail & Attachment Intelligence Agent. Ingest incoming emails and attachments from Outlook MCP streams. Evaluate relevance, extract structured metadata, and output standardized records.",
-        "temperature": 0.1,
+        "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+        "temperature": 0.2,
         "topP": 0.95
       }
     },
@@ -7446,5 +5936,5 @@
       ]
     }
   ],
-  "syncedAt": 1792408332217
+  "syncedAt": 1792418184759
 }

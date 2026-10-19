@@ -92,7 +92,7 @@ export function createMeetingIntelligenceWorkflow() {
     {
       id: 'node-model-1',
       type: 'pillar',
-      position: { x: 595, y: -20 },
+      position: { x: 564, y: 55 },
       data: {
         pillarType: 'model',
         name: 'Gemini 2.0 Flash',
@@ -127,7 +127,7 @@ export function createMeetingIntelligenceWorkflow() {
     {
       id: 'node-policy-1',
       type: 'pillar',
-      position: { x: 410, y: 440 },
+      position: { x: 380, y: 440 },
       data: {
         pillarType: 'policies',
         name: 'PII Redactor',
@@ -138,7 +138,7 @@ export function createMeetingIntelligenceWorkflow() {
     {
       id: 'node-memory-1',
       type: 'pillar',
-      position: { x: 595, y: 440 },
+      position: { x: 564, y: 440 },
       data: {
         pillarType: 'memory',
         name: 'Episodic Sync Memory',
@@ -149,7 +149,7 @@ export function createMeetingIntelligenceWorkflow() {
     {
       id: 'node-skill-1',
       type: 'pillar',
-      position: { x: 780, y: 440 },
+      position: { x: 750, y: 440 },
       data: {
         pillarType: 'skills',
         name: 'Executive Summarizer',
@@ -160,7 +160,7 @@ export function createMeetingIntelligenceWorkflow() {
     {
       id: 'node-output-1',
       type: 'outputNode',
-      position: { x: 800, y: 260 },
+      position: { x: 790, y: 207 },
       data: {
         title: 'Meeting Intelligence Output',
         content: '',
@@ -172,7 +172,7 @@ export function createMeetingIntelligenceWorkflow() {
     {
       id: 'node-ingest-1',
       type: 'ingestionNode',
-      position: { x: 410, y: -20 },
+      position: { x: 474, y: 55 },
       data: {
         title: 'Data & Audio Ingestion',
         content: '',
@@ -330,7 +330,7 @@ export function createOutlookStreamWorkflow() {
     {
       id: 'node-model-outlook',
       type: 'pillar',
-      position: { x: 595, y: -20 },
+      position: { x: 564, y: -20 },
       data: {
         pillarType: 'model',
         name: 'Claude 3.5 Sonnet',
@@ -374,7 +374,7 @@ export function createOutlookStreamWorkflow() {
     {
       id: 'node-skill-outlook',
       type: 'pillar',
-      position: { x: 780, y: 440 },
+      position: { x: 750, y: 440 },
       data: {
         pillarType: 'skills',
         name: 'Attachment & Data Extractor',

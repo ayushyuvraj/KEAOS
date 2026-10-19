@@ -633,9 +633,11 @@ export default function NodeCatalogPanel({
     };
     window.addEventListener('keaos:select-catalog-category', handleSelectCategoryEvent);
     window.addEventListener('keaos:open-node-catalog', handleSelectCategoryEvent);
+    window.addEventListener('keaos:open-slot-catalog', handleSelectCategoryEvent);
     return () => {
       window.removeEventListener('keaos:select-catalog-category', handleSelectCategoryEvent);
       window.removeEventListener('keaos:open-node-catalog', handleSelectCategoryEvent);
+      window.removeEventListener('keaos:open-slot-catalog', handleSelectCategoryEvent);
     };
   }, []);
 

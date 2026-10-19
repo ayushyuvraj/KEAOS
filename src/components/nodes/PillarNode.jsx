@@ -233,7 +233,7 @@ export default function PillarNode({ id, data, selected }) {
   let dropdownPlacement = isTopPillar ? 'bottom' : 'top';
 
   const renderPillarLabel = (isTop) => (
-    <div className="w-full max-w-[140px] px-1 text-center pointer-events-auto select-none">
+    <div className="w-full max-w-[130px] px-1 text-center pointer-events-auto select-none">
       <span className={`text-[11px] font-semibold tracking-tight block truncate ${
         isDeactivated
           ? 'line-through text-slate-500'
