@@ -29,6 +29,11 @@ For complete architectural specifications, see **`AGENTS.md`** and **`src/design
 6. **Strict Browser Origin Invariant (127.0.0.1 Mandate)**:
    - When inspecting or testing in the browser, always use `http://127.0.0.1:5173/`. NEVER use `http://localhost:5173/`.
    - Browser storage is partitioned per origin; using 127.0.0.1 guarantees visual and state parity with the user.
+7. **Strict Universal Workflow Execution Invariants (Triple-Mandate)**:
+   - **Universal Glowing Visual Parity**: All nodes triggered during execution MUST visibly illuminate (Trigger sonar wave, Pillar disc scale-110 & halo ring, Agent Core ring-4 & spinning brain, Deterministic Box amber glow, Output Node emerald halo, and active dashed wires). Pacing must include 250–380ms delays so execution is human-observable.
+   - **Zero Mandatory File/MP3 Ingestion**: Workflows NEVER require an MP3, audio file, or meeting transcript to execute.
+   - **Absolute Zero Presets & Pure Real Data**: Never hardcode dummy presets, canned $48,500.00 invoices, fake webhooks, or mock proposal buttons. Always use authentic user inputs or live MCP tools.
+   - **Drawer Stays Closed**: Hitting Execute must keep the bottom drawer collapsed at 40px so the visual canvas is unobstructed.
 
 
 ---

@@ -95,7 +95,8 @@ export default function OutputDisplayNode({ id, data, selected }) {
   const contentAreaRef = useRef(null);
   const exportDropdownRef = useRef(null);
 
-  const status = data.status || (data.outputContent ? 'ready' : 'idle');
+  const isExecuting = Boolean(data.isExecuting) || data.status === 'generating';
+  const status = data.status || (isExecuting ? 'generating' : (data.outputContent ? 'ready' : 'idle'));
   const outputContent = data.outputContent || '';
   const auditHash = data.auditHash || null;
   const observability = data.observability || {
@@ -378,15 +379,17 @@ export default function OutputDisplayNode({ id, data, selected }) {
           {/* Morphing Circular Button */}
           <button
             onClick={toggleExpand}
-            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center transition-colors duration-150 cursor-pointer shadow-lg active:scale-95 ${
-              selected 
-                ? 'ring-4 ring-[#10B981]/40 border-2 border-[#10B981]' 
-                : 'border border-slate-300 dark:border-slate-700'
+            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer shadow-lg active:scale-95 ${
+              isExecuting
+                ? 'ring-4 ring-[#10B981]/50 border-2 border-[#10B981] shadow-[0_0_24px_rgba(16,185,129,0.55)] scale-105'
+                : selected 
+                  ? 'ring-4 ring-[#10B981]/40 border-2 border-[#10B981]' 
+                  : 'border border-slate-300 dark:border-slate-700'
             } ${
               status === 'ready' 
                 ? 'bg-gradient-to-br from-[#10B981] to-[#047857] text-white shadow-emerald-500/30' 
-                : status === 'generating'
-                  ? 'bg-[#0091DA] text-white animate-pulse'
+                : isExecuting
+                  ? 'bg-[#10B981] text-white animate-pulse'
                   : isDarkMode ? 'bg-[#151821] text-slate-300' : 'bg-white text-slate-700'
             }`}
             title="Click to expand Output Viewer & Multi-Format Exporter"
@@ -444,14 +447,16 @@ export default function OutputDisplayNode({ id, data, selected }) {
         minHeight: '240px',
         borderTop: '3px solid #10B981' // Distinctive Emerald Green Output Taxonomy Accent
       }}
-      className={`nowheel relative flex flex-col rounded-none border transition-colors duration-150 shadow-2xl select-text ${
+      className={`nowheel relative flex flex-col rounded-none border transition-all duration-200 shadow-2xl select-text ${
         isDeactivated ? 'opacity-40 grayscale' : 'opacity-100'
       } ${
-        selected 
-          ? 'ring-2 ring-[#10B981] border-[#10B981]' 
-          : isDarkMode 
-            ? 'bg-[#151821] border-[#2E3346]' 
-            : 'bg-white border-slate-300'
+        isExecuting
+          ? 'ring-4 ring-[#10B981]/50 border-[#10B981] shadow-[0_0_32px_rgba(16,185,129,0.4)]'
+          : selected 
+            ? 'ring-2 ring-[#10B981] border-[#10B981]' 
+            : isDarkMode 
+              ? 'bg-[#151821] border-[#2E3346]' 
+              : 'bg-white border-slate-300'
       }`}
     >
       {/* Floating Micro-Toolbar on Hover */}

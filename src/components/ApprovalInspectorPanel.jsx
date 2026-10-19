@@ -39,25 +39,15 @@ export default function ApprovalInspectorPanel({
 
   // Simulator State
   const [simMode, setSimMode] = useState('standard'); // 'standard' | 'edit' | 'steer'
+  const upstreamPayload = node?.data?.pendingPayload || node?.data?.upstreamPayload;
   const [samplePayloadText, setSamplePayloadText] = useState(() => {
-    return JSON.stringify({
-      action: 'release_funds',
-      beneficiary: 'Supplier Acme Corp',
-      amountUsd: 48500.00,
-      contractId: 'CTR-2026-992'
-    }, null, 2);
+    return upstreamPayload ? JSON.stringify(upstreamPayload, null, 2) : '{\n  "action": "execute",\n  "status": "pending_approval"\n}';
   });
   const [modifiedPayloadText, setModifiedPayloadText] = useState(() => {
-    return JSON.stringify({
-      action: 'release_funds',
-      beneficiary: 'Supplier Acme Corp',
-      amountUsd: 42000.00, // modified amount
-      contractId: 'CTR-2026-992',
-      adjustedBy: 'Compliance Officer'
-    }, null, 2);
+    return upstreamPayload ? JSON.stringify(upstreamPayload, null, 2) : '{\n  "action": "execute",\n  "status": "pending_approval"\n}';
   });
   const [steeringFeedbackText, setSteeringFeedbackText] = useState(
-    'Please reduce budget cap by 10% and verify supplier payment terms.'
+    'Please refine output based on policy specifications.'
   );
   const [simulationResult, setSimulationResult] = useState(null);
 

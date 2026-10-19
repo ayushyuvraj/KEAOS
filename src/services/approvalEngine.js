@@ -54,7 +54,7 @@ export function simulateDecision(decision, { reviewerRole, instructions, payload
     if (trimmedOrig && ((trimmedOrig.startsWith('{') && trimmedOrig.endsWith('}')) || (trimmedOrig.startsWith('[') && trimmedOrig.endsWith(']')))) {
       try { parsedOriginal = JSON.parse(trimmedOrig); } catch { parsedOriginal = trimmedOrig; }
     } else {
-      parsedOriginal = trimmedOrig || { status: 'pending_review', sample: true };
+      parsedOriginal = trimmedOrig || { status: 'pending_review' };
     }
 
     if (decision === 'edit_and_approve') {

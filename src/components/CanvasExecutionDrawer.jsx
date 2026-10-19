@@ -1420,7 +1420,7 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
       alert('Please finalize and apply code to this box first using the Co-Pilot.');
       return;
     }
-    const inputPayload = node.data?.upstreamPayload || node.data?.currentInput || node.data?.manualInput || { sample: 'Test input' };
+    const inputPayload = node.data?.upstreamPayload || node.data?.currentInput || node.data?.manualInput || {};
 
     setIsDeterministicChatRunning(true);
     setCurrentDeterministicStep({

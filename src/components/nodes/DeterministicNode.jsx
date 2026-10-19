@@ -155,7 +155,7 @@ export default function DeterministicNode({ id, data, selected }) {
         || data?.currentInput 
         || data?.manualInput 
         || data?.uploadedData 
-        || { sampleA: 10, sampleB: 20, tokens: 1250, latencyMs: 140 };
+        || {};
 
       const [res] = await Promise.all([
         executeDeterministicTask({

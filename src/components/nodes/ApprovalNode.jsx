@@ -16,10 +16,10 @@ export default function ApprovalNode({ id, data, selected }) {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [reviewTab, setReviewTab] = useState('preview'); // 'preview' | 'edit' | 'steer'
   const [currentPayload, setCurrentPayload] = useState(() => {
-    return data?.pendingPayload || data?.upstreamPayload || { action: 'sample_proposal', amount: 45000 };
+    return data?.pendingPayload || data?.upstreamPayload || null;
   });
   const [editablePayloadText, setEditablePayloadText] = useState(() => {
-    return JSON.stringify(currentPayload, null, 2);
+    return currentPayload ? JSON.stringify(currentPayload, null, 2) : '';
   });
   const [steeringFeedback, setSteeringFeedback] = useState('');
   const [currentStatus, setCurrentStatus] = useState(data?.approvalStatus || 'idle');

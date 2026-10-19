@@ -34,4 +34,10 @@ Read `AGENTS.md` and `src/design.md` for full specifications.
 - All browser subagents and tools MUST exclusively navigate to `http://127.0.0.1:5173/`.
 - NEVER use `http://localhost:5173/`. Browsers isolate localStorage per origin; using 127.0.0.1 ensures the agent sees the exact same storage and state as the user.
 
+## 7. Strict Universal Workflow Execution Invariants (Triple-Mandate)
+- **Universal Glowing Visual Parity**: When ANY workflow executes, every triggered node MUST visibly illuminate in real time (Trigger sonar pulse, Pillar discs scale-110 & glow ring, Agent Core ring-4 & spinning brain, Deterministic Box amber glow, Output Node emerald halo, and active dashed wires). Use 250–380ms delays between steps so execution is human-observable.
+- **Zero Mandatory File/MP3 Ingestion**: Workflows NEVER require an MP3, audio file, or meeting transcript to execute. Can execute via triggers or direct Execute button.
+- **Absolute Zero Presets & Real Data Only**: Never hardcode dummy presets, canned $48,500.00 invoices, fake webhooks, or mock proposal buttons. Always use authentic user inputs or live MCP tools.
+- **Drawer Stays Closed**: Hitting Execute must keep the bottom drawer collapsed at 40px so the visual canvas is unobstructed.
+
 

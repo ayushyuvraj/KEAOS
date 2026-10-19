@@ -17,6 +17,89 @@
   },
   "workflows": [
     {
+      "id": "wf-1792407757415-ddcww",
+      "name": "test2",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792407757415-ddcww",
+        "name": "test2",
+        "description": "",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "agent-core-2073",
+          "type": "agentCore",
+          "position": {
+            "x": 592.9405930070848,
+            "y": 587.0911752858722
+          },
+          "data": {
+            "name": "Autonomous Agent #1",
+            "framework": {
+              "id": "google-adk",
+              "name": "Google ADK",
+              "subtitle": "Google Agent Development Kit & GenAI SDK",
+              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+              "defaultModel": "gemini-2.0-flash",
+              "exportExtension": ".py",
+              "category": "SDK"
+            },
+            "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+            "temperature": 0.2,
+            "topP": 0.95
+          },
+          "measured": {
+            "width": 228,
+            "height": 172
+          },
+          "selected": false,
+          "dragging": false
+        }
+      ],
+      "edges": [],
+      "createdAt": 1792407757415,
+      "updatedAt": 1792408120358,
+      "isStarred": false,
+      "isLocked": false,
+      "isWorkflowLocked": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 1,
+        "agentCount": 1,
+        "mcpCount": 0,
+        "modelCount": 0,
+        "skillCount": 0,
+        "toolCount": 0,
+        "policyCount": 0,
+        "hasAudit": false
+      }
+    },
+    {
       "id": "wf-1792404488807-5lsma",
       "name": "Untitled Workflow",
       "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
@@ -3061,15 +3144,15 @@
               "tools": 1
             },
             "isDarkMode": false,
-            "lastOutput": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-            "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf",
+            "lastOutput": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+            "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319",
             "observability": {
-              "totalTokens": 373,
-              "latencyMs": 4016,
+              "totalTokens": 417,
+              "latencyMs": 4986,
               "modelUsed": "openai (gpt-4o-mini)",
               "framework": "Microsoft ADK"
             },
-            "costUsd": 0.00016
+            "costUsd": 0.00018
           },
           "measured": {
             "width": 228,
@@ -3120,13 +3203,14 @@
               "auditAllActions": true,
               "disabledTools": []
             },
-            "isDarkMode": false
+            "isDarkMode": false,
+            "disabledTools": []
           },
           "measured": {
             "width": 140,
             "height": 60
           },
-          "selected": false,
+          "selected": true,
           "dragging": false
         },
         {
@@ -3170,41 +3254,41 @@
             "isFrozen": true,
             "isDarkMode": false,
             "lastUpstreamReceived": {
-              "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-              "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-              "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-              "tokens": 373,
-              "latencyMs": 4016,
+              "output": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+              "data": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+              "text": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+              "tokens": 417,
+              "latencyMs": 4986,
               "observability": {
-                "totalTokens": 373,
-                "latencyMs": 4016,
+                "totalTokens": 417,
+                "latencyMs": 4986,
                 "modelUsed": "openai (gpt-4o-mini)",
                 "framework": "Microsoft ADK"
               },
-              "costUsd": 0.00016,
-              "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf"
+              "costUsd": 0.00018,
+              "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319"
             },
             "upstreamPayload": {
-              "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-              "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-              "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-              "tokens": 373,
-              "latencyMs": 4016,
+              "output": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+              "data": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+              "text": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+              "tokens": 417,
+              "latencyMs": 4986,
               "observability": {
-                "totalTokens": 373,
-                "latencyMs": 4016,
+                "totalTokens": 417,
+                "latencyMs": 4986,
                 "modelUsed": "openai (gpt-4o-mini)",
                 "framework": "Microsoft ADK"
               },
-              "costUsd": 0.00016,
-              "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf"
+              "costUsd": 0.00018,
+              "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319"
             },
-            "lastUpstreamTime": 1792406831373,
+            "lastUpstreamTime": 1792407706172,
             "isRunning": false,
             "lastOutput": null,
             "lastTableData": null,
             "lastError": null,
-            "lastLatencyMs": 509.9
+            "lastLatencyMs": 299.2
           },
           "measured": {
             "width": 228,
@@ -3439,24 +3523,53 @@
                 "sourceNodeType": "deterministic",
                 "sourceNodeId": "node-deterministic-outlook",
                 "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 14,
+                "timestamp": "4:31:47 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 294.7,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              },
+              {
+                "runNumber": 15,
+                "timestamp": "4:31:47 PM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 299.2,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
               }
             ],
-            "isExpanded": false,
+            "isExpanded": true,
             "isDarkMode": false,
             "sourceNodeType": "deterministic",
             "sourceNodeId": "node-deterministic-outlook",
             "sourceNodeName": "Mail & Attachment Extractor",
             "observability": {
               "totalTokens": 0,
-              "latencyMs": 509.9,
+              "latencyMs": 299.2,
               "note": "Deterministic 0-Token Pipeline"
-            }
+            },
+            "name": "Tabular Continuous Output Viewer"
           },
           "measured": {
-            "width": 140,
-            "height": 56
+            "width": 520,
+            "height": 420
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
         },
         {
@@ -4615,7 +4728,7 @@
         }
       ],
       "createdAt": 1792382477311,
-      "updatedAt": 1792406842880,
+      "updatedAt": 1792408254503,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -4693,15 +4806,15 @@
             "tools": 1
           },
           "isDarkMode": false,
-          "lastOutput": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-          "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf",
+          "lastOutput": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+          "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319",
           "observability": {
-            "totalTokens": 373,
-            "latencyMs": 4016,
+            "totalTokens": 417,
+            "latencyMs": 4986,
             "modelUsed": "openai (gpt-4o-mini)",
             "framework": "Microsoft ADK"
           },
-          "costUsd": 0.00016
+          "costUsd": 0.00018
         },
         "measured": {
           "width": 228,
@@ -4752,13 +4865,14 @@
             "auditAllActions": true,
             "disabledTools": []
           },
-          "isDarkMode": false
+          "isDarkMode": false,
+          "disabledTools": []
         },
         "measured": {
           "width": 140,
           "height": 60
         },
-        "selected": false,
+        "selected": true,
         "dragging": false
       },
       {
@@ -4802,41 +4916,41 @@
           "isFrozen": true,
           "isDarkMode": false,
           "lastUpstreamReceived": {
-            "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-            "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-            "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-            "tokens": 373,
-            "latencyMs": 4016,
+            "output": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+            "data": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+            "text": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+            "tokens": 417,
+            "latencyMs": 4986,
             "observability": {
-              "totalTokens": 373,
-              "latencyMs": 4016,
+              "totalTokens": 417,
+              "latencyMs": 4986,
               "modelUsed": "openai (gpt-4o-mini)",
               "framework": "Microsoft ADK"
             },
-            "costUsd": 0.00016,
-            "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf"
+            "costUsd": 0.00018,
+            "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319"
           },
           "upstreamPayload": {
-            "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-            "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-            "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T10:47:06.671Z  \n\n---\n\n### Key Findings\n\n- **No email content or attachments were provided for analysis.**  \n  As a result, there are no structured metadata or relevant information to extract.\n\n---\n\n### Action Items\n\n1. **Await Incoming Emails:** Continue monitoring for new emails and attachments from the Outlook MCP streams.\n2. **Process New Data:** Once new emails or attachments are received, evaluate their relevance and extract structured metadata as per the established protocols.\n3. **Report Findings:** Ensure that any relevant findings are documented and formatted clearly for downstream agents.\n\n---\n\n### Next Steps\n\n- Maintain readiness to process incoming data.\n- Ensure that the system is functioning correctly to capture and analyze future emails and attachments.",
-            "tokens": 373,
-            "latencyMs": 4016,
+            "output": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+            "data": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+            "text": "### Email Ingestion Report\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-19T11:01:40.475Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Available:** The current trigger does not contain any email or attachment data to evaluate.\n- **Awaiting Incoming Data:** The system is set to monitor for new emails and attachments, but none have been processed at this time.\n\n---\n\n### Action Items\n\n1. **Monitor for Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Prepare for Data Extraction:** Once new data is available, be ready to extract structured metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n\n3. **Report Findings:** Upon receiving new emails, format the findings clearly with headers, key findings, and action items as per the established protocol.\n\n---\n\n### Next Steps\n\n- Await the next trigger event with actual email content for processing.",
+            "tokens": 417,
+            "latencyMs": 4986,
             "observability": {
-              "totalTokens": 373,
-              "latencyMs": 4016,
+              "totalTokens": 417,
+              "latencyMs": 4986,
               "modelUsed": "openai (gpt-4o-mini)",
               "framework": "Microsoft ADK"
             },
-            "costUsd": 0.00016,
-            "auditHash": "9677dc3349644b003a5153bfeff56985092f1e75d3c188a0d62f1eec0b8614cf"
+            "costUsd": 0.00018,
+            "auditHash": "e7978f043738c8d361a30e6873f98e274d8d7b761b6417fc7d835bf505ed2319"
           },
-          "lastUpstreamTime": 1792406831373,
+          "lastUpstreamTime": 1792407706172,
           "isRunning": false,
           "lastOutput": null,
           "lastTableData": null,
           "lastError": null,
-          "lastLatencyMs": 509.9
+          "lastLatencyMs": 299.2
         },
         "measured": {
           "width": 228,
@@ -5071,6 +5185,34 @@
               "sourceNodeType": "deterministic",
               "sourceNodeId": "node-deterministic-outlook",
               "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 14,
+              "timestamp": "4:31:47 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 294.7,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            },
+            {
+              "runNumber": 15,
+              "timestamp": "4:31:47 PM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 299.2,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
             }
           ],
           "isExpanded": false,
@@ -5080,15 +5222,16 @@
           "sourceNodeName": "Mail & Attachment Extractor",
           "observability": {
             "totalTokens": 0,
-            "latencyMs": 509.9,
+            "latencyMs": 299.2,
             "note": "Deterministic 0-Token Pipeline"
-          }
+          },
+          "name": "Tabular Continuous Output Viewer"
         },
         "measured": {
-          "width": 140,
-          "height": 56
+          "width": 520,
+          "height": 420
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       },
       {
@@ -7303,5 +7446,5 @@
       ]
     }
   ],
-  "syncedAt": 1792406843699
+  "syncedAt": 1792408255327
 }

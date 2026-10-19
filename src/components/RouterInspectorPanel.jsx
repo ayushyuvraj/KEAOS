@@ -30,12 +30,9 @@ export default function RouterInspectorPanel({
   const falseLabel = nodeData.falseLabel ?? 'False / Default';
 
   // Live Rule Tester State
+  const upstreamPayload = nodeData?.upstreamPayload || nodeData?.currentInput;
   const [testPayloadText, setTestPayloadText] = useState(() => {
-    return JSON.stringify({
-      status: 'approved',
-      amount: 45000,
-      riskScore: 0.85
-    }, null, 2);
+    return upstreamPayload ? JSON.stringify(upstreamPayload, null, 2) : '{\n  "status": "approved"\n}';
   });
   const [testResult, setTestResult] = useState(null);
 
