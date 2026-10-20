@@ -34,6 +34,10 @@ For complete architectural specifications, see **`AGENTS.md`** and **`src/design
    - **Zero Mandatory File/MP3 Ingestion**: Workflows NEVER require an MP3, audio file, or meeting transcript to execute.
    - **Absolute Zero Presets & Pure Real Data**: Never hardcode dummy presets, canned $48,500.00 invoices, fake webhooks, or mock proposal buttons. Always use authentic user inputs or live MCP tools.
    - **Drawer Stays Closed**: Hitting Execute must keep the bottom drawer collapsed at 40px so the visual canvas is unobstructed.
+8. **Strict Workflow Preservation, Sandbox Isolation & Locked Workflow Immutability**:
+   - **Never Alter Existing Workflows**: Never modify, overwrite, rename, or delete any existing user-created workflow.
+   - **Diagnostic Isolation via Sandbox Duplication**: When asked to check, diagnose, or experiment by taking control of the browser, ALWAYS create a duplicate copy of the target workflow. Conduct all changes and evaluations strictly in that duplicate. Delete that duplicate when done and satisfied, keeping in the Home tab explicitly only the user's workflows.
+   - **Locked Workflow Deletion Immunity**: Workflows that are locked (`isLocked` / `isWorkflowLocked`) MUST NEVER be deletable. Protected at both storage engine and UI levels.
 
 
 ---

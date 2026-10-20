@@ -159,6 +159,12 @@ export default function HomeWorkflowsView({
   // Handle Delete
   const handleDelete = (id, e) => {
     e?.stopPropagation();
+    const target = workflows.find((w) => w.id === id);
+    if (target && (target.isLocked || target.isWorkflowLocked)) {
+      showToast(`Locked workflow "${target.name}" cannot be deleted.`);
+      setDeleteConfirmId(null);
+      return;
+    }
     const res = deleteWorkflow(id);
     if (!res.success) {
       showToast(res.reason || 'Could not delete workflow');
@@ -575,16 +581,29 @@ export default function HomeWorkflowsView({
                       </button>
 
                       {/* Delete */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirmId(wf.id);
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors"
-                        title="Delete Workflow"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {Boolean(wf.isLocked ?? wf.isWorkflowLocked) ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            showToast(`"${wf.name}" is locked and cannot be deleted. Unlock it first.`);
+                          }}
+                          className="p-1.5 text-slate-500 cursor-not-allowed hover:bg-slate-500/10 rounded-none transition-colors opacity-50"
+                          title="Workflow is locked and cannot be deleted"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(wf.id);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors"
+                          title="Delete Workflow"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -692,16 +711,29 @@ export default function HomeWorkflowsView({
                           >
                             <Download className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirmId(wf.id);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {Boolean(wf.isLocked ?? wf.isWorkflowLocked) ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                showToast(`"${wf.name}" is locked and cannot be deleted. Unlock it first.`);
+                              }}
+                              className="p-1.5 text-slate-500 cursor-not-allowed hover:bg-slate-500/10 rounded-none transition-colors opacity-50"
+                              title="Workflow is locked and cannot be deleted"
+                            >
+                              <Lock className="w-3.5 h-3.5 text-slate-400" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmId(wf.id);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -812,35 +844,50 @@ export default function HomeWorkflowsView({
       )}
 
       {/* DELETE CONFIRMATION SAFEGUARD MODAL */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
-          <div className={`w-full max-w-sm border shadow-2xl p-6 rounded-none ${
-            isDarkMode ? 'bg-[#18191E] border-[#2E313C] text-white' : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
-          }`}>
-            <div className="flex items-center gap-3 text-red-400 mb-3">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <h3 className="text-sm font-bold">Delete Workflow?</h3>
-            </div>
-            <p className="text-xs text-slate-400 mb-5 leading-relaxed">
-              Are you sure you want to delete this workflow? This action permanently removes this visual graph topology from your local repository.
-            </p>
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirmId)}
-                className="px-4 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-none shadow-sm"
-              >
-                Delete Workflow
-              </button>
+      {deleteConfirmId && (() => {
+        const targetToDelete = workflows.find((w) => w.id === deleteConfirmId);
+        const isLocked = Boolean(targetToDelete?.isLocked ?? targetToDelete?.isWorkflowLocked);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
+            <div className={`w-full max-w-sm border shadow-2xl p-6 rounded-none ${
+              isDarkMode ? 'bg-[#18191E] border-[#2E313C] text-white' : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
+            }`}>
+              <div className="flex items-center gap-3 mb-3">
+                {isLocked ? (
+                  <Lock className="w-5 h-5 shrink-0 text-amber-400" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 shrink-0 text-red-400" />
+                )}
+                <h3 className={`text-sm font-bold ${isLocked ? 'text-amber-400' : 'text-red-400'}`}>
+                  {isLocked ? 'Workflow Is Locked' : 'Delete Workflow?'}
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mb-5 leading-relaxed">
+                {isLocked
+                  ? `"${targetToDelete?.name || 'This workflow'}" is locked against deletion. Open and unlock the workflow on the canvas if you intend to permit deletion.`
+                  : 'Are you sure you want to delete this workflow? This action permanently removes this visual graph topology from your local repository.'}
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  {isLocked ? 'Close' : 'Cancel'}
+                </button>
+                {!isLocked && (
+                  <button
+                    onClick={() => handleDelete(deleteConfirmId)}
+                    className="px-4 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-none shadow-sm"
+                  >
+                    Delete Workflow
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

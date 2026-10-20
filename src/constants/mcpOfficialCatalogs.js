@@ -1553,6 +1553,14 @@ export function identifyMcpService(obj = {}, fallbackId = '') {
   if (!obj && !fallbackId) return '';
   const str = typeof obj === 'string' ? obj : '';
   const target = typeof obj === 'object' && obj !== null ? obj : {};
+  
+  // Strict Pillar Guard: Never identify non-MCP pillar types or non-MCP canvas nodes as MCP services
+  if (target.pillarType && target.pillarType !== 'mcp') return '';
+  const rawId = String(target.id || fallbackId || '').toLowerCase();
+  if (rawId.startsWith('node-model') || rawId.startsWith('node-skill') || rawId.startsWith('node-gateway') || rawId.startsWith('node-tools') || rawId.startsWith('node-deterministic') || rawId.startsWith('node-memory') || rawId.startsWith('node-policy') || rawId.startsWith('node-audit') || rawId.startsWith('node-observability') || rawId.startsWith('node-cost')) {
+    return '';
+  }
+
   const combined = `${str} ${target.serviceName || ''} ${target.name || ''} ${target.displayName || ''} ${target.title || ''} ${target.transport || ''} ${target.basis?.provider || ''} ${target.endpoint || ''} ${target.serverUrl || ''} ${target.id || ''} ${fallbackId || ''}`.toLowerCase();
   
   if (combined.includes('outlook') || combined.includes('graph.microsoft') || combined.includes('office365') || combined.includes('microsoft')) return 'outlook';

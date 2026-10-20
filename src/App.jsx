@@ -34,12 +34,15 @@ import { FRAMEWORKS } from './constants/frameworks';
 import { PILLARS } from './constants/pillars';
 import { DEFAULT_THRESHOLDS } from './constants/goldenDataset';
 import { disarmScheduleTrigger, disarmPollingWatcher } from './services/triggerEngine';
+import { getRegisteredMcpServers, saveRegisteredMcpServer } from './services/mcpClientService';
 import {
   identifyMcpService,
+  getOfficialMcpTools,
   SLACK_OFFICIAL_ACTIONS,
   GITHUB_OFFICIAL_ACTIONS,
   JIRA_OFFICIAL_ACTIONS,
-  OUTLOOK_OFFICIAL_ACTIONS
+  OUTLOOK_OFFICIAL_ACTIONS,
+  NEO4J_OFFICIAL_ACTIONS
 } from './constants/mcpOfficialCatalogs';
 import {
   loadUIState,
@@ -830,7 +833,14 @@ export default function App() {
       if (n.type === 'pillar' && nodeData.pillarType === 'mcp') {
         const srv = identifyMcpService(nodeData, n.id);
         const currentTools = nodeData.tools || [];
-        if (srv === 'slack' && currentTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+        if (srv === 'outlook' && currentTools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
+          nodeData = {
+            ...nodeData,
+            serviceName: 'Outlook',
+            tools: OUTLOOK_OFFICIAL_ACTIONS,
+            description: `Official Enterprise Microsoft Outlook MCP with ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized tools.`
+          };
+        } else if (srv === 'slack' && currentTools.length < SLACK_OFFICIAL_ACTIONS.length) {
           nodeData = {
             ...nodeData,
             serviceName: 'Slack',
@@ -850,6 +860,13 @@ export default function App() {
             serviceName: 'Jira',
             tools: JIRA_OFFICIAL_ACTIONS,
             description: `Official Enterprise Jira MCP with ${JIRA_OFFICIAL_ACTIONS.length} categorized tools.`
+          };
+        } else if (srv === 'neo4j' && currentTools.length < NEO4J_OFFICIAL_ACTIONS.length) {
+          nodeData = {
+            ...nodeData,
+            serviceName: 'Neo4j',
+            tools: NEO4J_OFFICIAL_ACTIONS,
+            description: `Official Enterprise Neo4j Graph Database MCP with ${NEO4J_OFFICIAL_ACTIONS.length} categorized tools.`
           };
         }
       }
@@ -1018,7 +1035,7 @@ export default function App() {
     });
   }, []);
 
-  // Seamlessly upgrade any active canvas MCP nodes to official 30-tool Slack / GitHub / Jira catalogs
+  // Seamlessly upgrade any active canvas MCP nodes to official tool catalogs
   useEffect(() => {
     setNodes((prevNodes) => {
       let changed = false;
@@ -1026,6 +1043,18 @@ export default function App() {
         if (n.type === 'pillar' && n.data?.pillarType === 'mcp') {
           const srv = identifyMcpService(n.data, n.id);
           const currentTools = n.data?.tools || [];
+          if (srv === 'outlook' && currentTools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
+            changed = true;
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                serviceName: 'Outlook',
+                tools: OUTLOOK_OFFICIAL_ACTIONS,
+                description: `Official Enterprise Microsoft Outlook MCP with ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized tools.`
+              }
+            };
+          }
           if (srv === 'slack' && currentTools.length < SLACK_OFFICIAL_ACTIONS.length) {
             changed = true;
             return {
@@ -1062,12 +1091,57 @@ export default function App() {
               }
             };
           }
+          if (srv === 'neo4j' && currentTools.length < NEO4J_OFFICIAL_ACTIONS.length) {
+            changed = true;
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                serviceName: 'Neo4j',
+                tools: NEO4J_OFFICIAL_ACTIONS,
+                description: `Official Enterprise Neo4j Graph Database MCP with ${NEO4J_OFFICIAL_ACTIONS.length} categorized tools.`
+              }
+            };
+          }
         }
         return n;
       });
       return changed ? updated : prevNodes;
     });
   }, [setNodes]);
+
+  // Auto-sync genuine canvas MCP nodes into registered MCP servers store
+  useEffect(() => {
+    const canvasMcps = (nodes || []).filter(
+      (n) => n.type === 'pillar' && (n.data?.pillarType === 'mcp' || n.data?.isRealMcp === true) && n.data?.pillarType !== 'model' && n.data?.pillarType !== 'skills' && n.data?.pillarType !== 'gateway' && n.data?.pillarType !== 'tools'
+    );
+    if (canvasMcps.length > 0) {
+      const registered = getRegisteredMcpServers();
+      canvasMcps.forEach((node) => {
+        const srv = identifyMcpService(node.data, node.id);
+        const name = node.data?.displayName || node.data?.name || node.data?.title || `${srv ? srv.toUpperCase() : 'External'} MCP`;
+        const already = registered.some(
+          (r) => r.id === node.id || r.id === node.data?.toolId || r.name === name || (srv && identifyMcpService(r, r.id) === srv)
+        );
+        if (!already) {
+          saveRegisteredMcpServer({
+            id: node.id,
+            name,
+            displayName: name,
+            serviceName: node.data?.serviceName || (srv ? srv.charAt(0).toUpperCase() + srv.slice(1) : 'External MCP'),
+            description: node.data?.description || `Exposes ${node.data?.tools?.length || 0} tools.`,
+            tools: node.data?.tools || getOfficialMcpTools(srv),
+            config: node.data?.config || {},
+            basis: node.data?.basis || null,
+            transport: node.data?.transport || 'sse',
+            url: node.data?.serverUrl || '',
+            isRealMcp: true,
+            verifiedAt: new Date().toISOString()
+          });
+        }
+      });
+    }
+  }, [nodes]);
 
   // Save Canvas Topology automatically to localStorage on change and sync to active workflow record
   useEffect(() => {
@@ -1243,17 +1317,37 @@ export default function App() {
         yPos = agentNode.position.y - 120;
       }
 
-      const srv = identifyMcpService(mcpData);
+      const srv = identifyMcpService(mcpData, mcpData.id);
       let effectiveTools = mcpData.tools || [];
-      if (srv === 'slack' && effectiveTools.length < SLACK_OFFICIAL_ACTIONS.length) {
+      if (srv === 'outlook' && effectiveTools.length < OUTLOOK_OFFICIAL_ACTIONS.length) {
+        effectiveTools = OUTLOOK_OFFICIAL_ACTIONS;
+      } else if (srv === 'slack' && effectiveTools.length < SLACK_OFFICIAL_ACTIONS.length) {
         effectiveTools = SLACK_OFFICIAL_ACTIONS;
       } else if (srv === 'github' && effectiveTools.length < GITHUB_OFFICIAL_ACTIONS.length) {
         effectiveTools = GITHUB_OFFICIAL_ACTIONS;
       } else if (srv === 'jira' && effectiveTools.length < JIRA_OFFICIAL_ACTIONS.length) {
         effectiveTools = JIRA_OFFICIAL_ACTIONS;
+      } else if (srv === 'neo4j' && effectiveTools.length < NEO4J_OFFICIAL_ACTIONS.length) {
+        effectiveTools = NEO4J_OFFICIAL_ACTIONS;
       }
 
       const serviceName = mcpData.serviceName || (srv ? (srv.charAt(0).toUpperCase() + srv.slice(1)) : 'External MCP');
+
+      // Persist to registered MCP servers store immediately
+      saveRegisteredMcpServer({
+        ...mcpData,
+        id: mcpId,
+        name: mcpData.displayName || mcpData.name || `${serviceName} MCP`,
+        displayName: mcpData.displayName || mcpData.name || `${serviceName} MCP`,
+        serviceName,
+        tools: effectiveTools,
+        config: mcpData.config || {},
+        basis: mcpData.basis || null,
+        transport: mcpData.transport || 'sse',
+        url: mcpData.url || '',
+        isRealMcp: true,
+        verifiedAt: new Date().toISOString()
+      });
 
       const newNode = {
         id: mcpId,
@@ -2090,6 +2184,10 @@ export default function App() {
                         onAddNode={(category, item) => {
                           handleAddNode(category, item);
                         }}
+                        nodes={nodes}
+                        edges={edges}
+                        onSelectNode={setSelectedNode}
+                        onDeleteNode={handleDeleteNode}
                         isDarkMode={isDarkMode}
                         isEmbedded={true}
                       />

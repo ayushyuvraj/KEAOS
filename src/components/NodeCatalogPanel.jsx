@@ -140,9 +140,18 @@ import {
 } from '../services/llmService';
 import {
   getRegisteredMcpServers,
+  saveRegisteredMcpServer,
   removeRegisteredMcpServer
 } from '../services/mcpClientService';
-import { identifyMcpService } from '../constants/mcpOfficialCatalogs';
+import {
+  identifyMcpService,
+  getOfficialMcpTools,
+  OUTLOOK_OFFICIAL_ACTIONS,
+  SLACK_OFFICIAL_ACTIONS,
+  GITHUB_OFFICIAL_ACTIONS,
+  JIRA_OFFICIAL_ACTIONS,
+  NEO4J_OFFICIAL_ACTIONS
+} from '../constants/mcpOfficialCatalogs';
 
 // Helper to derive official brand visuals and minimal name for registered MCP servers
 function getServerVisuals(server) {
@@ -153,8 +162,12 @@ function getServerVisuals(server) {
 
   if (detectedService === 'outlook' || service === 'outlook' || normName.includes('outlook') || normId.includes('outlook')) {
     const emailMatch = normName.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0];
+    const rawParen = server?.name?.match(/\(([^)]+)\)/)?.[1] || server?.displayName?.match(/\(([^)]+)\)/)?.[1];
+    const isModelName = rawParen && (rawParen.toLowerCase().includes('gpt') || rawParen.toLowerCase().includes('claude') || rawParen.toLowerCase().includes('gemini') || rawParen.toLowerCase().includes('llama'));
+    const parenMatch = isModelName ? null : rawParen;
+    const account = server?.basis?.accountName || server?.basis?.accountEmail || emailMatch || parenMatch;
     return {
-      name: emailMatch ? `Outlook (${emailMatch})` : 'Outlook',
+      name: account ? `Outlook (${account})` : (server?.displayName || server?.name || 'Outlook MCP'),
       icon: <OutlookCatalogIcon className="w-4 h-4" />,
       iconBox: 'bg-[#0078D4]/10 border border-[#0078D4]/25 text-[#0078D4]',
       hoverBorder: 'hover:border-[#0078D4]'
@@ -162,9 +175,9 @@ function getServerVisuals(server) {
   }
 
   if (detectedService === 'slack' || service === 'slack' || normName.includes('slack') || normId.includes('slack')) {
-    const channel = normName.includes('#') ? server.name.match(/#[a-z0-9_-]+/i)?.[0] : null;
+    const channel = normName.includes('#') ? server.name.match(/#[a-z0-9_-]+/i)?.[0] : (server?.basis?.channel || server?.name?.match(/\(([^)]+)\)/)?.[1]);
     return {
-      name: channel ? `Slack (${channel})` : 'Slack',
+      name: channel ? `Slack (${channel})` : (server?.displayName || server?.name || 'Slack MCP'),
       icon: <SlackLogo className="w-4 h-4" />,
       iconBox: 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60',
       hoverBorder: 'hover:border-[#009A44]'
@@ -172,8 +185,9 @@ function getServerVisuals(server) {
   }
 
   if (detectedService === 'jira' || service === 'jira' || normName.includes('jira') || normId.includes('jira')) {
+    const site = server?.basis?.cloudUrl || server?.basis?.projectKey || server?.name?.match(/\(([^)]+)\)/)?.[1];
     return {
-      name: 'Jira',
+      name: site ? `Jira (${site})` : (server?.displayName || server?.name || 'Jira MCP'),
       icon: <JiraLogo className="w-4 h-4" />,
       iconBox: 'bg-[#0052CC]/10 border border-[#0052CC]/25 text-[#0052CC]',
       hoverBorder: 'hover:border-[#0052CC]'
@@ -181,9 +195,9 @@ function getServerVisuals(server) {
   }
 
   if (detectedService === 'github' || service === 'github' || normName.includes('github') || normId.includes('github')) {
-    const userMatch = server.basis?.username || (normName.includes('(') ? server.name.match(/\(([^)]+)\)/)?.[1] : null);
+    const userMatch = server?.basis?.username || server?.basis?.authenticatedAs || (server?.name?.match(/\(([^)]+)\)/)?.[1]);
     return {
-      name: userMatch && !userMatch.toLowerCase().includes('authed') ? `GitHub (${userMatch})` : 'GitHub',
+      name: userMatch && !userMatch.toLowerCase().includes('authed') ? `GitHub (${userMatch})` : (server?.displayName || server?.name || 'GitHub MCP'),
       icon: <GithubIcon className="w-4 h-4" />,
       iconBox: 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border border-slate-700/30',
       hoverBorder: 'hover:border-slate-400'
@@ -191,8 +205,9 @@ function getServerVisuals(server) {
   }
 
   if (detectedService === 'neo4j' || service === 'neo4j' || normName.includes('neo4j') || normId.includes('neo4j')) {
+    const db = server?.basis?.database || server?.config?.database || server?.name?.match(/\(([^)]+)\)/)?.[1];
     return {
-      name: 'Neo4j',
+      name: db ? `Neo4j (${db})` : (server?.displayName || server?.name || 'Neo4j MCP'),
       icon: <Neo4jLogo className="w-4 h-4" />,
       iconBox: 'bg-[#018BFF]/10 border border-[#018BFF]/25 text-[#018BFF]',
       hoverBorder: 'hover:border-[#018BFF]'
@@ -200,8 +215,9 @@ function getServerVisuals(server) {
   }
 
   if (detectedService === 'google' || service === 'google' || normName.includes('google') || normId.includes('google')) {
+    const email = server?.basis?.accountEmail || server?.config?.email || server?.name?.match(/\(([^)]+)\)/)?.[1];
     return {
-      name: 'Google Workspace',
+      name: email ? `Google Workspace (${email})` : (server?.displayName || server?.name || 'Google Workspace MCP'),
       icon: <GoogleLogo className="w-4 h-4" />,
       iconBox: 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700',
       hoverBorder: 'hover:border-[#4285F4]'
@@ -209,7 +225,7 @@ function getServerVisuals(server) {
   }
 
   return {
-    name: (server?.name || 'Universal MCP').replace(/\s*MCP\s*/gi, ' ').replace(/\s+Server/gi, '').trim() || 'Universal MCP',
+    name: (server?.displayName || server?.name || 'Universal MCP').replace(/\s*MCP\s*/gi, ' ').replace(/\s+Server/gi, '').trim() || 'Universal MCP',
     icon: <McpIcon className="w-4 h-4" />,
     iconBox: 'bg-[#00A3A6]/10 border border-[#00A3A6]/25 text-[#00A3A6]',
     hoverBorder: 'hover:border-[#00A3A6]'
@@ -565,6 +581,10 @@ export default function NodeCatalogPanel({
   isOpen,
   onClose,
   onAddNode,
+  nodes = [],
+  edges = [],
+  onSelectNode,
+  onDeleteNode,
   isDarkMode = true,
   isEmbedded = false
 }) {
@@ -614,6 +634,99 @@ export default function NodeCatalogPanel({
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
+
+  // Helper to determine if a canvas node is genuinely an MCP pillar node
+  const isActualMcpNode = (node) => {
+    if (!node || node.type !== 'pillar') return false;
+    const pt = node.data?.pillarType;
+    if (pt && pt !== 'mcp') return false;
+    const id = String(node.id || '').toLowerCase();
+    const name = String(node.data?.name || node.data?.displayName || '').toLowerCase();
+    if (id.includes('gateway') || id.includes('gw-') || name.includes('gateway')) return false;
+    return pt === 'mcp' || node.data?.isRealMcp === true;
+  };
+
+  // Derive all live connected MCP servers combining persisted storage AND active canvas MCP nodes
+  const allLiveServers = useMemo(() => {
+    // 1. Strict filter on registered servers to exclude any lingering non-MCP items or gateways
+    const list = registeredMcpServers.filter(s => {
+      if (!s) return false;
+      const pt = s.pillarType;
+      if (pt && pt !== 'mcp') return false;
+      const id = String(s.id || '').toLowerCase();
+      const name = String(s.name || s.displayName || '').toLowerCase();
+      if (id.includes('gateway') || id.includes('gw-') || name.includes('gateway')) return false;
+      if (id.startsWith('node-model') || id.startsWith('node-skill') || id.startsWith('node-gateway') || id.startsWith('node-tools') || id.startsWith('node-deterministic')) return false;
+      if (name.includes('gpt-') || name.includes('claude-') || name.includes('gemini-') || name.includes('llama-') || name.includes('openai (') || name.includes('anthropic (')) return false;
+      return true;
+    });
+
+    // 2. Ensure only genuine canvas MCP nodes are reflected
+    (nodes || []).forEach(node => {
+      if (isActualMcpNode(node)) {
+        const srv = identifyMcpService(node.data, node.id);
+        const name = node.data?.displayName || node.data?.name || node.data?.title || `${srv ? srv.toUpperCase() : 'External'} MCP`;
+        const already = list.some(r => 
+          r.id === node.id || 
+          r.id === node.data?.toolId || 
+          r.name === name || 
+          r.displayName === name ||
+          (srv && identifyMcpService(r, r.id) === srv)
+        );
+        if (!already) {
+          list.push({
+            id: node.id,
+            name,
+            displayName: name,
+            serviceName: node.data?.serviceName || (srv ? srv.charAt(0).toUpperCase() + srv.slice(1) : 'External MCP'),
+            description: node.data?.description || `Exposes ${node.data?.tools?.length || 0} tools.`,
+            tools: node.data?.tools || getOfficialMcpTools(srv),
+            config: node.data?.config || {},
+            basis: node.data?.basis || null,
+            transport: node.data?.transport || 'sse',
+            url: node.data?.serverUrl || '',
+            isRealMcp: true,
+            fromCanvas: true
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [registeredMcpServers, nodes]);
+
+  // Proactively auto-sync any genuine active canvas MCP nodes to registered MCP servers storage
+  useEffect(() => {
+    (nodes || []).forEach(node => {
+      if (isActualMcpNode(node)) {
+        const srv = identifyMcpService(node.data, node.id);
+        const name = node.data?.displayName || node.data?.name || node.data?.title || `${srv ? srv.toUpperCase() : 'External'} MCP`;
+        const registered = getRegisteredMcpServers();
+        const already = registered.some(r => 
+          r.id === node.id || 
+          r.id === node.data?.toolId || 
+          r.name === name || 
+          (srv && identifyMcpService(r, r.id) === srv)
+        );
+        if (!already) {
+          saveRegisteredMcpServer({
+            id: node.id,
+            name,
+            displayName: name,
+            serviceName: node.data?.serviceName || (srv ? srv.charAt(0).toUpperCase() + srv.slice(1) : 'External MCP'),
+            description: node.data?.description || `Exposes ${node.data?.tools?.length || 0} tools.`,
+            tools: node.data?.tools || getOfficialMcpTools(srv),
+            config: node.data?.config || {},
+            basis: node.data?.basis || null,
+            transport: node.data?.transport || 'sse',
+            url: node.data?.serverUrl || '',
+            isRealMcp: true,
+            verifiedAt: new Date().toISOString()
+          });
+        }
+      }
+    });
+  }, [nodes]);
 
   // Listen for canvas connection drag or action event to navigate catalog category
   useEffect(() => {
@@ -722,7 +835,7 @@ export default function NodeCatalogPanel({
         };
       }
       if (cat.id === 'mcp') {
-        const liveItems = registeredMcpServers.map(s => {
+        const liveItems = allLiveServers.map(s => {
           const visuals = getServerVisuals(s);
           return {
             id: s.id,
@@ -742,7 +855,7 @@ export default function NodeCatalogPanel({
       }
       return cat;
     });
-  }, [customSkills, registeredMcpServers]);
+  }, [customSkills, allLiveServers]);
 
   const activeCategory = useMemo(() => {
     return categoriesWithCustomSkills.find(c => c.id === activeCategoryId) || null;
@@ -1004,8 +1117,8 @@ export default function NodeCatalogPanel({
                         : `${currentProviderModels.length} models detected via API`
                       : '5 foundation providers available'
                     : activeCategory.id === 'mcp'
-                      ? registeredMcpServers.length > 0
-                        ? `${registeredMcpServers.length} ${registeredMcpServers.length === 1 ? 'server' : 'servers'} connected`
+                      ? allLiveServers.length > 0
+                        ? `${allLiveServers.length} ${allLiveServers.length === 1 ? 'server' : 'servers'} connected`
                         : 'Select an integration to connect'
                     : activeCategory.id === 'tools'
                       ? selectedToolSection
@@ -1493,171 +1606,229 @@ export default function NodeCatalogPanel({
             /* ======================================================== */
             <div className="px-2 py-1 space-y-0.5">
               {/* MCP Integration Connectors */}
-              <div className="space-y-0.5">
-                {/* Connector 1: Universal MCP */}
-                {(!searchQuery.trim() || 'universal mcp link http sse json-rpc endpoint custom'.includes(searchQuery.toLowerCase())) && (
-                  <div
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                        detail: { tab: 'url' }
-                      }));
-                    }}
-                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
-                      isDarkMode 
-                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
-                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <McpIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110 text-[#00A3A6]" />
-                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                        Universal MCP
-                      </h4>
-                    </div>
-                    <span className="text-[12px] font-medium text-[#00A3A6] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                      Connect →
-                    </span>
-                  </div>
-                )}
+              {(() => {
+                const isUniversalConnected = allLiveServers.some(s => {
+                  const srv = identifyMcpService(s, s.id);
+                  const isKnownBrand = ['outlook', 'slack', 'jira', 'github', 'neo4j', 'google'].includes(srv);
+                  if (isKnownBrand) return false;
+                  return srv === 'url' || s.transport === 'custom-sse' || s.transport === 'custom-http' || s.isCustomUrl || Boolean(s.url && !isKnownBrand);
+                });
+                const isSlackConnected = allLiveServers.some(s => identifyMcpService(s, s.id) === 'slack');
+                const isJiraConnected = allLiveServers.some(s => identifyMcpService(s, s.id) === 'jira');
+                const isGithubConnected = allLiveServers.some(s => identifyMcpService(s, s.id) === 'github');
+                const isNeo4jConnected = allLiveServers.some(s => identifyMcpService(s, s.id) === 'neo4j');
+                const isOutlookConnected = allLiveServers.some(s => identifyMcpService(s, s.id) === 'outlook');
 
-                {/* Connector 2: Slack */}
-                {(!searchQuery.trim() || 'slack mcp webhook bot messages channels'.includes(searchQuery.toLowerCase())) && (
-                  <div
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                        detail: { tab: 'slack' }
-                      }));
-                    }}
-                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
-                      isDarkMode 
-                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
-                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <SlackLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
-                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                        Slack
-                      </h4>
-                    </div>
-                    <span className="text-[12px] font-medium text-[#009A44] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                      Connect →
-                    </span>
-                  </div>
-                )}
+                return (
+                  <div className="space-y-0.5">
+                    {/* Connector 1: Universal MCP */}
+                    {(!searchQuery.trim() || 'universal mcp link http sse json-rpc endpoint custom'.includes(searchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                            detail: { tab: 'url' }
+                          }));
+                        }}
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                          isDarkMode 
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <McpIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110 text-[#00A3A6]" />
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                            Universal MCP
+                          </h4>
+                        </div>
+                        {isUniversalConnected ? (
+                          <span className="text-[11px] font-medium text-emerald-500 font-mono shrink-0 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Connected ✓
+                          </span>
+                        ) : (
+                          <span className="text-[12px] font-medium text-[#00A3A6] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                            Connect →
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                {/* Connector 3: Jira */}
-                {(!searchQuery.trim() || 'jira atlassian cloud rest sprint issues tickets'.includes(searchQuery.toLowerCase())) && (
-                  <div
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                        detail: { tab: 'jira' }
-                      }));
-                    }}
-                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
-                      isDarkMode 
-                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
-                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <JiraLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
-                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                        Jira
-                      </h4>
-                    </div>
-                    <span className="text-[12px] font-medium text-[#0052CC] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                      Connect →
-                    </span>
-                  </div>
-                )}
+                    {/* Connector 2: Slack */}
+                    {(!searchQuery.trim() || 'slack mcp webhook bot messages channels'.includes(searchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                            detail: { tab: 'slack' }
+                          }));
+                        }}
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                          isDarkMode 
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <SlackLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                            Slack
+                          </h4>
+                        </div>
+                        {isSlackConnected ? (
+                          <span className="text-[11px] font-medium text-emerald-500 font-mono shrink-0 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Connected ✓
+                          </span>
+                        ) : (
+                          <span className="text-[12px] font-medium text-[#009A44] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                            Connect →
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                {/* Connector 4: GitHub */}
-                {(!searchQuery.trim() || 'github pat git repo issues pr pull request'.includes(searchQuery.toLowerCase())) && (
-                  <div
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                        detail: { tab: 'github' }
-                      }));
-                    }}
-                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
-                      isDarkMode 
-                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
-                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <GithubIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
-                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                        GitHub
-                      </h4>
-                    </div>
-                    <span className={`text-[12px] font-medium font-mono shrink-0 group-hover:translate-x-0.5 transition-transform ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>
-                      Connect →
-                    </span>
-                  </div>
-                )}
+                    {/* Connector 3: Jira */}
+                    {(!searchQuery.trim() || 'jira atlassian cloud rest sprint issues tickets'.includes(searchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                            detail: { tab: 'jira' }
+                          }));
+                        }}
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                          isDarkMode 
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <JiraLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                            Jira
+                          </h4>
+                        </div>
+                        {isJiraConnected ? (
+                          <span className="text-[11px] font-medium text-emerald-500 font-mono shrink-0 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Connected ✓
+                          </span>
+                        ) : (
+                          <span className="text-[12px] font-medium text-[#0052CC] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                            Connect →
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                {/* Connector 5: Neo4j */}
-                {(!searchQuery.trim() || 'neo4j graph cypher bolt auradb database schema gds'.includes(searchQuery.toLowerCase())) && (
-                  <div
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                        detail: { tab: 'neo4j' }
-                      }));
-                    }}
-                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
-                      isDarkMode 
-                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
-                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <Neo4jLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
-                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                        Neo4j
-                      </h4>
-                    </div>
-                    <span className="text-[12px] font-medium text-[#018BFF] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                      Connect →
-                    </span>
-                  </div>
-                )}
+                    {/* Connector 4: GitHub */}
+                    {(!searchQuery.trim() || 'github pat git repo issues pr pull request'.includes(searchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                            detail: { tab: 'github' }
+                          }));
+                        }}
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                          isDarkMode 
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <GithubIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                            GitHub
+                          </h4>
+                        </div>
+                        {isGithubConnected ? (
+                          <span className="text-[11px] font-medium text-emerald-500 font-mono shrink-0 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Connected ✓
+                          </span>
+                        ) : (
+                          <span className={`text-[12px] font-medium font-mono shrink-0 group-hover:translate-x-0.5 transition-transform ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>
+                            Connect →
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                {/* Connector 6: Outlook */}
-                {(!searchQuery.trim() || 'outlook microsoft graph 365 mail email calendar events tasks'.includes(searchQuery.toLowerCase())) && (
-                  <div
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
-                        detail: { tab: 'outlook' }
-                      }));
-                    }}
-                    className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
-                      isDarkMode 
-                        ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
-                        : 'hover:bg-slate-100/90 active:bg-slate-200/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <OutlookCatalogIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
-                      <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                        Outlook
-                      </h4>
-                    </div>
-                    <span className="text-[12px] font-medium text-[#0078D4] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
-                      Connect →
-                    </span>
+                    {/* Connector 5: Neo4j */}
+                    {(!searchQuery.trim() || 'neo4j graph cypher bolt auradb database schema gds'.includes(searchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                            detail: { tab: 'neo4j' }
+                          }));
+                        }}
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                          isDarkMode 
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <Neo4jLogo className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                            Neo4j
+                          </h4>
+                        </div>
+                        {isNeo4jConnected ? (
+                          <span className="text-[11px] font-medium text-emerald-500 font-mono shrink-0 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Connected ✓
+                          </span>
+                        ) : (
+                          <span className="text-[12px] font-medium text-[#018BFF] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                            Connect →
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Connector 6: Outlook */}
+                    {(!searchQuery.trim() || 'outlook microsoft graph 365 mail email calendar events tasks'.includes(searchQuery.toLowerCase())) && (
+                      <div
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', {
+                            detail: { tab: 'outlook' }
+                          }));
+                        }}
+                        className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
+                          isDarkMode 
+                            ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
+                            : 'hover:bg-slate-100/90 active:bg-slate-200/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <OutlookCatalogIcon className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                          <h4 className={`text-[13px] font-medium tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                            Outlook
+                          </h4>
+                        </div>
+                        {isOutlookConnected ? (
+                          <span className="text-[11px] font-medium text-emerald-500 font-mono shrink-0 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Connected ✓
+                          </span>
+                        ) : (
+                          <span className="text-[12px] font-medium text-[#0078D4] font-mono shrink-0 group-hover:translate-x-0.5 transition-transform">
+                            Connect →
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Connected Live MCP Servers List */}
               <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-1">
                 <div className="flex items-center justify-between px-2.5 pb-0.5">
                   <span className="text-[11px] font-mono font-medium text-slate-400">
-                    Connected Live ({registeredMcpServers.length})
+                    Connected Live ({allLiveServers.length})
                   </span>
-                  {registeredMcpServers.length > 0 && (
+                  {allLiveServers.length > 0 && (
                     <span className="text-[10px] font-mono text-emerald-500 font-medium flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Live Verified
@@ -1665,9 +1836,9 @@ export default function NodeCatalogPanel({
                   )}
                 </div>
 
-                {registeredMcpServers.length > 0 ? (
+                {allLiveServers.length > 0 ? (
                   <div className="space-y-0.5">
-                    {registeredMcpServers
+                    {allLiveServers
                       .filter(s => {
                         if (!searchQuery.trim()) return true;
                         const q = searchQuery.toLowerCase();
@@ -1677,9 +1848,27 @@ export default function NodeCatalogPanel({
                       })
                       .map(server => {
                         const visuals = getServerVisuals(server);
+                        const srv = identifyMcpService(server, server.id);
+                        const toolsCount = server.tools?.length || (srv === 'outlook' ? OUTLOOK_OFFICIAL_ACTIONS.length : 0);
+                        const matchingCanvasNode = (nodes || []).find(n => 
+                          n.id === server.id || 
+                          n.data?.toolId === server.id || 
+                          (n.type === 'pillar' && (n.data?.pillarType === 'mcp' || n.data?.isRealMcp) && (
+                            n.data?.name === server.name || 
+                            n.data?.displayName === server.displayName ||
+                            (srv && identifyMcpService(n.data, n.id) === srv)
+                          ))
+                        );
+                        const isOnCanvas = Boolean(matchingCanvasNode);
+
                         return (
                           <div
                             key={server.id}
+                            onClick={() => {
+                              if (matchingCanvasNode && onSelectNode) {
+                                onSelectNode(matchingCanvasNode);
+                              }
+                            }}
                             className={`w-full py-2 px-2.5 rounded-lg flex items-center justify-between text-left transition-all duration-150 group cursor-pointer ${
                               isDarkMode 
                                 ? 'hover:bg-white/[0.06] active:bg-white/[0.1]' 
@@ -1695,8 +1884,13 @@ export default function NodeCatalogPanel({
                                   {visuals.name}
                                 </h4>
                                 <span className="text-[11px] font-mono text-slate-400 shrink-0">
-                                  • {server.tools?.length || 0} tools
+                                  • {toolsCount} tools
                                 </span>
+                                {isOnCanvas && (
+                                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold shrink-0">
+                                    Canvas
+                                  </span>
+                                )}
                               </div>
                             </div>
 
@@ -1706,6 +1900,9 @@ export default function NodeCatalogPanel({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   removeRegisteredMcpServer(server.id);
+                                  if (matchingCanvasNode && onDeleteNode) {
+                                    onDeleteNode(matchingCanvasNode.id);
+                                  }
                                   setRegisteredMcpServers(getRegisteredMcpServers());
                                   window.dispatchEvent(new CustomEvent('keaos:toast', {
                                     detail: { message: `Disconnected ${visuals.name || 'MCP server'}` }
@@ -1721,25 +1918,35 @@ export default function NodeCatalogPanel({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleItemAdd('mcp', {
-                                    id: server.id,
-                                    name: visuals.name || server.name,
-                                    description: server.description,
-                                    tools: server.tools,
-                                    config: server.config,
-                                    transport: server.transport,
-                                    url: server.url,
-                                    isRealMcp: true
-                                  });
+                                  if (isOnCanvas && matchingCanvasNode && onSelectNode) {
+                                    onSelectNode(matchingCanvasNode);
+                                    window.dispatchEvent(new CustomEvent('keaos:toast', {
+                                      detail: { message: `Focused ${visuals.name} on Canvas` }
+                                    }));
+                                  } else {
+                                    handleItemAdd('mcp', {
+                                      id: server.id,
+                                      name: visuals.name || server.name,
+                                      displayName: visuals.name || server.displayName || server.name,
+                                      description: server.description,
+                                      tools: server.tools || (srv === 'outlook' ? OUTLOOK_OFFICIAL_ACTIONS : []),
+                                      config: server.config,
+                                      basis: server.basis,
+                                      transport: server.transport,
+                                      url: server.url,
+                                      serviceName: server.serviceName || (srv ? srv.charAt(0).toUpperCase() + srv.slice(1) : undefined),
+                                      isRealMcp: true
+                                    });
+                                  }
                                 }}
                                 className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border transition-all cursor-pointer ${
-                                  addedItemId === server.id
+                                  addedItemId === server.id || isOnCanvas
                                     ? 'bg-[#009A44] text-white border-[#009A44]'
                                     : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#002266] shadow-xs'
                                 }`}
-                                title="Add to Canvas"
+                                title={isOnCanvas ? "Focus on Canvas" : "Add to Canvas"}
                               >
-                                {addedItemId === server.id ? (
+                                {addedItemId === server.id || isOnCanvas ? (
                                   <Check className="w-3.5 h-3.5" />
                                 ) : (
                                   <Plus className="w-3.5 h-3.5" />

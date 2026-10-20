@@ -24,7 +24,8 @@ import {
   connectMcpViaOAuth, 
   verifyAndDiscoverMcpServer,
   getStoredMicrosoftOAuthCredentials, 
-  saveStoredMicrosoftOAuthCredentials 
+  saveStoredMicrosoftOAuthCredentials,
+  saveRegisteredMcpServer 
 } from '../services/mcpClientService';
 
 function OutlookLogo({ className = 'w-5 h-5' }) {
@@ -344,6 +345,7 @@ export default function ConnectMcpModal({
       }
 
       if (result) {
+        saveRegisteredMcpServer(result);
         if (onAddMcpNodeToCanvas) {
           onAddMcpNodeToCanvas(result);
         }

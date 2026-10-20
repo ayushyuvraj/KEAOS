@@ -363,8 +363,24 @@ All agents, subagents, and developers writing code or creating workflows in KEAO
    - Hitting "Execute Workflow" or running any node MUST NEVER expand or force-open the bottom drawer into chat mode or fleet mode.
    - The drawer must stay collapsed at 40px height to leave the canvas unobstructed.
 
+---
 
+## 15. Strict Workflow Preservation, Sandbox Isolation & Locked Workflow Immutability Mandate
 
+All agents, subagents, and developers operating in KEAOS MUST strictly abide by the following non-negotiable workflow preservation rules:
 
+1. **Absolute Workflow Preservation Invariant (Zero-Alteration of Existing Workflows)**:
+   - **MANDATE**: NEVER alter, mutate, overwrite, rename, or destroy any existing user-created workflow in the workspace or repository under any circumstances.
+   - The Home tab (Workflows Hub) MUST explicitly preserve and display only the genuine workflows created by the user, unless the user explicitly requests the creation of a new workflow.
 
+2. **Browser Subagent / Diagnostic Isolation Protocol (Sandbox Duplication)**:
+   - Whenever an agent or developer takes control of the browser to test, diagnose, evaluate, or experiment with a workflow:
+     1. **Duplicate First**: Always create a duplicate sandbox copy of the target workflow (e.g. `[Workflow Name] (Temp Diagnostic Sandbox)`).
+     2. **Isolate All Changes**: Perform all experiments, diagnostic checks, test runs, and node edits strictly inside that duplicate workflow. Never mutate the user's primary workflow.
+     3. **Clean Up**: When diagnostic evaluation is complete and satisfied, delete that temporary duplicate workflow.
+     4. **Preserve User Registry**: Leave in the Home tab explicitly the workflows created by the user.
 
+3. **Locked Workflow Immutability & Deletion Immunity (Enforced Across Engine & UI)**:
+   - **MANDATE**: Any workflow that is locked (`isLocked: true` or `isWorkflowLocked: true`) MUST NOT be deletable by any UI action, agent action, API call, or keyboard shortcut.
+   - `workflowStorage.js` (`deleteWorkflow`) must programmatically reject the deletion of any locked workflow.
+   - The UI (`HomeWorkflowsView.jsx`, Canvas, Inspector) must render a padlock badge, disable the delete action, and reject any deletion attempt with an institutional notification.

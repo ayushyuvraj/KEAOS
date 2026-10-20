@@ -858,6 +858,14 @@ export function updateWorkflowMetadata(id, updates = {}) {
  */
 export function deleteWorkflow(id) {
   const all = loadAllWorkflows();
+  const target = all.find((w) => w.id === id);
+  if (target && (target.isLocked || target.isWorkflowLocked)) {
+    return { 
+      success: false, 
+      reason: `Workflow "${target.name || id}" is locked and cannot be deleted. Unlock it first to permit deletion.` 
+    };
+  }
+
   if (all.length <= 1) {
     return { success: false, reason: 'Cannot delete the only remaining workflow.' };
   }

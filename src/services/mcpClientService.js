@@ -33,7 +33,27 @@ export function getRegisteredMcpServers() {
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.map(server => {
+        // Strict filter: exclude any non-MCP pillar types, gateways, or model nodes
+        const cleaned = parsed.filter(server => {
+          if (!server) return false;
+          if (server.pillarType && server.pillarType !== 'mcp') return false;
+          const id = String(server.id || '').toLowerCase();
+          if (id.includes('gateway') || id.includes('gw-') || id.startsWith('node-model') || id.startsWith('node-skill') || id.startsWith('node-gateway') || id.startsWith('node-tools') || id.startsWith('node-deterministic') || id.startsWith('node-memory') || id.startsWith('node-policy')) {
+            return false;
+          }
+          const name = String(server.name || server.displayName || '').toLowerCase();
+          if (name.includes('gateway') || name.includes('gpt-') || name.includes('claude-') || name.includes('gemini-') || name.includes('llama-') || name.includes('openai (') || name.includes('anthropic (')) {
+            return false;
+          }
+          return true;
+        });
+
+        // If corrupted or non-mcp items were removed, persist the cleaned list back to storage
+        if (cleaned.length !== parsed.length) {
+          localStorage.setItem(SAVED_MCPS_STORAGE_KEY, JSON.stringify(cleaned));
+        }
+
+        return cleaned.map(server => {
           const service = identifyMcpService(server);
           const baseName = server.name || server.displayName || `${service ? service.toUpperCase() : 'Universal'} MCP`;
           if (service === 'outlook' && (!server.tools || server.tools.length < OUTLOOK_OFFICIAL_ACTIONS.length)) {
@@ -100,8 +120,32 @@ export function getRegisteredMcpServers() {
  */
 export function saveRegisteredMcpServer(mcpServer) {
   try {
+    if (!mcpServer) return;
+    // Strict guard: disallow non-MCP nodes or model nodes from being saved into the MCP registry
+    if (mcpServer.pillarType && mcpServer.pillarType !== 'mcp') return;
+    const id = String(mcpServer.id || '').toLowerCase();
+    if (id.includes('gateway') || id.includes('gw-') || id.startsWith('node-model') || id.startsWith('node-skill') || id.startsWith('node-gateway') || id.startsWith('node-tools') || id.startsWith('node-deterministic') || id.startsWith('node-memory') || id.startsWith('node-policy')) {
+      return;
+    }
+    const name = String(mcpServer.name || mcpServer.displayName || '').toLowerCase();
+    if (name.includes('gateway') || name.includes('gpt-') || name.includes('claude-') || name.includes('gemini-') || name.includes('llama-') || name.includes('openai (') || name.includes('anthropic (')) {
+      return;
+    }
+
     const current = getRegisteredMcpServers();
-    const updated = [mcpServer, ...current.filter(s => s.id !== mcpServer.id)];
+    const srv = identifyMcpService(mcpServer, mcpServer.id);
+    const updated = [
+      mcpServer,
+      ...current.filter(s => {
+        if (s.id === mcpServer.id) return false;
+        if (srv && identifyMcpService(s, s.id) === srv) {
+          const sName = s.displayName || s.name || '';
+          const mName = mcpServer.displayName || mcpServer.name || '';
+          if (sName === mName || (!sName && !mName)) return false;
+        }
+        return true;
+      })
+    ];
     localStorage.setItem(SAVED_MCPS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('keaos:mcp-registry-updated', { detail: { servers: updated } }));
     window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));

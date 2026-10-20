@@ -1359,7 +1359,19 @@ export default function Inspector({
                       )}
                       <div className="flex justify-between items-center text-[11px]">
                         <span className={t.subText}>Endpoint URL:</span>
-                        <span className="text-slate-400 font-mono truncate max-w-[180px]">{basis?.apiEndpoint || nodeData.serverUrl || 'https://api.github.com'}</span>
+                        <span className="text-slate-400 font-mono truncate max-w-[180px]">
+                          {basis?.apiEndpoint || nodeData.serverUrl || (
+                            (nodeData.serviceName || '').toLowerCase().includes('outlook') || (nodeData.id || '').includes('outlook')
+                              ? 'https://graph.microsoft.com/v1.0'
+                              : (nodeData.serviceName || '').toLowerCase().includes('slack')
+                                ? 'https://slack.com/api'
+                                : (nodeData.serviceName || '').toLowerCase().includes('jira')
+                                  ? 'https://api.atlassian.com'
+                                  : (nodeData.serviceName || '').toLowerCase().includes('neo4j')
+                                    ? 'bolt://localhost:7687'
+                                    : 'https://api.github.com'
+                          )}
+                        </span>
                       </div>
                     </div>
                   </div>
