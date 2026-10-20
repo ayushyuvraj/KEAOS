@@ -1999,6 +1999,7 @@ export default function App() {
         setIsCollapsed={setIsSidebarCollapsed}
         isClosed={isSidebarClosed}
         setIsClosed={setIsSidebarClosed}
+        isDarkMode={isDarkMode}
       />
 
       {/* Main Right Area: Top Header + View Workspace */}
