@@ -379,18 +379,18 @@ export default function OutputDisplayNode({ id, data, selected }) {
           {/* Morphing Circular Button */}
           <button
             onClick={toggleExpand}
-            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer shadow-lg active:scale-95 ${
+            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer shadow-xl active:scale-95 ${
               isExecuting
-                ? 'ring-4 ring-[#10B981]/50 border-2 border-[#10B981] shadow-[0_0_24px_rgba(16,185,129,0.55)] scale-105'
+                ? 'ring-4 ring-[#34D399]/50 border-2 border-[#34D399] shadow-[0_0_24px_rgba(52,211,153,0.55)] scale-105'
                 : selected 
-                  ? 'ring-4 ring-[#10B981]/40 border-2 border-[#10B981]' 
-                  : 'border border-slate-300 dark:border-slate-700'
+                  ? 'ring-4 ring-[#34D399]/40 border-2 border-[#34D399]' 
+                  : isDarkMode ? 'border border-white/15 hover:border-[#34D399]' : 'border border-slate-200 hover:border-[#10B981]'
             } ${
               status === 'ready' 
                 ? 'bg-gradient-to-br from-[#10B981] to-[#047857] text-white shadow-emerald-500/30' 
                 : isExecuting
                   ? 'bg-[#10B981] text-white animate-pulse'
-                  : isDarkMode ? 'bg-[#151821] text-slate-300' : 'bg-white text-slate-700'
+                  : isDarkMode ? 'bg-[#1E2026] text-slate-200 shadow-[0_8px_24px_rgba(0,0,0,0.4)]' : 'bg-white text-slate-700 shadow-[0_8px_24px_rgba(0,30,80,0.08)]'
             }`}
             title="Click to expand Output Viewer & Multi-Format Exporter"
           >
@@ -415,8 +415,8 @@ export default function OutputDisplayNode({ id, data, selected }) {
               width: '10px',
               height: '10px',
               borderRadius: '0px',
-              backgroundColor: status === 'ready' ? '#10B981' : '#0091DA',
-              borderColor: isDarkMode ? '#151720' : '#FFFFFF',
+              backgroundColor: status === 'ready' ? '#10B981' : (isDarkMode ? '#34D399' : '#0091DA'),
+              borderColor: isDarkMode ? '#1C1E24' : '#FFFFFF',
               borderWidth: '2px',
               zIndex: 20
             }}
@@ -424,11 +424,19 @@ export default function OutputDisplayNode({ id, data, selected }) {
           />
         </div>
 
-        {/* Node Name under Circle */}
-        <div className="absolute top-[calc(100%+6px)] left-0 w-full px-1 text-center pointer-events-auto select-none">
-          <span className="text-[10px] font-mono font-bold text-slate-400 block truncate">
-            {nodeTitle}
-          </span>
+        {/* Node Name under Circle (Google Stitch Frosted Pill) */}
+        <div className="absolute top-[calc(100%+8px)] left-0 w-full px-1 text-center pointer-events-auto select-none flex flex-col items-center">
+          <div className={`px-2.5 py-0.5 rounded-full border backdrop-blur-md max-w-full inline-flex items-center justify-center ${
+            isDarkMode 
+              ? 'bg-[#1C1E24]/90 border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)]' 
+              : 'bg-white/95 border-slate-200 shadow-[0_4px_16px_rgba(0,30,80,0.08)]'
+          }`}>
+            <span className={`text-[10px] font-semibold tracking-tight block truncate ${
+              isDarkMode ? 'text-white' : 'text-[#111827]'
+            }`}>
+              {nodeTitle}
+            </span>
+          </div>
         </div>
       </div>
     );

@@ -232,16 +232,22 @@ export default function PillarNode({ id, data, selected }) {
   let dropdownPlacement = isTopPillar ? 'bottom' : 'top';
 
   const renderPillarLabel = (isTop) => (
-    <div className="w-full max-w-[130px] px-1 text-center pointer-events-auto select-none">
-      <span className={`text-[11px] font-semibold tracking-tight block truncate ${
-        isDeactivated
-          ? 'line-through text-slate-500'
-          : isDarkMode ? 'text-white' : 'text-[#111827]'
+    <div className="w-full max-w-[130px] px-1 text-center pointer-events-auto select-none flex flex-col items-center">
+      <div className={`px-2.5 py-0.5 rounded-full border backdrop-blur-md max-w-full inline-flex items-center justify-center ${
+        isDarkMode 
+          ? 'bg-[#1C1E24]/90 border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)]' 
+          : 'bg-white/95 border-slate-200 shadow-[0_4px_16px_rgba(0,30,80,0.08)]'
       }`}>
-        {name}
-      </span>
+        <span className={`text-[10.5px] font-semibold tracking-tight block truncate ${
+          isDeactivated
+            ? 'line-through text-slate-500'
+            : isDarkMode ? 'text-white' : 'text-[#111827]'
+        }`}>
+          {name}
+        </span>
+      </div>
       {isDeactivated && (
-        <span className="text-[9px] font-mono block -mt-0.5 uppercase tracking-wider text-amber-500 truncate">
+        <span className="text-[8.5px] font-mono block mt-0.5 uppercase tracking-wider text-amber-500 truncate">
           Deactivated
         </span>
       )}
@@ -254,7 +260,7 @@ export default function PillarNode({ id, data, selected }) {
             e.stopPropagation();
             setShowGatewayFlyout(!showGatewayFlyout);
           }}
-          className={`mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all border ${
+          className={`mt-1.5 px-2.5 py-0.5 text-[8.5px] font-mono font-bold rounded-full flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all border ${
             allowedCount === 0
               ? isDarkMode
                 ? 'bg-rose-500/15 text-rose-400 border-rose-500/40 hover:bg-rose-500/25 shadow-xs'
@@ -288,16 +294,18 @@ export default function PillarNode({ id, data, selected }) {
             e.stopPropagation();
             setShowMcpFlyout(!showMcpFlyout);
           }}
-          className={`mt-1.5 px-2 py-0.5 text-[8.5px] font-mono font-bold rounded-none flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all shadow-xs border ${
+          className={`mt-1.5 px-2.5 py-0.5 text-[8.5px] font-mono font-bold rounded-full flex items-center justify-center gap-1 mx-auto cursor-pointer transition-all shadow-xs border ${
             isDeactivated
               ? isDarkMode
                 ? 'bg-slate-800/80 text-slate-400 border-slate-700 hover:bg-slate-800'
                 : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'
-              : 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40 hover:bg-[#00A3A6]/25'
+              : isDarkMode 
+                ? 'bg-[#00A3A6]/20 text-[#2DD4BF] border-[#00A3A6]/50 hover:bg-[#00A3A6]/30'
+                : 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/40 hover:bg-[#00A3A6]/25'
           }`}
           title={isDeactivated ? 'MCP Server is Deactivated (0 features active)' : `${tools.length} Features available`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${isDeactivated ? 'bg-slate-400' : 'bg-[#00A3A6]'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${isDeactivated ? 'bg-slate-400' : isDarkMode ? 'bg-[#2DD4BF]' : 'bg-[#00A3A6]'}`} />
           <span>{isDeactivated ? `0/${tools.length} Features` : `${tools.length} Features`}</span>
         </button>
       )}
@@ -351,17 +359,17 @@ export default function PillarNode({ id, data, selected }) {
             setShowMcpFlyout(!showMcpFlyout);
           }
         }}
-        className={`w-15 h-15 rounded-full flex items-center justify-center border-2 transition-colors duration-150 relative shadow-lg cursor-pointer ${
+        className={`w-15 h-15 rounded-full flex items-center justify-center border transition-all duration-150 relative shadow-xl cursor-pointer ${
           isExecuting
             ? 'scale-110 ring-4'
             : isDeactivated
               ? 'opacity-40 grayscale border-dashed border-slate-500 bg-slate-800/50'
               : isDarkMode
-                ? 'bg-[#22242B] border-[#3D414D] text-white hover:border-[#0091DA]'
-                : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] hover:border-[#00338D]'
+                ? 'bg-[#1E2026] border-white/15 text-white hover:border-[#38BDF8] shadow-[0_8px_24px_rgba(0,0,0,0.4)]'
+                : 'bg-[#FFFFFF] border-slate-200 text-[#0B0F19] hover:border-[#00338D] shadow-[0_8px_24px_rgba(0,30,80,0.08)]'
         } ${
           selected && !isExecuting
-            ? 'ring-4 ring-[#0091DA]/30 border-[#0091DA]'
+            ? (isDarkMode ? 'ring-4 ring-[#38BDF8]/40 border-[#38BDF8]' : 'ring-4 ring-[#0091DA]/30 border-[#0091DA]')
             : ''
         }`}
         style={isExecuting ? {

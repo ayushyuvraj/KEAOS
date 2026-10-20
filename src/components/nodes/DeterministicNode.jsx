@@ -256,18 +256,18 @@ export default function DeterministicNode({ id, data, selected }) {
   return (
     <div
       onDoubleClick={handleBoxDoubleClick}
-      className={`relative group w-[228px] h-[136px] rounded-[18px] border-2 transition-all duration-200 select-none flex flex-col justify-between cursor-pointer shadow-xl ${
+      className={`relative group w-[228px] h-[136px] rounded-2xl border transition-all duration-200 select-none flex flex-col justify-between cursor-pointer ${
         isDeactivated
           ? 'opacity-45 grayscale border-dashed border-slate-500 bg-slate-800/40'
           : isDarkMode
-            ? 'bg-[#1D2028] border-[#383C4A] text-white shadow-[0_16px_40px_rgba(0,0,0,0.6)]'
-            : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#0B0F19] shadow-[0_12px_32px_rgba(0,30,80,0.08)]'
+            ? 'bg-[#1C1E24] border-white/10 text-white shadow-[0_12px_36px_rgba(0,0,0,0.5)]'
+            : 'bg-[#FFFFFF] border-slate-200 text-[#0B0F19] shadow-[0_12px_32px_rgba(0,30,80,0.06)]'
       } ${
         !isDeactivated && isRunning
-          ? 'border-[#EAAA00] ring-4 ring-amber-400/40 shadow-[0_0_28px_rgba(234,170,0,0.35)]'
+          ? 'border-[#FBBF24] ring-4 ring-amber-400/40 shadow-[0_0_28px_rgba(251,191,36,0.35)]'
           : selected
-            ? 'border-[#0091DA] ring-2 ring-[#0091DA]'
-            : isDarkMode ? 'hover:border-[#525769]' : 'hover:border-[#94A3B8]'
+            ? (isDarkMode ? 'border-[#38BDF8] ring-2 ring-[#38BDF8]' : 'border-[#0091DA] ring-2 ring-[#0091DA]')
+            : isDarkMode ? 'hover:border-white/20' : 'hover:border-slate-300'
       }`}
       style={{ padding: '8px 10px' }}
     >
@@ -307,7 +307,7 @@ export default function DeterministicNode({ id, data, selected }) {
           height: '9px',
           borderRadius: '2px',
           backgroundColor: isRunning ? '#F59E0B' : '#EAAA00',
-          borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+          borderColor: isDarkMode ? '#1C1E24' : '#FFFFFF',
           borderWidth: '2px',
           left: '-5px',
           zIndex: 30
@@ -327,8 +327,8 @@ export default function DeterministicNode({ id, data, selected }) {
           width: '9px',
           height: '9px',
           borderRadius: '2px',
-          backgroundColor: isRunning ? '#F59E0B' : runStatus === 'success' ? '#10B981' : '#0091DA',
-          borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+          backgroundColor: isRunning ? '#F59E0B' : runStatus === 'success' ? '#10B981' : (isDarkMode ? '#38BDF8' : '#0091DA'),
+          borderColor: isDarkMode ? '#1C1E24' : '#FFFFFF',
           borderWidth: '2px',
           right: '-5px',
           zIndex: 30
@@ -526,14 +526,14 @@ export default function DeterministicNode({ id, data, selected }) {
             className={`nodrag nowheel w-full h-full p-2 text-[10.5px] font-mono leading-relaxed resize-none rounded-xl border transition-all outline-none ${
               isLocked
                 ? isDarkMode
-                  ? 'bg-[#141722]/60 border-[#2A2E3D] text-slate-300 cursor-default'
+                  ? 'bg-[#13151B]/60 border-white/5 text-slate-400 cursor-default'
                   : 'bg-slate-50 border-slate-200 text-slate-700 cursor-default'
                 : isFrozen
                   ? isDarkMode
-                    ? 'bg-[#141722]/80 border-[#2A2E3D] text-slate-300 cursor-pointer selection:bg-transparent'
+                    ? 'bg-[#13151B]/80 border-white/10 text-slate-200 cursor-pointer selection:bg-transparent'
                     : 'bg-slate-50 border-slate-200 text-slate-700 cursor-pointer selection:bg-transparent'
                   : isDarkMode 
-                    ? 'bg-[#0E111A] border-[#2E3547] text-white placeholder-slate-500 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
+                    ? 'bg-[#13151B] border-white/10 text-slate-100 placeholder-slate-400 focus:border-[#FBBF24] focus:ring-1 focus:ring-[#FBBF24]'
                     : 'bg-white border-slate-300 text-[#0B0F19] placeholder-slate-400 focus:border-[#EAAA00] focus:ring-1 focus:ring-[#EAAA00]'
             }`}
           />

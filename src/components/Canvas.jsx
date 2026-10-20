@@ -2613,45 +2613,49 @@ function CanvasInner({
         (sourceNode?.data?.pillarType === 'gateway' && targetNode?.type === 'agentCore')
       )) || Boolean(isDetActive) || Boolean(isTriggerActive);
 
-      // Resolve authoritative pillar color for this edge
-      let resolvedColor = '#0091DA';
+      // Resolve authoritative pillar color for this edge (Luminous in Dark Mode for Stitch clarity)
+      let resolvedColor = isDarkMode ? '#38BDF8' : '#0091DA';
       const targetHandle = edge.targetHandle;
       const sourceHandle = edge.sourceHandle;
       const sourcePillar = sourceNode?.data?.pillarType;
       const targetPillar = targetNode?.data?.pillarType;
 
       if (sourceNode?.type === 'triggerNode') {
-        resolvedColor = '#00A3A6'; // Cyber Teal for Ingress Triggers
+        resolvedColor = isDarkMode ? '#2DD4BF' : '#00A3A6'; // Cyber Teal for Ingress Triggers
       } else if (sourceNode?.type === 'agentCore' && targetNode?.type === 'deterministicNode') {
-        resolvedColor = '#EAAA00'; // Amber for Agent -> Deterministic Rule
+        resolvedColor = isDarkMode ? '#FBBF24' : '#EAAA00'; // Amber for Agent -> Deterministic Rule
       } else if (sourceNode?.type === 'deterministicNode' && targetNode?.type === 'outputNode') {
-        resolvedColor = '#10B981'; // Emerald Green for Deterministic -> Output
+        resolvedColor = isDarkMode ? '#34D399' : '#10B981'; // Emerald Green for Deterministic -> Output
       } else if (sourceNode?.type === 'ingestionNode' || sourcePillar === 'tools' || targetHandle === 'tools-in' || targetHandle === 'tool-in' || sourceHandle === 'tools-in') {
-        resolvedColor = '#0091DA'; // Pacific Blue for tools and data ingestion stream
+        resolvedColor = isDarkMode ? '#38BDF8' : '#0091DA'; // Pacific Blue for tools and data ingestion stream
       } else if (sourcePillar === 'model' || targetPillar === 'model' || targetHandle === 'model-in' || sourceHandle === 'model-in') {
-        resolvedColor = '#00338D'; // Royal Brand Blue for Model
+        resolvedColor = isDarkMode ? '#60A5FA' : '#00338D'; // Luminous Sky Blue in Dark / Royal Brand Blue in Light
       } else if (sourcePillar === 'mcp' || sourcePillar === 'gateway' || targetPillar === 'mcp' || targetPillar === 'gateway' || targetHandle === 'mcp-in' || targetHandle === 'gateway-in' || sourceHandle === 'mcp-in') {
-        resolvedColor = '#00A3A6'; // Cyber Teal for MCP & Gateway
+        resolvedColor = isDarkMode ? '#2DD4BF' : '#00A3A6'; // Cyber Teal for MCP & Gateway
       } else if (sourcePillar === 'policies' || targetPillar === 'policies' || targetHandle === 'policy-in' || targetHandle === 'policies-in' || sourceHandle === 'policy-in') {
-        resolvedColor = '#470A68'; // Leadership Deep Purple for Policies & Guardrails
+        resolvedColor = isDarkMode ? '#C084FC' : '#470A68'; // Luminous Violet in Dark / Deep Purple in Light
       } else if (sourcePillar === 'memory' || targetPillar === 'memory' || targetHandle === 'memory-in' || sourceHandle === 'memory-in') {
-        resolvedColor = '#483698'; // Transformation Violet for Memory
+        resolvedColor = isDarkMode ? '#A78BFA' : '#483698'; // Transformation Lavender in Dark / Violet in Light
       } else if (sourcePillar === 'skills' || targetPillar === 'skills' || targetHandle === 'skill-in' || targetHandle === 'skills-in' || sourceHandle === 'skill-in') {
-        resolvedColor = '#6D2077'; // Tech Magenta for Skills
+        resolvedColor = isDarkMode ? '#34D399' : '#009A44'; // Emerald in Dark / Green in Light
       } else if (isDetEdge) {
-        resolvedColor = '#EAAA00';
+        resolvedColor = isDarkMode ? '#FBBF24' : '#EAAA00';
       } else if (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') {
-        resolvedColor = '#10B981';
+        resolvedColor = isDarkMode ? '#34D399' : '#10B981';
       } else if (sourceNode?.type === 'routerNode') {
-        resolvedColor = edge.sourceHandle === 'true-out' ? '#10B981' : '#0091DA';
+        resolvedColor = edge.sourceHandle === 'true-out' 
+          ? (isDarkMode ? '#34D399' : '#10B981') 
+          : (isDarkMode ? '#38BDF8' : '#0091DA');
       } else if (targetNode?.type === 'routerNode') {
-        resolvedColor = '#0091DA';
+        resolvedColor = isDarkMode ? '#38BDF8' : '#0091DA';
       } else if (sourceNode?.type === 'approvalNode') {
-        resolvedColor = edge.sourceHandle === 'approved-out' ? '#10B981' : '#EF4444';
+        resolvedColor = edge.sourceHandle === 'approved-out' 
+          ? (isDarkMode ? '#34D399' : '#10B981') 
+          : '#EF4444';
       } else if (targetNode?.type === 'approvalNode') {
-        resolvedColor = '#EAAA00';
+        resolvedColor = isDarkMode ? '#FBBF24' : '#EAAA00';
       } else if (sourceNode?.type === 'agentCore' && targetNode?.type === 'agentCore') {
-        resolvedColor = '#6366F1';
+        resolvedColor = isDarkMode ? '#818CF8' : '#6366F1';
       } else if (edge.style?.stroke) {
         resolvedColor = edge.style.stroke;
       }
@@ -2682,26 +2686,37 @@ function CanvasInner({
   }, [edges, nodes, isDarkMode, handleDeleteEdge, executionState, isWorkflowLocked]);
 
   return (
-    <div className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${
-      isDarkMode ? 'bg-[#141518] text-white' : 'bg-[#F9FAFB] text-[#111827]'
-    }`}>
+    <div 
+      className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${
+        isDarkMode ? 'bg-[#202124] text-white' : 'bg-[#F8F9FA] text-[#111827]'
+      }`}
+      style={{
+        backgroundImage: isDarkMode 
+          ? 'radial-gradient(circle 900px at 15% 15%, rgba(255, 255, 255, 0.045) 0%, transparent 75%)'
+          : 'none'
+      }}
+    >
       {/* Toast Feedback */}
       {toastNotification && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-4 py-2 bg-[#22242B] border border-[#3E424F] text-white text-xs font-mono font-bold rounded-lg shadow-2xl animate-in slide-in-from-top-2 duration-150 flex items-center gap-3">
+        <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-40 px-4 py-2 text-xs font-mono font-bold rounded-2xl shadow-2xl backdrop-blur-md animate-in slide-in-from-top-2 duration-150 flex items-center gap-3 border ${
+          isDarkMode 
+            ? 'bg-[#1C1E24]/95 border-white/10 text-white shadow-[0_8px_32px_rgba(0,0,0,0.5)]' 
+            : 'bg-white/95 border-slate-200 text-slate-900 shadow-[0_8px_32px_rgba(0,30,80,0.12)]'
+        }`}>
           <span>{toastNotification}</span>
-          <button onClick={() => setToastNotification(null)} className="text-slate-400 hover:text-white ml-2 text-xs">✕</button>
+          <button onClick={() => setToastNotification(null)} className="text-slate-400 hover:text-white ml-2 text-xs cursor-pointer">✕</button>
         </div>
       )}
 
-      {/* Top-Left Prominent Canvas Action Overlay: Minimalist Execute Workflow & Stop */}
+      {/* Top-Left Prominent Canvas Action Overlay: Stitch-style Pill Execute Workflow & Stop */}
       <div className="absolute top-4 left-6 z-20 flex items-center gap-2">
         <button
           onClick={handleExecuteWorkflow}
           disabled={executionState.isExecuting}
-          className={`btn-tactile px-4 py-2 font-bold text-xs flex items-center gap-2 rounded-none shadow-md transition-all border cursor-pointer ${
+          className={`px-4 py-2 font-bold text-xs flex items-center gap-2 rounded-2xl shadow-xl transition-all border cursor-pointer active:scale-95 ${
             executionState.isExecuting
-              ? 'bg-[#00338D] text-white border-[#0091DA] animate-pulse'
-              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#00338D] shadow-[0_2px_10px_rgba(0,51,141,0.3)]'
+              ? 'bg-[#00338D] text-white border-[#38BDF8] animate-pulse shadow-[0_4px_20px_rgba(0,51,141,0.5)]'
+              : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#00338D] shadow-[0_4px_20px_rgba(0,51,141,0.35)]'
           }`}
           title="Execute workflow (Ctrl + Enter)"
         >
@@ -2724,7 +2739,7 @@ function CanvasInner({
         {(executionState.isExecuting || (nodes || []).some(n => n.type === 'outputNode' && n.data?.status === 'generating')) && (
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('keaos:cancel-execution'))}
-            className="btn-tactile px-3 py-2 rounded-none font-bold text-xs flex items-center gap-1.5 shadow-md bg-red-600 hover:bg-red-700 text-white border border-red-500 cursor-pointer animate-in fade-in duration-150 active:scale-95"
+            className="px-3.5 py-2 rounded-2xl font-bold text-xs flex items-center gap-1.5 shadow-xl bg-red-600 hover:bg-red-700 text-white border border-red-500 cursor-pointer animate-in fade-in duration-150 active:scale-95"
             title="Stop active execution"
           >
             <Square className="w-3 h-3 fill-white" />
@@ -2733,10 +2748,12 @@ function CanvasInner({
         )}
       </div>
 
-      {/* Top-Right Minimal Vertical Action Stack (Matching Reference) */}
+      {/* Top-Right Minimal Vertical Action Stack (Google Stitch Style Floating Capsule) */}
       <div className="absolute top-4 right-6 z-20 flex flex-col items-center gap-2">
-        <div className={`flex flex-col items-center border rounded-xl shadow-xl overflow-hidden backdrop-blur-md divide-y ${
-          isDarkMode ? 'bg-[#22242B]/90 border-[#383B46] divide-[#383B46]' : 'bg-white/90 border-[#E5E7EB] divide-[#E5E7EB]'
+        <div className={`flex flex-col items-center border rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md divide-y ${
+          isDarkMode 
+            ? 'bg-[#1C1E24]/90 border-white/10 divide-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]' 
+            : 'bg-white/95 border-slate-200 divide-slate-100 shadow-[0_8px_32px_rgba(0,30,80,0.08)]'
         }`}>
           {/* 1. Add Node (+) */}
           <button
@@ -2750,12 +2767,14 @@ function CanvasInner({
                 if (onSelectNode) onSelectNode(null);
               }
             }}
-            className={`w-10 h-10 flex items-center justify-center transition-colors ${
+            className={`w-10 h-10 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
               isWorkflowLocked
                 ? 'opacity-40 cursor-not-allowed text-slate-500'
                 : isAddMenuOpen 
                   ? 'bg-[#0091DA] text-white' 
-                  : 'text-slate-400 hover:text-white hover:bg-white/10'
+                  : isDarkMode 
+                    ? 'text-slate-300 hover:text-white hover:bg-white/10' 
+                    : 'text-slate-600 hover:text-black hover:bg-slate-100'
             }`}
             title={isWorkflowLocked ? "Adding components is disabled while workflow is locked" : "Add Node / Component (+)"}
           >
@@ -2777,10 +2796,10 @@ function CanvasInner({
                   }
                 }
               }}
-              className={`w-10 h-10 flex items-center justify-center transition-colors ${
+              className={`w-10 h-10 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
                 isInspectorOpen && !isAddMenuOpen
-                  ? 'bg-white/15 text-white' 
-                  : 'text-slate-400 hover:text-white hover:bg-white/10'
+                  ? (isDarkMode ? 'bg-white/15 text-white' : 'bg-slate-100 text-[#00338D]')
+                  : (isDarkMode ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-black hover:bg-slate-100')
               }`}
               title="Toggle Node Inspector"
             >
@@ -2791,10 +2810,12 @@ function CanvasInner({
           {/* 3. Summary Map Toggle */}
           <button
             onClick={() => setShowMiniMap(!showMiniMap)}
-            className={`w-10 h-10 flex items-center justify-center transition-colors ${
+            className={`w-10 h-10 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
               showMiniMap 
-                ? 'text-[#0091DA]' 
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
+                ? 'text-[#0091DA] bg-[#0091DA]/10' 
+                : isDarkMode 
+                  ? 'text-slate-300 hover:text-white hover:bg-white/10' 
+                  : 'text-slate-600 hover:text-black hover:bg-slate-100'
             }`}
             title="Toggle MiniMap"
           >
@@ -2803,15 +2824,19 @@ function CanvasInner({
         </div>
       </div>
 
-      {/* Bottom-Left Minimal Square Controls (Matching Reference Image) */}
+      {/* Bottom-Left Minimal Capsule Controls (Google Stitch Style Floating Capsule) */}
       <div className="absolute bottom-14 left-6 z-20 flex items-center gap-2">
-        <div className={`flex items-center border rounded-xl shadow-xl overflow-hidden backdrop-blur-md divide-x ${
-          isDarkMode ? 'bg-[#22242B]/90 border-[#383B46] divide-[#383B46]' : 'bg-white/90 border-[#E5E7EB] divide-[#E5E7EB]'
+        <div className={`flex items-center border rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md divide-x ${
+          isDarkMode 
+            ? 'bg-[#1C1E24]/90 border-white/10 divide-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]' 
+            : 'bg-white/95 border-slate-200 divide-slate-100 shadow-[0_8px_32px_rgba(0,30,80,0.08)]'
         }`}>
           {/* 1. Fit View [ ⛶ ] - Centers entire workflow symmetrically in viewport */}
           <button
             onClick={() => rfInstance?.fitView({ padding: 0.2, duration: 400 })}
-            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
+              isDarkMode ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-black hover:bg-slate-100'
+            }`}
             title="Fit View & Center Workflow"
           >
             <Maximize2 className="w-4 h-4" />
@@ -2820,7 +2845,9 @@ function CanvasInner({
           {/* 2. Zoom In (+) */}
           <button
             onClick={() => rfInstance?.zoomIn()}
-            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
+              isDarkMode ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-black hover:bg-slate-100'
+            }`}
             title="Zoom In"
           >
             <Plus className="w-4 h-4" />
@@ -2829,7 +2856,9 @@ function CanvasInner({
           {/* 3. Zoom Out (-) */}
           <button
             onClick={() => rfInstance?.zoomOut()}
-            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
+              isDarkMode ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-black hover:bg-slate-100'
+            }`}
             title="Zoom Out"
           >
             <Minus className="w-4 h-4" />
@@ -2839,10 +2868,10 @@ function CanvasInner({
           <button
             onClick={undo}
             disabled={!canUndo || isWorkflowLocked}
-            className={`w-9 h-9 flex items-center justify-center transition-colors ${
+            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 ${
               canUndo && !isWorkflowLocked
-                ? 'text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer'
-                : 'text-slate-600 opacity-30 cursor-not-allowed'
+                ? isDarkMode ? 'text-slate-300 hover:text-white hover:bg-white/10 cursor-pointer' : 'text-slate-600 hover:text-black hover:bg-slate-100 cursor-pointer'
+                : 'text-slate-500 opacity-30 cursor-not-allowed'
             }`}
             title={isWorkflowLocked ? "Undo disabled while workflow is locked" : canUndo ? "Undo (Ctrl+Z)" : "Undo (Ctrl+Z) - No actions to undo"}
           >
@@ -2853,10 +2882,10 @@ function CanvasInner({
           <button
             onClick={redo}
             disabled={!canRedo || isWorkflowLocked}
-            className={`w-9 h-9 flex items-center justify-center transition-colors ${
+            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 ${
               canRedo && !isWorkflowLocked
-                ? 'text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer'
-                : 'text-slate-600 opacity-30 cursor-not-allowed'
+                ? isDarkMode ? 'text-slate-300 hover:text-white hover:bg-white/10 cursor-pointer' : 'text-slate-600 hover:text-black hover:bg-slate-100 cursor-pointer'
+                : 'text-slate-500 opacity-30 cursor-not-allowed'
             }`}
             title={isWorkflowLocked ? "Redo disabled while workflow is locked" : canRedo ? "Redo (Ctrl+Y / Ctrl+Shift+Z)" : "Redo - No actions to redo"}
           >
@@ -2867,10 +2896,12 @@ function CanvasInner({
           <button
             onClick={handleToggleEnforcer}
             disabled={isWorkflowLocked}
-            className={`w-9 h-9 flex items-center justify-center transition-colors ${
+            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
               isWorkflowLocked
                 ? 'opacity-50 cursor-not-allowed text-slate-500'
-                : isEnforcerActive ? 'text-[#0091DA]' : 'text-amber-400'
+                : isEnforcerActive 
+                  ? (isDarkMode ? 'text-[#38BDF8] bg-[#38BDF8]/10' : 'text-[#0091DA] bg-sky-50') 
+                  : 'text-amber-400 bg-amber-400/10'
             }`}
             title={
               isWorkflowLocked
@@ -2881,13 +2912,15 @@ function CanvasInner({
             {isEnforcerActive ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
           </button>
 
-          {/* 5. Light/Dark Theme Toggle */}
+          {/* 7. Light/Dark Theme Toggle */}
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
+              isDarkMode ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-black hover:bg-slate-100'
+            }`}
             title="Toggle Light/Dark Theme"
           >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-400" />}
+            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-600" />}
           </button>
         </div>
       </div>
@@ -3007,10 +3040,10 @@ function CanvasInner({
       >
         <Background 
           variant={BackgroundVariant.Dots} 
-          gap={22} 
-          size={1.2} 
-          color={isDarkMode ? '#2D3039' : '#CBD5E1'} 
-          style={{ backgroundColor: isDarkMode ? '#16171B' : '#F9FAFB' }}
+          gap={16} 
+          size={1.5} 
+          color={isDarkMode ? 'rgba(255, 255, 255, 0.42)' : 'rgba(60, 64, 67, 0.25)'} 
+          style={{ backgroundColor: 'transparent' }}
         />
       </ReactFlow>
 

@@ -45,8 +45,8 @@ export default function DeletableEdge({
   const isDarkMode = data?.isDarkMode ?? true;
 
   const defaultStroke = isDeactivated 
-    ? (isDarkMode ? '#475569' : '#94A3B8') 
-    : (style.stroke || '#0091DA');
+    ? (isDarkMode ? '#334155' : '#94A3B8') 
+    : (style.stroke || (isDarkMode ? '#38BDF8' : '#0091DA'));
 
   return (
     <>

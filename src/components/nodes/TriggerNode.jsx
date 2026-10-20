@@ -235,9 +235,9 @@ export default function TriggerNode({ id, data, selected }) {
         dropdownPlacement="auto"
       />
 
-      {/* Minimal Single-Line Label Placed Above Disc (Zero Wire Overlap) */}
+      {/* Minimal Single-Line Label Placed Above Disc (Google Stitch Frosted Pill) */}
       <div 
-        className="absolute bottom-[calc(100%+8px)] left-0 w-full px-1 text-center pointer-events-auto"
+        className="absolute bottom-[calc(100%+8px)] left-0 w-full px-1 text-center pointer-events-auto flex flex-col items-center"
         onClick={(e) => {
           if (data?.onOpenInspector) data.onOpenInspector(id);
         }}
@@ -253,8 +253,8 @@ export default function TriggerNode({ id, data, selected }) {
               if (e.key === 'Escape') setIsEditingTitle(false);
             }}
             autoFocus
-            className={`w-full px-1.5 py-0.5 text-[11px] font-semibold text-center rounded-none outline-none border ${
-              isDarkMode ? 'bg-[#141B2D] text-white' : 'bg-slate-50 text-slate-900'
+            className={`w-full px-2 py-0.5 text-[11px] font-semibold text-center rounded-full outline-none border ${
+              isDarkMode ? 'bg-[#1C1E24] text-white border-white/20' : 'bg-white text-slate-900 border-slate-300'
             }`}
             style={{ borderColor: accentColor }}
           />
@@ -265,10 +265,14 @@ export default function TriggerNode({ id, data, selected }) {
               e.stopPropagation();
               setIsEditingTitle(true);
             }}
-            className="cursor-pointer group/title"
+            className={`px-2.5 py-0.5 rounded-full border backdrop-blur-md max-w-full inline-flex items-center justify-center cursor-pointer group/title ${
+              isDarkMode 
+                ? 'bg-[#1C1E24]/90 border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)]' 
+                : 'bg-white/95 border-slate-200 shadow-[0_4px_16px_rgba(0,30,80,0.08)]'
+            }`}
             title="Double-click to rename trigger"
           >
-            <span className={`text-[11px] font-semibold tracking-tight block truncate ${
+            <span className={`text-[10.5px] font-semibold tracking-tight block truncate ${
               isDeactivated 
                 ? 'line-through text-slate-500' 
                 : isDarkMode ? 'text-white' : 'text-[#111827]'
@@ -285,7 +289,7 @@ export default function TriggerNode({ id, data, selected }) {
           type="button"
           onClick={handleDiscClick}
           disabled={isDeactivated || isExecuting}
-          className={`w-[60px] h-[60px] rounded-full flex items-center justify-center border-2 transition-all duration-150 relative shadow-lg cursor-pointer active:scale-95 ${
+          className={`w-[60px] h-[60px] rounded-full flex items-center justify-center border transition-all duration-150 relative shadow-xl cursor-pointer active:scale-95 ${
             isExecuting
               ? 'scale-110 shadow-2xl'
               : lastStatus === 'success'
@@ -295,8 +299,8 @@ export default function TriggerNode({ id, data, selected }) {
                   : isDraggingOver
                     ? 'scale-110 border-dashed animate-pulse ring-4'
                     : isDarkMode
-                      ? 'bg-[#0B101D] hover:scale-105'
-                      : 'bg-white hover:scale-105'
+                      ? 'bg-[#1E2026] border-white/15 hover:border-[#38BDF8] shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:scale-105'
+                      : 'bg-white border-slate-200 hover:border-[#00338D] shadow-[0_8px_24px_rgba(0,30,80,0.08)] hover:scale-105'
           } ${
             selected && !isExecuting
               ? 'ring-4 ring-[#0091DA]/30'
