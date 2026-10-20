@@ -87,10 +87,10 @@ export default function MeetingSimulator({
         duration: 'Processing audio stream...'
       });
 
-      const googleKey = getProviderCredential('google') || getActiveApiKey();
       const openAiKey = getProviderCredential('openai');
+      const googleKey = getProviderCredential('google') || getActiveApiKey();
 
-      if (googleKey || openAiKey) {
+      if (openAiKey || googleKey) {
         setIsTranscribingAudio(true);
         try {
           const transResult = await transcribeAudioUniversal(file);

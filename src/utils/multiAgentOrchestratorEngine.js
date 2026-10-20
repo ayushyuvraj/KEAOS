@@ -276,8 +276,8 @@ You are participating in an institutional multi-agent workflow. Review all upstr
 
   // 6. RESOLVE FOUNDATION MODEL
   const modelNode = attachedPillars.find(p => p.type === 'model');
-  let provider = 'google';
-  let modelId = 'gemini-2.0-flash';
+  let provider = 'openai';
+  let modelId = 'gpt-4o';
   let isInheritedModel = false;
   let modelSource = 'Dedicated';
 
@@ -286,8 +286,9 @@ You are participating in an institutional multi-agent workflow. Review all upstr
       (modelNode.name?.toLowerCase().includes('claude') ? 'anthropic' :
        (modelNode.name?.toLowerCase().includes('gpt') || modelNode.name?.toLowerCase().includes('openai')) ? 'openai' :
        modelNode.name?.toLowerCase().includes('ollama') ? 'ollama' :
-       modelNode.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
-    modelId = modelNode.config?.modelId || modelNode.name || 'gemini-2.0-flash';
+       modelNode.name?.toLowerCase().includes('openrouter') ? 'openrouter' :
+       modelNode.name?.toLowerCase().includes('gemini') ? 'google' : 'openai');
+    modelId = modelNode.config?.modelId || modelNode.name || 'gpt-4o';
   } else {
     // 1. Check if an upstream agent has already resolved a model to inherit from
     const upstreamWithModel = upstreamOutputs.find(u => u.provider && u.modelId);
@@ -301,21 +302,18 @@ You are participating in an institutional multi-agent workflow. Review all upstr
       const allModelNodes = (allNodes || []).filter(n => n.type === 'pillar' && n.data?.pillarType === 'model' && !n.data?.isDeactivated);
       if (allModelNodes.length > 0) {
         const rootModel = allModelNodes[0];
-        provider = rootModel.data?.config?.provider || 'google';
-        modelId = rootModel.data?.config?.modelId || rootModel.data?.name || 'gemini-2.0-flash';
+        provider = rootModel.data?.config?.provider || 'openai';
+        modelId = rootModel.data?.config?.modelId || rootModel.data?.name || 'gpt-4o';
         isInheritedModel = true;
         modelSource = `Shared Canvas Brain (${rootModel.data?.name || 'Senior Agent Model'})`;
       } else {
         // Framework-recommended fallback provider
-        if (frameworkId === 'microsoft-adk' || frameworkId === 'openai-swarm') {
-          provider = 'openai';
-          modelId = 'gpt-4o';
-        } else if (frameworkId === 'langchain') {
+        if (frameworkId === 'langchain') {
           provider = 'anthropic';
           modelId = 'claude-3-5-sonnet-20241022';
         } else {
-          provider = 'google';
-          modelId = 'gemini-2.0-flash';
+          provider = 'openai';
+          modelId = 'gpt-4o';
         }
       }
     }

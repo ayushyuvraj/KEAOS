@@ -28,7 +28,8 @@ import {
   Code2,
   SlidersHorizontal,
   Activity,
-  Database
+  Database,
+  AlertTriangle
 } from 'lucide-react';
 import MarkdownViewer from '../common/MarkdownViewer';
 import NodeActionToolbar from '../common/NodeActionToolbar';
@@ -1233,6 +1234,19 @@ export default function OutputDisplayNode({ id, data, selected }) {
               <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 border border-emerald-500/20">
                 Strategy: {persistenceStrategy.toUpperCase()}
               </span>
+            </div>
+
+            {/* Diagnostic alert when the selected run produced 0 content */}
+            <div className={`p-2.5 rounded-none border text-xs font-mono space-y-1 ${
+              isDarkMode ? 'bg-amber-950/30 border-amber-500/40 text-amber-200' : 'bg-amber-50 border-amber-300 text-amber-900'
+            }`}>
+              <div className="flex items-center gap-1.5 font-semibold text-[11px]">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Selected Run #{activeRunIndex + 1} produced no text content (0 chars)</span>
+              </div>
+              <p className="text-[10px] opacity-80 leading-relaxed font-sans">
+                Upstream node <strong>{data?.sourceNodeName || 'Row & Schema Normalizer'}</strong> executed in {activeLatencyMs || 0}ms but returned an empty output because the upstream agent (Mail & Attachment Extractor) has not yet sent an ingested email payload.
+              </p>
             </div>
 
             <div className="space-y-1">

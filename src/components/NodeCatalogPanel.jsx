@@ -451,6 +451,7 @@ const NODE_CATEGORIES = [
         isTriggerNode: true,
         config: {
           triggerType: 'poll',
+          pollSubMode: 'rest',
           pollIntervalSeconds: 60,
           endpointUrl: 'https://api.example.com/v1/status',
           deduplicateWatermark: true,

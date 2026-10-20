@@ -95,9 +95,9 @@ export function createMeetingIntelligenceWorkflow() {
       position: { x: 564, y: 55 },
       data: {
         pillarType: 'model',
-        name: 'Gemini 2.0 Flash',
-        description: 'Fast, multimodal, 1M+ context window for long transcripts.',
-        config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
+        name: 'GPT-4o',
+        description: 'Flagship omni reasoning, structured outputs, and precision tool calling.',
+        config: { provider: 'openai', modelId: 'gpt-4o', temperature: 0.2, topP: 1.0 }
       }
     },
     {
@@ -404,6 +404,8 @@ export function createOutlookStreamWorkflow() {
     subject: item.subject || item.title || item.name || 'Ingested Message',
     received_at: item.receivedDateTime || item.timestamp || new Date().toISOString(),
     has_attachments: Boolean(item.hasAttachments || item.attachments?.length),
+    attachments_count: item.attachments?.length || (item.hasAttachments ? 1 : 0),
+    attachment_names: Array.isArray(item.attachments) && item.attachments.length > 0 ? item.attachments.map(a => a.name).join(', ') : (item.hasAttachments ? 'Attached Files' : 'None'),
     summary: (item.bodyPreview || item.content || item.summary || item.text || '').slice(0, 120),
     status: 'EXTRACTED'
   };

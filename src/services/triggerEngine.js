@@ -319,7 +319,8 @@ export function armOutlookStreamWatcher(nodeId, {
             const pollArgs = {
               folder: folderName,
               limit: Math.min(50, maxBatchSize || 25),
-              filter: filter || (stream === 'inbox' ? 'isRead eq false' : '')
+              filter: filter || (stream === 'inbox' ? 'isRead eq false' : ''),
+              expandAttachments: true
             };
             if (search) pollArgs.search = search;
 
@@ -373,7 +374,15 @@ export function armOutlookStreamWatcher(nodeId, {
             subject: item.subject || `Notification #${item.id}`,
             sender: item.from?.emailAddress?.address || item.from || 'sender@enterprise.corp',
             receivedDateTime: item.receivedDateTime || item.sentDateTime || item.createdDateTime || new Date().toISOString(),
-            hasAttachments: Boolean(item.hasAttachments),
+            hasAttachments: Boolean(item.hasAttachments || (item.attachments && item.attachments.length > 0)),
+            attachmentsCount: item.attachments?.length || 0,
+            attachments: Array.isArray(item.attachments) ? item.attachments.map(att => ({
+              id: att.id,
+              name: att.name,
+              contentType: att.contentType,
+              sizeBytes: att.size,
+              isInline: Boolean(att.isInline)
+            })) : [],
             bodyPreview: item.bodyPreview || item.body?.content || ''
           }
         };
@@ -650,12 +659,15 @@ export async function fireTriggerEvent({
       await new Promise(r => setTimeout(r, 360));
 
       try {
+        const promptDirective = target.data?.prompt || target.data?.ruleSummary || 'Trigger Ingress Processing';
         const detResult = await executeDeterministicTask({
           nodeId: target.id,
           code: target.data?.code,
-          language: target.data?.language || 'python',
+          language: target.data?.language || 'auto',
+          inputData: parsedPayload,
           inputs: parsedPayload,
-          ruleSummary: target.data?.prompt || target.data?.ruleSummary || 'Trigger Ingress Processing'
+          prompt: promptDirective,
+          ruleSummary: promptDirective
         });
 
         window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
@@ -663,8 +675,9 @@ export async function fireTriggerEvent({
             nodeId: target.id,
             success: detResult.success,
             output: detResult.output,
+            tableData: detResult.tableData,
             latencyMs: detResult.latencyMs,
-            ruleSummary: target.data?.prompt || target.data?.ruleSummary || 'Processed Trigger Input'
+            ruleSummary: promptDirective
           }
         }));
 

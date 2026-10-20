@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Key, X, CheckCircle2, AlertCircle, ExternalLink, Shield, Cpu, Server } from 'lucide-react';
 import { PROVIDERS, getProviderCredential, saveProviderCredential, testProviderConnection } from '../services/llmService';
 
-export default function ApiSettingsModal({ isOpen, onClose, onKeyUpdated, initialTab = 'google' }) {
+export default function ApiSettingsModal({ isOpen, onClose, onKeyUpdated, initialTab = 'openai' }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [credentials, setCredentials] = useState({});
   const [testingProvider, setTestingProvider] = useState(null);
@@ -14,7 +14,7 @@ export default function ApiSettingsModal({ isOpen, onClose, onKeyUpdated, initia
       if (initialTab && PROVIDERS[initialTab] && !PROVIDERS[initialTab].disabled) {
         setActiveTab(initialTab);
       } else {
-        setActiveTab('google');
+        setActiveTab('openai');
       }
       const initialCreds = {};
       Object.keys(PROVIDERS).forEach((pId) => {

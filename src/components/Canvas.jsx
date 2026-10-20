@@ -483,15 +483,24 @@ function CanvasInner({
         // Format output cleanly: If it has structured summary/tableData, format as readable Markdown for viewer
         let formattedOutput = '';
         if (typeof detail.output === 'object' && detail.output !== null) {
-          if (detail.output.summary && detail.tableData && Array.isArray(detail.tableData) && detail.tableData.length > 0) {
+          const keys = Object.keys(detail.output).filter((k) => !k.startsWith('_'));
+          if (detail.tableData && Array.isArray(detail.tableData) && detail.tableData.length > 0) {
             const headers = Object.keys(detail.tableData[0] || {});
             let tableMd = `| ${headers.join(' | ')} |\n| ${headers.map(() => '---').join(' | ')} |\n`;
             detail.tableData.forEach((row) => {
               tableMd += `| ${headers.map((h) => row[h] ?? '').join(' | ')} |\n`;
             });
-            formattedOutput = `### ⚡ ${ruleName} Evaluation\n\n**Summary**: ${detail.output.summary}\n\n${tableMd}`;
-          } else if (detail.output.summary) {
-            formattedOutput = `### ⚡ ${ruleName} Result\n\n${detail.output.summary}\n\n\`\`\`json\n${JSON.stringify(detail.output, null, 2)}\n\`\`\``;
+            const summaryPart = detail.output.summary ? `**Summary**: ${detail.output.summary}\n\n` : '';
+            formattedOutput = `### ⚡ ${ruleName} Evaluation\n\n${summaryPart}${tableMd}`;
+          } else if (keys.length > 0) {
+            let tableMd = `| Property | Value |\n| --- | --- |\n`;
+            keys.forEach((k) => {
+              const val = detail.output[k];
+              const valStr = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '');
+              tableMd += `| **${k}** | ${valStr} |\n`;
+            });
+            const summaryHeader = detail.output.summary ? `**Summary**: ${detail.output.summary}\n\n` : '';
+            formattedOutput = `### ⚡ ${ruleName} Record\n\n${summaryHeader}${tableMd}\n\n\`\`\`json\n${JSON.stringify(detail.output, null, 2)}\n\`\`\``;
           } else {
             formattedOutput = JSON.stringify(detail.output, null, 2);
           }

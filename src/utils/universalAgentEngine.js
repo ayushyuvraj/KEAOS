@@ -363,31 +363,43 @@ export async function executeUniversalAgentChat({
 
       // If this is an Outlook MCP, check if we need to pre-fetch recent mailbox context
       const isOutlook = sName === 'outlook' || (m.name || '').toLowerCase().includes('outlook') || m.transport === 'outlook-api';
-      const isOutlookQuery = /(email|mail|inbox|outlook|meeting|calendar|schedule|appointment|contact|task)/i.test(userMessage) || 
-                            conversationHistory.some(c => /(email|mail|inbox|outlook|meeting|calendar|schedule)/i.test(c.content));
+      const isOutlookQuery = /(email|mail|inbox|outlook|meeting|calendar|schedule|appointment|contact|task|attachment|invoice|document|file)/i.test(userMessage) || 
+                            conversationHistory.some(c => /(email|mail|inbox|outlook|meeting|calendar|schedule|attachment|invoice)/i.test(c.content));
+      const isAttachmentQuery = /(attachment|invoice|document|file|pfa|pdf|docx|xlsx)/i.test(userMessage) ||
+                               conversationHistory.some(c => /(attachment|invoice|document|file|pfa)/i.test(c.content));
 
-      if (isOutlook && m.config?.token && !disabledTools.includes('list_messages') && isOutlookQuery && !m.basis?.recentMessages) {
-        try {
-          const recentMsg = await executeRealMcpTool({
-            toolName: 'list_messages',
-            server: m,
-            args: { limit: 5 },
-            options: { disabledTools }
-          });
-          if (recentMsg && Array.isArray(recentMsg.value)) {
-            m.basis = {
-              ...(m.basis || {}),
-              recentMessagesCount: recentMsg.value.length,
-              recentMessages: recentMsg.value.map(msg => ({
-                id: msg.id,
-                subject: msg.subject,
-                from: msg.from?.emailAddress?.address,
-                date: msg.receivedDateTime
-              }))
-            };
+      if (isOutlook && m.config?.token && !disabledTools.includes('list_messages') && isOutlookQuery) {
+        const needsRefresh = !m.basis?.recentMessages || (isAttachmentQuery && !m.basis.recentMessages.some(x => x.hasAttachments));
+        if (needsRefresh) {
+          try {
+            const recentMsg = await executeRealMcpTool({
+              toolName: 'list_messages',
+              server: m,
+              args: { limit: 5, expandAttachments: true },
+              options: { disabledTools }
+            });
+            if (recentMsg && Array.isArray(recentMsg.value)) {
+              m.basis = {
+                ...(m.basis || {}),
+                recentMessagesCount: recentMsg.value.length,
+                recentMessages: recentMsg.value.map(msg => {
+                  const attList = (msg.attachments || []).map(a => `${a.name || 'attachment'}${a.size ? ` (${Math.round(a.size / 1024)} KB)` : ''}`);
+                  const hasAtt = Boolean(msg.hasAttachments || attList.length > 0);
+                  return {
+                    id: msg.id,
+                    subject: msg.subject,
+                    from: msg.from?.emailAddress?.address || msg.from?.emailAddress?.name || 'Unknown',
+                    date: msg.receivedDateTime,
+                    hasAttachments: hasAtt,
+                    attachmentCount: attList.length || (hasAtt ? 1 : 0),
+                    attachmentsSummary: attList.length > 0 ? attList.join(', ') : (hasAtt ? '1+ attachments present' : 'None')
+                  };
+                })
+              };
+            }
+          } catch (err) {
+            console.warn('Live Outlook MCP pre-query note:', err);
           }
-        } catch (err) {
-          console.warn('Live Outlook MCP pre-query note:', err);
         }
       }
     }
@@ -441,7 +453,12 @@ ${mcpNodes.map((m, idx) => {
     text += `  - REPOSITORIES INVENTORY (${b.repositories.length}):\n${b.repositories.slice(0, 15).map((r, rIdx) => `    ${rIdx + 1}. [${r.fullName || r.name}](${r.htmlUrl}) — ${r.isPrivate ? 'Private' : 'Public'}, Default Branch: "${r.defaultBranch || 'main'}"`).join('\n')}\n`;
   }
   if (Array.isArray(b.recentMessages) && b.recentMessages.length > 0) {
-    text += `  - RECENT INBOX MESSAGES (${b.recentMessages.length}):\n${b.recentMessages.map((msg, mIdx) => `    ${mIdx + 1}. Subject: "${msg.subject || '(No subject)'}" from ${msg.from || 'Unknown'} (${msg.date || 'Recent'}) [ID: ${msg.id}]`).join('\n')}\n`;
+    text += `  - RECENT INBOX MESSAGES (${b.recentMessages.length}):\n${b.recentMessages.map((msg, mIdx) => {
+      const attInfo = msg.hasAttachments
+        ? `[ATTACHMENTS DETECTED: ${msg.attachmentsSummary || 'Yes'}]`
+        : `[No attachments]`;
+      return `    ${mIdx + 1}. Subject: "${msg.subject || '(No subject)'}" from ${msg.from || 'Unknown'} (${msg.date || 'Recent'}) ${attInfo} [ID: ${msg.id}]`;
+    }).join('\n')}\n`;
   }
   text += `  - PERMITTED TOOLS (${activeTools.length} enabled at Gateway):\n${activeTools.map(t => {
     const props = t.inputSchema?.properties ? Object.keys(t.inputSchema.properties) : [];
@@ -470,12 +487,18 @@ Use your reasoning brain to differentiate between CAPABILITY INQUIRIES and TASK 
    - CASE C: The capability is NOT listed in any connected MCP server:
      Respond directly and honestly that you do NOT have access to that capability because it is not available in the currently connected MCP tools.
 
-2. TASK EXECUTION & REAL-TIME DATA INSPECTION DIRECTIVES (e.g., "Create a repository", "how many mails in inbox?", "summarize latest mail", "check my mail", "who emailed me?", "what meetings do I have?"):
+2. TASK EXECUTION & REAL-TIME DATA INSPECTION DIRECTIVES (e.g., "Create a repository", "how many mails in inbox?", "summarize latest mail", "check my mail", "who emailed me?", "what meetings do I have?", "summarize attachment"):
    - The user is explicitly directing you to execute an action or inspect real-time state from connected services (Outlook, GitHub, Slack, etc.):
    - Check Gateway: If the tool is BLOCKED at the Gateway, refuse with a clear explanation that it is blocked at the Gateway perimeter.
    - Check Parameters: If essential parameters are missing (e.g., "Create a repo" without specifying a name), ask the user for the missing parameters in plain text.
    - Execute: If authorized and all parameters are ready (or if querying lists/inbox/calendar), issue the <<<TOOL_CALL>>> protocol IMMEDIATELY.
    - MANDATORY INSTRUCTION: When the user asks about emails, messages, calendar, or repositories, NEVER output future promises like "I'll check your inbox and count the messages" or "Looking at it..." without the <<<TOOL_CALL>>> block! You MUST output the <<<TOOL_CALL>>> block in this turn to actually inspect the data.
+   - MANDATORY ATTACHMENT INSPECTION DIRECTIVE:
+     When the user asks to summarize, inspect, read, review, extract, or verify email attachments (e.g. "summarize the content of latest email attachment", "read latest attachment", "extract invoice details from attachment", "summarize attachment in email at 9:24 PM"):
+     1. YOU MUST NEVER CLAIM AN EMAIL HAS NO ATTACHMENTS based on message preview alone.
+     2. YOU MUST IMMEDIATELY ISSUE A <<<TOOL_CALL>>> to "read_attachment_content" with {"messageId": "<message_id>"} (or {"messageId": "latest"}).
+     3. If you need to list all attachments on a message first, call "list_message_attachments" with {"messageId": "<message_id>"}.
+     4. Once the attachment content is returned, provide a clear, comprehensive summary of the document (vendor, dates, invoice items, amounts, totals, obligations).
 
 3. TOOL INVOCATION SYNTAX:
 When calling an authorized tool with all required arguments:
@@ -530,9 +553,10 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
       modelNode?.name?.toLowerCase().includes('o3') ||
       modelNode?.name?.toLowerCase().includes('o4')) ? 'openai' :
      modelNode?.name?.toLowerCase().includes('ollama') ? 'ollama' :
-     modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
+     modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' :
+     modelNode?.name?.toLowerCase().includes('gemini') ? 'google' : 'openai');
 
-  const modelId = modelNode?.config?.modelId || modelNode?.name || 'gemini-2.0-flash';
+  const modelId = modelNode?.config?.modelId || modelNode?.name || 'gpt-4o';
   const modelDisplayName = modelNode.name || `${PROVIDERS[provider]?.name || provider} (${modelId})`;
 
   logStep(`Foundation Model (${PROVIDERS[provider]?.name || provider})`, `Dispatching multi-pillar context to ${modelDisplayName}...`, 'model', modelNode.id, 0);

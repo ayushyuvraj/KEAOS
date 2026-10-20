@@ -19,7 +19,8 @@ import {
   AlertCircle,
   Lock,
   Mail,
-  Layers
+  Layers,
+  Save
 } from 'lucide-react';
 import { 
   armScheduleTrigger, 
@@ -70,11 +71,16 @@ export default function TriggerInspectorPanel({
   const [isPollingActive, setIsPollingActive] = useState(Boolean(triggerConfig.isPollingActive));
 
   // MCP Stream & Zero-Trust Gateway Ingress state
-  const [pollSubMode, setPollSubMode] = useState(triggerConfig.pollSubMode || 'stream'); // 'stream' | 'rest'
+  const defaultSubMode = triggerConfig.pollSubMode || 
+    (nodeData?.name?.toLowerCase().includes('outlook') ? 'stream' : 
+     (triggerConfig.endpointUrl || triggerType === 'poll' ? 'rest' : 'stream'));
+  const [pollSubMode, setPollSubMode] = useState(defaultSubMode); // 'stream' | 'rest'
   const [streamType, setStreamType] = useState(triggerConfig.streamType || 'inbox'); // 'inbox' | 'sentitems' | 'calendar' | 'tasks' | 'contacts'
   const [batchMode, setBatchMode] = useState(triggerConfig.batchMode !== false);
   const [maxBatchSize, setMaxBatchSize] = useState(triggerConfig.maxBatchSize || 25);
   const [isSimulatingBatch, setIsSimulatingBatch] = useState(false);
+  const [isSavingPolling, setIsSavingPolling] = useState(false);
+  const [savePollingSuccess, setSavePollingSuccess] = useState(false);
 
   // Derive Gateway Zero-Trust permissions & connected MCP active state
   const gatewayNode = (nodes || []).find(n => n.type === 'pillar' && n.data?.pillarType === 'gateway') ||
@@ -135,6 +141,25 @@ export default function TriggerInspectorPanel({
     setIsArmed(status.isArmed);
     setCountdown(status.remainingSeconds);
   }, [selectedNode.id]);
+
+  // Synchronize local poller state when node configuration changes or node is switched
+  useEffect(() => {
+    const cfg = selectedNode?.data?.config || {};
+    if (cfg.pollSubMode) {
+      setPollSubMode(cfg.pollSubMode);
+    } else {
+      const derived = (selectedNode?.data?.name?.toLowerCase().includes('outlook')) ? 'stream' : 
+                      (cfg.endpointUrl || triggerType === 'poll' ? 'rest' : 'stream');
+      setPollSubMode(derived);
+    }
+    if (cfg.endpointUrl !== undefined) setPollEndpoint(cfg.endpointUrl);
+    if (cfg.pollIntervalSeconds !== undefined) setPollInterval(cfg.pollIntervalSeconds);
+    if (cfg.deduplicateWatermark !== undefined) setPollWatermark(cfg.deduplicateWatermark);
+    if (cfg.streamType) setStreamType(cfg.streamType);
+    if (cfg.batchMode !== undefined) setBatchMode(cfg.batchMode);
+    if (cfg.maxBatchSize !== undefined) setMaxBatchSize(cfg.maxBatchSize);
+    if (cfg.isPollingActive !== undefined) setIsPollingActive(Boolean(cfg.isPollingActive));
+  }, [selectedNode?.id, selectedNode?.data?.config, triggerType]);
 
   // Dispatch fire trigger event
   const fireTrigger = (payloadTextOverride = null) => {
@@ -337,6 +362,68 @@ export default function TriggerInspectorPanel({
         });
       }
     }
+  };
+
+  const updateTriggerConfig = (updates) => {
+    if (onUpdateNodeData) {
+      onUpdateNodeData(selectedNode.id, {
+        config: {
+          ...triggerConfig,
+          ...updates
+        }
+      });
+    }
+  };
+
+  const handleSaveAndEnforcePolling = () => {
+    setIsSavingPolling(true);
+    const updatedConfig = {
+      ...triggerConfig,
+      pollSubMode,
+      pollIntervalSeconds: pollInterval,
+      endpointUrl: pollEndpoint,
+      deduplicateWatermark: pollWatermark,
+      streamType,
+      batchMode,
+      maxBatchSize
+    };
+
+    if (onUpdateNodeData) {
+      onUpdateNodeData(selectedNode.id, {
+        config: updatedConfig
+      });
+    }
+
+    // If polling is currently active, live-enforce & re-arm immediately with updated options
+    if (isPollingActive) {
+      if (pollSubMode === 'stream') {
+        disarmPollingWatcher(selectedNode.id);
+        try {
+          armOutlookStreamWatcher(selectedNode.id, {
+            stream: streamType,
+            intervalSeconds: pollInterval,
+            maxBatchSize,
+            disabledTools
+          });
+        } catch (err) {
+          console.warn('Failed to re-arm stream watcher:', err);
+        }
+      } else {
+        disarmOutlookStreamWatcher(selectedNode.id);
+        armPollingWatcher(selectedNode.id, {
+          endpointUrl: pollEndpoint,
+          intervalSeconds: pollInterval,
+          deduplicate: pollWatermark,
+          payloadText: nodeData.payloadText
+        });
+      }
+    }
+
+    setSavePollingSuccess(true);
+    setTimeout(() => {
+      setSavePollingSuccess(false);
+      setIsSavingPolling(false);
+    }, 2000);
   };
 
   const handlePollOnceTest = async () => {
@@ -820,7 +907,10 @@ export default function TriggerInspectorPanel({
           <div className={`flex border rounded-none overflow-hidden text-xs font-mono ${isDarkMode ? 'border-slate-700' : 'border-slate-300'}`}>
             <button
               type="button"
-              onClick={() => setPollSubMode('stream')}
+              onClick={() => {
+                setPollSubMode('stream');
+                updateTriggerConfig({ pollSubMode: 'stream' });
+              }}
               className={`flex-1 py-1.5 text-center transition-all flex items-center justify-center gap-1.5 ${
                 pollSubMode === 'stream' 
                   ? 'bg-[#00338D] text-white font-bold' 
@@ -832,7 +922,10 @@ export default function TriggerInspectorPanel({
             </button>
             <button
               type="button"
-              onClick={() => setPollSubMode('rest')}
+              onClick={() => {
+                setPollSubMode('rest');
+                updateTriggerConfig({ pollSubMode: 'rest' });
+              }}
               className={`flex-1 py-1.5 text-center transition-all flex items-center justify-center gap-1.5 ${
                 pollSubMode === 'rest' 
                   ? 'bg-[#00338D] text-white font-bold' 
@@ -890,7 +983,12 @@ export default function TriggerInspectorPanel({
                       key={s.key}
                       type="button"
                       disabled={!s.permitted}
-                      onClick={() => s.permitted && setStreamType(s.key)}
+                      onClick={() => {
+                        if (s.permitted) {
+                          setStreamType(s.key);
+                          updateTriggerConfig({ streamType: s.key });
+                        }
+                      }}
                       className={`w-full py-1.5 px-2.5 text-[10.5px] font-mono border rounded-none transition-all flex items-center justify-between text-left ${
                         !s.permitted
                           ? 'opacity-40 bg-slate-900 border-dashed border-slate-700 text-slate-500 cursor-not-allowed'
@@ -929,7 +1027,10 @@ export default function TriggerInspectorPanel({
                     <button
                       key={p.sec}
                       type="button"
-                      onClick={() => setPollInterval(p.sec)}
+                      onClick={() => {
+                        setPollInterval(p.sec);
+                        updateTriggerConfig({ pollIntervalSeconds: p.sec });
+                      }}
                       className={`py-1 px-2 text-[10.5px] font-mono border rounded-none transition-all text-left truncate ${
                         pollInterval === p.sec
                           ? 'bg-[#009A44] text-white border-emerald-400 font-bold'
@@ -950,7 +1051,10 @@ export default function TriggerInspectorPanel({
                   <input
                     type="checkbox"
                     checked={batchMode}
-                    onChange={(e) => setBatchMode(e.target.checked)}
+                    onChange={(e) => {
+                      setBatchMode(e.target.checked);
+                      updateTriggerConfig({ batchMode: e.target.checked });
+                    }}
                     className="mt-0.5 rounded-none border-slate-700 text-[#009A44] focus:ring-0"
                   />
                   <div>
@@ -1006,7 +1110,10 @@ export default function TriggerInspectorPanel({
                 <input
                   type="text"
                   value={pollEndpoint}
-                  onChange={(e) => setPollEndpoint(e.target.value)}
+                  onChange={(e) => {
+                    setPollEndpoint(e.target.value);
+                    updateTriggerConfig({ endpointUrl: e.target.value });
+                  }}
                   placeholder="https://api.example.com/v1/status"
                   className={`w-full p-2 text-xs font-mono rounded-none ${t.input}`}
                 />
@@ -1026,7 +1133,10 @@ export default function TriggerInspectorPanel({
                     <button
                       key={p.sec}
                       type="button"
-                      onClick={() => setPollInterval(p.sec)}
+                      onClick={() => {
+                        setPollInterval(p.sec);
+                        updateTriggerConfig({ pollIntervalSeconds: p.sec });
+                      }}
                       className={`py-1 px-2 text-[10.5px] font-mono border rounded-none transition-all text-left truncate ${
                         pollInterval === p.sec
                           ? 'bg-[#009A44] text-white border-emerald-400 font-bold'
@@ -1046,7 +1156,10 @@ export default function TriggerInspectorPanel({
                 <input
                   type="checkbox"
                   checked={pollWatermark}
-                  onChange={(e) => setPollWatermark(e.target.checked)}
+                  onChange={(e) => {
+                    setPollWatermark(e.target.checked);
+                    updateTriggerConfig({ deduplicateWatermark: e.target.checked });
+                  }}
                   className="rounded-none border-slate-700 text-[#009A44] focus:ring-0"
                 />
                 <span className={`text-xs font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -1081,6 +1194,37 @@ export default function TriggerInspectorPanel({
               </div>
             </div>
           )}
+
+          {/* EXPLICIT SAVE & ENFORCE BUTTON (USER-REQUESTED) */}
+          <div className="pt-2 border-t border-slate-700/50 space-y-1.5">
+            <button
+              type="button"
+              onClick={handleSaveAndEnforcePolling}
+              disabled={isSavingPolling}
+              className={`w-full py-2.5 px-3 font-mono text-xs font-bold rounded-none transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
+                savePollingSuccess
+                  ? 'bg-[#009A44] hover:bg-[#008037] text-white border border-emerald-400'
+                  : 'bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#005EB8] active:scale-98'
+              }`}
+              title="Saves configuration to canvas and live-enforces settings across active pollers"
+            >
+              {savePollingSuccess ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>Configuration Saved & Enforced ✓</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save & Enforce Options</span>
+                </>
+              )}
+            </button>
+            <div className={`flex items-center justify-between text-[10px] font-mono px-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span>Active Target: <strong className={pollSubMode === 'rest' ? 'text-emerald-400' : 'text-[#0091DA]'}>{pollSubMode === 'rest' ? 'Generic REST' : 'Outlook Stream'}</strong></span>
+              <span>Cadence: Every {pollInterval}s</span>
+            </div>
+          </div>
         </div>
       )}
 

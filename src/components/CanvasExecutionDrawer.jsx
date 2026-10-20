@@ -31,7 +31,9 @@ import {
   ChevronRight,
   Minus,
   Sliders,
-  Layers
+  Layers,
+  Key,
+  ExternalLink
 } from 'lucide-react';
 import MarkdownViewer from './common/MarkdownViewer';
 import { runMeetingSimulation } from '../utils/meetingSimulatorEngine';
@@ -45,7 +47,8 @@ import {
   connectMcpViaOAuth,
   saveRegisteredMcpServer,
   getStoredMicrosoftOAuthCredentials,
-  saveStoredMicrosoftOAuthCredentials
+  saveStoredMicrosoftOAuthCredentials,
+  verifyOutlookMcpConnection
 } from '../services/mcpClientService';
 import { 
   GITHUB_OFFICIAL_ACTIONS, 
@@ -418,12 +421,13 @@ export default function CanvasExecutionDrawer({
       modelPillar = (nodes || []).find(n => n.type === 'pillar' && n.data?.pillarType === 'model' && !n.data?.isDeactivated) || null;
     }
 
-    let provider = modelPillar?.data?.config?.provider || modelPillar?.data?.provider || 'google';
-    let modelId = modelPillar?.data?.config?.modelId || modelPillar?.data?.modelId || 'gemini-2.0-flash';
-    let modelDisplayName = modelPillar?.data?.name || modelPillar?.data?.displayName || modelId || 'Foundation Model';
+    let provider = modelPillar?.data?.config?.provider || modelPillar?.data?.provider || 'openai';
+    let modelId = modelPillar?.data?.config?.modelId || modelPillar?.data?.modelId || 'gpt-4o';
+    let modelDisplayName = modelPillar?.data?.name || modelPillar?.data?.displayName || modelId || 'OpenAI (gpt-4o)';
 
     if (modelDisplayName.toLowerCase().includes('claude')) provider = 'anthropic';
-    else if (modelDisplayName.toLowerCase().includes('gpt')) provider = 'openai';
+    else if (modelDisplayName.toLowerCase().includes('gpt') || modelDisplayName.toLowerCase().includes('openai')) provider = 'openai';
+    else if (modelDisplayName.toLowerCase().includes('gemini')) provider = 'google';
     else if (modelDisplayName.toLowerCase().includes('llama') || modelDisplayName.toLowerCase().includes('ollama')) provider = 'ollama';
 
     const hasCredential = Boolean(getProviderCredential(provider)) || provider === 'ollama';
@@ -574,6 +578,8 @@ export default function CanvasExecutionDrawer({
   const [isMsAuthorizing, setIsMsAuthorizing] = useState(false);
   const [showInlineClientIdInput, setShowInlineClientIdInput] = useState(false);
   const [inlineClientId, setInlineClientId] = useState('');
+  const [chatInlineToken, setChatInlineToken] = useState('');
+  const [isUpdatingChatToken, setIsUpdatingChatToken] = useState(false);
 
   const handleExecuteMicrosoftOAuth = useCallback(async (overrideId) => {
     const creds = getStoredMicrosoftOAuthCredentials();
@@ -1020,7 +1026,7 @@ export default function CanvasExecutionDrawer({
     abortControllerRef.current = abortCtrl;
 
     setIsChatRunning(true);
-    setCurrentChatStep({ step: 'I\'m looking at it...', detail: `Invoking ${modelDisplayName} and inspecting connected MCP tools...` });
+    setCurrentChatStep({ step: '', detail: '' });
 
     if (onExecutionStateChange) {
       onExecutionStateChange({ isExecuting: true, step: `Querying ${modelDisplayName}...` });
@@ -1059,9 +1065,14 @@ export default function CanvasExecutionDrawer({
 
       const isAuthIssue = result.response && (
         result.response.includes('403 Forbidden') ||
+        result.response.includes('401 Unauthorized') ||
+        result.response.includes('AuthenticationException') ||
+        result.response.includes('401') ||
         result.response.includes('Access is denied') ||
         result.response.includes('Permission Scope Missing') ||
-        result.response.includes('Check credentials')
+        result.response.includes('Check credentials') ||
+        result.response.includes('unable to access your mailbox') ||
+        result.response.includes('issue with authentication')
       );
 
       const assistantMsg = {
@@ -1135,6 +1146,96 @@ export default function CanvasExecutionDrawer({
       }, 20);
     }
   };
+
+  // Live update of Microsoft Graph MCP Bearer token from in-chat authentication action card
+  const handleSaveChatToken = useCallback(async (tokenToSave, autoRetryLastMessage = true) => {
+    const cleanToken = (tokenToSave || chatInlineToken || '').trim();
+    if (!cleanToken) return;
+    setIsUpdatingChatToken(true);
+
+    try {
+      const verified = await verifyOutlookMcpConnection({ token: cleanToken });
+      const accountName = verified.displayName || verified.userPrincipalName || verified.basis?.accountName || 'Verified Microsoft Account';
+
+      // 1. Locate and update any Outlook MCP nodes on the active canvas
+      const outlookNodes = (nodes || []).filter(n => 
+        (n.data?.serviceName || '').toLowerCase().includes('outlook') ||
+        (n.data?.name || '').toLowerCase().includes('outlook') ||
+        (n.id || '').includes('outlook')
+      );
+
+      outlookNodes.forEach(node => {
+        const updatedNodeData = {
+          ...node.data,
+          token: cleanToken,
+          config: {
+            ...(node.data?.config || {}),
+            token: cleanToken
+          },
+          basis: {
+            ...(node.data?.basis || {}),
+            token: cleanToken,
+            tokenMasked: `${cleanToken.slice(0, 4)}...${cleanToken.slice(-4)}`,
+            authenticatedAs: accountName,
+            username: accountName
+          }
+        };
+
+        window.dispatchEvent(new CustomEvent('keaos:update-node-data', {
+          detail: { nodeId: node.id, data: updatedNodeData }
+        }));
+
+        saveRegisteredMcpServer({
+          ...updatedNodeData,
+          id: node.id
+        });
+      });
+
+      // 2. Also register under standard key for direct MCP resolution
+      saveRegisteredMcpServer({
+        id: 'node-mcp-outlook-1',
+        name: `Outlook (${accountName})`,
+        serviceName: 'Outlook',
+        token: cleanToken,
+        config: { token: cleanToken },
+        basis: {
+          authenticatedAs: accountName,
+          token: cleanToken
+        }
+      });
+
+      window.dispatchEvent(new CustomEvent('keaos:mcp-registry-updated'));
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `✓ Updated Microsoft Graph Token for ${accountName}!` }
+      }));
+
+      setChatInlineToken('');
+
+      // Post confirmation assistant message in chat
+      const confirmMsg = {
+        id: `ast-token-update-${Date.now()}`,
+        role: 'assistant',
+        content: `🔑 **Microsoft Graph Token Updated & Verified!**\n\n- **Authenticated Account**: **${accountName}**\n- **Token Status**: Active & Live\n\n${autoRetryLastMessage ? '_Auto-retrying your mailbox query now..._' : ''}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setChatHistories(prev => ({
+        ...prev,
+        [activeAgentId]: [...(prev[activeAgentId] || []), confirmMsg]
+      }));
+
+      if (autoRetryLastMessage) {
+        setTimeout(() => {
+          handleSendChat(null, 'read my latest mail');
+        }, 500);
+      }
+    } catch (err) {
+      console.error('Chat token update error:', err);
+      alert(`Token Verification Failed: ${err.message}`);
+    } finally {
+      setIsUpdatingChatToken(false);
+    }
+  }, [chatInlineToken, nodes, activeAgentId, handleSendChat]);
 
   // Listen for agent steering events from Human-in-the-Loop Approval Gate (Flavor B)
   useEffect(() => {
@@ -1464,10 +1565,10 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
       size: (file.size / (1024 * 1024)).toFixed(2) + ' MB'
     });
 
-    const googleKey = getProviderCredential('google') || getActiveApiKey();
     const openAiKey = getProviderCredential('openai');
+    const googleKey = getProviderCredential('google') || getActiveApiKey();
 
-    if (googleKey || openAiKey) {
+    if (openAiKey || googleKey) {
       setIsTranscribing(true);
       try {
         const transResult = await transcribeAudioUniversal(file);
@@ -1956,20 +2057,72 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                           <div className="whitespace-pre-wrap font-sans text-xs">
                             {msg.content}
                           </div>
-                          {msg.actionCard === 'microsoft-login' && (
-                            <div className="mt-3 p-3 bg-[#171D26] border border-[#0078D4]/60 rounded space-y-2.5 text-left select-none">
+                          {(msg.actionCard === 'microsoft-login' || (!isUser && (
+                            msg.content?.includes('AuthenticationException') ||
+                            msg.content?.includes('401 Unauthorized') ||
+                            msg.content?.includes('401') ||
+                            msg.content?.includes('unable to access your mailbox') ||
+                            msg.content?.includes('issue with authentication')
+                          ))) && (
+                            <div className="mt-3 p-3.5 bg-[#171D26] border border-[#0078D4]/60 rounded space-y-3 text-left select-none shadow-md">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <MicrosoftLogo className="w-4 h-4 shrink-0" />
-                                  <span className="font-bold text-xs text-white">Microsoft 365 / Outlook Account</span>
+                                  <span className="font-bold text-xs text-white">Microsoft 365 / Outlook Authentication</span>
                                 </div>
                                 <span className="text-[9.5px] font-mono px-2 py-0.5 rounded bg-[#0078D4]/20 text-[#28A8EA] font-bold border border-[#0078D4]/40">
                                   ZERO-TRUST GATEWAY
                                 </span>
                               </div>
                               <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-                                Authorize delegated access for Mail, Calendar, Contacts, and Tasks via live browser popup. Governed by your MCP Egress Gateway.
+                                Microsoft Graph API Bearer tokens expire every 60–90 minutes by design. Paste a fresh token from Graph Explorer below or authenticate via live Microsoft OAuth.
                               </p>
+
+                              {/* Quick Token Paste Box with Auto-Retry */}
+                              <div className="p-2.5 bg-black/60 border border-slate-700/80 rounded space-y-2">
+                                <div className="flex items-center justify-between text-[10.5px]">
+                                  <span className="text-slate-300 font-mono font-medium flex items-center gap-1.5">
+                                    <Key className="w-3 h-3 text-[#00A4EF]" />
+                                    <span>Paste Fresh Bearer Token:</span>
+                                  </span>
+                                  <a
+                                    href="https://developer.microsoft.com/en-us/graph/graph-explorer"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[#28A8EA] hover:underline flex items-center gap-1 font-mono text-[10px]"
+                                  >
+                                    <span>Graph Explorer ↗</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="password"
+                                    value={chatInlineToken}
+                                    onChange={(e) => setChatInlineToken(e.target.value)}
+                                    placeholder="Paste token from Graph Explorer (Access token tab)..."
+                                    className="flex-1 bg-[#1A1F26] border border-slate-600 px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#0078D4]"
+                                  />
+                                  <button
+                                    type="button"
+                                    disabled={!chatInlineToken.trim() || isUpdatingChatToken}
+                                    onClick={() => handleSaveChatToken(chatInlineToken, true)}
+                                    className="px-3 py-1.5 bg-[#0078D4] hover:bg-[#006CBD] disabled:opacity-40 text-white text-xs font-bold font-mono cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                                  >
+                                    {isUpdatingChatToken ? (
+                                      <>
+                                        <RefreshCw className="w-3 h-3 animate-spin" />
+                                        <span>Verifying...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Check className="w-3 h-3 text-emerald-400" />
+                                        <span>Update & Retry ↻</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
 
                               {showInlineClientIdInput ? (
                                 <div className="p-2.5 bg-black/50 border border-slate-700 rounded space-y-2">
@@ -2003,13 +2156,10 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                                     </a>
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        setShowInlineClientIdInput(false);
-                                        window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', { detail: { tab: 'outlook' } }));
-                                      }}
+                                      onClick={() => setShowInlineClientIdInput(false)}
                                       className="text-slate-400 hover:text-white cursor-pointer"
                                     >
-                                      Use Graph Token instead →
+                                      Cancel
                                     </button>
                                   </div>
                                 </div>
@@ -2019,7 +2169,7 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                                     type="button"
                                     onClick={() => handleExecuteMicrosoftOAuth()}
                                     disabled={isMsAuthorizing}
-                                    className="flex-1 py-2 px-3 bg-[#0078D4] hover:bg-[#006CBD] disabled:opacity-50 text-white text-xs font-bold font-mono rounded flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer active:scale-98"
+                                    className="flex-1 py-1.5 px-3 bg-[#232730] hover:bg-[#2C323E] disabled:opacity-50 text-slate-200 text-xs font-mono border border-slate-700 rounded flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer active:scale-98"
                                   >
                                     {isMsAuthorizing ? (
                                       <>
@@ -2029,7 +2179,7 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                                     ) : (
                                       <>
                                         <MicrosoftLogo className="w-4 h-4 shrink-0" />
-                                        <span>Sign in with Microsoft</span>
+                                        <span>Sign in with Microsoft (OAuth)</span>
                                       </>
                                     )}
                                   </button>
@@ -2039,10 +2189,10 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                                     onClick={() => {
                                       window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', { detail: { tab: 'outlook' } }));
                                     }}
-                                    className="py-2 px-3 bg-[#232730] hover:bg-[#2C323E] text-slate-300 hover:text-white text-xs font-mono border border-slate-700 rounded transition-all cursor-pointer"
+                                    className="py-1.5 px-3 bg-[#1A1F26] hover:bg-[#232730] text-slate-300 hover:text-white text-xs font-mono border border-slate-700 rounded transition-all cursor-pointer"
                                     title="Open modal to paste Graph Bearer token or configure settings"
                                   >
-                                    Options
+                                    Options ↗
                                   </button>
                                 </div>
                               )}

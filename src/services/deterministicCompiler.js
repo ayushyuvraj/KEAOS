@@ -124,7 +124,7 @@ export async function compileDeterministicLogic({
     if (configured.length > 0) {
       effectiveProvider = configured[0];
     } else {
-      effectiveProvider = 'google';
+      effectiveProvider = 'openai';
     }
   }
 

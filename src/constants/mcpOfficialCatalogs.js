@@ -1074,7 +1074,7 @@ export const OUTLOOK_OFFICIAL_ACTIONS = [
     displayName: 'List Attachments',
     category: 'Folders & Attachments',
     type: 'read',
-    description: 'Retrieves all file attachments and metadata for a specific message (GET /me/messages/{id}/attachments).',
+    description: 'Retrieves all attachments (files, embedded items, and cloud reference links) with metadata for a message (GET /me/messages/{id}/attachments).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1088,7 +1088,7 @@ export const OUTLOOK_OFFICIAL_ACTIONS = [
     displayName: 'Read & Decode Attachment',
     category: 'Folders & Attachments',
     type: 'read',
-    description: 'Downloads and decodes base64 attachment content into clean, readable text or structured table data (GET /me/messages/{id}/attachments/{id}).',
+    description: 'Downloads, decodes, and security-sanitizes file attachment content into clean text, tabular data, or structured JSON with SHA-256 fingerprinting (GET /me/messages/{id}/attachments/{id}).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1099,20 +1099,131 @@ export const OUTLOOK_OFFICIAL_ACTIONS = [
     }
   },
   {
+    name: 'read_item_attachment',
+    displayName: 'Read Embedded Item (Email/Event)',
+    category: 'Folders & Attachments',
+    type: 'read',
+    description: 'Unpacks nested Outlook items (e.g. attached .eml email threads, .ics calendar invitations, or .vcf contacts) with full subject, sender, and body content.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The outer message ID containing the item attachment' },
+        attachmentId: { type: 'string', description: 'The specific item attachment ID' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'get_reference_attachment',
+    displayName: 'Get Cloud Reference Attachment',
+    category: 'Folders & Attachments',
+    type: 'read',
+    description: 'Inspects cloud reference attachments linked to OneDrive or SharePoint files, retrieving source URLs, permissions, and file metadata.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID containing the reference attachment' },
+        attachmentId: { type: 'string', description: 'The reference attachment ID' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'download_attachment_raw',
+    displayName: 'Download Raw Attachment Stream',
+    category: 'Folders & Attachments',
+    type: 'read',
+    description: 'Streams the raw binary content directly from Microsoft Graph (GET /me/messages/{id}/attachments/{id}/$value) without Base64 overhead.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID containing the attachment' },
+        attachmentId: { type: 'string', description: 'The attachment ID to stream' }
+      },
+      required: ['messageId', 'attachmentId']
+    }
+  },
+  {
     name: 'add_message_attachment',
-    displayName: 'Add Attachment',
+    displayName: 'Add File Attachment (< 3MB)',
     category: 'Folders & Attachments',
     type: 'write',
-    description: 'Attaches a file to a draft message (POST /me/messages/{id}/attachments).',
+    description: 'Attaches a file to a draft message (POST /me/messages/{id}/attachments). Supports inline attachments with contentId.',
     inputSchema: {
       type: 'object',
       properties: {
         messageId: { type: 'string', description: 'The draft message ID' },
         name: { type: 'string', description: 'Filename of the attachment' },
         contentType: { type: 'string', description: 'MIME type of the file (e.g., application/pdf)' },
-        contentBytes: { type: 'string', description: 'Base64-encoded file content' }
+        contentBytes: { type: 'string', description: 'Base64-encoded file content' },
+        isInline: { type: 'boolean', description: 'Whether the attachment is rendered inline in the email body' },
+        contentId: { type: 'string', description: 'Optional Content-ID header for inline referencing (cid:)' }
       },
       required: ['messageId', 'name', 'contentBytes']
+    }
+  },
+  {
+    name: 'upload_large_attachment',
+    displayName: 'Upload Large Attachment (3MB–150MB)',
+    category: 'Folders & Attachments',
+    type: 'write',
+    description: 'Uploads large files (up to 150 MB) using a chunked resumable upload session (POST /me/messages/{id}/attachments/createUploadSession).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The draft message ID' },
+        name: { type: 'string', description: 'Filename of the attachment' },
+        size: { type: 'number', description: 'Total file size in bytes' },
+        contentType: { type: 'string', description: 'MIME type of the file' },
+        contentBytes: { type: 'string', description: 'Base64-encoded full file content to chunk-upload' }
+      },
+      required: ['messageId', 'name', 'size', 'contentBytes']
+    }
+  },
+  {
+    name: 'delete_attachment',
+    displayName: 'Delete Attachment',
+    category: 'Folders & Attachments',
+    type: 'destructive',
+    description: 'Permanently deletes an attachment from a draft email message (DELETE /me/messages/{id}/attachments/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The draft message ID' },
+        attachmentId: { type: 'string', description: 'The attachment ID to delete' }
+      },
+      required: ['messageId', 'attachmentId']
+    }
+  },
+  {
+    name: 'list_event_attachments',
+    displayName: 'List Event Attachments',
+    category: 'Folders & Attachments',
+    type: 'read',
+    description: 'Lists all attachments linked to a calendar meeting or event (GET /me/events/{id}/attachments).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'The calendar event ID' }
+      },
+      required: ['eventId']
+    }
+  },
+  {
+    name: 'add_event_attachment',
+    displayName: 'Add Event Attachment',
+    category: 'Folders & Attachments',
+    type: 'write',
+    description: 'Attaches a document or agenda file to a calendar event (POST /me/events/{id}/attachments).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        eventId: { type: 'string', description: 'The calendar event ID' },
+        name: { type: 'string', description: 'Filename of the attachment' },
+        contentType: { type: 'string', description: 'MIME type of the file' },
+        contentBytes: { type: 'string', description: 'Base64-encoded file content' }
+      },
+      required: ['eventId', 'name', 'contentBytes']
     }
   },
 
@@ -1485,7 +1596,7 @@ export const MCP_AUTH_SPECS = {
       'User.Read',
       'offline_access'
     ],
-    scopeDescription: 'Pre-authorizes all 38 Outlook Mail, Calendar, Contacts, Tasks, and Settings tools.',
+    scopeDescription: 'Pre-authorizes all Outlook Mail, Calendar, Contacts, Tasks, and Attachment tools.',
     totalDefaultTools: OUTLOOK_OFFICIAL_ACTIONS.length
   },
   neo4j: {

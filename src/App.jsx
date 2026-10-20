@@ -84,9 +84,9 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       position: { x: 564, y: 55 },
       data: {
         pillarType: 'model',
-        name: 'Gemini 2.0 Flash',
-        description: 'Fast, multimodal, 1M+ context window for long transcripts.',
-        config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
+        name: 'GPT-4o',
+        description: 'Flagship omni reasoning, structured outputs, and precision tool calling.',
+        config: { provider: 'openai', modelId: 'gpt-4o', temperature: 0.2, topP: 1.0 }
       }
     },
     // 3. Hands / Ingestion Node (Positioned snugly right above the top-left Tools socket)
@@ -273,9 +273,9 @@ function getMultiAgentTriadNodesAndEdges() {
       position: { x: 295, y: 15 },
       data: {
         pillarType: 'model',
-        name: 'Gemini 2.0 Flash',
-        description: 'Fast, multimodal, 1M+ context window for long transcripts.',
-        config: { provider: 'google', modelId: 'gemini-2.0-flash', temperature: 0.2, topP: 0.95 }
+        name: 'GPT-4o',
+        description: 'Flagship omni reasoning, structured outputs, and precision tool calling.',
+        config: { provider: 'openai', modelId: 'gpt-4o', temperature: 0.2, topP: 1.0 }
       }
     },
     {
@@ -1224,7 +1224,7 @@ export default function App() {
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
   const [isConnectMcpModalOpen, setIsConnectMcpModalOpen] = useState(false);
   const [connectMcpInitialTab, setConnectMcpInitialTab] = useState('github');
-  const [apiSettingsTab, setApiSettingsTab] = useState('google');
+  const [apiSettingsTab, setApiSettingsTab] = useState('openai');
   const [configuredCount, setConfiguredCount] = useState(getAllConfiguredProviders().length);
   const [hasApiKey, setHasApiKey] = useState(getAllConfiguredProviders().length > 0 || Boolean(getActiveApiKey()));
   const [invalidConnectionAlert, setInvalidConnectionAlert] = useState(null);
@@ -1262,6 +1262,29 @@ export default function App() {
     window.addEventListener('keaos:open-deterministic-workspace', handleOpenDeterministic);
     return () => window.removeEventListener('keaos:open-deterministic-workspace', handleOpenDeterministic);
   }, []);
+
+  // Global event listener to update node data across canvas
+  useEffect(() => {
+    const handleUpdateNode = (e) => {
+      const { nodeId, data } = e.detail || {};
+      if (nodeId && data) {
+        setNodes((nds) => nds.map((n) => {
+          if (n.id === nodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                ...data
+              }
+            };
+          }
+          return n;
+        }));
+      }
+    };
+    window.addEventListener('keaos:update-node-data', handleUpdateNode);
+    return () => window.removeEventListener('keaos:update-node-data', handleUpdateNode);
+  }, [setNodes]);
 
   // Update deterministic node data from modal
   const handleUpdateDeterministicNode = useCallback((nodeId, updatedData) => {
@@ -2086,7 +2109,7 @@ export default function App() {
         hasApiKey={hasApiKey}
         configuredCount={configuredCount}
         onOpenApiSettings={() => {
-          setApiSettingsTab('google');
+          setApiSettingsTab('openai');
           setIsApiSettingsOpen(true);
         }}
         isCollapsed={isSidebarCollapsed}
@@ -2219,7 +2242,7 @@ export default function App() {
                           }}
                           onCollapse={() => setIsInspectorOpen(false)}
                           onOpenApiSettings={(providerId) => {
-                            setApiSettingsTab(providerId || 'google');
+                            setApiSettingsTab(providerId || 'openai');
                             setIsApiSettingsOpen(true);
                           }}
                           isDarkMode={isDarkMode}

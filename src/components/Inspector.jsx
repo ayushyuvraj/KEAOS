@@ -64,6 +64,10 @@ import {
   OUTLOOK_OFFICIAL_ACTIONS
 } from '../constants/mcpOfficialCatalogs';
 import { 
+  verifyOutlookMcpConnection, 
+  saveRegisteredMcpServer 
+} from '../services/mcpClientService';
+import { 
   PROVIDERS, 
   getProviderCredential, 
   saveProviderCredential,
@@ -157,6 +161,62 @@ export default function Inspector({
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [discoveredModels, setDiscoveredModels] = useState({});
 
+  // MCP Token Management state
+  const [inlineMcpToken, setInlineMcpToken] = useState('');
+  const [isUpdatingMcpToken, setIsUpdatingMcpToken] = useState(false);
+  const [tokenUpdateSuccess, setTokenUpdateSuccess] = useState(false);
+
+  const handleSaveMcpToken = async (newToken) => {
+    const clean = (newToken || '').trim();
+    if (!clean) return;
+    setIsUpdatingMcpToken(true);
+    try {
+      const isOutlook = (selectedNode.data?.serviceName || '').toLowerCase().includes('outlook') || 
+                        (selectedNode.data?.name || '').toLowerCase().includes('outlook') ||
+                        (selectedNode.id || '').includes('outlook');
+      
+      let identity = selectedNode.data?.basis?.authenticatedAs || selectedNode.data?.basis?.username || 'Verified Account';
+      if (isOutlook) {
+        const verified = await verifyOutlookMcpConnection({ token: clean });
+        identity = verified.displayName || verified.userPrincipalName || identity;
+      }
+
+      const updatedNodeData = {
+        ...selectedNode.data,
+        token: clean,
+        config: {
+          ...(selectedNode.data?.config || {}),
+          token: clean
+        },
+        basis: {
+          ...(selectedNode.data?.basis || {}),
+          token: clean,
+          tokenMasked: `${clean.slice(0, 4)}...${clean.slice(-4)}`,
+          authenticatedAs: identity,
+          username: identity
+        }
+      };
+
+      onUpdateNodeData(selectedNode.id, updatedNodeData);
+
+      saveRegisteredMcpServer({
+        ...updatedNodeData,
+        id: selectedNode.id
+      });
+
+      setInlineMcpToken('');
+      setTokenUpdateSuccess(true);
+      setTimeout(() => setTokenUpdateSuccess(false), 3000);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `🔑 Access Token Updated & Verified Successfully!` }
+      }));
+    } catch (err) {
+      alert(`⚠️ Token Verification Failed: ${err.message}`);
+    } finally {
+      setIsUpdatingMcpToken(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedNode?.id) {
       setIsCollapsed(false);
@@ -191,10 +251,11 @@ export default function Inspector({
       nodeData.name?.toLowerCase().includes('o3') ||
       nodeData.name?.toLowerCase().includes('o4')) ? 'openai' :
      nodeData.name?.toLowerCase().includes('ollama') ? 'ollama' :
-     nodeData.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
+     nodeData.name?.toLowerCase().includes('openrouter') ? 'openrouter' :
+     nodeData.name?.toLowerCase().includes('gemini') ? 'google' : 'openai');
 
-  const currentModelId = nodeData.config?.modelId || PROVIDERS[currentProvider]?.defaultModel || 'gemini-2.0-flash';
-  const providerDef = PROVIDERS[currentProvider] || PROVIDERS.google;
+  const currentModelId = nodeData.config?.modelId || PROVIDERS[currentProvider]?.defaultModel || 'gpt-4o';
+  const providerDef = PROVIDERS[currentProvider] || PROVIDERS.openai;
   const hasCredential = Boolean(getProviderCredential(currentProvider));
 
   // The 4 other available providers when changing provider
@@ -1276,6 +1337,7 @@ export default function Inspector({
             {/* Trigger Configuration & Ingress Bench */}
             {selectedNode.type === 'triggerNode' && (
               <TriggerInspectorPanel
+                key={selectedNode.id}
                 selectedNode={selectedNode}
                 nodes={nodes}
                 edges={edges}
@@ -1373,6 +1435,96 @@ export default function Inspector({
                           )}
                         </span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Token Refresh & Re-Authentication Card */}
+                  <div className={`p-3.5 ${t.subCard} rounded-xl border ${t.border} space-y-2.5`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Key className="w-3.5 h-3.5 text-[#00A3A6]" />
+                        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#00A3A6]">
+                          Access Token & Credentials
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const srv = (nodeData.serviceName || '').toLowerCase().includes('outlook') || (nodeData.id || '').includes('outlook')
+                            ? 'outlook'
+                            : (nodeData.serviceName || '').toLowerCase().includes('slack')
+                              ? 'slack'
+                              : (nodeData.serviceName || '').toLowerCase().includes('jira')
+                                ? 'jira'
+                                : (nodeData.serviceName || '').toLowerCase().includes('neo4j')
+                                  ? 'neo4j'
+                                  : 'github';
+                          window.dispatchEvent(new CustomEvent('keaos:open-connect-mcp', { detail: { tab: srv } }));
+                        }}
+                        className="text-[10px] font-mono px-2 py-0.5 bg-[#00A3A6]/15 hover:bg-[#00A3A6]/25 text-[#00A3A6] border border-[#00A3A6]/30 font-bold transition-all cursor-pointer"
+                      >
+                        Reconnect MCP Modal ↗
+                      </button>
+                    </div>
+
+                    <p className={`text-[11px] ${t.subText} leading-relaxed`}>
+                      {(nodeData.serviceName || '').toLowerCase().includes('outlook') || (nodeData.id || '').includes('outlook')
+                        ? 'Microsoft Graph API access tokens expire every 60–90 minutes. If your operations return 401 Unauthorized, paste a fresh bearer token below or click Reconnect.'
+                        : 'Session tokens or bearer tokens can be updated live without reconnecting your workflow.'}
+                    </p>
+
+                    <div className="space-y-2 pt-1">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px] font-mono">
+                          <span className={t.subText}>Paste Fresh Access Token:</span>
+                          {((nodeData.serviceName || '').toLowerCase().includes('outlook') || (nodeData.id || '').includes('outlook')) && (
+                            <a
+                              href="https://developer.microsoft.com/en-us/graph/graph-explorer"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[#28A8EA] hover:underline flex items-center gap-1"
+                            >
+                              <span>Graph Explorer (Get Token)</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
+                        </div>
+                        <input
+                          type="password"
+                          placeholder="Paste new bearer token here..."
+                          value={inlineMcpToken}
+                          onChange={(e) => setInlineMcpToken(e.target.value)}
+                          className={`w-full p-2 text-xs font-mono rounded-none ${t.input}`}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!inlineMcpToken.trim() || isUpdatingMcpToken}
+                        onClick={() => handleSaveMcpToken(inlineMcpToken)}
+                        className={`w-full py-2 px-3 font-mono text-xs font-bold rounded-none transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 ${
+                          tokenUpdateSuccess
+                            ? 'bg-[#009A44] text-white border border-emerald-400'
+                            : 'bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#005EB8]'
+                        }`}
+                      >
+                        {isUpdatingMcpToken ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Verifying Credentials Live...</span>
+                          </>
+                        ) : tokenUpdateSuccess ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                            <span>Token Verified & Saved to Canvas ✓</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Update & Enforce Fresh Token</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
 

@@ -10,7 +10,7 @@
       "x": 0,
       "y": 0
     },
-    "isInspectorOpen": false,
+    "isInspectorOpen": true,
     "isEnforcerActive": true,
     "viewMode": "canvas",
     "isWorkflowLocked": false
@@ -1167,32 +1167,6 @@
       },
       "nodes": [
         {
-          "id": "node-trigger-outlook",
-          "type": "triggerNode",
-          "position": {
-            "x": 439.8037420587998,
-            "y": 75.74296930225111
-          },
-          "data": {
-            "name": "Outlook Ingress Watcher",
-            "triggerType": "poll",
-            "pollSubMode": "stream",
-            "streamType": "inbox",
-            "pollIntervalSeconds": 300,
-            "maxBatchSize": 20,
-            "isPollingActive": false,
-            "lastStatus": "idle",
-            "label": "OUTLOOK STREAM",
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
-          },
-          "selected": false,
-          "dragging": false
-        },
-        {
           "id": "agent-core",
           "type": "agentCore",
           "position": {
@@ -1220,15 +1194,15 @@
               "tools": 1
             },
             "isDarkMode": false,
-            "lastOutput": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-            "auditHash": "f8b69942cf2cca8fbbbf87c8f8a1372945207a811dcfa4444319f51bcf5b2de9",
+            "lastOutput": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+            "auditHash": "de68daa49a37967745bb7650d3fd4661410c6bae131ffbd51c7f42bc18b14c86",
             "observability": {
-              "totalTokens": 412,
-              "latencyMs": 4050,
-              "modelUsed": "openai (gpt-4o-mini)",
+              "totalTokens": 237,
+              "latencyMs": 3085,
+              "modelUsed": "openai (gpt-4o)",
               "framework": "Microsoft ADK"
             },
-            "costUsd": 0.00018
+            "costUsd": 0.00175
           },
           "measured": {
             "width": 228,
@@ -1240,16 +1214,16 @@
           "id": "node-model-outlook",
           "type": "pillar",
           "position": {
-            "x": 564.0067340290128,
-            "y": 74.6118494517597
+            "x": 544.9416065029345,
+            "y": 88.7093941490937
           },
           "data": {
             "pillarType": "model",
-            "name": "OpenAI (gpt-4o-mini)",
+            "name": "OpenAI (gpt-4o)",
             "description": "OpenAI foundation model configured for live enterprise inference.",
             "config": {
               "provider": "openai",
-              "modelId": "gpt-4o-mini",
+              "modelId": "gpt-4o",
               "temperature": 0.1,
               "topP": 0.95
             },
@@ -1317,8 +1291,8 @@
           "id": "node-deterministic-outlook",
           "type": "deterministicNode",
           "position": {
-            "x": 787.4559103741087,
-            "y": 184.8765490475046
+            "x": 819.848390783789,
+            "y": 189.73542110895664
           },
           "data": {
             "name": "Row & Schema Normalizer",
@@ -1330,41 +1304,41 @@
             "isFrozen": true,
             "isDarkMode": false,
             "lastUpstreamReceived": {
-              "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-              "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-              "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-              "tokens": 412,
-              "latencyMs": 4050,
+              "output": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+              "data": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+              "text": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+              "tokens": 237,
+              "latencyMs": 3085,
               "observability": {
-                "totalTokens": 412,
-                "latencyMs": 4050,
-                "modelUsed": "openai (gpt-4o-mini)",
+                "totalTokens": 237,
+                "latencyMs": 3085,
+                "modelUsed": "openai (gpt-4o)",
                 "framework": "Microsoft ADK"
               },
-              "costUsd": 0.00018,
-              "auditHash": "f8b69942cf2cca8fbbbf87c8f8a1372945207a811dcfa4444319f51bcf5b2de9"
+              "costUsd": 0.00175,
+              "auditHash": "de68daa49a37967745bb7650d3fd4661410c6bae131ffbd51c7f42bc18b14c86"
             },
             "upstreamPayload": {
-              "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-              "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-              "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-              "tokens": 412,
-              "latencyMs": 4050,
+              "output": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+              "data": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+              "text": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+              "tokens": 237,
+              "latencyMs": 3085,
               "observability": {
-                "totalTokens": 412,
-                "latencyMs": 4050,
-                "modelUsed": "openai (gpt-4o-mini)",
+                "totalTokens": 237,
+                "latencyMs": 3085,
+                "modelUsed": "openai (gpt-4o)",
                 "framework": "Microsoft ADK"
               },
-              "costUsd": 0.00018,
-              "auditHash": "f8b69942cf2cca8fbbbf87c8f8a1372945207a811dcfa4444319f51bcf5b2de9"
+              "costUsd": 0.00175,
+              "auditHash": "de68daa49a37967745bb7650d3fd4661410c6bae131ffbd51c7f42bc18b14c86"
             },
-            "lastUpstreamTime": 1792518105615,
+            "lastUpstreamTime": 1792528021386,
             "isRunning": false,
             "lastOutput": null,
             "lastTableData": null,
             "lastError": null,
-            "lastLatencyMs": 204
+            "lastLatencyMs": 300.3
           },
           "measured": {
             "width": 228,
@@ -1377,17 +1351,32 @@
           "id": "node-output-outlook",
           "type": "outputNode",
           "position": {
-            "x": 1056.1982406476075,
-            "y": 215.5813654102361
+            "x": 1100.0021222437015,
+            "y": 219.33598383275842
           },
           "data": {
             "title": "Tabular Continuous Output Viewer",
             "outputContent": "",
             "content": "",
             "status": "ready",
-            "format": "json",
-            "persistenceStrategy": "append",
-            "runsHistory": [],
+            "format": "markdown",
+            "persistenceStrategy": "overwrite",
+            "runsHistory": [
+              {
+                "runNumber": 1,
+                "timestamp": "1:57:02 AM",
+                "content": "",
+                "tableData": null,
+                "auditHash": null,
+                "tokens": 0,
+                "latencyMs": 300.3,
+                "costUsd": 0,
+                "source": "deterministic",
+                "sourceNodeType": "deterministic",
+                "sourceNodeId": "node-deterministic-outlook",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              }
+            ],
             "isExpanded": true,
             "isDarkMode": false,
             "sourceNodeType": "deterministic",
@@ -1395,7 +1384,7 @@
             "sourceNodeName": "Mail & Attachment Extractor",
             "observability": {
               "totalTokens": 0,
-              "latencyMs": 204,
+              "latencyMs": 300.3,
               "note": "Deterministic 0-Token Pipeline"
             },
             "name": "Final Output Viewer",
@@ -1426,7 +1415,7 @@
             "subtitle": "OUTLOOK-API",
             "description": "Official Microsoft Outlook MCP with all 39 categorized actions for Mail, Calendar, Contacts, and Tasks.",
             "config": {
-              "token": "EwBYBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAT4oAF4G23ya/9oMNPQ1JWGLpaMOv/Qz5xHora9aZvoX3/7Wqc/pvjCQaqlqe73uvE6+0deGtnWVjc7J0LbnFLfbRTCEhuFhp4Zy2ggZ6jsI3db+bqcsam1lDM4DYc1ip2R6H+A9araI/7d8ZuYYcM3gfZGS+H2fb8erpSTXT1jsLPsORC1AlsQab3t8MZI1c3sIq19hydq8bTFvywcv5IrPwmDABrYGuTkjen8OI+zSWbT283w5tRLWhAirkT7KJf0xVwDUHubqfwhOj6wcBsH6OMBJ/LsCVnptSYiNa9OPFgulf75VRhDkv2j2lKHv9ABteO2Ae+VmD84AT9qfqhkQZgAAENQqTzfBVEhNHsXGERM4QzYgA3yJ+7fcCnkLUoOC48Wd+ZIvwfznA+xQvOcQoUFPzvyydWCD6utCrI7TBT7fLylVQ8pdXoSTKGf7Y8hUVPWIrxuRsrihEVALqQuBBsC1YFKNjEepDUMAEm/I9eoXNWygPzna48wecJc1L+c7m7BZpBKAsk5wQelIZTY1d4SBnW5uvl9RWk/J5LXrG3qSLMAzwqTxDRCFylzK00tX9AHF9gI2LZ8nPVkQSAwtAJw9raOuGZ2jDnC/SAGpd5iYXTve/ZIxQLMq4HNs060WXi0c9R3rksRyK5jPtkLpj0zE4PwuNBFEN1IWcJlq9R/qtl4OIzzIJLCpPx0QBR7vgE0577j3rKENZmjMiCg8l97XhTtz1+shBTQGit8KIGMTvjifoRsjksw4hB5VS+dQhl8paSOzmpzaqyFIoh3zqBs+nvAIO8kYHpPyfSdmu2mDxZ/mtH8Folr0xujTEKDsLzJP1kXubLE6tLqZOT5POt8zDx+WtCo4QYoLLuRwIMzcOogO4tkPgGCfxpm+6JkYBrU4VOUR+Vv/RgY8lQhEtu148XPD7cPrfh9LmXylbfXAfEeOziqqoFjMiU39ypq6KQFJe8b4QNh4QjfXHeZkShKYurRlwGpN1y4s+hy9jK5q755W9tdz5j84SFpY+fy+PDKCeq9mbQnvY+WGHi7cIH4dXINhcKbPKi3W4M+h7YgAUDGYbtcO5pxrfxYxrvTZu3hMpXjL/hgNRjc3X8E3vCbdyvwGlOM6kYF8MH5wv4xBWNrI2jK1tV1kUwEmk7NYJRTaCowNaR3pzSt/cRPdol78yvpa2eagnU65jtE0CSraJOsQnx8lEj90DXbL5tN7sAjlj9KwtXMs8RGzSWZrEv2lvQM6lk/0DX3dszsI/GEKMPAiW44kc7Cya0vgQfSp8YavqDlCf7+GYvEQMIajb0mtubgftDHHKWaABxZ/TG5jYsIbeaBgStsaKmJORzpOggr7EOooVlhLYCxTi0q1HvOw+BMCuBQU+GpEE/RbMia4tRz6qZDkMFXHBi+F6YIeJWCs9Cz8ypCDjcKczAy3L6MrxCuxZgM=",
+              "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD",
               "authType": "token",
               "email": "ayushyuvraj31@hotmail.com"
             },
@@ -2459,14 +2448,53 @@
               "authType": "Bearer Token (Graph API)",
               "scopesGranted": "User.Read, Mail.Read",
               "mailVerified": true,
-              "tokenMasked": "EwBY...ZgM="
+              "tokenMasked": "EwBo...n3oD",
+              "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD",
+              "authenticatedAs": "Outlook MCP (Ayush Yuvraj)",
+              "username": "Outlook MCP (Ayush Yuvraj)"
             },
             "serviceName": "Outlook",
             "transport": "outlook-api",
             "serverUrl": "",
             "isRealMcp": true,
             "isDarkMode": false,
-            "isDeactivated": false
+            "isDeactivated": false,
+            "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-trigger-0627",
+          "type": "triggerNode",
+          "position": {
+            "x": 335.16626321080463,
+            "y": 224.9630526198212
+          },
+          "data": {
+            "name": "API Polling Watcher",
+            "triggerType": "poll",
+            "description": "Smart periodic REST/GraphQL watcher with SHA-256 watermark deduplication. Only triggers on payload changes.",
+            "config": {
+              "triggerType": "poll",
+              "pollSubMode": "rest",
+              "pollIntervalSeconds": 60,
+              "endpointUrl": "https://outlook.live.com/mail/",
+              "deduplicateWatermark": true,
+              "defaultPayload": "{\n  \"source\": \"api_poller\",\n  \"status\": \"healthy\"\n}",
+              "streamType": "inbox",
+              "batchMode": true,
+              "maxBatchSize": 25
+            },
+            "lastFired": null,
+            "lastStatus": "idle",
+            "status": "idle",
+            "payloadText": "{\n  \"source\": \"api_poller\",\n  \"status\": \"healthy\"\n}",
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
@@ -2477,21 +2505,6 @@
         }
       ],
       "edges": [
-        {
-          "id": "edge-trigger-to-agent",
-          "source": "node-trigger-outlook",
-          "sourceHandle": "trigger-out",
-          "target": "agent-core",
-          "targetHandle": "tools-in",
-          "type": "deletable",
-          "animated": true,
-          "style": {
-            "stroke": "#00A3A6",
-            "strokeWidth": 2.2,
-            "strokeDasharray": "4 4",
-            "filter": "none"
-          }
-        },
         {
           "id": "edge-model-outlook",
           "source": "node-model-outlook",
@@ -2575,10 +2588,26 @@
             "strokeWidth": 2,
             "strokeDasharray": "4 4"
           }
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "node-trigger-0627",
+          "sourceHandle": "trigger-out",
+          "target": "agent-core",
+          "targetHandle": "agent-in",
+          "style": {
+            "stroke": "#00A3A6",
+            "strokeWidth": 2.2,
+            "strokeDasharray": "5 4",
+            "filter": "none"
+          },
+          "id": "xy-edge__node-trigger-0627trigger-out-agent-coreagent-in"
         }
       ],
       "createdAt": 1792382477311,
-      "updatedAt": 1792519251303,
+      "updatedAt": 1792529325967,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -2602,32 +2631,6 @@
   ],
   "canvasState": {
     "nodes": [
-      {
-        "id": "node-trigger-outlook",
-        "type": "triggerNode",
-        "position": {
-          "x": 439.8037420587998,
-          "y": 75.74296930225111
-        },
-        "data": {
-          "name": "Outlook Ingress Watcher",
-          "triggerType": "poll",
-          "pollSubMode": "stream",
-          "streamType": "inbox",
-          "pollIntervalSeconds": 300,
-          "maxBatchSize": 20,
-          "isPollingActive": false,
-          "lastStatus": "idle",
-          "label": "OUTLOOK STREAM",
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
       {
         "id": "agent-core",
         "type": "agentCore",
@@ -2656,15 +2659,15 @@
             "tools": 1
           },
           "isDarkMode": false,
-          "lastOutput": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-          "auditHash": "f8b69942cf2cca8fbbbf87c8f8a1372945207a811dcfa4444319f51bcf5b2de9",
+          "lastOutput": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+          "auditHash": "de68daa49a37967745bb7650d3fd4661410c6bae131ffbd51c7f42bc18b14c86",
           "observability": {
-            "totalTokens": 412,
-            "latencyMs": 4050,
-            "modelUsed": "openai (gpt-4o-mini)",
+            "totalTokens": 237,
+            "latencyMs": 3085,
+            "modelUsed": "openai (gpt-4o)",
             "framework": "Microsoft ADK"
           },
-          "costUsd": 0.00018
+          "costUsd": 0.00175
         },
         "measured": {
           "width": 228,
@@ -2676,16 +2679,16 @@
         "id": "node-model-outlook",
         "type": "pillar",
         "position": {
-          "x": 564.0067340290128,
-          "y": 74.6118494517597
+          "x": 544.9416065029345,
+          "y": 88.7093941490937
         },
         "data": {
           "pillarType": "model",
-          "name": "OpenAI (gpt-4o-mini)",
+          "name": "OpenAI (gpt-4o)",
           "description": "OpenAI foundation model configured for live enterprise inference.",
           "config": {
             "provider": "openai",
-            "modelId": "gpt-4o-mini",
+            "modelId": "gpt-4o",
             "temperature": 0.1,
             "topP": 0.95
           },
@@ -2753,8 +2756,8 @@
         "id": "node-deterministic-outlook",
         "type": "deterministicNode",
         "position": {
-          "x": 787.4559103741087,
-          "y": 184.8765490475046
+          "x": 819.848390783789,
+          "y": 189.73542110895664
         },
         "data": {
           "name": "Row & Schema Normalizer",
@@ -2766,41 +2769,41 @@
           "isFrozen": true,
           "isDarkMode": false,
           "lastUpstreamReceived": {
-            "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-            "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-            "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-            "tokens": 412,
-            "latencyMs": 4050,
+            "output": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+            "data": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+            "text": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+            "tokens": 237,
+            "latencyMs": 3085,
             "observability": {
-              "totalTokens": 412,
-              "latencyMs": 4050,
-              "modelUsed": "openai (gpt-4o-mini)",
+              "totalTokens": 237,
+              "latencyMs": 3085,
+              "modelUsed": "openai (gpt-4o)",
               "framework": "Microsoft ADK"
             },
-            "costUsd": 0.00018,
-            "auditHash": "f8b69942cf2cca8fbbbf87c8f8a1372945207a811dcfa4444319f51bcf5b2de9"
+            "costUsd": 0.00175,
+            "auditHash": "de68daa49a37967745bb7650d3fd4661410c6bae131ffbd51c7f42bc18b14c86"
           },
           "upstreamPayload": {
-            "output": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-            "data": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-            "text": "### Email Ingestion Summary\n\n**Source:** Outlook Ingress Watcher  \n**Trigger ID:** node-trigger-outlook  \n**Trigger Type:** Poll  \n**Timestamp:** 2026-10-20T17:41:40.885Z  \n\n---\n\n### Key Findings\n\n- **No Email Content Provided:** The current input does not contain any email content or attachments to evaluate for relevance or extract structured metadata.\n- **Awaiting Data:** Further action is required to process incoming emails and attachments.\n\n---\n\n### Action Items\n\n1. **Monitor Incoming Emails:** Continue to watch for new emails and attachments in the Outlook MCP streams.\n2. **Data Extraction:** Once emails are received, extract relevant metadata including:\n   - Sender\n   - Subject\n   - Invoice/Deliverable Items\n   - Monetary Values\n   - Action Owners\n   - Due Dates\n3. **Format Output:** Ensure that all extracted data is formatted into standardized records for downstream processing.\n\n---\n\n### Next Steps\n\n- Await the next incoming email or attachment for processing.\n- Ensure that the system is ready to handle and extract data from the next batch of emails.",
-            "tokens": 412,
-            "latencyMs": 4050,
+            "output": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+            "data": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+            "text": "**Headers:**\n\n- **Source:** API Poller\n- **Status:** Healthy\n\n**Key Findings:**\n\n- The incoming data indicates that the source of the information is from an API Poller.\n- The status of the API Poller is reported as \"healthy,\" suggesting that it is functioning correctly without any issues.\n\n**Action Items:**\n\n- No immediate action is required as the status is healthy.\n- Continue monitoring the API Poller for any changes in status or performance issues.",
+            "tokens": 237,
+            "latencyMs": 3085,
             "observability": {
-              "totalTokens": 412,
-              "latencyMs": 4050,
-              "modelUsed": "openai (gpt-4o-mini)",
+              "totalTokens": 237,
+              "latencyMs": 3085,
+              "modelUsed": "openai (gpt-4o)",
               "framework": "Microsoft ADK"
             },
-            "costUsd": 0.00018,
-            "auditHash": "f8b69942cf2cca8fbbbf87c8f8a1372945207a811dcfa4444319f51bcf5b2de9"
+            "costUsd": 0.00175,
+            "auditHash": "de68daa49a37967745bb7650d3fd4661410c6bae131ffbd51c7f42bc18b14c86"
           },
-          "lastUpstreamTime": 1792518105615,
+          "lastUpstreamTime": 1792528021386,
           "isRunning": false,
           "lastOutput": null,
           "lastTableData": null,
           "lastError": null,
-          "lastLatencyMs": 204
+          "lastLatencyMs": 300.3
         },
         "measured": {
           "width": 228,
@@ -2813,17 +2816,32 @@
         "id": "node-output-outlook",
         "type": "outputNode",
         "position": {
-          "x": 1056.1982406476075,
-          "y": 215.5813654102361
+          "x": 1100.0021222437015,
+          "y": 219.33598383275842
         },
         "data": {
           "title": "Tabular Continuous Output Viewer",
           "outputContent": "",
           "content": "",
           "status": "ready",
-          "format": "json",
-          "persistenceStrategy": "append",
-          "runsHistory": [],
+          "format": "markdown",
+          "persistenceStrategy": "overwrite",
+          "runsHistory": [
+            {
+              "runNumber": 1,
+              "timestamp": "1:57:02 AM",
+              "content": "",
+              "tableData": null,
+              "auditHash": null,
+              "tokens": 0,
+              "latencyMs": 300.3,
+              "costUsd": 0,
+              "source": "deterministic",
+              "sourceNodeType": "deterministic",
+              "sourceNodeId": "node-deterministic-outlook",
+              "sourceNodeName": "Mail & Attachment Extractor"
+            }
+          ],
           "isExpanded": false,
           "isDarkMode": false,
           "sourceNodeType": "deterministic",
@@ -2831,7 +2849,7 @@
           "sourceNodeName": "Mail & Attachment Extractor",
           "observability": {
             "totalTokens": 0,
-            "latencyMs": 204,
+            "latencyMs": 300.3,
             "note": "Deterministic 0-Token Pipeline"
           },
           "name": "Final Output Viewer",
@@ -2862,7 +2880,7 @@
           "subtitle": "OUTLOOK-API",
           "description": "Official Microsoft Outlook MCP with all 39 categorized actions for Mail, Calendar, Contacts, and Tasks.",
           "config": {
-            "token": "EwBYBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAT4oAF4G23ya/9oMNPQ1JWGLpaMOv/Qz5xHora9aZvoX3/7Wqc/pvjCQaqlqe73uvE6+0deGtnWVjc7J0LbnFLfbRTCEhuFhp4Zy2ggZ6jsI3db+bqcsam1lDM4DYc1ip2R6H+A9araI/7d8ZuYYcM3gfZGS+H2fb8erpSTXT1jsLPsORC1AlsQab3t8MZI1c3sIq19hydq8bTFvywcv5IrPwmDABrYGuTkjen8OI+zSWbT283w5tRLWhAirkT7KJf0xVwDUHubqfwhOj6wcBsH6OMBJ/LsCVnptSYiNa9OPFgulf75VRhDkv2j2lKHv9ABteO2Ae+VmD84AT9qfqhkQZgAAENQqTzfBVEhNHsXGERM4QzYgA3yJ+7fcCnkLUoOC48Wd+ZIvwfznA+xQvOcQoUFPzvyydWCD6utCrI7TBT7fLylVQ8pdXoSTKGf7Y8hUVPWIrxuRsrihEVALqQuBBsC1YFKNjEepDUMAEm/I9eoXNWygPzna48wecJc1L+c7m7BZpBKAsk5wQelIZTY1d4SBnW5uvl9RWk/J5LXrG3qSLMAzwqTxDRCFylzK00tX9AHF9gI2LZ8nPVkQSAwtAJw9raOuGZ2jDnC/SAGpd5iYXTve/ZIxQLMq4HNs060WXi0c9R3rksRyK5jPtkLpj0zE4PwuNBFEN1IWcJlq9R/qtl4OIzzIJLCpPx0QBR7vgE0577j3rKENZmjMiCg8l97XhTtz1+shBTQGit8KIGMTvjifoRsjksw4hB5VS+dQhl8paSOzmpzaqyFIoh3zqBs+nvAIO8kYHpPyfSdmu2mDxZ/mtH8Folr0xujTEKDsLzJP1kXubLE6tLqZOT5POt8zDx+WtCo4QYoLLuRwIMzcOogO4tkPgGCfxpm+6JkYBrU4VOUR+Vv/RgY8lQhEtu148XPD7cPrfh9LmXylbfXAfEeOziqqoFjMiU39ypq6KQFJe8b4QNh4QjfXHeZkShKYurRlwGpN1y4s+hy9jK5q755W9tdz5j84SFpY+fy+PDKCeq9mbQnvY+WGHi7cIH4dXINhcKbPKi3W4M+h7YgAUDGYbtcO5pxrfxYxrvTZu3hMpXjL/hgNRjc3X8E3vCbdyvwGlOM6kYF8MH5wv4xBWNrI2jK1tV1kUwEmk7NYJRTaCowNaR3pzSt/cRPdol78yvpa2eagnU65jtE0CSraJOsQnx8lEj90DXbL5tN7sAjlj9KwtXMs8RGzSWZrEv2lvQM6lk/0DX3dszsI/GEKMPAiW44kc7Cya0vgQfSp8YavqDlCf7+GYvEQMIajb0mtubgftDHHKWaABxZ/TG5jYsIbeaBgStsaKmJORzpOggr7EOooVlhLYCxTi0q1HvOw+BMCuBQU+GpEE/RbMia4tRz6qZDkMFXHBi+F6YIeJWCs9Cz8ypCDjcKczAy3L6MrxCuxZgM=",
+            "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD",
             "authType": "token",
             "email": "ayushyuvraj31@hotmail.com"
           },
@@ -3895,14 +3913,53 @@
             "authType": "Bearer Token (Graph API)",
             "scopesGranted": "User.Read, Mail.Read",
             "mailVerified": true,
-            "tokenMasked": "EwBY...ZgM="
+            "tokenMasked": "EwBo...n3oD",
+            "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD",
+            "authenticatedAs": "Outlook MCP (Ayush Yuvraj)",
+            "username": "Outlook MCP (Ayush Yuvraj)"
           },
           "serviceName": "Outlook",
           "transport": "outlook-api",
           "serverUrl": "",
           "isRealMcp": true,
           "isDarkMode": false,
-          "isDeactivated": false
+          "isDeactivated": false,
+          "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-trigger-0627",
+        "type": "triggerNode",
+        "position": {
+          "x": 335.16626321080463,
+          "y": 224.9630526198212
+        },
+        "data": {
+          "name": "API Polling Watcher",
+          "triggerType": "poll",
+          "description": "Smart periodic REST/GraphQL watcher with SHA-256 watermark deduplication. Only triggers on payload changes.",
+          "config": {
+            "triggerType": "poll",
+            "pollSubMode": "rest",
+            "pollIntervalSeconds": 60,
+            "endpointUrl": "https://outlook.live.com/mail/",
+            "deduplicateWatermark": true,
+            "defaultPayload": "{\n  \"source\": \"api_poller\",\n  \"status\": \"healthy\"\n}",
+            "streamType": "inbox",
+            "batchMode": true,
+            "maxBatchSize": 25
+          },
+          "lastFired": null,
+          "lastStatus": "idle",
+          "status": "idle",
+          "payloadText": "{\n  \"source\": \"api_poller\",\n  \"status\": \"healthy\"\n}",
+          "isDarkMode": false
         },
         "measured": {
           "width": 140,
@@ -3913,21 +3970,6 @@
       }
     ],
     "edges": [
-      {
-        "id": "edge-trigger-to-agent",
-        "source": "node-trigger-outlook",
-        "sourceHandle": "trigger-out",
-        "target": "agent-core",
-        "targetHandle": "tools-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00A3A6",
-          "strokeWidth": 2.2,
-          "strokeDasharray": "4 4",
-          "filter": "none"
-        }
-      },
       {
         "id": "edge-model-outlook",
         "source": "node-model-outlook",
@@ -4011,6 +4053,22 @@
           "strokeWidth": 2,
           "strokeDasharray": "4 4"
         }
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "node-trigger-0627",
+        "sourceHandle": "trigger-out",
+        "target": "agent-core",
+        "targetHandle": "agent-in",
+        "style": {
+          "stroke": "#00A3A6",
+          "strokeWidth": 2.2,
+          "strokeDasharray": "5 4",
+          "filter": "none"
+        },
+        "id": "xy-edge__node-trigger-0627trigger-out-agent-coreagent-in"
       }
     ],
     "activeUseCase": {
@@ -4036,10 +4094,17 @@
   },
   "registeredMcps": [
     {
-      "id": "node-mcp-3002",
+      "pillarType": "mcp",
+      "title": "Outlook (Ayush Yuvraj)",
       "name": "Outlook (Ayush Yuvraj)",
       "displayName": "Outlook (Ayush Yuvraj)",
-      "description": "Official Microsoft Outlook MCP with all 39 categorized actions for Mail, Calendar, Contacts, and Tasks.",
+      "subtitle": "OUTLOOK-API",
+      "description": "Official Enterprise Microsoft Outlook MCP with 46 categorized tools.",
+      "config": {
+        "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD",
+        "authType": "token",
+        "email": "ayushyuvraj31@hotmail.com"
+      },
       "tools": [
         {
           "name": "list_messages",
@@ -4416,7 +4481,7 @@
           "displayName": "List Attachments",
           "category": "Folders & Attachments",
           "type": "read",
-          "description": "Retrieves all file attachments and metadata for a specific message (GET /me/messages/{id}/attachments).",
+          "description": "Retrieves all attachments (files, embedded items, and cloud reference links) with metadata for a message (GET /me/messages/{id}/attachments).",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -4435,7 +4500,7 @@
           "displayName": "Read & Decode Attachment",
           "category": "Folders & Attachments",
           "type": "read",
-          "description": "Downloads and decodes base64 attachment content into clean, readable text or structured table data (GET /me/messages/{id}/attachments/{id}).",
+          "description": "Downloads, decodes, and security-sanitizes file attachment content into clean text, tabular data, or structured JSON with SHA-256 fingerprinting (GET /me/messages/{id}/attachments/{id}).",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -4454,11 +4519,81 @@
           }
         },
         {
+          "name": "read_item_attachment",
+          "displayName": "Read Embedded Item (Email/Event)",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Unpacks nested Outlook items (e.g. attached .eml email threads, .ics calendar invitations, or .vcf contacts) with full subject, sender, and body content ($expand=microsoft.graph.itemattachment/item).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The outer message ID containing the item attachment"
+              },
+              "attachmentId": {
+                "type": "string",
+                "description": "The specific item attachment ID"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "get_reference_attachment",
+          "displayName": "Get Cloud Reference Attachment",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Inspects cloud reference attachments linked to OneDrive or SharePoint files, retrieving source URLs, permissions, and file metadata.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID containing the reference attachment"
+              },
+              "attachmentId": {
+                "type": "string",
+                "description": "The reference attachment ID"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "download_attachment_raw",
+          "displayName": "Download Raw Attachment Stream",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Streams the raw binary content directly from Microsoft Graph (GET /me/messages/{id}/attachments/{id}/$value) without Base64 overhead.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID containing the attachment"
+              },
+              "attachmentId": {
+                "type": "string",
+                "description": "The attachment ID to stream"
+              }
+            },
+            "required": [
+              "messageId",
+              "attachmentId"
+            ]
+          }
+        },
+        {
           "name": "add_message_attachment",
-          "displayName": "Add Attachment",
+          "displayName": "Add File Attachment (< 3MB)",
           "category": "Folders & Attachments",
           "type": "write",
-          "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments).",
+          "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments). Supports inline attachments with contentId.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -4477,10 +4612,132 @@
               "contentBytes": {
                 "type": "string",
                 "description": "Base64-encoded file content"
+              },
+              "isInline": {
+                "type": "boolean",
+                "description": "Whether the attachment is rendered inline in the email body"
+              },
+              "contentId": {
+                "type": "string",
+                "description": "Optional Content-ID header for inline referencing (cid:)"
               }
             },
             "required": [
               "messageId",
+              "name",
+              "contentBytes"
+            ]
+          }
+        },
+        {
+          "name": "upload_large_attachment",
+          "displayName": "Upload Large Attachment (3MB–150MB)",
+          "category": "Folders & Attachments",
+          "type": "write",
+          "description": "Uploads large files (up to 150 MB) using a chunked resumable upload session (POST /me/messages/{id}/attachments/createUploadSession).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The draft message ID"
+              },
+              "name": {
+                "type": "string",
+                "description": "Filename of the attachment"
+              },
+              "size": {
+                "type": "number",
+                "description": "Total file size in bytes"
+              },
+              "contentType": {
+                "type": "string",
+                "description": "MIME type of the file"
+              },
+              "contentBytes": {
+                "type": "string",
+                "description": "Base64-encoded full file content to chunk-upload"
+              }
+            },
+            "required": [
+              "messageId",
+              "name",
+              "size",
+              "contentBytes"
+            ]
+          }
+        },
+        {
+          "name": "delete_attachment",
+          "displayName": "Delete Attachment",
+          "category": "Folders & Attachments",
+          "type": "destructive",
+          "description": "Permanently deletes an attachment from a draft email message (DELETE /me/messages/{id}/attachments/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The draft message ID"
+              },
+              "attachmentId": {
+                "type": "string",
+                "description": "The attachment ID to delete"
+              }
+            },
+            "required": [
+              "messageId",
+              "attachmentId"
+            ]
+          }
+        },
+        {
+          "name": "list_event_attachments",
+          "displayName": "List Event Attachments",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Lists all attachments linked to a calendar meeting or event (GET /me/events/{id}/attachments).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The calendar event ID"
+              }
+            },
+            "required": [
+              "eventId"
+            ]
+          }
+        },
+        {
+          "name": "add_event_attachment",
+          "displayName": "Add Event Attachment",
+          "category": "Folders & Attachments",
+          "type": "write",
+          "description": "Attaches a document or agenda file to a calendar event (POST /me/events/{id}/attachments).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The calendar event ID"
+              },
+              "name": {
+                "type": "string",
+                "description": "Filename of the attachment"
+              },
+              "contentType": {
+                "type": "string",
+                "description": "MIME type of the file"
+              },
+              "contentBytes": {
+                "type": "string",
+                "description": "Base64-encoded file content"
+              }
+            },
+            "required": [
+              "eventId",
               "name",
               "contentBytes"
             ]
@@ -5061,11 +5318,6 @@
           }
         }
       ],
-      "config": {
-        "token": "EwBYBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAT4oAF4G23ya/9oMNPQ1JWGLpaMOv/Qz5xHora9aZvoX3/7Wqc/pvjCQaqlqe73uvE6+0deGtnWVjc7J0LbnFLfbRTCEhuFhp4Zy2ggZ6jsI3db+bqcsam1lDM4DYc1ip2R6H+A9araI/7d8ZuYYcM3gfZGS+H2fb8erpSTXT1jsLPsORC1AlsQab3t8MZI1c3sIq19hydq8bTFvywcv5IrPwmDABrYGuTkjen8OI+zSWbT283w5tRLWhAirkT7KJf0xVwDUHubqfwhOj6wcBsH6OMBJ/LsCVnptSYiNa9OPFgulf75VRhDkv2j2lKHv9ABteO2Ae+VmD84AT9qfqhkQZgAAENQqTzfBVEhNHsXGERM4QzYgA3yJ+7fcCnkLUoOC48Wd+ZIvwfznA+xQvOcQoUFPzvyydWCD6utCrI7TBT7fLylVQ8pdXoSTKGf7Y8hUVPWIrxuRsrihEVALqQuBBsC1YFKNjEepDUMAEm/I9eoXNWygPzna48wecJc1L+c7m7BZpBKAsk5wQelIZTY1d4SBnW5uvl9RWk/J5LXrG3qSLMAzwqTxDRCFylzK00tX9AHF9gI2LZ8nPVkQSAwtAJw9raOuGZ2jDnC/SAGpd5iYXTve/ZIxQLMq4HNs060WXi0c9R3rksRyK5jPtkLpj0zE4PwuNBFEN1IWcJlq9R/qtl4OIzzIJLCpPx0QBR7vgE0577j3rKENZmjMiCg8l97XhTtz1+shBTQGit8KIGMTvjifoRsjksw4hB5VS+dQhl8paSOzmpzaqyFIoh3zqBs+nvAIO8kYHpPyfSdmu2mDxZ/mtH8Folr0xujTEKDsLzJP1kXubLE6tLqZOT5POt8zDx+WtCo4QYoLLuRwIMzcOogO4tkPgGCfxpm+6JkYBrU4VOUR+Vv/RgY8lQhEtu148XPD7cPrfh9LmXylbfXAfEeOziqqoFjMiU39ypq6KQFJe8b4QNh4QjfXHeZkShKYurRlwGpN1y4s+hy9jK5q755W9tdz5j84SFpY+fy+PDKCeq9mbQnvY+WGHi7cIH4dXINhcKbPKi3W4M+h7YgAUDGYbtcO5pxrfxYxrvTZu3hMpXjL/hgNRjc3X8E3vCbdyvwGlOM6kYF8MH5wv4xBWNrI2jK1tV1kUwEmk7NYJRTaCowNaR3pzSt/cRPdol78yvpa2eagnU65jtE0CSraJOsQnx8lEj90DXbL5tN7sAjlj9KwtXMs8RGzSWZrEv2lvQM6lk/0DX3dszsI/GEKMPAiW44kc7Cya0vgQfSp8YavqDlCf7+GYvEQMIajb0mtubgftDHHKWaABxZ/TG5jYsIbeaBgStsaKmJORzpOggr7EOooVlhLYCxTi0q1HvOw+BMCuBQU+GpEE/RbMia4tRz6qZDkMFXHBi+F6YIeJWCs9Cz8ypCDjcKczAy3L6MrxCuxZgM=",
-        "authType": "token",
-        "email": "ayushyuvraj31@hotmail.com"
-      },
       "basis": {
         "provider": "Microsoft Graph API v1.0 / Official Outlook MCP Specification",
         "accountName": "Ayush Yuvraj",
@@ -5074,20 +5326,26 @@
         "authType": "Bearer Token (Graph API)",
         "scopesGranted": "User.Read, Mail.Read",
         "mailVerified": true,
-        "tokenMasked": "EwBY...ZgM="
+        "tokenMasked": "EwBo...n3oD",
+        "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD",
+        "authenticatedAs": "Outlook MCP (Ayush Yuvraj)",
+        "username": "Outlook MCP (Ayush Yuvraj)"
       },
-      "transport": "outlook-api",
-      "url": "",
       "serviceName": "Outlook",
+      "transport": "outlook-api",
+      "serverUrl": "",
       "isRealMcp": true,
-      "verifiedAt": "2026-10-20T17:41:33.004Z"
+      "isDarkMode": false,
+      "isDeactivated": false,
+      "token": "EwBoBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAAZz3aTi/kjddWIzSBk9DQgjESsiGBz+yDT0w0qd5u+5nOhU1Kf7qdwklAoUSRabzGpRnDjQ+lVyaEOkjK6W2vLn9/IXlEeiIvqv1eO/AJvjdZbI/mVaD+xE+D+oQybX+bkD6FYv/rxA0WXvz8W2rmXtD6L0dAB4OiM0rh6/42WtLzgl9ejqe8sYWa0iGs2MnxIevaARcvzFhQSguhU4GeHpDFff0TTwW4nRZhgJmyvPxfu0n57k+WR0GwPim2AYQ+q5320mnBmqcRC+D4uE4DY2njrKmCLpx+QgFN6xi51WIKpua5CUk/QvAZybGa6jx2hHG2mrDRQry5bnFCKUrfXAQZgAAEE4YZ8anJ+gS6dE+DqD6hv8wA5+1RRlKZiYFMO60vnfh/KoFnNvxuYhf0pnyjpDzUeGJe+ITxQ9p8fzBhcBEXWnPdFJ4YMr3J9CMbKC2lCa/HUv6hC8XaZOxXQ4Wkf2L34v4vQQuRa8IAC35B0csDVYjybRGC69uyyofJpRtVm7h4668HpJ/nyKDCILFiM2in+bOi1o3TvbSASBuLQCiz/gRlrbbeUTOviZDTZgSvZNsfeQpTs/VQKiMrytDd+BZfHF1rrdhzjzDLdeQPsp67GT4jNzwXGX4vE3gMC8mYBsSEVg8A81dzu9mwGjRn+mf/FbsYtdRQvlo6R9C96WqAZxsdkhaHaJ4mq4GyOSg/UEECVSG4lCbcyx7uWv7BUlahYOMD4nb78/pq6NZwzRzJNSFv7HZ2pBkH6W/RV3RZPJVxWj3l5q5GcUuXQeE+oSq323qkJC/C3um2lsvGoeUYhTttyNjRoXt8s991xMsN61EaHHkroumYKh1tfthg3LdQSiW16Ud/M8y0lxc84/Cah3ihcy/LYXRGdGGKsu2g/13W1oUNS1cn1aXoao1WgOBuHLzyrliVnfxNn/bOCMqCPLK8iBLx1BVltx8oUFANf9jHXhpUX6buGui11M3WO+1K7g7GVcks5hkfYNoL2yCZ6+i56TBW4HdYNkHke0/trIHuNTdSILmw32e0L5ylAwMscaZfblCKZ6a7LBpLXKtm+XJeOSXYouQFCnlENmSHBovP5cKdUBwUCixtnvPjWnG/ujCujsglO9B8UEwKf3wQOClv/WFas6weI3eZ5a8VBY+L+1X8kNIjfKlIYAHFKgAv9r1pfdisHc9BGZKuNMuFRQeVqZ3eteqto4L/hUxIQgWEy39z9ucOKeoAOY943/nd3AT5a2NZgrkgQiNHMNSlUkMK8i9EUGD3/AesI+jIkEDMLnpcr2Jey7SSVvtFkcfEmPl6SWHEApOS5bAgxQx5syGkj8TCXTr4fvIW5qSmsgPpDFEcVknOsfz/WLxIaKEGxFc1UMqUdEvchKeKNVt2rwoneG59CaNXT/7nHBH0cjxmanCAduY1XWKpy9xWSZqjnxeBLsoCxOJ2SVQApiHyuI3n3oD",
+      "id": "node-mcp-3002"
     },
     {
       "id": "node-mcp-1487",
       "name": "Outlook MCP (Ayush Yuvraj)",
       "displayName": "Outlook MCP (Ayush Yuvraj)",
       "serviceName": "Outlook",
-      "description": "Official Microsoft Outlook MCP with all 39 categorized actions for Mail, Calendar, Contacts, and Tasks.",
+      "description": "Official Enterprise Microsoft Outlook MCP with 46 categorized tools.",
       "tools": [
         {
           "name": "list_messages",
@@ -5464,7 +5722,7 @@
           "displayName": "List Attachments",
           "category": "Folders & Attachments",
           "type": "read",
-          "description": "Retrieves all file attachments and metadata for a specific message (GET /me/messages/{id}/attachments).",
+          "description": "Retrieves all attachments (files, embedded items, and cloud reference links) with metadata for a message (GET /me/messages/{id}/attachments).",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -5483,7 +5741,7 @@
           "displayName": "Read & Decode Attachment",
           "category": "Folders & Attachments",
           "type": "read",
-          "description": "Downloads and decodes base64 attachment content into clean, readable text or structured table data (GET /me/messages/{id}/attachments/{id}).",
+          "description": "Downloads, decodes, and security-sanitizes file attachment content into clean text, tabular data, or structured JSON with SHA-256 fingerprinting (GET /me/messages/{id}/attachments/{id}).",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -5502,11 +5760,81 @@
           }
         },
         {
+          "name": "read_item_attachment",
+          "displayName": "Read Embedded Item (Email/Event)",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Unpacks nested Outlook items (e.g. attached .eml email threads, .ics calendar invitations, or .vcf contacts) with full subject, sender, and body content ($expand=microsoft.graph.itemattachment/item).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The outer message ID containing the item attachment"
+              },
+              "attachmentId": {
+                "type": "string",
+                "description": "The specific item attachment ID"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "get_reference_attachment",
+          "displayName": "Get Cloud Reference Attachment",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Inspects cloud reference attachments linked to OneDrive or SharePoint files, retrieving source URLs, permissions, and file metadata.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID containing the reference attachment"
+              },
+              "attachmentId": {
+                "type": "string",
+                "description": "The reference attachment ID"
+              }
+            },
+            "required": [
+              "messageId"
+            ]
+          }
+        },
+        {
+          "name": "download_attachment_raw",
+          "displayName": "Download Raw Attachment Stream",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Streams the raw binary content directly from Microsoft Graph (GET /me/messages/{id}/attachments/{id}/$value) without Base64 overhead.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The message ID containing the attachment"
+              },
+              "attachmentId": {
+                "type": "string",
+                "description": "The attachment ID to stream"
+              }
+            },
+            "required": [
+              "messageId",
+              "attachmentId"
+            ]
+          }
+        },
+        {
           "name": "add_message_attachment",
-          "displayName": "Add Attachment",
+          "displayName": "Add File Attachment (< 3MB)",
           "category": "Folders & Attachments",
           "type": "write",
-          "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments).",
+          "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments). Supports inline attachments with contentId.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -5525,10 +5853,132 @@
               "contentBytes": {
                 "type": "string",
                 "description": "Base64-encoded file content"
+              },
+              "isInline": {
+                "type": "boolean",
+                "description": "Whether the attachment is rendered inline in the email body"
+              },
+              "contentId": {
+                "type": "string",
+                "description": "Optional Content-ID header for inline referencing (cid:)"
               }
             },
             "required": [
               "messageId",
+              "name",
+              "contentBytes"
+            ]
+          }
+        },
+        {
+          "name": "upload_large_attachment",
+          "displayName": "Upload Large Attachment (3MB–150MB)",
+          "category": "Folders & Attachments",
+          "type": "write",
+          "description": "Uploads large files (up to 150 MB) using a chunked resumable upload session (POST /me/messages/{id}/attachments/createUploadSession).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The draft message ID"
+              },
+              "name": {
+                "type": "string",
+                "description": "Filename of the attachment"
+              },
+              "size": {
+                "type": "number",
+                "description": "Total file size in bytes"
+              },
+              "contentType": {
+                "type": "string",
+                "description": "MIME type of the file"
+              },
+              "contentBytes": {
+                "type": "string",
+                "description": "Base64-encoded full file content to chunk-upload"
+              }
+            },
+            "required": [
+              "messageId",
+              "name",
+              "size",
+              "contentBytes"
+            ]
+          }
+        },
+        {
+          "name": "delete_attachment",
+          "displayName": "Delete Attachment",
+          "category": "Folders & Attachments",
+          "type": "destructive",
+          "description": "Permanently deletes an attachment from a draft email message (DELETE /me/messages/{id}/attachments/{id}).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "description": "The draft message ID"
+              },
+              "attachmentId": {
+                "type": "string",
+                "description": "The attachment ID to delete"
+              }
+            },
+            "required": [
+              "messageId",
+              "attachmentId"
+            ]
+          }
+        },
+        {
+          "name": "list_event_attachments",
+          "displayName": "List Event Attachments",
+          "category": "Folders & Attachments",
+          "type": "read",
+          "description": "Lists all attachments linked to a calendar meeting or event (GET /me/events/{id}/attachments).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The calendar event ID"
+              }
+            },
+            "required": [
+              "eventId"
+            ]
+          }
+        },
+        {
+          "name": "add_event_attachment",
+          "displayName": "Add Event Attachment",
+          "category": "Folders & Attachments",
+          "type": "write",
+          "description": "Attaches a document or agenda file to a calendar event (POST /me/events/{id}/attachments).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "eventId": {
+                "type": "string",
+                "description": "The calendar event ID"
+              },
+              "name": {
+                "type": "string",
+                "description": "Filename of the attachment"
+              },
+              "contentType": {
+                "type": "string",
+                "description": "MIME type of the file"
+              },
+              "contentBytes": {
+                "type": "string",
+                "description": "Base64-encoded file content"
+              }
+            },
+            "required": [
+              "eventId",
               "name",
               "contentBytes"
             ]
@@ -6130,5 +6580,5 @@
       "verifiedAt": "2026-10-20T14:40:21.273Z"
     }
   ],
-  "syncedAt": 1792519252109
+  "syncedAt": 1792529333809
 }

@@ -1,6 +1,6 @@
 export function generateFrameworkCode(frameworkId, agentConfig, attachments) {
   const modelNode = attachments.model || (Array.isArray(attachments) ? attachments.find(p => p.type === 'model') : null);
-  const modelName = modelNode?.config?.modelId || modelNode?.name || attachments.model?.name || 'gemini-2.0-flash';
+  const modelName = modelNode?.config?.modelId || modelNode?.name || attachments.model?.name || 'gpt-4o';
   const modelTemperature = modelNode?.config?.temperature !== undefined ? modelNode.config.temperature : (agentConfig?.temperature ?? 0.2);
   const systemPrompt = agentConfig.prompt || 'You are an enterprise Meeting Intelligence Assistant.';
   const hasAudioTool = attachments.tools?.some(t => t.id === 'tool-audio-transcribe' || t.id === 'ingest-audio-stream' || t.id === 'ingest-universal-file' || t.fileType === 'audio');

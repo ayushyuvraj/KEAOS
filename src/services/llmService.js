@@ -647,8 +647,8 @@ export function isFixedTemperatureModel(modelId) {
  * Universal Real LLM Synthesis Execution
  */
 export async function synthesizeMeetingUniversal({
-  provider = 'google',
-  modelId = 'gemini-2.0-flash',
+  provider = 'openai',
+  modelId = 'gpt-4o',
   transcript,
   systemPrompt,
   memoryContext = null,
@@ -951,8 +951,8 @@ ${transcript}`;
  * Supports Google, Anthropic, OpenAI, Ollama, and OpenRouter for freeform agent conversations
  */
 export async function executeUniversalChat({
-  provider = 'google',
-  modelId = 'gemini-2.0-flash',
+  provider = 'openai',
+  modelId = 'gpt-4o',
   systemPrompt = '',
   messages = [],
   temperature = 0.3,
@@ -1205,7 +1205,34 @@ export async function transcribeAudioUniversal(audioFile) {
 
   const startTime = performance.now();
 
-  // 1. Google Gemini 2.0 Flash Native Multimodal Audio
+  // 1. OpenAI Whisper
+  if (openAiKey) {
+    const formData = new FormData();
+    formData.append('file', audioFile);
+    formData.append('model', 'whisper-1');
+    formData.append('response_format', 'text');
+
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${openAiKey}` },
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`OpenAI Whisper Error: ${err.error?.message || res.statusText}`);
+    }
+
+    const text = await res.text();
+    const durationMs = Math.round(performance.now() - startTime);
+    return {
+      transcript: text,
+      durationMs,
+      provider: 'OpenAI Whisper'
+    };
+  }
+
+  // 2. Google Gemini 2.0 Flash Native Multimodal Audio
   if (googleKey) {
     const ai = new GoogleGenAI({ apiKey: googleKey });
     const arrayBuffer = await audioFile.arrayBuffer();
@@ -1234,34 +1261,7 @@ export async function transcribeAudioUniversal(audioFile) {
     };
   }
 
-  // 2. OpenAI Whisper
-  if (openAiKey) {
-    const formData = new FormData();
-    formData.append('file', audioFile);
-    formData.append('model', 'whisper-1');
-    formData.append('response_format', 'text');
-
-    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${openAiKey}` },
-      body: formData
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(`OpenAI Whisper Error: ${err.error?.message || res.statusText}`);
-    }
-
-    const text = await res.text();
-    const durationMs = Math.round(performance.now() - startTime);
-    return {
-      transcript: text,
-      durationMs,
-      provider: 'OpenAI Whisper'
-    };
-  }
-
-  throw new Error('Please configure a Google or OpenAI API key in API Settings to transcribe live audio.');
+  throw new Error('Please configure an OpenAI or Google API key in API Settings to transcribe live audio.');
 }
 
 /**
@@ -1269,8 +1269,8 @@ export async function transcribeAudioUniversal(audioFile) {
  * Evaluates faithfulness and action item F1 across any configured provider
  */
 export async function evaluateTestCaseUniversal({
-  provider = 'google',
-  modelId,
+  provider = 'openai',
+  modelId = 'gpt-4o',
   transcript,
   generatedSummary,
   generatedActions,

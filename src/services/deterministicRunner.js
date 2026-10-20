@@ -607,14 +607,24 @@ function isNaturalLanguageText(str) {
 /**
  * Universal Dispatcher: executes any language or natural language directive with requested engine.
  */
-export async function executeDeterministicTask({
-  language = 'auto',
-  code = '',
-  prompt = '',
-  inputData = {},
-  nodeId = 'default',
-  engine = 'auto'
-}) {
+export async function executeDeterministicTask(args = {}) {
+  let {
+    language = 'auto',
+    code = '',
+    prompt = '',
+    inputData = {},
+    nodeId = 'default',
+    engine = 'auto'
+  } = args;
+
+  // Support parameter aliases across triggerEngine and canvas callers
+  if (args.inputs !== undefined && (inputData === undefined || (typeof inputData === 'object' && Object.keys(inputData).length === 0))) {
+    inputData = args.inputs;
+  }
+  if (!prompt && args.ruleSummary) {
+    prompt = args.ruleSummary;
+  }
+
   const startTime = performance.now();
   const effectiveDirective = (prompt || code || '').trim();
 
@@ -661,9 +671,21 @@ export async function executeDeterministicTask({
 
   // 2. Standard deterministic language routing
   let lang = (language || 'auto').toLowerCase();
+  const trimmed = (code || '').trim();
   
-  if (lang === 'auto') {
-    const trimmed = (code || '').trim();
+  // Syntax sniff: If code is clearly JavaScript (functions, const/let/var, JSON, Date), route to JS runner even if labeled python
+  if (
+    trimmed.startsWith('function ') || 
+    trimmed.includes('function process') || 
+    trimmed.startsWith('const ') || 
+    trimmed.startsWith('let ') || 
+    trimmed.startsWith('var ') || 
+    trimmed.includes('JSON.parse') || 
+    trimmed.includes('Date.now()') ||
+    trimmed.includes('=>')
+  ) {
+    lang = 'javascript';
+  } else if (lang === 'auto') {
     if (trimmed.startsWith('def ') || trimmed.includes('import pandas') || trimmed.includes('import numpy') || trimmed.includes('import sys')) {
       lang = 'python';
     } else if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH') || trimmed.startsWith('--')) {

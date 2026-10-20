@@ -168,9 +168,10 @@ export async function runMeetingSimulation({
       modelNode?.name?.toLowerCase().includes('o3') ||
       modelNode?.name?.toLowerCase().includes('o4')) ? 'openai' :
      modelNode?.name?.toLowerCase().includes('ollama') ? 'ollama' :
-     modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
+     modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' :
+     modelNode?.name?.toLowerCase().includes('gemini') ? 'google' : 'openai');
 
-  const modelId = modelNode?.config?.modelId || modelNode?.name || 'gemini-2.0-flash';
+  const modelId = modelNode?.config?.modelId || modelNode?.name || 'gpt-4o';
   const modelDisplayName = modelNode.name || `${PROVIDERS[provider]?.name || provider} (${modelId})`;
 
   const credential = getProviderCredential(provider);

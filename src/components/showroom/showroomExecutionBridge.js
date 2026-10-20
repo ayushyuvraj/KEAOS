@@ -23,8 +23,8 @@ export async function executeShowroomWorkflow({
   const skillNodes = nodes.filter(n => n.data?.pillarType === 'skills');
   const memoryNode = nodes.find(n => n.data?.pillarType === 'memory');
 
-  const provider = modelNode?.data?.config?.provider || 'google';
-  const modelId = modelNode?.data?.config?.modelId || 'gemini-2.5-flash';
+  const provider = modelNode?.data?.config?.provider || 'openai';
+  const modelId = modelNode?.data?.config?.modelId || 'gpt-4o';
 
   const systemPrompt = `You are an institutional autonomous agent operating within KEAOS.
 The user is interacting through an executive Showroom frontend for the use case: "${activeUseCase?.name || 'Enterprise Agent Workflow'}".

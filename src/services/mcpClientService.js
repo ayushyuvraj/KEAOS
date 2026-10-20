@@ -24,6 +24,286 @@ const SAVED_MCPS_STORAGE_KEY = 'keaos_registered_mcps';
 export const DEFAULT_OFFICIAL_MCP_SERVERS = [];
 
 /**
+ * Zero-Trust Attachment Security & Malicious Payload Quarantine
+ * Inspects file extension, flags executable payloads, and sanitizes
+ * adversarial prompt injections embedded in attachment text before LLM ingestion.
+ */
+const RISKY_ATTACHMENT_EXTENSIONS = new Set([
+  'exe', 'bat', 'cmd', 'ps1', 'vbs', 'vbe', 'js', 'jse', 'wsf', 'wsh',
+  'scr', 'cpl', 'msi', 'msp', 'hta', 'jar', 'reg', 'pif', 'com', 'inf'
+]);
+
+export function inspectAttachmentSecurity({ fileName, contentType, contentText, sizeBytes }) {
+  const parts = (fileName || '').split('.');
+  const ext = parts.length > 1 ? parts.pop().toLowerCase() : '';
+  const isBlocked = RISKY_ATTACHMENT_EXTENSIONS.has(ext);
+
+  // Prompt injection patterns commonly embedded in adversarial attachments
+  const promptInjectionPatterns = [
+    /ignore\s+(all\s+)?(previous|prior|above)\s+instructions/i,
+    /system\s*:\s*disregard/i,
+    /you\s+are\s+now\s+in\s+developer\s+mode/i,
+    /override\s+(all\s+)?system\s+prompts?/i,
+    /output\s+(all\s+)?(api\s+keys|passwords|credentials|tokens)/i,
+    /disregard\s+(all\s+)?safety\s+guidelines/i
+  ];
+
+  let detectedInjections = [];
+  let sanitizedText = contentText || '';
+
+  if (typeof contentText === 'string') {
+    for (const pattern of promptInjectionPatterns) {
+      if (pattern.test(contentText)) {
+        detectedInjections.push(pattern.source);
+        sanitizedText = sanitizedText.replace(pattern, '[SECURITY QUARANTINE: ADVERSARIAL PROMPT INJECTION SANITIZED]');
+      }
+    }
+  }
+
+  return {
+    isBlocked,
+    riskLevel: isBlocked ? 'HIGH' : (detectedInjections.length > 0 ? 'MEDIUM' : 'LOW'),
+    blockReason: isBlocked ? `Executable or script attachment (.${ext}) is quarantined under institutional zero-trust policies.` : null,
+    injectionsDetected: detectedInjections,
+    sanitizedContent: sanitizedText
+  };
+}
+
+/**
+ * Computes a real W3C WebCrypto SHA-256 fingerprint for attachment integrity and audit logging.
+ */
+export async function computeAttachmentSha256(data) {
+  try {
+    const encoder = new TextEncoder();
+    const dataBuffer = typeof data === 'string' ? encoder.encode(data) : data;
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    return 'sha256-digest-unavailable';
+  }
+}
+
+/**
+ * Extracts clean, human-readable text from Office / OpenXML files (.docx, .xlsx) in browser runtime.
+ * Zero external libraries: parses Zip headers and Central Directory, decompresses with DecompressionStream('deflate-raw'),
+ * and converts Word/Excel XML paragraphs and table grids into structured text.
+ */
+export async function extractTextFromZipDoc(bytes, fileName = '') {
+  if (!bytes || bytes.length < 30) return null;
+
+  // Verify ZIP header magic 0x04034b50 ("PK\x03\x04")
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4b || bytes[2] !== 0x03 || bytes[3] !== 0x04) {
+    return null;
+  }
+
+  // Find End of Central Directory (EOCD) signature: 0x06054b50 ("PK\x05\x06")
+  let eocdOffset = -1;
+  const maxSearch = Math.min(bytes.length, 65557 + 22);
+  for (let i = bytes.length - 22; i >= bytes.length - maxSearch; i--) {
+    if (bytes[i] === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x05 && bytes[i + 3] === 0x06) {
+      eocdOffset = i;
+      break;
+    }
+  }
+
+  const entries = [];
+
+  if (eocdOffset !== -1) {
+    const totalEntries = (bytes[eocdOffset + 10] | (bytes[eocdOffset + 11] << 8)) >>> 0;
+    const cdOffset = (bytes[eocdOffset + 16] | (bytes[eocdOffset + 17] << 8) | (bytes[eocdOffset + 18] << 16) | (bytes[eocdOffset + 19] << 24)) >>> 0;
+
+    let pos = cdOffset;
+    for (let e = 0; e < totalEntries && pos < bytes.length - 46; e++) {
+      if (bytes[pos] !== 0x50 || bytes[pos + 1] !== 0x4b || bytes[pos + 2] !== 0x01 || bytes[pos + 3] !== 0x02) {
+        break;
+      }
+      const method = bytes[pos + 10] | (bytes[pos + 11] << 8);
+      const cSize = (bytes[pos + 20] | (bytes[pos + 21] << 8) | (bytes[pos + 22] << 16) | (bytes[pos + 23] << 24)) >>> 0;
+      const uSize = (bytes[pos + 24] | (bytes[pos + 25] << 8) | (bytes[pos + 26] << 16) | (bytes[pos + 27] << 24)) >>> 0;
+      const fnLen = bytes[pos + 28] | (bytes[pos + 29] << 8);
+      const extraLen = bytes[pos + 30] | (bytes[pos + 31] << 8);
+      const commentLen = bytes[pos + 32] | (bytes[pos + 33] << 8);
+      const localHeaderOffset = (bytes[pos + 42] | (bytes[pos + 43] << 8) | (bytes[pos + 44] << 16) | (bytes[pos + 45] << 24)) >>> 0;
+
+      const nameBytes = bytes.subarray(pos + 46, pos + 46 + fnLen);
+      const entryName = new TextDecoder('utf-8').decode(nameBytes);
+
+      entries.push({
+        name: entryName,
+        method,
+        cSize,
+        uSize,
+        localHeaderOffset
+      });
+
+      pos += 46 + fnLen + extraLen + commentLen;
+    }
+  } else {
+    // Fallback: Scan local headers directly
+    let pos = 0;
+    while (pos < bytes.length - 30) {
+      if (bytes[pos] !== 0x50 || bytes[pos + 1] !== 0x4b || bytes[pos + 2] !== 0x03 || bytes[pos + 3] !== 0x04) {
+        break;
+      }
+      const method = bytes[pos + 8] | (bytes[pos + 9] << 8);
+      const cSize = (bytes[pos + 18] | (bytes[pos + 19] << 8) | (bytes[pos + 20] << 16) | (bytes[pos + 21] << 24)) >>> 0;
+      const uSize = (bytes[pos + 22] | (bytes[pos + 23] << 8) | (bytes[pos + 24] << 16) | (bytes[pos + 25] << 24)) >>> 0;
+      const fnLen = bytes[pos + 26] | (bytes[pos + 27] << 8);
+      const extraLen = bytes[pos + 28] | (bytes[pos + 29] << 8);
+
+      const nameBytes = bytes.subarray(pos + 30, pos + 30 + fnLen);
+      const entryName = new TextDecoder('utf-8').decode(nameBytes);
+
+      entries.push({
+        name: entryName,
+        method,
+        cSize,
+        uSize,
+        localHeaderOffset: pos
+      });
+
+      pos += 30 + fnLen + extraLen + cSize;
+    }
+  }
+
+  async function decompressEntry(entry) {
+    const loc = entry.localHeaderOffset;
+    if (loc + 30 > bytes.length) return null;
+    const localFnLen = bytes[loc + 26] | (bytes[loc + 27] << 8);
+    const localExtraLen = bytes[loc + 28] | (bytes[loc + 29] << 8);
+    const dataStart = loc + 30 + localFnLen + localExtraLen;
+    const compressedSlice = bytes.subarray(dataStart, dataStart + entry.cSize);
+
+    if (entry.method === 0) {
+      return new TextDecoder('utf-8').decode(compressedSlice);
+    }
+    if (entry.method === 8) {
+      if (typeof DecompressionStream !== 'undefined') {
+        try {
+          const ds = new DecompressionStream('deflate-raw');
+          const writer = ds.writable.getWriter();
+          writer.write(compressedSlice);
+          writer.close();
+          const resp = new Response(ds.readable);
+          const decompressedBuf = await resp.arrayBuffer();
+          return new TextDecoder('utf-8').decode(decompressedBuf);
+        } catch (e) {
+          console.warn('DecompressionStream error for entry', entry.name, e);
+        }
+      }
+    }
+    return null;
+  }
+
+  // Branch A: Word Document (.docx)
+  const isWord = fileName.toLowerCase().endsWith('.docx') || entries.some(e => e.name === 'word/document.xml');
+  if (isWord) {
+    const docEntry = entries.find(e => e.name === 'word/document.xml');
+    if (!docEntry) return null;
+    const docXml = await decompressEntry(docEntry);
+    if (!docXml) return null;
+
+    if (typeof DOMParser !== 'undefined') {
+      try {
+        const dom = new DOMParser().parseFromString(docXml, 'application/xml');
+        const paragraphs = dom.getElementsByTagName('w:p');
+        const outputLines = [];
+
+        for (let i = 0; i < paragraphs.length; i++) {
+          const p = paragraphs[i];
+          const textRuns = p.getElementsByTagName('w:t');
+          const pText = Array.from(textRuns).map(t => t.textContent).join('');
+          if (pText.trim()) {
+            outputLines.push(pText.trim());
+          }
+        }
+
+        const tables = dom.getElementsByTagName('w:tbl');
+        const tableLines = [];
+        for (let t = 0; t < tables.length; t++) {
+          const tbl = tables[t];
+          const rows = tbl.getElementsByTagName('w:tr');
+          const grid = [];
+          for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            const cells = row.getElementsByTagName('w:tc');
+            const rowValues = [];
+            for (let c = 0; c < cells.length; c++) {
+              const cell = cells[c];
+              const cellText = Array.from(cell.getElementsByTagName('w:t')).map(x => x.textContent).join(' ').trim();
+              rowValues.push(cellText || '-');
+            }
+            if (rowValues.some(v => v !== '-')) {
+              grid.push(rowValues.join(' | '));
+            }
+          }
+          if (grid.length > 0) {
+            tableLines.push(`\n[TABLE ${t + 1}]:\n${grid.join('\n')}`);
+          }
+        }
+
+        let fullExtracted = outputLines.join('\n');
+        if (tableLines.length > 0) {
+          fullExtracted += '\n' + tableLines.join('\n');
+        }
+        return fullExtracted.trim();
+      } catch (domErr) {
+        console.warn('DOMParser error, falling back to regex:', domErr);
+      }
+    }
+
+    const matches = docXml.match(/<w:t(?:\s+[^>]*)?>([\s\S]*?)<\/w:t>/gi) || [];
+    const rawTokens = matches.map(m => m.replace(/<[^>]+>/g, '')).filter(Boolean);
+    return rawTokens.join(' ');
+  }
+
+  // Branch B: Excel Spreadsheet (.xlsx)
+  const isExcel = fileName.toLowerCase().endsWith('.xlsx') || entries.some(e => e.name.startsWith('xl/'));
+  if (isExcel) {
+    const sharedStringsEntry = entries.find(e => e.name === 'xl/sharedStrings.xml');
+    let sharedStrings = [];
+    if (sharedStringsEntry) {
+      const sXml = await decompressEntry(sharedStringsEntry);
+      if (sXml) {
+        const matches = sXml.match(/<t(?:\s+[^>]*)?>([\s\S]*?)<\/t>/gi) || [];
+        sharedStrings = matches.map(m => m.replace(/<[^>]+>/g, '').trim());
+      }
+    }
+    const sheet1Entry = entries.find(e => e.name === 'xl/worksheets/sheet1.xml');
+    let sheetText = '';
+    if (sheet1Entry) {
+      const shXml = await decompressEntry(sheet1Entry);
+      if (shXml) {
+        const rowMatches = shXml.match(/<row[^>]*>([\s\S]*?)<\/row>/gi) || [];
+        const rows = [];
+        for (const r of rowMatches) {
+          const cells = r.match(/<c[^>]*>([\s\S]*?)<\/c>/gi) || [];
+          const cellVals = [];
+          for (const c of cells) {
+            const isShared = c.includes('t="s"');
+            const vMatch = c.match(/<v>([\s\S]*?)<\/v>/);
+            if (vMatch) {
+              const val = vMatch[1];
+              if (isShared && sharedStrings[parseInt(val, 10)]) {
+                cellVals.push(sharedStrings[parseInt(val, 10)]);
+              } else {
+                cellVals.push(val);
+              }
+            }
+          }
+          if (cellVals.length > 0) rows.push(cellVals.join(' | '));
+        }
+        sheetText = rows.join('\n');
+      }
+    }
+    return sheetText || sharedStrings.join(', ');
+  }
+
+  return null;
+}
+
+/**
  * Loads all user-registered real MCP servers from browser storage.
  * Automatically upgrades existing GitHub, Slack, and Jira connections to official comprehensive catalogs.
  */
@@ -507,12 +787,32 @@ export async function verifyOutlookMcpConnection({ token, mailboxEmail }) {
     console.warn('Mail endpoint pre-flight check note:', err);
   }
 
+  // Test attachment permission probe ($expand=attachments) to distinguish full Mail.Read from restricted Mail.ReadBasic
+  let attachmentAccessVerified = false;
+  let attachmentNotice = null;
+  try {
+    const attachProbeRes = await fetch('https://graph.microsoft.com/v1.0/me/messages?$top=1&$select=id,hasAttachments&$expand=attachments($select=id,name)', {
+      headers: {
+        'Authorization': `Bearer ${cleanToken}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (attachProbeRes.ok) {
+      attachmentAccessVerified = true;
+    } else if (attachProbeRes.status === 403) {
+      attachmentAccessVerified = false;
+      attachmentNotice = 'Token is restricted to Mail.ReadBasic (attachments and message body access are restricted). To decode attachments, consent to Mail.Read in Azure Entra ID / Microsoft Graph Explorer.';
+    }
+  } catch (attachErr) {
+    console.warn('Attachment permission probe note:', attachErr);
+  }
+
   return {
     id: `mcp-outlook-${Date.now().toString().slice(-4)}`,
     name: `Outlook MCP (${accountName})`,
     displayName: `Outlook MCP (${accountName})`,
     serviceName: 'Outlook',
-    description: `Official Microsoft Outlook MCP with all ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized actions for Mail, Calendar, Contacts, and Tasks.`,
+    description: `Official Microsoft Outlook MCP with all ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized actions for Mail, Attachments, Calendar, Contacts, and Tasks.`,
     transport: 'outlook-api',
     config: {
       token: cleanToken,
@@ -525,8 +825,14 @@ export async function verifyOutlookMcpConnection({ token, mailboxEmail }) {
       accountEmail: emailAddr,
       apiEndpoint: 'https://graph.microsoft.com/v1.0',
       authType: 'Bearer Token (Graph API)',
-      scopesGranted: scopesGranted.length > 0 ? scopesGranted.join(', ') : (mailAccessVerified ? 'User.Read, Mail.Read' : 'User.Read'),
+      scopesGranted: scopesGranted.length > 0 
+        ? scopesGranted.join(', ') 
+        : (mailAccessVerified 
+            ? (attachmentAccessVerified ? 'User.Read, Mail.Read (Full Attachment Access)' : 'User.Read, Mail.ReadBasic (Attachments Restricted)') 
+            : 'User.Read'),
       mailVerified: mailAccessVerified,
+      attachmentVerified: attachmentAccessVerified,
+      attachmentStatus: attachmentAccessVerified ? 'Verified (Full Attachment Access)' : (attachmentNotice || 'Restricted (Consent to Mail.Read required)'),
       tokenMasked: cleanToken.length > 8 ? `${cleanToken.substring(0, 4)}...${cleanToken.substring(cleanToken.length - 4)}` : '••••••••'
     },
     tools: OUTLOOK_OFFICIAL_ACTIONS,
@@ -2614,6 +2920,9 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
         if (res.status === 403) {
           parsedErr += ' (Permission Scope Missing: In Microsoft Graph Explorer, click the "Modify permissions" tab, search for "Mail.Read" or "Mail.ReadWrite", click "Consent", and copy the updated Access Token).';
         }
+        if (res.status === 401) {
+          parsedErr += ' (Authentication Token Expired: Microsoft Graph Bearer tokens expire every 60–90 minutes. A fresh access token is required. Paste your token in the Outlook MCP node settings or reconnect via Sign in with Microsoft).';
+        }
         throw new Error(`Microsoft Graph API error (${res.status} ${res.statusText}): ${parsedErr}`);
       }
       if (res.status === 204) return { success: true };
@@ -2628,6 +2937,9 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       if (args.filter) params.set('$filter', args.filter);
       if (args.search) params.set('$search', `"${args.search}"`);
       params.set('$select', 'id,subject,bodyPreview,from,toRecipients,receivedDateTime,hasAttachments,isRead,importance');
+      if (args.expandAttachments) {
+        params.set('$expand', 'attachments');
+      }
       return await graphFetch(`${folder}?${params.toString()}`);
     }
 
@@ -2640,7 +2952,10 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
         }
       }
       if (!msgId) throw new Error('messageId is required to fetch email details.');
-      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`);
+      const expandParam = (args.expandAttachments || args.includeAttachments) 
+        ? '?$expand=attachments' 
+        : '';
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}${expandParam}`);
     }
 
     if (toolName === 'search_messages' || toolName === 'search_emails' || toolName === 'search_mail') {
@@ -2805,38 +3120,162 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       });
     }
 
+    const resolveMessageId = async (inputMsgId, preferAttachments = false) => {
+      let id = inputMsgId;
+      if (!id || id === 'latest' || id === 'recent' || id === 'newest') {
+        const params = new URLSearchParams();
+        params.set('$top', '10');
+        params.set('$select', 'id,subject,hasAttachments,receivedDateTime');
+        params.set('$orderby', 'receivedDateTime desc');
+        const recent = await graphFetch(`/me/messages?${params.toString()}`);
+        if (recent.value && recent.value.length > 0) {
+          if (preferAttachments) {
+            const withAtt = recent.value.find(m => m.hasAttachments);
+            if (withAtt) return withAtt.id;
+          }
+          return recent.value[0].id;
+        }
+      }
+      return id;
+    };
+
     if (toolName === 'list_message_attachments') {
-      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const rawMsgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, true);
       if (!msgId) throw new Error('messageId is required to list attachments.');
-      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments`);
+      const res = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments`);
+      const attachments = (res.value || []).map(att => {
+        const odataType = att['@odata.type'] || '#microsoft.graph.fileAttachment';
+        const isFile = odataType.includes('fileAttachment');
+        const isItem = odataType.includes('itemAttachment');
+        const isRef = odataType.includes('referenceAttachment');
+        return {
+          id: att.id,
+          name: att.name || (isItem ? 'Embedded Outlook Item' : 'Unnamed Attachment'),
+          type: isFile ? 'file' : (isItem ? 'item' : (isRef ? 'reference' : 'unknown')),
+          odataType,
+          contentType: att.contentType || (isFile ? 'application/octet-stream' : 'message/rfc822'),
+          sizeBytes: att.size || 0,
+          isInline: Boolean(att.isInline),
+          lastModifiedDateTime: att.lastModifiedDateTime,
+          sourceUrl: isRef ? att.sourceUrl : undefined
+        };
+      });
+      return {
+        success: true,
+        messageId: msgId,
+        totalCount: attachments.length,
+        attachments
+      };
     }
 
     if (toolName === 'read_attachment_content' || toolName === 'get_attachment_content' || toolName === 'get_message_attachment') {
-      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const rawMsgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, true);
       if (!msgId) throw new Error('messageId is required to read attachment content.');
       
-      let attachId = args.attachmentId || args.attachment_id;
+      let attachId = args.attachmentId || args.attachment_id || args.id;
       let targetAttachment = null;
       
       if (attachId) {
+        // Standard attachment fetch (always safe and returns contentBytes for files)
         targetAttachment = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachId)}`);
+        // If it's an item attachment, expand the nested item safely
+        if (targetAttachment?.['@odata.type']?.includes('itemAttachment')) {
+          try {
+            const expanded = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachId)}?$expand=microsoft.graph.itemAttachment/item`);
+            if (expanded) targetAttachment = expanded;
+          } catch (e) {
+            console.warn('ItemAttachment expand fallback note:', e);
+          }
+        }
       } else {
         const listRes = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments`);
-        const files = (listRes?.value || []).filter(a => a['@odata.type'] === '#microsoft.graph.fileAttachment' || a.contentBytes);
-        if (!files.length) {
-          return { success: false, message: `No file attachments found on message ${msgId}.` };
+        const allAtts = listRes?.value || [];
+        if (!allAtts.length) {
+          return { success: false, message: `No attachments found on message ${msgId}.` };
         }
-        targetAttachment = files[0];
+        // Prefer file attachment over item/reference if multiple attachments exist
+        targetAttachment = allAtts.find(a => (a['@odata.type'] || '').includes('fileAttachment')) || allAtts[0];
+        // Fetch full attachment payload with contentBytes
+        if (targetAttachment.id) {
+          try {
+            const detailed = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(targetAttachment.id)}`);
+            if (detailed) targetAttachment = detailed;
+          } catch (e) {}
+        }
+        if (targetAttachment?.['@odata.type']?.includes('itemAttachment')) {
+          try {
+            const expanded = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(targetAttachment.id)}?$expand=microsoft.graph.itemAttachment/item`);
+            if (expanded) targetAttachment = expanded;
+          } catch (e) {
+            console.warn('ItemAttachment expand fallback note:', e);
+          }
+        }
       }
       
       if (!targetAttachment) {
         return { success: false, message: 'Attachment could not be retrieved from mailbox.' };
       }
       
+      const odataType = targetAttachment['@odata.type'] || '#microsoft.graph.fileAttachment';
       const fileName = targetAttachment.name || 'attachment';
+
+      // Branch A: Embedded Item Attachment (.eml, meeting, contact)
+      if (odataType.includes('itemAttachment')) {
+        const nested = targetAttachment.item || {};
+        const rawBody = nested.body?.content || nested.bodyPreview || '';
+        const secAudit = inspectAttachmentSecurity({
+          fileName,
+          contentType: 'message/rfc822',
+          contentText: rawBody,
+          sizeBytes: targetAttachment.size || 0
+        });
+        const sha256 = await computeAttachmentSha256(rawBody || JSON.stringify(nested));
+
+        return {
+          success: true,
+          attachmentId: targetAttachment.id,
+          attachmentType: 'itemAttachment',
+          name: fileName,
+          contentType: 'message/rfc822',
+          sizeBytes: targetAttachment.size || 0,
+          itemType: nested['@odata.type'] || 'microsoft.graph.message',
+          subject: nested.subject || fileName,
+          sender: nested.from?.emailAddress?.address || nested.from || '',
+          receivedDateTime: nested.receivedDateTime || nested.createdDateTime,
+          hasAttachments: Boolean(nested.hasAttachments),
+          content: secAudit.sanitizedContent,
+          rawBody,
+          sha256,
+          security: secAudit,
+          isTextReadable: true
+        };
+      }
+
+      // Branch B: Cloud Reference Attachment (OneDrive / SharePoint link)
+      if (odataType.includes('referenceAttachment')) {
+        return {
+          success: true,
+          attachmentId: targetAttachment.id,
+          attachmentType: 'referenceAttachment',
+          name: fileName,
+          contentType: targetAttachment.contentType || 'application/x-reference',
+          sizeBytes: targetAttachment.size || 0,
+          sourceUrl: targetAttachment.sourceUrl || '',
+          providerType: targetAttachment.providerType || 'OneDrive/SharePoint',
+          isFolder: Boolean(targetAttachment.isFolder),
+          content: `[Cloud Reference: ${fileName} -> ${targetAttachment.sourceUrl || 'OneDrive'}]`,
+          sha256: await computeAttachmentSha256(targetAttachment.sourceUrl || fileName),
+          isTextReadable: true
+        };
+      }
+
+      // Branch C: Standard File Attachment (Word DOCX, Excel XLSX, PDF, CSV, TXT, etc.)
       const contentType = targetAttachment.contentType || 'application/octet-stream';
       const base64Bytes = targetAttachment.contentBytes || '';
       let decodedText = '';
+      let isOfficeDoc = false;
       
       try {
         if (base64Bytes) {
@@ -2845,21 +3284,142 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
           for (let i = 0; i < binaryStr.length; i++) {
             bytes[i] = binaryStr.charCodeAt(i);
           }
-          const decoder = new TextDecoder('utf-8', { fatal: false });
-          decodedText = decoder.decode(bytes);
+
+          // Check if Word (.docx), Excel (.xlsx), or Zip package
+          const isZip = bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
+          const isDocxOrXlsx = fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.xlsx') || contentType.includes('wordprocessingml') || contentType.includes('spreadsheetml');
+
+          if (isZip || isDocxOrXlsx) {
+            const officeText = await extractTextFromZipDoc(bytes, fileName);
+            if (officeText && officeText.trim().length > 0) {
+              decodedText = officeText;
+              isOfficeDoc = true;
+            }
+          }
+
+          // If not Office doc or extraction returned empty, try standard UTF-8 decoding
+          if (!decodedText) {
+            const decoder = new TextDecoder('utf-8', { fatal: false });
+            decodedText = decoder.decode(bytes);
+          }
         }
       } catch (decErr) {
+        console.warn('Attachment decode warning:', decErr);
         decodedText = `[File attachment: ${fileName} (${targetAttachment.size || 0} bytes, type: ${contentType})]`;
       }
-      
+
+      const secAudit = inspectAttachmentSecurity({
+        fileName,
+        contentType,
+        contentText: decodedText,
+        sizeBytes: targetAttachment.size || 0
+      });
+      const sha256 = await computeAttachmentSha256(base64Bytes || decodedText);
+
+      const hasNulls = decodedText.includes('\u0000');
+      const isReadable = (isOfficeDoc && decodedText.length > 0) || (!hasNulls && decodedText.length > 0 && !secAudit.isBlocked);
+
       return {
         success: true,
         attachmentId: targetAttachment.id,
+        attachmentType: 'fileAttachment',
         name: fileName,
         contentType,
         sizeBytes: targetAttachment.size,
-        content: decodedText,
-        isTextReadable: !decodedText.includes('\u0000') && decodedText.length > 0
+        content: secAudit.sanitizedContent,
+        rawContent: decodedText,
+        sha256,
+        security: secAudit,
+        isTextReadable: isReadable,
+        isOfficeDocument: isOfficeDoc
+      };
+    }
+
+    if (toolName === 'read_item_attachment') {
+      const rawMsgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, true);
+      const attachId = args.attachmentId || args.attachment_id || args.id;
+      if (!msgId || !attachId) throw new Error('messageId and attachmentId are required to read embedded item attachment.');
+      
+      let itemData = null;
+      try {
+        itemData = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachId)}?$expand=microsoft.graph.itemAttachment/item`);
+      } catch (e) {
+        itemData = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachId)}`);
+      }
+      const nested = itemData.item || {};
+      const rawBody = nested.body?.content || nested.bodyPreview || '';
+      const secAudit = inspectAttachmentSecurity({
+        fileName: itemData.name || 'embedded_item.eml',
+        contentType: 'message/rfc822',
+        contentText: rawBody,
+        sizeBytes: itemData.size || 0
+      });
+      const sha256 = await computeAttachmentSha256(rawBody || JSON.stringify(nested));
+
+      return {
+        success: true,
+        attachmentId: itemData.id,
+        attachmentType: 'itemAttachment',
+        name: itemData.name,
+        itemType: nested['@odata.type'] || 'microsoft.graph.message',
+        subject: nested.subject,
+        sender: nested.from?.emailAddress?.address || nested.from || '',
+        toRecipients: nested.toRecipients?.map(r => r.emailAddress?.address) || [],
+        receivedDateTime: nested.receivedDateTime || nested.createdDateTime,
+        hasAttachments: Boolean(nested.hasAttachments),
+        content: secAudit.sanitizedContent,
+        rawBody,
+        sha256,
+        security: secAudit
+      };
+    }
+
+    if (toolName === 'get_reference_attachment') {
+      const rawMsgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, true);
+      const attachId = args.attachmentId || args.attachment_id || args.id;
+      if (!msgId || !attachId) throw new Error('messageId and attachmentId are required to inspect reference attachment.');
+      
+      const refData = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachId)}`);
+      return {
+        success: true,
+        attachmentId: refData.id,
+        name: refData.name,
+        attachmentType: 'referenceAttachment',
+        contentType: refData.contentType || 'application/x-reference',
+        sourceUrl: refData.sourceUrl || '',
+        providerType: refData.providerType || 'OneDrive/SharePoint',
+        isFolder: Boolean(refData.isFolder),
+        permission: refData.permission || 'view',
+        sizeBytes: refData.size || 0
+      };
+    }
+
+    if (toolName === 'download_attachment_raw') {
+      const rawMsgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, true);
+      const attachId = args.attachmentId || args.attachment_id || args.id;
+      if (!msgId || !attachId) throw new Error('messageId and attachmentId are required to stream raw attachment.');
+      
+      const fullUrl = `${baseGraphUrl}/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachId)}/$value`;
+      const streamRes = await fetch(fullUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!streamRes.ok) {
+        throw new Error(`Failed to download raw attachment stream (HTTP ${streamRes.status} ${streamRes.statusText})`);
+      }
+      const blob = await streamRes.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const sha256 = await computeAttachmentSha256(arrayBuffer);
+      
+      return {
+        success: true,
+        attachmentId: attachId,
+        contentType: blob.type || streamRes.headers.get('content-type') || 'application/octet-stream',
+        sizeBytes: blob.size,
+        sha256,
+        downloadUrl: fullUrl
       };
     }
 
@@ -2870,9 +3430,109 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
         '@odata.type': '#microsoft.graph.fileAttachment',
         name: args.name,
         contentType: args.contentType || 'application/octet-stream',
-        contentBytes: args.contentBytes
+        contentBytes: args.contentBytes,
+        isInline: Boolean(args.isInline),
+        ...(args.contentId ? { contentId: args.contentId } : {})
       };
       return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'upload_large_attachment') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      if (!msgId) throw new Error('messageId is required to upload large attachment.');
+      if (!args.name || !args.contentBytes) throw new Error('name and contentBytes (base64) are required.');
+
+      const binaryStr = atob(args.contentBytes);
+      const totalBytes = binaryStr.length;
+      const fileBuffer = new Uint8Array(totalBytes);
+      for (let i = 0; i < totalBytes; i++) {
+        fileBuffer[i] = binaryStr.charCodeAt(i);
+      }
+
+      // Step 1: Create resumable upload session
+      const sessionRes = await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/createUploadSession`, {
+        method: 'POST',
+        body: JSON.stringify({
+          AttachmentItem: {
+            attachmentType: 'file',
+            name: args.name,
+            size: totalBytes,
+            contentType: args.contentType || 'application/octet-stream'
+          }
+        })
+      });
+
+      const uploadUrl = sessionRes.uploadUrl;
+      if (!uploadUrl) throw new Error('Microsoft Graph did not return an uploadUrl for the large attachment session.');
+
+      // Step 2: Upload in 320 KiB chunks (multiples of 327,680 bytes)
+      const CHUNK_SIZE = 327680 * 4; // ~1.31 MB chunks
+      let start = 0;
+      let uploadCompleteResult = null;
+
+      while (start < totalBytes) {
+        const end = Math.min(start + CHUNK_SIZE, totalBytes);
+        const chunkData = fileBuffer.slice(start, end);
+        const rangeHeader = `bytes ${start}-${end - 1}/${totalBytes}`;
+
+        const chunkRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Range': rangeHeader,
+            'Content-Length': String(chunkData.byteLength)
+          },
+          body: chunkData
+        });
+
+        if (!chunkRes.ok && chunkRes.status !== 202 && chunkRes.status !== 201 && chunkRes.status !== 200) {
+          const errText = await chunkRes.text().catch(() => '');
+          throw new Error(`Upload chunk failed (${chunkRes.status}): ${errText}`);
+        }
+
+        if (chunkRes.status === 201 || chunkRes.status === 200) {
+          uploadCompleteResult = await chunkRes.json().catch(() => ({ success: true }));
+          break;
+        }
+
+        start = end;
+      }
+
+      return {
+        success: true,
+        message: `Successfully uploaded large attachment ${args.name} (${totalBytes} bytes).`,
+        attachment: uploadCompleteResult
+      };
+    }
+
+    if (toolName === 'delete_attachment') {
+      const msgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
+      const attachId = args.attachmentId || args.attachment_id || args.id;
+      if (!msgId || !attachId) throw new Error('messageId and attachmentId are required to delete attachment.');
+      await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/attachments/${encodeURIComponent(attachId)}`, {
+        method: 'DELETE'
+      });
+      return { success: true, message: `Attachment ${attachId} deleted successfully.` };
+    }
+
+    if (toolName === 'list_event_attachments') {
+      const eventId = args.eventId || args.event_id || args.id;
+      if (!eventId) throw new Error('eventId is required to list event attachments.');
+      return await graphFetch(`/me/events/${encodeURIComponent(eventId)}/attachments`);
+    }
+
+    if (toolName === 'add_event_attachment') {
+      const eventId = args.eventId || args.event_id || args.id;
+      if (!eventId) throw new Error('eventId is required to attach file to event.');
+      const payload = {
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: args.name,
+        contentType: args.contentType || 'application/octet-stream',
+        contentBytes: args.contentBytes
+      };
+      return await graphFetch(`/me/events/${encodeURIComponent(eventId)}/attachments`, {
         method: 'POST',
         body: JSON.stringify(payload)
       });

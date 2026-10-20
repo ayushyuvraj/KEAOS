@@ -33,9 +33,10 @@ export default function ObservabilityView({ activeUseCase, nodes = [] }) {
       modelNode?.data?.name?.toLowerCase().includes('o3') ||
       modelNode?.data?.name?.toLowerCase().includes('o4')) ? 'openai' :
      modelNode?.data?.name?.toLowerCase().includes('ollama') ? 'ollama' :
-     modelNode?.data?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
+     modelNode?.data?.name?.toLowerCase().includes('openrouter') ? 'openrouter' :
+     modelNode?.data?.name?.toLowerCase().includes('gemini') ? 'google' : 'openai');
 
-  const modelId = modelNode?.data?.config?.modelId || 'gemini-2.0-flash';
+  const modelId = modelNode?.data?.config?.modelId || 'gpt-4o';
   const liveProfile = useMemo(() => getLiveModelProfile(provider, modelId), [provider, modelId]);
 
   // Read latest run telemetry from persistent audit ledger if executed

@@ -182,9 +182,10 @@ export async function runEvaluationSuite({
       modelNode?.name?.toLowerCase().includes('o3') ||
       modelNode?.name?.toLowerCase().includes('o4')) ? 'openai' :
      modelNode?.name?.toLowerCase().includes('ollama') ? 'ollama' :
-     modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' : 'google');
+     modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' :
+     modelNode?.name?.toLowerCase().includes('gemini') ? 'google' : 'openai');
 
-  let modelId = modelNode?.config?.modelId || PROVIDERS[provider]?.defaultModel || 'gemini-2.0-flash';
+  let modelId = modelNode?.config?.modelId || PROVIDERS[provider]?.defaultModel || 'gpt-4o';
   
   // Provider credential check - NO MOCK FALLBACKS
   let credential = getProviderCredential(provider);

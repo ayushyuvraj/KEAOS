@@ -13,6 +13,22 @@ export const PILLARS = {
     maxConnections: 1,
     items: [
       {
+        id: 'model-gpt-4o',
+        name: 'GPT-4o',
+        provider: 'openai',
+        modelId: 'gpt-4o',
+        description: 'OpenAI: Flagship omni model with strong instruction following and JSON schemas.',
+        config: { provider: 'openai', modelId: 'gpt-4o', temperature: 0.2, topP: 1.0 }
+      },
+      {
+        id: 'model-gpt-4o-mini',
+        name: 'GPT-4o Mini',
+        provider: 'openai',
+        modelId: 'gpt-4o-mini',
+        description: 'OpenAI: Fast, cost-efficient model for lightweight meeting processing.',
+        config: { provider: 'openai', modelId: 'gpt-4o-mini', temperature: 0.2, topP: 1.0 }
+      },
+      {
         id: 'model-gemini-2-flash',
         name: 'Gemini 2.0 Flash',
         provider: 'google',
@@ -43,22 +59,6 @@ export const PILLARS = {
         modelId: 'claude-3-5-haiku-20241022',
         description: 'Anthropic: Ultra-fast intelligence and high-throughput summarization.',
         config: { provider: 'anthropic', modelId: 'claude-3-5-haiku-20241022', temperature: 0.2, topP: 0.9 }
-      },
-      {
-        id: 'model-gpt-4o',
-        name: 'GPT-4o',
-        provider: 'openai',
-        modelId: 'gpt-4o',
-        description: 'OpenAI: Flagship omni model with strong instruction following and JSON schemas.',
-        config: { provider: 'openai', modelId: 'gpt-4o', temperature: 0.2, topP: 1.0 }
-      },
-      {
-        id: 'model-gpt-4o-mini',
-        name: 'GPT-4o Mini',
-        provider: 'openai',
-        modelId: 'gpt-4o-mini',
-        description: 'OpenAI: Fast, cost-efficient model for lightweight meeting processing.',
-        config: { provider: 'openai', modelId: 'gpt-4o-mini', temperature: 0.2, topP: 1.0 }
       },
       {
         id: 'model-ollama-llama3',
