@@ -41,7 +41,7 @@ export async function initWorkspaceSync() {
         if (serverState.canvasState) {
           localStorage.setItem('keaos_canvas_state', JSON.stringify(serverState.canvasState));
         }
-        if (serverState.registeredMcps && Array.isArray(serverState.registeredMcps) && serverState.registeredMcps.length > 0) {
+        if (serverState.registeredMcps && Array.isArray(serverState.registeredMcps)) {
           localStorage.setItem('keaos_registered_mcps', JSON.stringify(serverState.registeredMcps));
           window.dispatchEvent(new CustomEvent('keaos:mcp-registry-updated', { detail: { servers: serverState.registeredMcps } }));
         }

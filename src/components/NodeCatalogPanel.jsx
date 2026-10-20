@@ -1703,9 +1703,13 @@ export default function NodeCatalogPanel({
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   removeRegisteredMcpServer(server.id);
                                   setRegisteredMcpServers(getRegisteredMcpServers());
+                                  window.dispatchEvent(new CustomEvent('keaos:toast', {
+                                    detail: { message: `Disconnected ${visuals.name || 'MCP server'}` }
+                                  }));
                                 }}
                                 className="p-1 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
                                 title="Disconnect MCP Server"

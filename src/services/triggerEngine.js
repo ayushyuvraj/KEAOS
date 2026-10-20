@@ -308,7 +308,7 @@ export function armOutlookStreamWatcher(nodeId, {
 
       // Discover active Outlook MCP server from registry
       const registered = getRegisteredMcpServers();
-      const outlookServer = (registered || []).find(s => identifyMcpService(s) === 'outlook') || DEFAULT_OFFICIAL_MCP_SERVERS[0];
+      const outlookServer = (registered || []).find(s => identifyMcpService(s) === 'outlook');
 
       let rawItems = [];
 

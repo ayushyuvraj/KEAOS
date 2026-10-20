@@ -21,23 +21,7 @@ import {
 
 const SAVED_MCPS_STORAGE_KEY = 'keaos_registered_mcps';
 
-export const DEFAULT_OFFICIAL_MCP_SERVERS = [
-  {
-    id: 'mcp-outlook-official',
-    name: 'Outlook MCP',
-    displayName: 'Outlook MCP',
-    serviceName: 'Outlook',
-    description: `Official Enterprise Microsoft Outlook MCP with ${OUTLOOK_OFFICIAL_ACTIONS.length} categorized tools.`,
-    transport: 'outlook-api',
-    config: {
-      connectionMode: 'oauth',
-      endpoint: 'https://graph.microsoft.com/v1.0'
-    },
-    tools: OUTLOOK_OFFICIAL_ACTIONS,
-    isRealMcp: true,
-    verifiedAt: new Date().toISOString()
-  }
-];
+export const DEFAULT_OFFICIAL_MCP_SERVERS = [];
 
 /**
  * Loads all user-registered real MCP servers from browser storage.
@@ -46,9 +30,9 @@ export const DEFAULT_OFFICIAL_MCP_SERVERS = [
 export function getRegisteredMcpServers() {
   try {
     const raw = localStorage.getItem(SAVED_MCPS_STORAGE_KEY);
-    if (raw) {
+    if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed.map(server => {
           const service = identifyMcpService(server);
           const baseName = server.name || server.displayName || `${service ? service.toUpperCase() : 'Universal'} MCP`;
@@ -104,16 +88,11 @@ export function getRegisteredMcpServers() {
         });
       }
     }
-
-    // Seed default verified official servers if registry is empty
-    try {
-      localStorage.setItem(SAVED_MCPS_STORAGE_KEY, JSON.stringify(DEFAULT_OFFICIAL_MCP_SERVERS));
-    } catch (_) {}
-    return DEFAULT_OFFICIAL_MCP_SERVERS;
+    return [];
   } catch (e) {
     console.warn('Failed to load registered MCP servers:', e);
   }
-  return DEFAULT_OFFICIAL_MCP_SERVERS;
+  return [];
 }
 
 /**
@@ -139,7 +118,7 @@ export function removeRegisteredMcpServer(mcpId) {
   try {
     const raw = localStorage.getItem(SAVED_MCPS_STORAGE_KEY);
     const current = raw ? JSON.parse(raw) : getRegisteredMcpServers();
-    const updated = current.filter(s => s.id !== mcpId);
+    const updated = (current || []).filter(s => s.id !== mcpId && s.name?.toLowerCase() !== mcpId?.toLowerCase() && s.serviceName?.toLowerCase() !== mcpId?.toLowerCase());
     localStorage.setItem(SAVED_MCPS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('keaos:mcp-registry-updated', { detail: { servers: updated } }));
     window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
