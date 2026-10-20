@@ -231,8 +231,8 @@ export default function TriggerNode({ id, data, selected }) {
           if (data?.onRename) data.onRename(nodeId, newName);
         }}
         isDarkMode={isDarkMode}
-        className="-top-7 right-3"
-        dropdownPlacement="bottom"
+        mode="circle-left"
+        dropdownPlacement="auto"
       />
 
       {/* Minimal Single-Line Label Placed Above Disc (Zero Wire Overlap) */}

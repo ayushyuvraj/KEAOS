@@ -130,7 +130,7 @@ export default function AgentCoreNode({ id, data, selected }) {
       {/* ============================================================ */}
       {/* 1. TOP PORTS: Minimalist Vertical Lines with (+) Anchors       */}
       {/* ============================================================ */}
-      <div className={`relative w-[228px] flex items-end justify-between px-4 z-10 transition-opacity ${isDeactivated ? 'opacity-40' : ''}`}>
+      <div className={`relative w-[228px] flex items-end justify-between px-4 z-20 pointer-events-auto transition-opacity ${isDeactivated ? 'opacity-40' : ''}`}>
         
         {/* TOP-LEFT: TOOLS PORT (Position.Top) - Pacific Blue #0091DA */}
         <div className="flex flex-col items-center group/socket">
@@ -313,8 +313,8 @@ export default function AgentCoreNode({ id, data, selected }) {
           onRename={onRename}
           onAddDownstreamAgent={handleSpawnDownstream}
           isDarkMode={isDarkMode}
-          className="-top-7 right-2"
-          dropdownPlacement="bottom"
+          mode="agent-flank"
+          dropdownPlacement="auto"
         />
 
         {/* ============================================================ */}

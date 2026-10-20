@@ -133,8 +133,8 @@ export default function ApprovalNode({ id, data, selected }) {
           if (data?.onRename) data.onRename(nodeId, newName);
         }}
         isDarkMode={isDarkMode}
-        className="-top-7 right-2"
-        dropdownPlacement="bottom"
+        mode="card-top-right"
+        dropdownPlacement="auto"
       />
 
       {/* Minimal Label Placed Above Node */}

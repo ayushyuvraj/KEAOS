@@ -229,7 +229,6 @@ export default function PillarNode({ id, data, selected }) {
     handlePosition = Position.Bottom;
   }
 
-  let toolbarPlacement = 'top-1/2 -right-3 -translate-y-1/2';
   let dropdownPlacement = isTopPillar ? 'bottom' : 'top';
 
   const renderPillarLabel = (isTop) => (
@@ -307,7 +306,7 @@ export default function PillarNode({ id, data, selected }) {
 
   return (
     <div className="relative group w-[140px] flex flex-col items-center select-none">
-      {/* Floating Micro-Toolbar on Hover */}
+      {/* Floating Micro-Toolbar on Hover (Positioned dynamically outside the circle) */}
       <NodeActionToolbar
         nodeId={id}
         nodeName={name}
@@ -321,7 +320,7 @@ export default function PillarNode({ id, data, selected }) {
         onRename={onRename}
         isDarkMode={isDarkMode}
         isLocked={data?.isLocked}
-        className={toolbarPlacement}
+        mode="circle-right"
         dropdownPlacement={dropdownPlacement}
       />
 

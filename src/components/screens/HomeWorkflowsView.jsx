@@ -24,14 +24,12 @@ import {
   AlertTriangle,
   X,
   Check,
-  Lock,
-  Mail
+  Lock
 } from 'lucide-react';
 import { 
   loadAllWorkflows, 
   saveWorkflow, 
   createWorkflow, 
-  createOutlookStreamWorkflow,
   duplicateWorkflow, 
   deleteWorkflow, 
   updateWorkflowMetadata, 
@@ -286,21 +284,6 @@ export default function HomeWorkflowsView({
           >
             <Plus className="w-4 h-4" />
             <span>New Blank Workflow</span>
-          </button>
-
-          {/* Create Pre-wired Outlook Stream Workflow */}
-          <button
-            onClick={() => {
-              const outlookWf = createOutlookStreamWorkflow();
-              saveWorkflow(outlookWf);
-              setWorkflows(loadAllWorkflows());
-              onOpenWorkflow(outlookWf);
-            }}
-            className="btn-tactile px-3.5 py-2 text-xs font-bold rounded-none bg-[#00A3A6] hover:bg-[#008285] text-white border border-[#00A3A6] shadow-sm flex items-center gap-1.5 transition-all"
-            title="Create and open pre-configured Outlook Stream & Attachments workflow"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            <span>New Outlook Stream Workflow</span>
           </button>
         </div>
       </div>

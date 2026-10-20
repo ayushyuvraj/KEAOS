@@ -351,8 +351,8 @@ export default function OutputDisplayNode({ id, data, selected }) {
             if (data?.onRename) data.onRename(nodeId, newName);
           }}
           isDarkMode={isDarkMode}
-          className="-top-7 right-2"
-          dropdownPlacement="bottom"
+          mode="circle-right"
+          dropdownPlacement="auto"
         />
 
         {/* Circular Morphing Button with Left/Right Attached Handles */}
@@ -477,8 +477,8 @@ export default function OutputDisplayNode({ id, data, selected }) {
           if (data?.onRename) data.onRename(nodeId, newName);
         }}
         isDarkMode={isDarkMode}
-        className="-top-7 right-2"
-        dropdownPlacement="bottom"
+        mode="card-top"
+        dropdownPlacement="auto"
       />
 
       {/* Dynamic Boundary Resizer Controls */}

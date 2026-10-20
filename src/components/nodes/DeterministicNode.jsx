@@ -291,8 +291,8 @@ export default function DeterministicNode({ id, data, selected }) {
           if (data?.onRename) data.onRename(nodeId, newName);
         }}
         isDarkMode={isDarkMode}
-        className="-top-7 right-2"
-        dropdownPlacement="bottom"
+        mode="card-top"
+        dropdownPlacement="auto"
       />
 
       {/* Exactly 1 Input Handle (Left - Flush Diamond) */}

@@ -27,11 +27,46 @@ export default function NodeActionToolbar({
   onAddDownstreamAgent,
   isDarkMode = true,
   isLocked = false,
+  mode = 'custom', // 'circle-right' | 'circle-left' | 'card-top-right' | 'card-top' | 'custom'
   className = '',
   dropdownPlacement = 'auto' // 'auto' | 'top' | 'bottom' | 'right' | 'left' | 'top-left'
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [dynamicFlipX, setDynamicFlipX] = useState(false);
+  const [dynamicFlipY, setDynamicFlipY] = useState(false);
   const menuRef = useRef(null);
+  const toolbarRef = useRef(null);
+
+  // Dynamic boundary collision detection (flips sides if near canvas or screen edge)
+  const handleCheckBoundary = () => {
+    if (!toolbarRef.current) return;
+    try {
+      const rect = toolbarRef.current.getBoundingClientRect();
+      const vw = window.innerWidth;
+
+      if (mode === 'circle-right' || mode === 'agent-flank') {
+        if (rect.right > vw - 60) {
+          setDynamicFlipX(true);
+        } else {
+          setDynamicFlipX(false);
+        }
+      } else if (mode === 'circle-left') {
+        if (rect.left < 60) {
+          setDynamicFlipX(true);
+        } else {
+          setDynamicFlipX(false);
+        }
+      }
+
+      if (rect.top < 65) {
+        setDynamicFlipY(true);
+      } else {
+        setDynamicFlipY(false);
+      }
+    } catch (e) {
+      // Safe fallback
+    }
+  };
 
   // Close dropdown on click outside (capture phase ensures canvas clicks always dismiss it)
   useEffect(() => {
@@ -60,9 +95,51 @@ export default function NodeActionToolbar({
     };
   }, [isMenuOpen]);
 
+  // Compute dynamic exterior positioning styles guaranteeing ZERO overlap with the node body/circle
+  let dynamicStyle = {};
+  if (mode === 'circle-right') {
+    // 60px circle disc centered in 140px container. Disc ends at x = 100px.
+    // 50% = 70px. 70px + 38px = 108px (starts 8px cleanly outside the right perimeter of the circle).
+    dynamicStyle = {
+      top: '30px',
+      transform: 'translateY(-50%)',
+      ...(dynamicFlipX 
+        ? { right: 'calc(50% + 38px)', left: 'auto' } 
+        : { left: 'calc(50% + 38px)', right: 'auto' })
+    };
+  } else if (mode === 'circle-left') {
+    // Starts 8px cleanly outside the left perimeter of the circle.
+    dynamicStyle = {
+      top: '30px',
+      transform: 'translateY(-50%)',
+      ...(dynamicFlipX 
+        ? { left: 'calc(50% + 38px)', right: 'auto' } 
+        : { right: 'calc(50% + 38px)', left: 'auto' })
+    };
+  } else if (mode === 'agent-flank') {
+    // For AgentCoreNode: position on the upper flank outside the chassis.
+    // Leaves all 3 TOP PORTS (TOOLS, MODEL, Gateway/MCP (+)) and all 3 BOTTOM PORTS 100% unobstructed.
+    dynamicStyle = {
+      top: '0px',
+      ...(dynamicFlipX 
+        ? { right: 'calc(100% + 18px)', left: 'auto' } 
+        : { left: 'calc(100% + 18px)', right: 'auto' })
+    };
+  } else if (mode === 'card-top-right') {
+    // For nodes with external titles above the node (RouterNode, ApprovalNode)
+    dynamicStyle = dynamicFlipY
+      ? { top: 'calc(100% + 10px)', bottom: 'auto', right: '0px' }
+      : { bottom: 'calc(100% + 32px)', top: 'auto', right: '0px' };
+  } else if (mode === 'card-top') {
+    // For cards with internal headers
+    dynamicStyle = dynamicFlipY
+      ? { top: 'calc(100% + 10px)', bottom: 'auto', right: '8px' }
+      : { bottom: 'calc(100% + 10px)', top: 'auto', right: '8px' };
+  }
+
   // Strategic dropdown placement to guarantee zero overlap with node body, label text, or handles
   let computedDropdownClass = 'top-full right-0 mt-1.5';
-  if (dropdownPlacement === 'top') {
+  if (dropdownPlacement === 'top' || dynamicFlipY) {
     computedDropdownClass = 'bottom-full right-0 mb-1.5';
   } else if (dropdownPlacement === 'top-left') {
     computedDropdownClass = 'bottom-full left-0 mb-1.5';
@@ -74,9 +151,21 @@ export default function NodeActionToolbar({
     computedDropdownClass = 'top-full left-0 mt-1.5';
   } else if (dropdownPlacement === 'bottom' || dropdownPlacement === 'bottom-right') {
     computedDropdownClass = 'top-full right-0 mt-1.5';
+  } else if (mode === 'circle-right') {
+    computedDropdownClass = dynamicFlipX
+      ? 'top-full right-0 mt-1.5'
+      : 'top-full left-0 mt-1.5';
+  } else if (mode === 'circle-left') {
+    computedDropdownClass = dynamicFlipX
+      ? 'top-full left-0 mt-1.5'
+      : 'top-full right-0 mt-1.5';
+  } else if (mode === 'agent-flank') {
+    computedDropdownClass = dynamicFlipX
+      ? 'top-full right-0 mt-1.5'
+      : 'top-full left-0 mt-1.5';
   } else if (dropdownPlacement === 'auto') {
     // If toolbar is placed above the node, open upwards so it never overlaps the node token or label text below!
-    if (className.includes('-top')) {
+    if (className.includes('-top') || dynamicStyle.bottom) {
       computedDropdownClass = 'bottom-full right-0 mb-1.5';
     } else {
       computedDropdownClass = 'top-full right-0 mt-1.5';
@@ -89,7 +178,11 @@ export default function NodeActionToolbar({
 
   return (
     <div 
-      className={`absolute z-30 transition-all duration-150 ${
+      ref={toolbarRef}
+      onMouseEnter={handleCheckBoundary}
+      onPointerEnter={handleCheckBoundary}
+      style={dynamicStyle}
+      className={`absolute z-30 transition-all duration-150 before:absolute before:-inset-2 before:content-[''] before:-z-10 ${
         isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
       } ${className}`}
       onClick={(e) => e.stopPropagation()}
