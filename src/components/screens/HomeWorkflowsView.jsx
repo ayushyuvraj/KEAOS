@@ -11,20 +11,15 @@ import {
   Upload, 
   Star, 
   Clock, 
-  Layers, 
-  Cpu, 
-  ShieldCheck, 
-  ArrowRight, 
-  ExternalLink,
-  SlidersHorizontal,
-  Bot,
-  Sparkles,
-  CheckCircle2,
-  FileCode,
-  AlertTriangle,
-  X,
-  Check,
-  Lock
+  SlidersHorizontal, 
+  ArrowUpDown,
+  Sparkles, 
+  AlertTriangle, 
+  X, 
+  Check, 
+  Lock,
+  Layers,
+  ChevronDown
 } from 'lucide-react';
 import { 
   loadAllWorkflows, 
@@ -49,8 +44,35 @@ export default function HomeWorkflowsView({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFrameworkFilter, setSelectedFrameworkFilter] = useState('all');
   const [sortBy, setSortBy] = useState('updated'); // 'updated' | 'alpha' | 'nodes' | 'created'
-  const [viewStyle, setViewStyle] = useState('grid'); // 'grid' | 'list'
   
+  // Persistent view style (Grid / List) — holds true until manually changed
+  const [viewStyle, setViewStyle] = useState(() => {
+    try {
+      return localStorage.getItem('keaos_workflows_view_style') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  // Windows Explorer style card sizing (Small | Medium | Large) — holds true until manually changed
+  const [cardSize, setCardSize] = useState(() => {
+    try {
+      return localStorage.getItem('keaos_workflows_card_size') || 'medium';
+    } catch {
+      return 'medium';
+    }
+  });
+
+  // Popover states for separate Filter & Sort buttons
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isSizeOpen, setIsSizeOpen] = useState(false);
+
+  // Popover container refs for click-outside detection
+  const filterRef = useRef(null);
+  const sortRef = useRef(null);
+  const sizeRef = useRef(null);
+
   // Modal states
   const [editingWorkflow, setEditingWorkflow] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -76,6 +98,34 @@ export default function HomeWorkflowsView({
     };
   }, []);
 
+  // Click outside listener for all popovers
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterRef.current && !filterRef.current.contains(e.target)) {
+        setIsFilterOpen(false);
+      }
+      if (sortRef.current && !sortRef.current.contains(e.target)) {
+        setIsSortOpen(false);
+      }
+      if (sizeRef.current && !sizeRef.current.contains(e.target)) {
+        setIsSizeOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsFilterOpen(false);
+        setIsSortOpen(false);
+        setIsSizeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
@@ -83,6 +133,25 @@ export default function HomeWorkflowsView({
 
   const reloadWorkflows = () => {
     setWorkflows(loadAllWorkflows());
+  };
+
+  // Persistent state handlers
+  const handleSetViewStyle = (style) => {
+    setViewStyle(style);
+    try {
+      localStorage.setItem('keaos_workflows_view_style', style);
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+
+  const handleSetCardSize = (size) => {
+    setCardSize(size);
+    try {
+      localStorage.setItem('keaos_workflows_card_size', size);
+    } catch (err) {
+      console.warn(err);
+    }
   };
 
   // Filter and sort workflows
@@ -107,7 +176,6 @@ export default function HomeWorkflowsView({
 
     // Sort order
     result.sort((a, b) => {
-      // Starred items float to top
       if (a.isStarred && !b.isStarred) return -1;
       if (!a.isStarred && b.isStarred) return 1;
 
@@ -120,7 +188,6 @@ export default function HomeWorkflowsView({
       if (sortBy === 'created') {
         return (b.createdAt || 0) - (a.createdAt || 0);
       }
-      // Default: updated
       return (b.updatedAt || 0) - (a.updatedAt || 0);
     });
 
@@ -156,7 +223,7 @@ export default function HomeWorkflowsView({
     }
   };
 
-  // Handle Delete
+  // Handle Delete with Strict Locked Immunity
   const handleDelete = (id, e) => {
     e?.stopPropagation();
     const target = workflows.find((w) => w.id === id);
@@ -212,7 +279,7 @@ export default function HomeWorkflowsView({
     e.target.value = '';
   };
 
-  // Format relative timestamp
+  // Format relative timestamp quietly
   const formatTime = (ts) => {
     if (!ts) return 'Never';
     const diff = Date.now() - ts;
@@ -226,42 +293,60 @@ export default function HomeWorkflowsView({
     return new Date(ts).toLocaleDateString();
   };
 
+  // Sort label helper
+  const sortLabels = {
+    updated: 'Recently modified',
+    alpha: 'Name (A–Z)',
+    nodes: 'Complexity',
+    created: 'Date created'
+  };
+
+  // Size grid class mapper
+  const gridColumnsClass = useMemo(() => {
+    if (cardSize === 'small') {
+      return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3';
+    }
+    if (cardSize === 'large') {
+      return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
+    }
+    // Default medium
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
+  }, [cardSize]);
+
+  const activeFrameworkName = useMemo(() => {
+    if (selectedFrameworkFilter === 'all') return null;
+    return FRAMEWORKS.find(f => f.id === selectedFrameworkFilter)?.name || selectedFrameworkFilter;
+  }, [selectedFrameworkFilter]);
+
   return (
     <div className={`flex-1 h-full w-full overflow-hidden flex flex-col select-none transition-colors ${
-      isDarkMode ? 'bg-[#0F1015] text-slate-100' : 'bg-[#F5F6F8] text-[#0B0F19]'
+      isDarkMode ? 'bg-[#0F1015] text-slate-100' : 'bg-[#F8F9FA] text-[#0B0F19]'
     }`}>
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="absolute top-4 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-[#001E50] border border-[#0091DA] text-white text-xs font-mono shadow-2xl animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-4 right-6 z-50 flex items-center gap-2 px-3.5 py-1.5 bg-[#001E50] border border-[#0091DA]/60 text-white text-xs font-mono shadow-2xl animate-in fade-in slide-in-from-top-2">
           <Sparkles className="w-3.5 h-3.5 text-[#0091DA]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Screen Header Bar */}
-      <div className={`px-8 py-5 border-b shrink-0 flex items-center justify-between ${
-        isDarkMode ? 'bg-[#18191E] border-[#2B2D36]' : 'bg-white border-[#E0E0E0]'
+      {/* Google-Style Minimal Screen Header */}
+      <div className={`px-6 py-4 border-b shrink-0 flex items-center justify-between transition-colors ${
+        isDarkMode ? 'bg-[#14151B] border-[#22242D]' : 'bg-white border-[#E5E7EB]'
       }`}>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-[#0091DA]">
-              WORKSPACE REPOSITORY // MULTI-AGENT STUDIO
-            </span>
-            <span className="text-[9px] px-2 py-0.5 rounded-full font-mono font-bold bg-[#00338D]/20 text-[#0091DA] border border-[#0091DA]/30">
-              {workflows.length} WORKFLOWS
-            </span>
-          </div>
-          <h1 className={`text-xl font-bold tracking-tight mt-1 ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-            Agent Workflows & Topologies
+        <div className="flex items-center gap-3">
+          <h1 className={`text-base font-semibold tracking-tight ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
+            Workflows
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Institutional hub to design, duplicate, organize, and orchestrate visual agent graphs.
-          </p>
+          <span className={`text-[11px] font-mono px-2 py-0.5 border ${
+            isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+          }`}>
+            {workflows.length}
+          </span>
         </div>
 
-        {/* Primary Actions */}
-        <div className="flex items-center gap-3">
-          {/* Hidden File Input for Import */}
+        {/* Primary Actions (Import & New Workflow) */}
+        <div className="flex items-center gap-2.5">
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -271,138 +356,264 @@ export default function HomeWorkflowsView({
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className={`btn-tactile px-3.5 py-2 text-xs font-semibold rounded-none border transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-medium border transition-all active:scale-[0.98] flex items-center gap-1.5 ${
               isDarkMode 
-                ? 'border-[#383B46] text-slate-300 hover:text-white hover:bg-white/5' 
-                : 'border-[#CBD5E1] text-slate-700 hover:text-black hover:bg-slate-100'
+                ? 'border-[#2E313D] text-slate-300 hover:text-white hover:bg-white/5' 
+                : 'border-[#D1D5DB] text-slate-700 hover:text-black hover:bg-slate-100'
             }`}
-            title="Import KEAOS workflow (.keaos.json)"
+            title="Import workflow from .keaos.json"
           >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Import JSON</span>
+            <Upload className="w-3.5 h-3.5 opacity-70" />
+            <span>Import</span>
           </button>
 
-          {/* Create Blank Workflow Button */}
           <button
             onClick={handleCreateNew}
-            className="btn-tactile px-4 py-2 text-xs font-bold rounded-none bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#0091DA]/50 shadow-md flex items-center gap-2 transition-all"
-            title="Start fresh with a pristine empty canvas"
+            className="px-3.5 py-1.5 text-xs font-semibold bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#0091DA]/40 shadow-sm flex items-center gap-1.5 transition-all active:scale-[0.98]"
+            title="Create new blank workflow"
           >
-            <Plus className="w-4 h-4" />
-            <span>New Blank Workflow</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>New workflow</span>
           </button>
         </div>
       </div>
 
-      {/* Filter, Search & Ergonomic Toolbar */}
-      <div className={`px-8 py-3 border-b shrink-0 flex flex-wrap items-center justify-between gap-4 ${
-        isDarkMode ? 'bg-[#121317] border-[#22242C]' : 'bg-[#FAFAFA] border-[#EBEBEB]'
+      {/* Google-Style Minimal Toolbar: Unified Search, Separate Filter, Separate Sort, Size & View */}
+      <div className={`px-6 py-2.5 border-b shrink-0 flex items-center justify-between gap-3 ${
+        isDarkMode ? 'bg-[#101117] border-[#1E2028]' : 'bg-[#FAFAFA] border-[#EBEBEB]'
       }`}>
-        {/* Left: Search Box + SDK Filters */}
-        <div className="flex items-center gap-3 flex-1 min-w-[320px]">
-          {/* Instant Search Bar */}
-          <div className="relative flex-1 max-w-sm">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Left: Search Bar + Separate Filter Button + Separate Sort Button */}
+        <div className="flex items-center gap-2 flex-1 max-w-2xl">
+          {/* Prominent Search Bar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter workflows by name, tags, SDK..."
-              className={`w-full pl-9 pr-3 py-1.5 text-xs rounded-none border transition-all outline-none font-mono ${
+              placeholder="Search workflows..."
+              className={`w-full pl-8 pr-7 py-1.5 text-xs border transition-all outline-none ${
                 isDarkMode 
-                  ? 'bg-[#1B1C22] border-[#2B2D36] text-white placeholder-slate-500 focus:border-[#0091DA]' 
+                  ? 'bg-[#181921] border-[#2B2D38] text-white placeholder-slate-500 focus:border-[#0091DA]' 
                   : 'bg-white border-[#D1D5DB] text-black placeholder-slate-400 focus:border-[#00338D]'
               }`}
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5"
+                title="Clear search"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
           </div>
 
-          {/* Framework Filter Chips */}
-          <div className="flex items-center gap-1 overflow-x-auto py-1">
+          {/* Dedicated Filter Button with Anchored Popover */}
+          <div className="relative" ref={filterRef}>
             <button
-              onClick={() => setSelectedFrameworkFilter('all')}
-              className={`px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded-none border transition-all ${
-                selectedFrameworkFilter === 'all'
+              onClick={() => {
+                setIsFilterOpen(!isFilterOpen);
+                setIsSortOpen(false);
+                setIsSizeOpen(false);
+              }}
+              className={`px-3 py-1.5 text-xs font-medium border flex items-center gap-1.5 transition-all active:scale-[0.98] ${
+                selectedFrameworkFilter !== 'all'
                   ? 'bg-[#00338D] text-white border-[#0091DA]'
                   : isDarkMode
-                    ? 'border-[#2B2D36] text-slate-400 hover:text-white hover:bg-white/5'
-                    : 'border-[#E0E0E0] text-slate-600 hover:text-black hover:bg-slate-100'
+                    ? 'bg-[#181921] border-[#2B2D38] text-slate-300 hover:text-white hover:border-slate-500'
+                    : 'bg-white border-[#D1D5DB] text-slate-700 hover:text-black hover:border-slate-400'
               }`}
+              title="Filter by SDK Framework"
             >
-              All SDKs
+              <SlidersHorizontal className="w-3.5 h-3.5 opacity-80" />
+              <span>{activeFrameworkName ? `Filter: ${activeFrameworkName}` : 'Filter'}</span>
+              <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
             </button>
-            {FRAMEWORKS.map((fw) => {
-              const active = selectedFrameworkFilter === fw.id;
-              return (
+
+            {/* Filter Dropdown Popover */}
+            {isFilterOpen && (
+              <div className={`absolute left-0 mt-1.5 w-56 border shadow-xl z-50 py-1.5 animate-in fade-in zoom-in-95 duration-100 ${
+                isDarkMode ? 'bg-[#181921] border-[#2E313D] text-slate-200' : 'bg-white border-[#E0E0E0] text-slate-800'
+              }`}>
+                <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-white/5 mb-1">
+                  SDK Framework
+                </div>
                 <button
-                  key={fw.id}
-                  onClick={() => setSelectedFrameworkFilter(fw.id)}
-                  className={`px-2.5 py-1 text-[11px] font-mono rounded-none border transition-all whitespace-nowrap ${
-                    active
-                      ? 'bg-[#00338D] text-white border-[#0091DA]'
-                      : isDarkMode
-                        ? 'border-[#2B2D36] text-slate-400 hover:text-white hover:bg-white/5'
-                        : 'border-[#E0E0E0] text-slate-600 hover:text-black hover:bg-slate-100'
+                  onClick={() => {
+                    setSelectedFrameworkFilter('all');
+                    setIsFilterOpen(false);
+                  }}
+                  className={`w-full px-3 py-1.5 text-xs text-left flex items-center justify-between transition-colors ${
+                    selectedFrameworkFilter === 'all'
+                      ? isDarkMode ? 'bg-[#00338D]/30 text-[#0091DA] font-semibold' : 'bg-blue-50 text-[#00338D] font-semibold'
+                      : isDarkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'
                   }`}
                 >
-                  {fw.name}
+                  <span>All SDKs</span>
+                  {selectedFrameworkFilter === 'all' && <Check className="w-3.5 h-3.5 text-[#0091DA]" />}
                 </button>
-              );
-            })}
+                {FRAMEWORKS.map((fw) => {
+                  const isSelected = selectedFrameworkFilter === fw.id;
+                  const count = workflows.filter(w => w.framework?.id === fw.id).length;
+                  return (
+                    <button
+                      key={fw.id}
+                      onClick={() => {
+                        setSelectedFrameworkFilter(fw.id);
+                        setIsFilterOpen(false);
+                      }}
+                      className={`w-full px-3 py-1.5 text-xs text-left flex items-center justify-between transition-colors ${
+                        isSelected
+                          ? isDarkMode ? 'bg-[#00338D]/30 text-[#0091DA] font-semibold' : 'bg-blue-50 text-[#00338D] font-semibold'
+                          : isDarkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="truncate">{fw.name}</span>
+                        {count > 0 && (
+                          <span className="text-[10px] text-slate-500 font-mono">({count})</span>
+                        )}
+                      </div>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-[#0091DA] shrink-0" />}
+                    </button>
+                  );
+                })}
+                {selectedFrameworkFilter !== 'all' && (
+                  <div className="mt-1 pt-1 border-t border-white/10 px-2">
+                    <button
+                      onClick={() => {
+                        setSelectedFrameworkFilter('all');
+                        setIsFilterOpen(false);
+                      }}
+                      className="w-full text-center py-1 text-[11px] text-red-400 hover:text-red-300 font-medium"
+                    >
+                      Reset filter
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Dedicated Sort Button with Anchored Popover */}
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => {
+                setIsSortOpen(!isSortOpen);
+                setIsFilterOpen(false);
+                setIsSizeOpen(false);
+              }}
+              className={`px-3 py-1.5 text-xs font-medium border flex items-center gap-1.5 transition-all active:scale-[0.98] ${
+                isDarkMode 
+                  ? 'bg-[#181921] border-[#2B2D38] text-slate-300 hover:text-white hover:border-slate-500' 
+                  : 'bg-white border-[#D1D5DB] text-slate-700 hover:text-black hover:border-slate-400'
+              }`}
+              title="Sort Workflows"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5 opacity-80" />
+              <span>{sortLabels[sortBy] || 'Sort'}</span>
+              <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
+            </button>
+
+            {/* Sort Dropdown Popover */}
+            {isSortOpen && (
+              <div className={`absolute left-0 mt-1.5 w-48 border shadow-xl z-50 py-1.5 animate-in fade-in zoom-in-95 duration-100 ${
+                isDarkMode ? 'bg-[#181921] border-[#2E313D] text-slate-200' : 'bg-white border-[#E0E0E0] text-slate-800'
+              }`}>
+                <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-white/5 mb-1">
+                  Sort Order
+                </div>
+                {[
+                  { id: 'updated', label: 'Recently modified' },
+                  { id: 'alpha', label: 'Name (A–Z)' },
+                  { id: 'nodes', label: 'Complexity (Nodes)' },
+                  { id: 'created', label: 'Date created' }
+                ].map((opt) => {
+                  const isSelected = sortBy === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        setSortBy(opt.id);
+                        setIsSortOpen(false);
+                      }}
+                      className={`w-full px-3 py-1.5 text-xs text-left flex items-center justify-between transition-colors ${
+                        isSelected
+                          ? isDarkMode ? 'bg-[#00338D]/30 text-[#0091DA] font-semibold' : 'bg-blue-50 text-[#00338D] font-semibold'
+                          : isDarkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-[#0091DA]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right: Sort Dropdown & Grid/List View Switcher */}
-        <div className="flex items-center gap-3">
-          {/* Sort Selector */}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-[10px] font-mono text-slate-400 uppercase">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className={`px-2 py-1 text-xs rounded-none border outline-none font-mono ${
-                isDarkMode 
-                  ? 'bg-[#1B1C22] border-[#2B2D36] text-slate-200' 
-                  : 'bg-white border-[#CBD5E1] text-slate-800'
+        {/* Right: Windows Explorer Sizing & Persistent Grid/List View Toggles */}
+        <div className="flex items-center gap-2">
+          {/* Windows Explorer Style Sizing Selector (Small, Medium, Large) */}
+          <div className="flex items-center border border-white/10 p-0.5">
+            <button
+              onClick={() => handleSetCardSize('small')}
+              className={`px-2 py-1 text-[11px] font-mono font-medium transition-all ${
+                cardSize === 'small'
+                  ? 'bg-[#00338D] text-white'
+                  : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-black'
               }`}
+              title="Compact / Small tiles (Windows Explorer Small Icons)"
             >
-              <option value="updated">Recently Modified</option>
-              <option value="created">Recently Created</option>
-              <option value="alpha">Name (A–Z)</option>
-              <option value="nodes">Highest Node Count</option>
-            </select>
+              S
+            </button>
+            <button
+              onClick={() => handleSetCardSize('medium')}
+              className={`px-2 py-1 text-[11px] font-mono font-medium transition-all ${
+                cardSize === 'medium'
+                  ? 'bg-[#00338D] text-white'
+                  : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-black'
+              }`}
+              title="Medium / Standard cards (Windows Explorer Medium Icons)"
+            >
+              M
+            </button>
+            <button
+              onClick={() => handleSetCardSize('large')}
+              className={`px-2 py-1 text-[11px] font-mono font-medium transition-all ${
+                cardSize === 'large'
+                  ? 'bg-[#00338D] text-white'
+                  : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-black'
+              }`}
+              title="Large / Detailed cards (Windows Explorer Large Icons)"
+            >
+              L
+            </button>
           </div>
 
-          {/* Grid vs List View Toggle */}
-          <div className={`flex items-center border p-0.5 rounded-none ${
-            isDarkMode ? 'border-[#2B2D36] bg-[#17181E]' : 'border-[#CBD5E1] bg-white'
-          }`}>
+          {/* Grid / List View Toggle (State Holds True Indefinitely) */}
+          <div className="flex items-center border border-white/10 p-0.5">
             <button
-              onClick={() => setViewStyle('grid')}
-              className={`p-1.5 transition-colors ${
+              onClick={() => handleSetViewStyle('grid')}
+              className={`p-1 transition-all ${
                 viewStyle === 'grid'
-                  ? 'bg-[#00338D] text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#00338D] text-white'
+                  : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-black'
               }`}
-              title="Grid View"
+              title="Grid View (Holds selection until manually changed)"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => setViewStyle('list')}
-              className={`p-1.5 transition-colors ${
+              onClick={() => handleSetViewStyle('list')}
+              className={`p-1 transition-all ${
                 viewStyle === 'list'
-                  ? 'bg-[#00338D] text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#00338D] text-white'
+                  : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-black'
               }`}
-              title="List View"
+              title="List View (Holds selection until manually changed)"
             >
               <List className="w-3.5 h-3.5" />
             </button>
@@ -410,51 +621,63 @@ export default function HomeWorkflowsView({
         </div>
       </div>
 
-      {/* Main Workspace Body */}
-      <div className="flex-1 overflow-y-auto p-8">
+      {/* Main Workspaces Content Canvas */}
+      <div className="flex-1 overflow-y-auto p-6">
         {filteredWorkflows.length === 0 ? (
-          /* Empty Search / Filter State */
-          <div className="h-72 flex flex-col items-center justify-center text-center max-w-md mx-auto">
-            <div className="w-12 h-12 bg-white/5 border border-dashed border-slate-600 flex items-center justify-center text-slate-400 mb-3">
-              <Layers className="w-6 h-6" />
-            </div>
-            <h3 className="text-sm font-bold text-white mb-1">No matching workflows found</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              {searchQuery ? `No workflows match "${searchQuery}".` : 'No workflows found for the selected filter.'}
+          /* Clean Google-Style Empty State */
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <Search className="w-8 h-8 text-slate-500 mb-2 opacity-50" />
+            <h3 className="text-sm font-semibold text-slate-300">No workflows found</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-xs">
+              No topologies match your current search or filter query.
             </p>
             <button
-              onClick={handleCreateNew}
-              className="px-3.5 py-1.5 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-semibold rounded-none border border-[#0091DA]/50"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedFrameworkFilter('all');
+              }}
+              className="mt-3 text-xs text-[#0091DA] hover:underline"
             >
-              Create New Blank Workflow
+              Clear filters
             </button>
           </div>
         ) : viewStyle === 'grid' ? (
           /* GRID VIEW */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {/* Blank Canvas Quick Genesis Card */}
-            <div 
+          <div className={`grid ${gridColumnsClass}`}>
+            {/* New Blank Workflow Tile */}
+            <div
               onClick={handleCreateNew}
-              className={`p-5 border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer group transition-all min-h-[220px] ${
+              className={`group border border-dashed cursor-pointer transition-all duration-150 flex flex-col items-center justify-center text-center ${
+                cardSize === 'small' ? 'min-h-[110px] p-3' : cardSize === 'large' ? 'min-h-[220px] p-6' : 'min-h-[160px] p-4'
+              } ${
                 isDarkMode 
-                  ? 'border-[#2B2D36] bg-[#14151B]/50 hover:bg-[#181A22] hover:border-[#0091DA]' 
-                  : 'border-[#CBD5E1] bg-white hover:bg-slate-50 hover:border-[#00338D]'
+                  ? 'border-[#2E313D] hover:border-[#0091DA] bg-white/[0.01] hover:bg-white/[0.03]' 
+                  : 'border-[#CBD5E1] hover:border-[#00338D] bg-white hover:bg-slate-50/80 shadow-sm'
               }`}
             >
-              <div className="w-11 h-11 rounded-full bg-[#00338D]/15 border border-[#0091DA]/40 flex items-center justify-center text-[#0091DA] group-hover:scale-110 group-hover:bg-[#00338D] group-hover:text-white transition-all mb-3">
-                <Plus className="w-5 h-5" />
+              <div className={`rounded-full flex items-center justify-center transition-transform group-hover:scale-110 ${
+                cardSize === 'small' ? 'w-7 h-7 mb-1.5' : 'w-9 h-9 mb-2.5'
+              } ${
+                isDarkMode ? 'bg-white/5 text-[#0091DA]' : 'bg-blue-50 text-[#00338D]'
+              }`}>
+                <Plus className={cardSize === 'small' ? 'w-4 h-4' : 'w-5 h-5'} />
               </div>
-              <span className="text-xs font-bold text-white tracking-tight group-hover:text-[#0091DA] transition-colors">
-                Create Blank Workflow
+              <span className={`font-semibold tracking-tight ${cardSize === 'small' ? 'text-xs' : 'text-sm'} ${
+                isDarkMode ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-black'
+              }`}>
+                New Workflow
               </span>
-              <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">
-                Start with a zero-node canvas and assemble your custom multi-agent graph.
-              </p>
+              {cardSize !== 'small' && (
+                <span className="text-[11px] text-slate-500 mt-0.5">
+                  Start with a clean canvas
+                </span>
+              )}
             </div>
 
             {/* Workflow Cards */}
             {filteredWorkflows.map((wf) => {
               const isActive = wf.id === activeWorkflowId;
+              const isLocked = Boolean(wf.isLocked ?? wf.isWorkflowLocked);
               const nodeCount = wf.nodes?.length || 0;
               const edgeCount = wf.edges?.length || 0;
 
@@ -462,135 +685,123 @@ export default function HomeWorkflowsView({
                 <div
                   key={wf.id}
                   onClick={() => onOpenWorkflow && onOpenWorkflow(wf)}
-                  className={`group relative p-5 border flex flex-col justify-between transition-all cursor-pointer ${
+                  className={`group relative border transition-all duration-150 flex flex-col justify-between cursor-pointer ${
+                    cardSize === 'small' ? 'p-3 min-h-[110px]' : cardSize === 'large' ? 'p-5 min-h-[220px]' : 'p-4 min-h-[160px]'
+                  } ${
                     isActive
-                      ? isDarkMode
-                        ? 'bg-[#171922] border-[#0091DA] shadow-[0_4px_24px_rgba(0,145,218,0.15)]'
-                        : 'bg-white border-[#00338D] shadow-md'
+                      ? isDarkMode 
+                        ? 'border-[#0091DA] bg-[#161722] shadow-md shadow-[#0091DA]/5' 
+                        : 'border-[#00338D] bg-blue-50/20 shadow-md ring-1 ring-[#00338D]/20'
                       : isDarkMode
-                        ? 'bg-[#16171D] border-[#262832] hover:border-slate-500 hover:bg-[#1A1C24]'
-                        : 'bg-white border-[#E0E0E0] hover:border-[#00338D] hover:shadow-sm'
+                        ? 'border-[#252834] bg-[#14151C] hover:border-slate-500 hover:bg-[#181922]'
+                        : 'border-[#E5E7EB] bg-white hover:border-[#CBD5E1] hover:shadow-md'
                   }`}
                 >
-                  {/* Card Top: SDK Badge, Star & Context Actions */}
+                  {/* Card Top: Framework, Status Badges & Star */}
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-[#00338D] text-white border border-[#0091DA]/40">
+                    <div className="flex items-center justify-between gap-1.5 mb-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* Framework Tag */}
+                        <span className={`text-[10px] font-mono font-medium px-1.5 py-0.5 border ${
+                          isDarkMode 
+                            ? 'bg-white/5 border-white/10 text-slate-300' 
+                            : 'bg-slate-100 border-slate-200 text-slate-700'
+                        }`}>
                           {wf.framework?.name || 'Google ADK'}
                         </span>
+
+                        {/* Active Badge */}
                         {isActive && (
-                          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
                             ACTIVE
                           </span>
                         )}
-                        {Boolean(wf.isLocked ?? wf.isWorkflowLocked) && (
-                          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-full bg-blue-500/20 text-[#0091DA] border border-[#0091DA]/40 flex items-center gap-1">
+
+                        {/* Locked Badge */}
+                        {isLocked && (
+                          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 bg-blue-500/15 border border-blue-500/30 text-[#0091DA] flex items-center gap-1">
                             <Lock className="w-2.5 h-2.5" />
                             LOCKED
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={(e) => handleToggleStar(wf.id, wf.isStarred, e)}
-                          className={`p-1 transition-colors ${
-                            wf.isStarred 
-                              ? 'text-amber-400' 
-                              : 'text-slate-500 hover:text-slate-300'
-                          }`}
-                          title={wf.isStarred ? 'Unstar workflow' : 'Star workflow'}
-                        >
-                          <Star className={`w-3.5 h-3.5 ${wf.isStarred ? 'fill-amber-400' : ''}`} />
-                        </button>
-                      </div>
+                      {/* Star Icon */}
+                      <button
+                        onClick={(e) => handleToggleStar(wf.id, wf.isStarred, e)}
+                        className={`p-1 transition-colors ${
+                          wf.isStarred ? 'text-amber-400' : 'text-slate-500 hover:text-slate-300 opacity-60 group-hover:opacity-100'
+                        }`}
+                        title={wf.isStarred ? 'Unstar' : 'Star workflow'}
+                      >
+                        <Star className={`w-3.5 h-3.5 ${wf.isStarred ? 'fill-amber-400' : ''}`} />
+                      </button>
                     </div>
 
-                    {/* Title & Description */}
-                    <h3 className={`text-sm font-bold tracking-tight line-clamp-1 mb-1.5 group-hover:text-[#0091DA] transition-colors ${
-                      isDarkMode ? 'text-white' : 'text-[#0B0F19]'
-                    }`}>
+                    {/* Workflow Title */}
+                    <h2 className={`font-semibold tracking-tight truncate ${
+                      cardSize === 'small' ? 'text-xs' : cardSize === 'large' ? 'text-base mb-1' : 'text-sm mb-1'
+                    } ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
                       {wf.name}
-                    </h3>
-                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed mb-4 min-h-[32px]">
-                      {wf.description || 'Enterprise agent graph topology.'}
-                    </p>
+                    </h2>
 
-                    {/* Architectural Metric Badges */}
-                    <div className="flex flex-wrap items-center gap-1.5 mb-4">
-                      <span className={`text-[10px] font-mono px-2 py-0.5 border ${
-                        isDarkMode ? 'bg-[#1E2028] border-[#303340] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
+                    {/* Description snippet (Hidden in small mode for low cognitive load) */}
+                    {cardSize !== 'small' && (
+                      <p className={`text-slate-400 leading-relaxed ${
+                        cardSize === 'large' ? 'text-xs line-clamp-2 mb-3' : 'text-[11px] line-clamp-1 mb-2'
                       }`}>
-                        {nodeCount === 0 ? 'Blank Slide' : `${nodeCount} Nodes`}
-                      </span>
-                      {edgeCount > 0 && (
-                        <span className={`text-[10px] font-mono px-2 py-0.5 border ${
-                          isDarkMode ? 'bg-[#1E2028] border-[#303340] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
-                        }`}>
-                          {edgeCount} Wires
-                        </span>
-                      )}
-                      {wf.stats?.mcpCount > 0 && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 border bg-[#00A3A6]/15 border-[#00A3A6]/40 text-[#00A3A6]">
-                          {wf.stats.mcpCount} MCP
-                        </span>
-                      )}
-                    </div>
+                        {wf.description || 'Enterprise agent workflow topology.'}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Card Bottom: Metadata & Action Icons */}
-                  <div className={`pt-3 border-t flex items-center justify-between text-xs ${
-                    isDarkMode ? 'border-[#22242D]' : 'border-slate-100'
-                  }`}>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono">
-                      <Clock className="w-3 h-3" />
-                      <span>{formatTime(wf.updatedAt)}</span>
-                    </div>
+                  {/* Card Bottom: Quiet Metadata & Hover-Revealed Actions */}
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between mt-auto">
+                    {/* Quiet Inline Metadata */}
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {nodeCount} {nodeCount === 1 ? 'node' : 'nodes'} • {formatTime(wf.updatedAt)}
+                    </span>
 
-                    {/* Card Actions Ribbon */}
-                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                      {/* Rename / Edit Specs */}
+                    {/* Action Buttons: Quietly reveal on card hover */}
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingWorkflow(wf);
                         }}
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-none transition-colors"
-                        title="Edit Details & Name"
+                        className="p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                        title="Edit details"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
+                        <Edit3 className="w-3 h-3" />
                       </button>
 
-                      {/* Duplicate */}
                       <button
                         onClick={(e) => handleDuplicate(wf.id, e)}
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-none transition-colors"
-                        title="Duplicate / Copy Workflow"
+                        className="p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                        title="Duplicate"
                       >
-                        <Copy className="w-3.5 h-3.5" />
+                        <Copy className="w-3 h-3" />
                       </button>
 
-                      {/* Export JSON */}
                       <button
                         onClick={(e) => handleExport(wf, e)}
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-none transition-colors"
-                        title="Export as .keaos.json"
+                        className="p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                        title="Export JSON"
                       >
-                        <Download className="w-3.5 h-3.5" />
+                        <Download className="w-3 h-3" />
                       </button>
 
-                      {/* Delete */}
-                      {Boolean(wf.isLocked ?? wf.isWorkflowLocked) ? (
+                      {/* Locked Workflow Deletion Immunity */}
+                      {isLocked ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            showToast(`"${wf.name}" is locked and cannot be deleted. Unlock it first.`);
+                            showToast(`"${wf.name}" is locked. Unlock it before deleting.`);
                           }}
-                          className="p-1.5 text-slate-500 cursor-not-allowed hover:bg-slate-500/10 rounded-none transition-colors opacity-50"
+                          className="p-1 text-slate-500 cursor-not-allowed opacity-50"
                           title="Workflow is locked and cannot be deleted"
                         >
-                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                          <Lock className="w-3 h-3 text-slate-400" />
                         </button>
                       ) : (
                         <button
@@ -598,10 +809,10 @@ export default function HomeWorkflowsView({
                             e.stopPropagation();
                             setDeleteConfirmId(wf.id);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors"
-                          title="Delete Workflow"
+                          className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          title="Delete workflow"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       )}
                     </div>
@@ -611,39 +822,42 @@ export default function HomeWorkflowsView({
             })}
           </div>
         ) : (
-          /* TABLE / LIST VIEW */
+          /* LIST / TABLE VIEW */
           <div className={`border overflow-hidden ${
-            isDarkMode ? 'bg-[#16171E] border-[#292B36]' : 'bg-white border-[#E0E0E0]'
+            isDarkMode ? 'bg-[#14151C] border-[#252834]' : 'bg-white border-[#E5E7EB]'
           }`}>
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className={`border-b text-[10px] font-mono uppercase tracking-wider text-slate-400 ${
-                  isDarkMode ? 'bg-[#111216] border-[#292B36]' : 'bg-slate-50 border-[#E0E0E0]'
+                  isDarkMode ? 'bg-[#101117] border-[#252834]' : 'bg-slate-50 border-[#E5E7EB]'
                 }`}>
-                  <th className="py-2.5 px-4 w-10">★</th>
-                  <th className="py-2.5 px-4">Workflow Name & Details</th>
-                  <th className="py-2.5 px-4">Target SDK</th>
-                  <th className="py-2.5 px-4">Graph Topology</th>
-                  <th className="py-2.5 px-4">Last Modified</th>
-                  <th className="py-2.5 px-4 text-right">Actions</th>
+                  <th className="py-2 px-3 w-8">★</th>
+                  <th className="py-2 px-4">Workflow</th>
+                  <th className="py-2 px-4">SDK</th>
+                  <th className="py-2 px-4">Nodes</th>
+                  <th className="py-2 px-4">Modified</th>
+                  <th className="py-2 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className={`divide-y ${isDarkMode ? 'divide-[#22242D]' : 'divide-slate-100'}`}>
                 {filteredWorkflows.map((wf) => {
                   const isActive = wf.id === activeWorkflowId;
+                  const isLocked = Boolean(wf.isLocked ?? wf.isWorkflowLocked);
                   const nodeCount = wf.nodes?.length || 0;
+
+                  const rowPaddingClass = cardSize === 'small' ? 'py-2 px-4' : cardSize === 'large' ? 'py-4 px-4' : 'py-3 px-4';
 
                   return (
                     <tr
                       key={wf.id}
                       onClick={() => onOpenWorkflow && onOpenWorkflow(wf)}
-                      className={`cursor-pointer transition-colors ${
+                      className={`group cursor-pointer transition-colors ${
                         isActive
-                          ? isDarkMode ? 'bg-[#1C1F2B]' : 'bg-blue-50/60'
-                          : isDarkMode ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
+                          ? isDarkMode ? 'bg-[#191D2A]' : 'bg-blue-50/50'
+                          : isDarkMode ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50'
                       }`}
                     >
-                      <td className="py-3 px-4">
+                      <td className="py-2 px-3">
                         <button
                           onClick={(e) => handleToggleStar(wf.id, wf.isStarred, e)}
                           className={`p-1 transition-colors ${
@@ -653,71 +867,71 @@ export default function HomeWorkflowsView({
                           <Star className={`w-3.5 h-3.5 ${wf.isStarred ? 'fill-amber-400' : ''}`} />
                         </button>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className={rowPaddingClass}>
                         <div className="flex items-center gap-2">
-                          <span className={`font-bold tracking-tight text-xs ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                          <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
                             {wf.name}
                           </span>
                           {isActive && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                               ACTIVE
                             </span>
                           )}
-                          {Boolean(wf.isLocked ?? wf.isWorkflowLocked) && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-blue-500/20 text-[#0091DA] border border-[#0091DA]/40 flex items-center gap-1">
+                          {isLocked && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 bg-blue-500/15 text-[#0091DA] border border-[#0091DA]/30 flex items-center gap-1">
                               <Lock className="w-2.5 h-2.5" />
                               LOCKED
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                          {wf.description}
-                        </p>
+                        {cardSize !== 'small' && wf.description && (
+                          <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                            {wf.description}
+                          </p>
+                        )}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[11px]">
-                        <span className="px-2 py-0.5 rounded-full bg-[#00338D] text-white border border-[#0091DA]/30">
-                          {wf.framework?.name || 'Google ADK'}
-                        </span>
+                      <td className={`${rowPaddingClass} font-mono text-[11px] text-slate-400`}>
+                        {wf.framework?.name || 'Google ADK'}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[11px] text-slate-300">
-                        {nodeCount === 0 ? '0 Nodes (Blank)' : `${nodeCount} Nodes`}
+                      <td className={`${rowPaddingClass} font-mono text-[11px] text-slate-400`}>
+                        {nodeCount}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[11px] text-slate-400">
+                      <td className={`${rowPaddingClass} font-mono text-[11px] text-slate-400`}>
                         {formatTime(wf.updatedAt)}
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className={`${rowPaddingClass} text-right`}>
+                        <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingWorkflow(wf);
                             }}
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-none transition-colors"
-                            title="Edit Details"
+                            className="p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                            title="Edit details"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={(e) => handleDuplicate(wf.id, e)}
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-none transition-colors"
+                            className="p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
                             title="Duplicate"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={(e) => handleExport(wf, e)}
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-none transition-colors"
+                            className="p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
                             title="Export"
                           >
                             <Download className="w-3.5 h-3.5" />
                           </button>
-                          {Boolean(wf.isLocked ?? wf.isWorkflowLocked) ? (
+                          {isLocked ? (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                showToast(`"${wf.name}" is locked and cannot be deleted. Unlock it first.`);
+                                showToast(`"${wf.name}" is locked. Unlock it before deleting.`);
                               }}
-                              className="p-1.5 text-slate-500 cursor-not-allowed hover:bg-slate-500/10 rounded-none transition-colors opacity-50"
+                              className="p-1 text-slate-500 cursor-not-allowed opacity-50"
                               title="Workflow is locked and cannot be deleted"
                             >
                               <Lock className="w-3.5 h-3.5 text-slate-400" />
@@ -728,7 +942,7 @@ export default function HomeWorkflowsView({
                                 e.stopPropagation();
                                 setDeleteConfirmId(wf.id);
                               }}
-                              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors"
+                              className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                               title="Delete"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -748,76 +962,75 @@ export default function HomeWorkflowsView({
       {/* RENAME / EDIT WORKFLOW MODAL */}
       {editingWorkflow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
-          <div className={`w-full max-w-lg border shadow-2xl rounded-none ${
-            isDarkMode ? 'bg-[#18191E] border-[#2E313C] text-white' : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
+          <div className={`w-full max-w-lg border shadow-2xl p-6 ${
+            isDarkMode ? 'bg-[#181921] border-[#2E313D] text-white' : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
           }`}>
-            <div className="px-6 py-4 bg-[#001E50] border-b border-[#00338D] flex items-center justify-between text-white">
-              <div className="flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-[#0091DA]" />
-                <h3 className="text-sm font-bold">Edit Workflow Metadata</h3>
-              </div>
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <h3 className="text-sm font-bold">Edit Workflow Specifications</h3>
               <button 
-                onClick={() => setEditingWorkflow(null)} 
-                className="p-1 text-slate-300 hover:text-white"
+                onClick={() => setEditingWorkflow(null)}
+                className="text-slate-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Workflow Title
+                <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
+                  Workflow Name
                 </label>
                 <input
                   type="text"
                   value={editingWorkflow.name}
                   onChange={(e) => setEditingWorkflow({ ...editingWorkflow, name: e.target.value })}
-                  className={`w-full px-3 py-2 text-xs border rounded-none outline-none font-semibold ${
-                    isDarkMode ? 'bg-[#121317] border-[#2E313C] text-white' : 'bg-white border-slate-300 text-black'
+                  className={`w-full px-3 py-1.5 text-xs border outline-none ${
+                    isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
                   }`}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
                   Description
                 </label>
                 <textarea
                   rows={3}
                   value={editingWorkflow.description || ''}
                   onChange={(e) => setEditingWorkflow({ ...editingWorkflow, description: e.target.value })}
-                  className={`w-full px-3 py-2 text-xs border rounded-none outline-none ${
-                    isDarkMode ? 'bg-[#121317] border-[#2E313C] text-white' : 'bg-white border-slate-300 text-black'
+                  className={`w-full px-3 py-1.5 text-xs border outline-none ${
+                    isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
                   }`}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Target Multi-Agent Framework
+                <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
+                  Multi-Agent SDK
                 </label>
                 <select
                   value={editingWorkflow.framework?.id || 'google-adk'}
                   onChange={(e) => {
-                    const fw = FRAMEWORKS.find(f => f.id === e.target.value);
-                    if (fw) setEditingWorkflow({ ...editingWorkflow, framework: fw });
+                    const fw = FRAMEWORKS.find((f) => f.id === e.target.value) || FRAMEWORKS[0];
+                    setEditingWorkflow({ ...editingWorkflow, framework: fw });
                   }}
-                  className={`w-full px-3 py-2 text-xs border rounded-none outline-none font-mono ${
-                    isDarkMode ? 'bg-[#121317] border-[#2E313C] text-white' : 'bg-white border-slate-300 text-black'
+                  className={`w-full px-3 py-1.5 text-xs border outline-none ${
+                    isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
                   }`}
                 >
-                  {FRAMEWORKS.map(f => (
-                    <option key={f.id} value={f.id}>{f.name} ({f.subtitle})</option>
+                  {FRAMEWORKS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} — {f.subtitle}
+                    </option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-700/40">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setEditingWorkflow(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white"
                 >
                   Cancel
                 </button>
@@ -833,7 +1046,7 @@ export default function HomeWorkflowsView({
                     setEditingWorkflow(null);
                     showToast('Workflow updated successfully');
                   }}
-                  className="px-4 py-2 text-xs font-bold bg-[#00338D] hover:bg-[#005EB8] text-white rounded-none border border-[#0091DA]/50"
+                  className="px-4 py-1.5 text-xs font-bold bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#0091DA]/50 shadow-sm"
                 >
                   Save Changes
                 </button>
@@ -843,15 +1056,15 @@ export default function HomeWorkflowsView({
         </div>
       )}
 
-      {/* DELETE CONFIRMATION SAFEGUARD MODAL */}
+      {/* DELETE CONFIRMATION SAFEGUARD MODAL WITH STRICT LOCKED IMMUNITY */}
       {deleteConfirmId && (() => {
         const targetToDelete = workflows.find((w) => w.id === deleteConfirmId);
         const isLocked = Boolean(targetToDelete?.isLocked ?? targetToDelete?.isWorkflowLocked);
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
-            <div className={`w-full max-w-sm border shadow-2xl p-6 rounded-none ${
-              isDarkMode ? 'bg-[#18191E] border-[#2E313C] text-white' : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
+            <div className={`w-full max-w-sm border shadow-2xl p-6 ${
+              isDarkMode ? 'bg-[#181921] border-[#2E313D] text-white' : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
             }`}>
               <div className="flex items-center gap-3 mb-3">
                 {isLocked ? (
@@ -878,7 +1091,7 @@ export default function HomeWorkflowsView({
                 {!isLocked && (
                   <button
                     onClick={() => handleDelete(deleteConfirmId)}
-                    className="px-4 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-none shadow-sm"
+                    className="px-4 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-sm"
                   >
                     Delete Workflow
                   </button>
