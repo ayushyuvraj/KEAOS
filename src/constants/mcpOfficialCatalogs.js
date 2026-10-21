@@ -1039,6 +1039,127 @@ export const OUTLOOK_OFFICIAL_ACTIONS = [
       required: ['messageId', 'destinationId']
     }
   },
+  {
+    name: 'copy_message',
+    displayName: 'Copy Email',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Copies an email message to a specified destination mail folder without removing it from original location (POST /me/messages/{id}/copy).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID to copy' },
+        destinationId: { type: 'string', description: 'Destination folder ID or well-known name (e.g., archive, processed)' }
+      },
+      required: ['messageId', 'destinationId']
+    }
+  },
+  {
+    name: 'mark_as_read',
+    displayName: 'Mark Email as Read',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Marks an email message as read in the user mailbox, clearing the unread badge (PATCH /me/messages/{id} with isRead: true).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The unique Microsoft Graph ID of the message to mark as read' },
+        isRead: { type: 'boolean', description: 'True to mark as read (default: true)', default: true }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'mark_as_unread',
+    displayName: 'Mark Email as Unread',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Marks an email message as unread in the user mailbox (PATCH /me/messages/{id} with isRead: false).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The unique Microsoft Graph ID of the message to mark as unread' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'update_message',
+    displayName: 'Update Email Properties',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Updates message properties such as read status, categories, importance, or subject (PATCH /me/messages/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The unique Microsoft Graph ID of the message' },
+        isRead: { type: 'boolean', description: 'Update read status (true/false)' },
+        importance: { type: 'string', enum: ['low', 'normal', 'high'], description: 'Importance level' },
+        categories: { type: 'array', items: { type: 'string' }, description: 'List of color category tags' },
+        subject: { type: 'string', description: 'Updated subject line' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'flag_message',
+    displayName: 'Flag Email for Follow-Up',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Sets a follow-up flag on an email message with optional due date (PATCH /me/messages/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID to flag' },
+        flagStatus: { type: 'string', enum: ['flagged', 'complete', 'notFlagged'], description: 'Flag state (default: flagged)', default: 'flagged' },
+        dueDateTime: { type: 'string', description: 'Optional follow-up due date ISO string' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'complete_message_flag',
+    displayName: 'Complete Email Flag',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Marks an email follow-up flag as completed (PATCH /me/messages/{id} with flagStatus: complete).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID whose flag to complete' }
+      },
+      required: ['messageId']
+    }
+  },
+  {
+    name: 'set_message_categories',
+    displayName: 'Assign Email Categories',
+    category: 'Mail Operations',
+    type: 'write',
+    description: 'Assigns Outlook master color categories to an email for visual tagging and triage (PATCH /me/messages/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID to categorize' },
+        categories: { type: 'array', items: { type: 'string' }, description: 'Array of category names (e.g. ["Invoice", "AI Processed", "Urgent"])' }
+      },
+      required: ['messageId', 'categories']
+    }
+  },
+  {
+    name: 'get_mime_content',
+    displayName: 'Get Raw MIME (.eml)',
+    category: 'Mail Operations',
+    type: 'read',
+    description: 'Retrieves the complete raw RFC822 MIME byte stream (.eml format) for forensic auditing or compliance archive (GET /me/messages/{id}/$value).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'The message ID to export in MIME format' }
+      },
+      required: ['messageId']
+    }
+  },
 
   // --- MAIL FOLDERS & ATTACHMENTS (4) ---
   {
@@ -1067,6 +1188,49 @@ export const OUTLOOK_OFFICIAL_ACTIONS = [
         parentFolderId: { type: 'string', description: 'Optional parent folder ID to create subfolder under' }
       },
       required: ['displayName']
+    }
+  },
+  {
+    name: 'get_mail_folder',
+    displayName: 'Get Mail Folder Info',
+    category: 'Folders & Attachments',
+    type: 'read',
+    description: 'Retrieves folder details including total item count and unread count (GET /me/mailFolders/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        folderId: { type: 'string', description: 'Folder ID or well-known name (e.g. inbox, archive, drafts)' }
+      },
+      required: ['folderId']
+    }
+  },
+  {
+    name: 'update_mail_folder',
+    displayName: 'Rename / Update Mail Folder',
+    category: 'Folders & Attachments',
+    type: 'write',
+    description: 'Renames an existing mail folder (PATCH /me/mailFolders/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        folderId: { type: 'string', description: 'The folder ID to update' },
+        displayName: { type: 'string', description: 'New display name for the folder' }
+      },
+      required: ['folderId', 'displayName']
+    }
+  },
+  {
+    name: 'delete_mail_folder',
+    displayName: 'Delete Mail Folder',
+    category: 'Folders & Attachments',
+    type: 'destructive',
+    description: 'Permanently deletes a custom mail folder and its contents (DELETE /me/mailFolders/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        folderId: { type: 'string', description: 'The folder ID to delete' }
+      },
+      required: ['folderId']
     }
   },
   {
@@ -1566,6 +1730,88 @@ export const OUTLOOK_OFFICIAL_ACTIONS = [
     category: 'Mailbox Settings',
     type: 'read',
     description: 'Inspects user timezone, working hours, language, and automatic Out-of-Office (OOO) status (GET /me/mailboxSettings).',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'create_message_rule',
+    displayName: 'Create Inbox Rule',
+    category: 'Mailbox Settings',
+    type: 'write',
+    description: 'Creates an automated server-side inbox rule for sorting, moving, or forwarding messages (POST /me/mailFolders/inbox/messageRules).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        displayName: { type: 'string', description: 'Rule name' },
+        sequence: { type: 'number', description: 'Evaluation sequence priority order' },
+        conditions: { type: 'object', description: 'Rule conditions (e.g. senderContains, subjectContains, hasAttachments)' },
+        actions: { type: 'object', description: 'Actions to perform (e.g. moveToFolder, markAsRead, assignCategories)' }
+      },
+      required: ['displayName', 'actions']
+    }
+  },
+  {
+    name: 'delete_message_rule',
+    displayName: 'Delete Inbox Rule',
+    category: 'Mailbox Settings',
+    type: 'destructive',
+    description: 'Permanently deletes an automated inbox rule (DELETE /me/mailFolders/inbox/messageRules/{id}).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ruleId: { type: 'string', description: 'The rule ID to delete' }
+      },
+      required: ['ruleId']
+    }
+  },
+  {
+    name: 'get_user_profile',
+    displayName: 'Get Account Profile',
+    category: 'Mailbox Settings',
+    type: 'read',
+    description: 'Retrieves authenticated user identity, primary mailbox email, display name, and tenant ID (GET /me).',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'get_automatic_replies',
+    displayName: 'Get Out-of-Office Status',
+    category: 'Mailbox Settings',
+    type: 'read',
+    description: 'Inspects active Out-of-Office (OOO) automatic reply status, internal/external reply text, and schedule (GET /me/mailboxSettings/automaticRepliesSetting).',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'set_automatic_replies',
+    displayName: 'Set Out-of-Office Replies',
+    category: 'Mailbox Settings',
+    type: 'write',
+    description: 'Configures Out-of-Office (OOO) auto-replies, status (disabled, alwaysEnabled, scheduled), and messages (PATCH /me/mailboxSettings).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['disabled', 'alwaysEnabled', 'scheduled'], description: 'Auto-reply status' },
+        internalReplyMessage: { type: 'string', description: 'Message sent to internal colleagues' },
+        externalReplyMessage: { type: 'string', description: 'Message sent to external senders' },
+        scheduledStartDateTime: { type: 'string', description: 'Start time if status is scheduled' },
+        scheduledEndDateTime: { type: 'string', description: 'End time if status is scheduled' }
+      },
+      required: ['status']
+    }
+  },
+  {
+    name: 'list_categories',
+    displayName: 'List Color Categories',
+    category: 'Mailbox Settings',
+    type: 'read',
+    description: 'Lists all master color categories defined in the user Outlook account (GET /me/outlook/masterCategories).',
     inputSchema: {
       type: 'object',
       properties: {}

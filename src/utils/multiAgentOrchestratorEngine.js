@@ -441,7 +441,8 @@ When querying external systems or inspecting live state (e.g. reading emails, ch
 If a tool is listed under BLOCKED TOOLS, do not attempt to call it. Explain that it is blocked at the Gateway perimeter.
 When summarizing or extracting data from incoming emails and attachments:
 1. Call "read_attachment_content" with {"messageId": "<message_id>"} if attachments are present.
-2. Once verified tool output is returned, output the final structured record with clear fields.`
+2. Once verified tool output is returned, output the final structured record with clear fields.
+3. If processing unread incoming emails, you can also issue <<<TOOL_CALL>>> to "mark_as_read" with {"messageId": "<message_id>"} to update the mailbox state.`
     : '';
 
   const memoryPrompt = memoryContext ? `\n[HISTORICAL EPISODIC MEMORY]:\n${memoryContext}` : '';
@@ -606,7 +607,7 @@ You are participating in an institutional multi-agent workflow. Review all upstr
       if (executionSuccess) {
         currentMessages.push({
           role: 'user',
-          content: `[VERIFIED TOOL RESULT FOR "${toolName}"]:\n${typeof toolResultData === 'string' ? toolResultData : JSON.stringify(toolResultData, null, 2)}\n\nReview this result and synthesize your final output.`
+          content: `[VERIFIED TOOL RESULT FOR "${toolName}"]:\n${typeof toolResultData === 'string' ? toolResultData : JSON.stringify(toolResultData, null, 2)}\n\nIf you require an additional tool call to complete your task (such as inspecting attachments, fetching related details, or updating mailbox status), you may emit another <<<TOOL_CALL>>>. Otherwise, synthesize your final output.`
         });
       } else {
         currentMessages.push({

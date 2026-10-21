@@ -2929,7 +2929,29 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       return await res.json().catch(() => ({ success: true }));
     };
 
-    // --- MAIL OPERATIONS (12) ---
+    const resolveMessageId = async (inputMsgId, preferAttachments = false) => {
+      let id = inputMsgId;
+      if (!id || id === 'latest' || id === 'recent' || id === 'newest') {
+        const params = new URLSearchParams();
+        params.set('$top', '15');
+        params.set('$select', 'id,subject,hasAttachments,receivedDateTime,isRead');
+        params.set('$orderby', 'receivedDateTime desc');
+        const recent = await graphFetch(`/me/messages?${params.toString()}`);
+        if (recent.value && recent.value.length > 0) {
+          // If unread messages exist, prioritize unread messages
+          const unread = recent.value.filter(m => m.isRead === false);
+          const pool = unread.length > 0 ? unread : recent.value;
+          if (preferAttachments) {
+            const withAtt = pool.find(m => m.hasAttachments);
+            if (withAtt) return withAtt.id;
+          }
+          return pool[0].id;
+        }
+      }
+      return id;
+    };
+
+    // --- MAIL OPERATIONS ---
     if (toolName === 'list_messages') {
       const folder = args.folder ? `/me/mailFolders/${encodeURIComponent(args.folder)}/messages` : '/me/messages';
       const params = new URLSearchParams();
@@ -3107,9 +3129,112 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       });
     }
 
-    // --- FOLDERS & ATTACHMENTS (4) ---
+    if (toolName === 'copy_message' || toolName === 'copy_email') {
+      const rawMsgId = args.messageId || args.message_id || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, false);
+      const destinationId = args.destinationId || args.destination_id || args.folderId || 'archive';
+      if (!msgId) throw new Error('messageId is required to copy email.');
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}/copy`, {
+        method: 'POST',
+        body: JSON.stringify({ destinationId })
+      });
+    }
+
+    if (toolName === 'mark_as_read' || toolName === 'mark_email_read' || toolName === 'mark_message_read') {
+      const rawMsgId = args.messageId || args.message_id || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, false);
+      if (!msgId) throw new Error('messageId is required to mark email as read.');
+      const isRead = args.isRead !== undefined ? Boolean(args.isRead) : true;
+      await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isRead })
+      });
+      return { success: true, messageId: msgId, isRead, status: isRead ? 'MARKED_AS_READ' : 'MARKED_AS_UNREAD' };
+    }
+
+    if (toolName === 'mark_as_unread' || toolName === 'mark_email_unread') {
+      const rawMsgId = args.messageId || args.message_id || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, false);
+      if (!msgId) throw new Error('messageId is required to mark email as unread.');
+      await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isRead: false })
+      });
+      return { success: true, messageId: msgId, isRead: false, status: 'MARKED_AS_UNREAD' };
+    }
+
+    if (toolName === 'update_message') {
+      const rawMsgId = args.messageId || args.message_id || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, false);
+      if (!msgId) throw new Error('messageId is required to update message.');
+      const payload = {};
+      if (args.isRead !== undefined) payload.isRead = Boolean(args.isRead);
+      if (args.importance) payload.importance = args.importance;
+      if (Array.isArray(args.categories)) payload.categories = args.categories;
+      if (args.subject) payload.subject = args.subject;
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'flag_message') {
+      const rawMsgId = args.messageId || args.message_id || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, false);
+      if (!msgId) throw new Error('messageId is required to flag email.');
+      const flagStatus = args.flagStatus || 'flagged';
+      const payload = {
+        flag: {
+          flagStatus,
+          dueDateTime: args.dueDateTime ? { dateTime: args.dueDateTime, timeZone: 'UTC' } : undefined
+        }
+      };
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'complete_message_flag') {
+      const rawMsgId = args.messageId || args.message_id || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, false);
+      if (!msgId) throw new Error('messageId is required to complete email flag.');
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ flag: { flagStatus: 'complete' } })
+      });
+    }
+
+    if (toolName === 'set_message_categories') {
+      const rawMsgId = args.messageId || args.message_id || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, false);
+      if (!msgId) throw new Error('messageId is required to set categories.');
+      const categories = Array.isArray(args.categories) ? args.categories : [args.categories].filter(Boolean);
+      return await graphFetch(`/me/messages/${encodeURIComponent(msgId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ categories })
+      });
+    }
+
+    if (toolName === 'get_mime_content') {
+      const rawMsgId = args.messageId || args.message_id || args.id || args.itemId || args.item_id;
+      const msgId = await resolveMessageId(rawMsgId, false);
+      if (!msgId) throw new Error('messageId is required to get MIME content.');
+      const fullUrl = `${baseGraphUrl}/me/messages/${encodeURIComponent(msgId)}/$value`;
+      const res = await fetch(fullUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`Failed to fetch MIME stream (${res.status} ${res.statusText})`);
+      const emlText = await res.text();
+      return { success: true, messageId: msgId, format: 'rfc822_eml', mimeContent: emlText };
+    }
+
+    // --- FOLDERS & ATTACHMENTS ---
     if (toolName === 'list_mail_folders') {
       return await graphFetch('/me/mailFolders?$top=50');
+    }
+
+    if (toolName === 'get_mail_folder') {
+      const folderId = args.folderId || args.folder_id || args.folder || 'inbox';
+      return await graphFetch(`/me/mailFolders/${encodeURIComponent(folderId)}`);
     }
 
     if (toolName === 'create_mail_folder') {
@@ -3120,24 +3245,21 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       });
     }
 
-    const resolveMessageId = async (inputMsgId, preferAttachments = false) => {
-      let id = inputMsgId;
-      if (!id || id === 'latest' || id === 'recent' || id === 'newest') {
-        const params = new URLSearchParams();
-        params.set('$top', '10');
-        params.set('$select', 'id,subject,hasAttachments,receivedDateTime');
-        params.set('$orderby', 'receivedDateTime desc');
-        const recent = await graphFetch(`/me/messages?${params.toString()}`);
-        if (recent.value && recent.value.length > 0) {
-          if (preferAttachments) {
-            const withAtt = recent.value.find(m => m.hasAttachments);
-            if (withAtt) return withAtt.id;
-          }
-          return recent.value[0].id;
-        }
-      }
-      return id;
-    };
+    if (toolName === 'update_mail_folder') {
+      const folderId = args.folderId || args.folder_id || args.folder;
+      if (!folderId || !args.displayName) throw new Error('folderId and displayName are required.');
+      return await graphFetch(`/me/mailFolders/${encodeURIComponent(folderId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ displayName: args.displayName })
+      });
+    }
+
+    if (toolName === 'delete_mail_folder') {
+      const folderId = args.folderId || args.folder_id || args.folder;
+      if (!folderId) throw new Error('folderId is required to delete folder.');
+      await graphFetch(`/me/mailFolders/${encodeURIComponent(folderId)}`, { method: 'DELETE' });
+      return { success: true, message: `Folder ${folderId} deleted successfully.` };
+    }
 
     if (toolName === 'list_message_attachments') {
       const rawMsgId = args.messageId || args.message_id || args.messageID || args.id || args.itemId || args.item_id;
@@ -3788,13 +3910,63 @@ export async function executeRealMcpTool(mcpServerOrPayload, toolNameArg, argsAr
       return { success: true, message: `Task ${taskId} deleted from list ${listId}.` };
     }
 
-    // --- MAILBOX RULES & SETTINGS (2) ---
+    // --- MAILBOX RULES & SETTINGS ---
     if (toolName === 'list_message_rules') {
       return await graphFetch('/me/mailFolders/inbox/messageRules');
     }
 
+    if (toolName === 'create_message_rule') {
+      const payload = {
+        displayName: args.displayName || 'Automated Rule',
+        sequence: args.sequence || 1,
+        isEnabled: true,
+        conditions: args.conditions || {},
+        actions: args.actions || {}
+      };
+      return await graphFetch('/me/mailFolders/inbox/messageRules', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'delete_message_rule') {
+      const ruleId = args.ruleId || args.rule_id || args.id;
+      if (!ruleId) throw new Error('ruleId is required to delete rule.');
+      await graphFetch(`/me/mailFolders/inbox/messageRules/${encodeURIComponent(ruleId)}`, { method: 'DELETE' });
+      return { success: true, message: `Rule ${ruleId} deleted successfully.` };
+    }
+
+    if (toolName === 'get_user_profile') {
+      return await graphFetch('/me?$select=id,displayName,givenName,surname,userPrincipalName,mail,jobTitle,officeLocation');
+    }
+
     if (toolName === 'get_mailbox_settings') {
       return await graphFetch('/me/mailboxSettings');
+    }
+
+    if (toolName === 'get_automatic_replies') {
+      const settings = await graphFetch('/me/mailboxSettings');
+      return settings?.automaticRepliesSetting || { status: 'disabled' };
+    }
+
+    if (toolName === 'set_automatic_replies') {
+      const payload = {
+        automaticRepliesSetting: {
+          status: args.status || 'alwaysEnabled',
+          internalReplyMessage: args.internalReplyMessage || '',
+          externalReplyMessage: args.externalReplyMessage || args.internalReplyMessage || '',
+          scheduledStartDateTime: args.scheduledStartDateTime ? { dateTime: args.scheduledStartDateTime, timeZone: 'UTC' } : undefined,
+          scheduledEndDateTime: args.scheduledEndDateTime ? { dateTime: args.scheduledEndDateTime, timeZone: 'UTC' } : undefined
+        }
+      };
+      return await graphFetch('/me/mailboxSettings', {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (toolName === 'list_categories') {
+      return await graphFetch('/me/outlook/masterCategories');
     }
   }
 

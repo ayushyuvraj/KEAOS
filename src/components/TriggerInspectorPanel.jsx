@@ -30,7 +30,10 @@ import {
   armPollingWatcher, 
   disarmPollingWatcher,
   armOutlookStreamWatcher,
-  disarmOutlookStreamWatcher
+  disarmOutlookStreamWatcher,
+  getPersistentWatermark,
+  recordProcessedMessage,
+  clearWatermarkCache
 } from '../services/triggerEngine';
 import { 
   executeRealMcpTool, 
@@ -85,6 +88,8 @@ export default function TriggerInspectorPanel({
   const [naturalLanguageDirective, setNaturalLanguageDirective] = useState(nodeData?.directive || nodeData?.prompt || triggerConfig.naturalLanguagePrompt || '');
   const [batchMode, setBatchMode] = useState(triggerConfig.batchMode !== false);
   const [maxBatchSize, setMaxBatchSize] = useState(triggerConfig.maxBatchSize || 25);
+  const [autoMarkAsRead, setAutoMarkAsRead] = useState(triggerConfig.autoMarkAsRead !== false);
+  const [watermarkCount, setWatermarkCount] = useState(() => getPersistentWatermark(selectedNode.id).length);
   const [isSimulatingBatch, setIsSimulatingBatch] = useState(false);
   const [isSavingPolling, setIsSavingPolling] = useState(false);
   const [savePollingSuccess, setSavePollingSuccess] = useState(false);
@@ -169,8 +174,15 @@ export default function TriggerInspectorPanel({
     }
     if (cfg.batchMode !== undefined) setBatchMode(cfg.batchMode);
     if (cfg.maxBatchSize !== undefined) setMaxBatchSize(cfg.maxBatchSize);
+    if (cfg.autoMarkAsRead !== undefined) setAutoMarkAsRead(Boolean(cfg.autoMarkAsRead));
     if (cfg.isPollingActive !== undefined) setIsPollingActive(Boolean(cfg.isPollingActive));
+    setWatermarkCount(getPersistentWatermark(selectedNode?.id).length);
   }, [selectedNode?.id, selectedNode?.data?.config, selectedNode?.data?.name, triggerType, nodes]);
+
+  const handleResetWatermark = () => {
+    clearWatermarkCache(selectedNode.id);
+    setWatermarkCount(0);
+  };
 
   // Dispatch fire trigger event
   const fireTrigger = (payloadTextOverride = null) => {
@@ -340,7 +352,8 @@ export default function TriggerInspectorPanel({
             maxBatchSize,
             disabledTools,
             unreadFilter,
-            attachmentFilter
+            attachmentFilter,
+            autoMarkAsRead
           });
           setIsPollingActive(true);
           onUpdateNodeData(selectedNode.id, {
@@ -351,6 +364,7 @@ export default function TriggerInspectorPanel({
               streamType,
               unreadFilter,
               attachmentFilter,
+              autoMarkAsRead,
               naturalLanguagePrompt: naturalLanguageDirective,
               pollIntervalSeconds: pollInterval,
               maxBatchSize
@@ -403,6 +417,7 @@ export default function TriggerInspectorPanel({
       streamType,
       unreadFilter,
       attachmentFilter,
+      autoMarkAsRead,
       naturalLanguagePrompt: naturalLanguageDirective,
       batchMode,
       maxBatchSize
@@ -426,7 +441,8 @@ export default function TriggerInspectorPanel({
             maxBatchSize,
             disabledTools,
             unreadFilter,
-            attachmentFilter
+            attachmentFilter,
+            autoMarkAsRead
           });
         } catch (err) {
           console.warn('Failed to re-arm stream watcher:', err);
@@ -556,8 +572,30 @@ export default function TriggerInspectorPanel({
         }];
       }
 
+      // Sort chronologically: oldest unread first up to latest, so they process in natural arrival sequence
+      realBatch.sort((a, b) => new Date(a.receivedDateTime || 0) - new Date(b.receivedDateTime || 0));
+
       for (let i = 0; i < realBatch.length; i++) {
         const msg = realBatch[i];
+        const msgId = msg?.id || (typeof msg === 'string' ? msg : null);
+
+        if (msgId) {
+          recordProcessedMessage(selectedNode.id, msgId);
+        }
+
+        // Auto-mark email as read on remote Microsoft Graph API if enabled and capability is permitted
+        if (autoMarkAsRead && token && msgId && (streamType === 'inbox' || streamType === 'sentitems' || streamType === 'drafts')) {
+          try {
+            await executeRealMcpTool({
+              toolName: 'mark_as_read',
+              server: { transport: 'outlook-api', config: { token } },
+              args: { messageId: msgId }
+            });
+          } catch (markErr) {
+            console.warn('Auto-mark-as-read error in batch test:', markErr);
+          }
+        }
+
         const discretePayload = {
           source: 'outlook_mcp_stream',
           stream: streamType,
@@ -583,6 +621,8 @@ export default function TriggerInspectorPanel({
           await new Promise(r => setTimeout(r, 450));
         }
       }
+
+      setWatermarkCount(getPersistentWatermark(selectedNode.id).length);
     } catch (err) {
       console.error('Batch stream poll error:', err);
     } finally {
@@ -1208,6 +1248,56 @@ export default function TriggerInspectorPanel({
                     </span>
                   </div>
                 </label>
+              </div>
+
+              {/* Auto-Mark Processed as Read Toggle */}
+              {['inbox', 'sentitems', 'drafts'].includes(streamType) && (
+                <div className={`p-2 border rounded-none ${t.subCard} border ${t.border} space-y-1.5`}>
+                  <label className="flex items-start gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoMarkAsRead}
+                      onChange={(e) => {
+                        setAutoMarkAsRead(e.target.checked);
+                        updateTriggerConfig({ autoMarkAsRead: e.target.checked });
+                      }}
+                      className="mt-0.5 rounded-none border-slate-700 text-[#009A44] focus:ring-0"
+                    />
+                    <div>
+                      <span className={`text-xs font-mono font-bold block ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        Auto-Mark Processed Mails as Read
+                      </span>
+                      <span className={`text-[10px] font-mono leading-relaxed block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Executes Microsoft Graph API <code className="text-[#00A3A6]">PATCH /me/messages/&#123;id&#125; (isRead: true)</code> upon dispatch. Eliminates repeat processing loops.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              {/* Watermark Deduplication Cache Control */}
+              <div className={`p-2 border rounded-none ${t.subCard} border ${t.border} flex items-center justify-between text-xs font-mono`}>
+                <div>
+                  <span className={`block font-bold text-[11px] ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                    Ingress Watermark Cache
+                  </span>
+                  <span className={`block text-[10px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    {watermarkCount} item IDs cached ({watermarkCount > 0 ? 'Protected from repeat loops' : 'Cache empty'})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetWatermark}
+                  disabled={watermarkCount === 0}
+                  className={`px-2 py-1 text-[10px] font-mono border rounded-none transition-all ${
+                    watermarkCount > 0
+                      ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30 cursor-pointer'
+                      : 'opacity-40 cursor-not-allowed bg-slate-800 text-slate-500 border-slate-700'
+                  }`}
+                  title="Clears persistent watermark IDs so previous emails can be re-tested"
+                >
+                  Reset Cache
+                </button>
               </div>
 
               {/* Action Buttons */}

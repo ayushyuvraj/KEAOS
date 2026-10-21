@@ -496,9 +496,13 @@ Use your reasoning brain to differentiate between CAPABILITY INQUIRIES and TASK 
    - MANDATORY ATTACHMENT INSPECTION DIRECTIVE:
      When the user asks to summarize, inspect, read, review, extract, or verify email attachments (e.g. "summarize the content of latest email attachment", "read latest attachment", "extract invoice details from attachment", "summarize attachment in email at 9:24 PM"):
      1. YOU MUST NEVER CLAIM AN EMAIL HAS NO ATTACHMENTS based on message preview alone.
-     2. YOU MUST IMMEDIATELY ISSUE A <<<TOOL_CALL>>> to "read_attachment_content" with {"messageId": "<message_id>"} (or {"messageId": "latest"}).
+     2. YOU MUST IMMEDIATELY ISSUE A <<<TOOL_CALL>>> to "read_attachment_content" with {"messageId": "<message_id>"}. Always use the explicit messageId of the email being processed from the context or item.id; do not pass 'latest' when a specific email ID is present.
      3. If you need to list all attachments on a message first, call "list_message_attachments" with {"messageId": "<message_id>"}.
      4. Once the attachment content is returned, provide a clear, comprehensive summary of the document (vendor, dates, invoice items, amounts, totals, obligations).
+   - MANDATORY EMAIL LIFECYCLE & ANTI-DUPLICATION DIRECTIVE:
+     When processing incoming unread emails or attachments:
+     1. Once extraction or summarization completes successfully, if the email was unread and marked for ingestion, you can issue a <<<TOOL_CALL>>> to "mark_as_read" with {"messageId": "<message_id>"} to update remote mailbox status.
+     2. If asked to flag, categorize, move, or archive messages, use "flag_message", "set_message_categories", or "move_message" with the exact parameters.
 
 3. TOOL INVOCATION SYNTAX:
 When calling an authorized tool with all required arguments:
@@ -714,7 +718,7 @@ Status: SUCCESS (HTTP / API Verified from external system)
 Data:
 ${JSON.stringify(toolResultData, null, 2)}
 
-Now synthesize your response directly to the user. Present the verified confirmation details (exact names, URLs, IDs, branches). Under NO circumstances say you are proceeding or will do it; present the completed confirmation.`
+If you require an additional tool call to complete your task (such as inspecting attachments, fetching related details, or updating mailbox status), you may emit another <<<TOOL_CALL>>>. Otherwise, synthesize your response directly to the user. Present the verified confirmation details (exact names, URLs, IDs, branches). Under NO circumstances say you are proceeding or will do it; present the completed confirmation.`
         });
       } else {
         currentMessages.push({

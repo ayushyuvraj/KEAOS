@@ -503,6 +503,11 @@ export default function CanvasExecutionDrawer({
   const chatBottomRef = useRef(null);
   const chatInputRef = useRef(null);
 
+  // Sequential FIFO Execution Queue for Multi-Item / Stream Ingress
+  const executionQueueRef = useRef([]);
+  const isProcessingQueueRef = useRef(false);
+  const [queueCount, setQueueCount] = useState(0);
+
   // Live timer while agent is reasoning / executing external tools
   useEffect(() => {
     let timer;
@@ -777,6 +782,24 @@ export default function CanvasExecutionDrawer({
       if (onExecutionStateChange) {
         onExecutionStateChange({ isExecuting: false, step: fleetSucceeded ? 'Complete' : 'Failed' });
       }
+
+      // Sequential FIFO Queue: Check if more items are waiting to be processed
+      setTimeout(() => {
+        if (executionQueueRef.current && executionQueueRef.current.length > 0) {
+          const nextItem = executionQueueRef.current.shift();
+          setQueueCount(executionQueueRef.current.length);
+          if (nextItem) {
+            if (nextItem.isMeetingUseCase) {
+              handleRunAgent(nextItem.initialContext);
+            } else {
+              handleRunFleetPipeline(nextItem.initialContext);
+            }
+          }
+        } else {
+          isProcessingQueueRef.current = false;
+          setQueueCount(0);
+        }
+      }, 200);
     }
   }, [isFleetRunning, nodes, edges, transcriptText, onExecutionStateChange, setIsExpanded, activeUseCase]);
 
@@ -871,6 +894,24 @@ export default function CanvasExecutionDrawer({
       if (onExecutionStateChange) {
         onExecutionStateChange({ isExecuting: false, step: executionSucceeded ? 'Complete' : 'Failed' });
       }
+
+      // Sequential FIFO Queue: Check if more items are waiting to be processed
+      setTimeout(() => {
+        if (executionQueueRef.current && executionQueueRef.current.length > 0) {
+          const nextItem = executionQueueRef.current.shift();
+          setQueueCount(executionQueueRef.current.length);
+          if (nextItem) {
+            if (nextItem.isMeetingUseCase) {
+              handleRunAgent(nextItem.initialContext);
+            } else {
+              handleRunFleetPipeline(nextItem.initialContext);
+            }
+          }
+        } else {
+          isProcessingQueueRef.current = false;
+          setQueueCount(0);
+        }
+      }, 200);
     }
   }, [
     isRunning, 
@@ -897,7 +938,26 @@ export default function CanvasExecutionDrawer({
       // Check whether this is specifically the Meeting Intelligence usecase with an Ingestion Node
       const hasIngestionNode = (nodes || []).some(n => n.type === 'ingestionNode');
       const isMeetingUseCase = activeUseCase?.id === 'meeting-intelligence' && hasIngestionNode;
+      const isCurrentlyBusy = isMeetingUseCase ? isRunning : isFleetRunning;
 
+      if (isCurrentlyBusy || isProcessingQueueRef.current) {
+        // Enqueue rather than silently dropping!
+        executionQueueRef.current.push({
+          specificAgentId,
+          initialContext,
+          isMeetingUseCase
+        });
+        setQueueCount(executionQueueRef.current.length);
+        if (onExecutionStateChange) {
+          onExecutionStateChange({
+            isExecuting: true,
+            step: `Queued item for sequential processing (${executionQueueRef.current.length} pending)`
+          });
+        }
+        return;
+      }
+
+      isProcessingQueueRef.current = true;
       if (isMeetingUseCase && (!allAgentNodes.length || allAgentNodes.length === 1)) {
         handleRunAgent(initialContext);
       } else {
@@ -906,7 +966,7 @@ export default function CanvasExecutionDrawer({
     };
     window.addEventListener('keaos:execute-workflow', handleExecuteTrigger);
     return () => window.removeEventListener('keaos:execute-workflow', handleExecuteTrigger);
-  }, [handleRunAgent, handleRunFleetPipeline, allAgentNodes.length, nodes, activeUseCase, setIsExpanded]);
+  }, [handleRunAgent, handleRunFleetPipeline, allAgentNodes.length, nodes, activeUseCase, setIsExpanded, isRunning, isFleetRunning, onExecutionStateChange]);
 
   // Listen for cancel execution / stop stream trigger
   useEffect(() => {

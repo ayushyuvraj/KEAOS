@@ -1,5 +1,3641 @@
 [
   {
+    "runId": "RUN-708901",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:41:48.901Z",
+    "durationMs": 24011,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "7f53e85ecd46875c0321c03e4fbd5c103c287b0f29fa8ed5f59cdf0ca86a48a7",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "feed645a7811ff93468c981ec14d716750dc924ec88e32ec53d7801d40a3d481",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 31354,
+      "promptTokens": 10974,
+      "completionTokens": 20380,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.23124,
+      "currency": "USD",
+      "humanMinutesSaved": 627,
+      "laborValueSavedUsd": 679.25,
+      "netRoiMultiplier": 2937
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 10974,
+        "completionTokens": 20380,
+        "totalTokens": 31354,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.23124,
+        "latencyMs": 23744,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 23744,
+        "costUsd": 0.23124,
+        "details": {
+          "promptTokens": 10974,
+          "completionTokens": 20380
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "7f53e85ecd46875c0321c03e4fbd5c103c287b0f29fa8ed5f59cdf0ca86a48a7"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The attachment \"dummy_invoice_consulting_services.docx\" from the email with the subject \"consulting\" has been successfully read and contains detailed financial information. Below is the structured data extracted from the document:\n\n```json\n{\n  \"invoiceDetails\": {\n    \"invoiceNumber\": \"SSA-2026-1087\",\n    \"invoiceDate\": \"October 20, 2026\",\n    \"dueDate\": \"Nov..."
+    }
+  },
+  {
+    "runId": "RUN-684890",
+    "workflowId": "workflow-4890",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:41:24.890Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "b9d5b4433ee949e2a8995cfcb156ad88a30b932db490f9c094221d78122bfad6",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "b9d5b4433ee949e2a8995cfcb156ad88a30b932db490f9c094221d78122bfad6"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-204117",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "interactive_chat",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:33:24.117Z",
+    "durationMs": 7147,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Canvas Co-Pilot Drawer"
+    },
+    "cryptography": {
+      "rootSha256": "324da6c0a8eab29f2c15ea4ab3aa07fa0919c4fe75ff02404546b89f6d9c4f1e",
+      "inputSha256": "5b5dedee32c5bd671f8d930b734993338d4192be1f63d0dfd64d1963586d7953",
+      "outputSha256": "a74241b486dc1ee7a947ac96fdf9f7b09867758abde5eca98f379584f835361b",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 12209,
+      "promptTokens": 4273,
+      "completionTokens": 7936,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.09004,
+      "currency": "USD",
+      "humanMinutesSaved": 244,
+      "laborValueSavedUsd": 264.33,
+      "netRoiMultiplier": 2936
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Enterprise Agent",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 4273,
+        "completionTokens": 7936,
+        "totalTokens": 12209,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.09004,
+        "latencyMs": 7147,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Canvas Co-Pilot Drawer",
+          "bytes": 9
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Enterprise Agent (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 7147,
+        "costUsd": 0.09004,
+        "details": {
+          "promptTokens": 4273,
+          "completionTokens": 7936
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "324da6c0a8eab29f2c15ea4ab3aa07fa0919c4fe75ff02404546b89f6d9c4f1e"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "try again",
+      "outputSnippet": "The latest two unread emails have been successfully marked as read. Here are the details:\n\n1. **Email ID**: `AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_gAAAA==`\n   - **Status**: Marked as Read\n\n2. **Email ID**: `AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibk..."
+    }
+  },
+  {
+    "runId": "RUN-774276",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:26:14.276Z",
+    "durationMs": 19046,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "13f514645de5d7f8a1feb20f977ba9bcdfdf4983a37642406f2818d675dce61a",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "61932270fab1e0ff66641f5012c6a8938526860127190fee80e68957313eb460",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 31390,
+      "promptTokens": 10987,
+      "completionTokens": 20403,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.2315,
+      "currency": "USD",
+      "humanMinutesSaved": 628,
+      "laborValueSavedUsd": 680.33,
+      "netRoiMultiplier": 2939
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 10987,
+        "completionTokens": 20403,
+        "totalTokens": 31390,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.2315,
+        "latencyMs": 18783,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 18783,
+        "costUsd": 0.2315,
+        "details": {
+          "promptTokens": 10987,
+          "completionTokens": 20403
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "13f514645de5d7f8a1feb20f977ba9bcdfdf4983a37642406f2818d675dce61a"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The attachment \"dummy_invoice_processing_sample.docx\" contains detailed invoice information. Below is the structured JSON output of the extracted data:\n\n```json\n{\n  \"invoice\": {\n    \"company\": {\n      \"name\": \"APEX CLOUD SOLUTIONS LLC\",\n      \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n      \"taxId\": \"84-2938471\",\n      \"..."
+    }
+  },
+  {
+    "runId": "RUN-755231",
+    "workflowId": "workflow-5231",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:25:55.231Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "44fe88e8cbb92a9dcbc8906ff7831837a6f31e5db57b27a61bcf3938db6814b7",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "44fe88e8cbb92a9dcbc8906ff7831837a6f31e5db57b27a61bcf3938db6814b7"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-713630",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:25:13.630Z",
+    "durationMs": 18389,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "99ab8bbf8ea3811d13d77c19c0f030ca620fb7b3e3f363cccb67829d2bff7653",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "7311f6acbeea6c93d234acdab0ebfedce8c269a0950969af738dc551833cb969",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 33673,
+      "promptTokens": 11786,
+      "completionTokens": 21887,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.24834,
+      "currency": "USD",
+      "humanMinutesSaved": 673,
+      "laborValueSavedUsd": 729.08,
+      "netRoiMultiplier": 2936
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 11786,
+        "completionTokens": 21887,
+        "totalTokens": 33673,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.24834,
+        "latencyMs": 18120,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 18120,
+        "costUsd": 0.24834,
+        "details": {
+          "promptTokens": 11786,
+          "completionTokens": 21887
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "99ab8bbf8ea3811d13d77c19c0f030ca620fb7b3e3f363cccb67829d2bff7653"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The content of the attachment \"Func.xlsx\" from Email 1 has been successfully extracted. Here is a summary of the relevant financial information contained within the document:\n\n### Summary of \"Func.xlsx\" Content:\n- **Report ID & Name:** Krungsri Inventory\n- **Business / Module Mode:** Static Deterministic\n- **Key Reports and Descriptions:**\n  1. **BOT Gap Rep..."
+    }
+  },
+  {
+    "runId": "RUN-695244",
+    "workflowId": "workflow-5244",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:24:55.244Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "b7e65476b0d9179a3725083c5eb7f665e6481c6393f21f357bce3bd83f1d0c55",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "b7e65476b0d9179a3725083c5eb7f665e6481c6393f21f357bce3bd83f1d0c55"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-680060",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:24:40.060Z",
+    "durationMs": 225306,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "31158ada0ae91bdbbd8d692f56f1b3d5f0c812d22624fb010aa973d0fd6395b2",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "fbf9b3159304e44b620d1340bc1d6b239d7b7cd58472ac33bfaa051b35eeccae",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 31664,
+      "promptTokens": 11082,
+      "completionTokens": 20582,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.23353,
+      "currency": "USD",
+      "humanMinutesSaved": 633,
+      "laborValueSavedUsd": 685.75,
+      "netRoiMultiplier": 2936
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 11082,
+        "completionTokens": 20582,
+        "totalTokens": 31664,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.23353,
+        "latencyMs": 225036,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 225036,
+        "costUsd": 0.23353,
+        "details": {
+          "promptTokens": 11082,
+          "completionTokens": 20582
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "31158ada0ae91bdbbd8d692f56f1b3d5f0c812d22624fb010aa973d0fd6395b2"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The attachment \"dummy_invoice_processing_sample.docx\" from the email with the subject \"Fwd: test mail\" has been successfully read. Below is the structured data extracted from the document, which contains detailed financial information:\n\n### Extracted Invoice Details\n\n```json\n{\n  \"invoice\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Tech..."
+    }
+  },
+  {
+    "runId": "RUN-659281",
+    "workflowId": "workflow-9281",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:24:19.281Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "8bd3e290df98df01afdb20260d140dc058ca15f8cc5cf8b8a122aed5c036e8aa",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "8bd3e290df98df01afdb20260d140dc058ca15f8cc5cf8b8a122aed5c036e8aa"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-574760",
+    "workflowId": "workflow-4760",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:22:54.760Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "37fa2451f31af235f47e7c94e13c9b9e9619eee7ba5fd3bc124094ec4e280df9",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "37fa2451f31af235f47e7c94e13c9b9e9619eee7ba5fd3bc124094ec4e280df9"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-454755",
+    "workflowId": "workflow-4755",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:20:54.755Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "892c33808adb5ef81feee7c6e72022c7b12b56ec483469665f3120e7696e1e37",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "892c33808adb5ef81feee7c6e72022c7b12b56ec483469665f3120e7696e1e37"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-420761",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:20:20.761Z",
+    "durationMs": 325991,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "62a99f528df0e38974e52a57363741300ea918717aa0a17ac28e1b3f1696f31b",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "daab356c701551acdb51e4ee825cf667563d03a92221b2bf7949db21c375328c",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 37688,
+      "promptTokens": 13191,
+      "completionTokens": 24497,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.27795,
+      "currency": "USD",
+      "humanMinutesSaved": 754,
+      "laborValueSavedUsd": 816.83,
+      "netRoiMultiplier": 2939
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 13191,
+        "completionTokens": 24497,
+        "totalTokens": 37688,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.27795,
+        "latencyMs": 325282,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 325282,
+        "costUsd": 0.27795,
+        "details": {
+          "promptTokens": 13191,
+          "completionTokens": 24497
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "62a99f528df0e38974e52a57363741300ea918717aa0a17ac28e1b3f1696f31b"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "It appears that the execution handler for marking emails as read is not configured on the Microsoft Outlook 365 server. As a result, I am unable to mark the email as read at this time. \n\n### Action Items\n- **Manual Intervention Required:** Please manually mark the email with subject \"Fwd: test mail\" as read in your Outlook inbox to prevent it from being proc..."
+    }
+  },
+  {
+    "runId": "RUN-334757",
+    "workflowId": "workflow-4757",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:18:54.757Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "6e94e1d1979deca8a09604a346919ef9c26d112f148dec089f788255ab6a781e",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "6e94e1d1979deca8a09604a346919ef9c26d112f148dec089f788255ab6a781e"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-274793",
+    "workflowId": "workflow-4793",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:17:54.793Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "296ede4e1fa16ea3faa21adda408136a339ab0ee4d4da1cb2a44c6ffb9b57e61",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "296ede4e1fa16ea3faa21adda408136a339ab0ee4d4da1cb2a44c6ffb9b57e61"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-154765",
+    "workflowId": "workflow-4765",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:15:54.765Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "00edc7618a3b62f304f49cb630cea6616feae398d39496fe3d256d1c1a877980",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "00edc7618a3b62f304f49cb630cea6616feae398d39496fe3d256d1c1a877980"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-094788",
+    "workflowId": "workflow-4788",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:14:54.788Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "bbf2fa3a69797e0a7014301cbd14f48bb9d6779bfbf0eb9b6cf441a9aa8fe2b7",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "bbf2fa3a69797e0a7014301cbd14f48bb9d6779bfbf0eb9b6cf441a9aa8fe2b7"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-001765",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:13:21.765Z",
+    "durationMs": 327008,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "33498b9267d4ef4289267ae7440ccf92d3064061ea2a34dc62e1cc2379b03538",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "95b3d5dc5e945d7fa67fec94c1f020c48ddec05ad2fb44b1a98a4eb899c15280",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 29716,
+      "promptTokens": 10401,
+      "completionTokens": 19315,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.21915,
+      "currency": "USD",
+      "humanMinutesSaved": 594,
+      "laborValueSavedUsd": 643.5,
+      "netRoiMultiplier": 2936
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 10401,
+        "completionTokens": 19315,
+        "totalTokens": 29716,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.21915,
+        "latencyMs": 326021,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 326021,
+        "costUsd": 0.21915,
+        "details": {
+          "promptTokens": 10401,
+          "completionTokens": 19315
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "33498b9267d4ef4289267ae7440ccf92d3064061ea2a34dc62e1cc2379b03538"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The attachment \"dummy_invoice_processing_sample.docx\" from the email with the subject \"Fwd: test mail\" has been successfully read and contains detailed invoice information. Below is the structured data extracted from the document:\n\n### Invoice Details\n\n```json\n{\n  \"invoice\": {\n    \"issuer\": {\n      \"name\": \"APEX CLOUD SOLUTIONS LLC\",\n      \"address\": \"100 Te..."
+    }
+  },
+  {
+    "runId": "RUN-974766",
+    "workflowId": "workflow-4766",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:12:54.766Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "664af69d52c4819793c743122f1e3182a35b01fc8f6238e4f79f23b8c31e693e",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "664af69d52c4819793c743122f1e3182a35b01fc8f6238e4f79f23b8c31e693e"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-914767",
+    "workflowId": "workflow-4767",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:11:54.767Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "11c7b04a22ed23d74c3c8a8a1b9f2adf12e7053441c2eb49ef95ade8c3f2ae0b",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "11c7b04a22ed23d74c3c8a8a1b9f2adf12e7053441c2eb49ef95ade8c3f2ae0b"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-794759",
+    "workflowId": "workflow-4759",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:09:54.759Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "6f051439c43a1755e96eba8ffec5412e45b2052c8baf4c13bf6d15f71a8b300b",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "6f051439c43a1755e96eba8ffec5412e45b2052c8baf4c13bf6d15f71a8b300b"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-674757",
+    "workflowId": "workflow-4757",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:07:54.757Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "580aae97e82f771a486f552a668111cc636de20ded1f304bfff38c7f76f4e18f",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "580aae97e82f771a486f552a668111cc636de20ded1f304bfff38c7f76f4e18f"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-642783",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:07:22.783Z",
+    "durationMs": 161034,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "6f054695f17a84ba64ac87a38ef53db13582e325dad4013658ae9c8e517ed834",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "edf91089db30e8861e1edcbc04f3a7031403b1a94117588c52d5011ae2b819da",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 29693,
+      "promptTokens": 10393,
+      "completionTokens": 19300,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.21898,
+      "currency": "USD",
+      "humanMinutesSaved": 594,
+      "laborValueSavedUsd": 643.5,
+      "netRoiMultiplier": 2939
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 10393,
+        "completionTokens": 19300,
+        "totalTokens": 29693,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.21898,
+        "latencyMs": 160007,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 160007,
+        "costUsd": 0.21898,
+        "details": {
+          "promptTokens": 10393,
+          "completionTokens": 19300
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "6f054695f17a84ba64ac87a38ef53db13582e325dad4013658ae9c8e517ed834"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The attachment \"dummy_invoice_processing_sample.docx\" from the email with the subject \"Fwd: test mail\" has been successfully read. Below is the structured data extracted from the document, which contains detailed invoice information:\n\n```json\n{\n  \"invoiceDetails\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Technology Parkway, Suite 450,..."
+    }
+  },
+  {
+    "runId": "RUN-603750",
+    "workflowId": "workflow-3750",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:06:43.750Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "3c7f679c9b36159c7a9cfb4159c6a39982171b21d8322de2b7b766c140991c31",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "3c7f679c9b36159c7a9cfb4159c6a39982171b21d8322de2b7b766c140991c31"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-542748",
+    "workflowId": "workflow-2748",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:05:42.748Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "9ed77f8b5b4c9dbeb84b1c1a6412762e0ca157adb859e9c8a361125a00c44819",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "9ed77f8b5b4c9dbeb84b1c1a6412762e0ca157adb859e9c8a361125a00c44819"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-481749",
+    "workflowId": "workflow-1749",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:04:41.749Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "351c0f7ffa67ea69d03633a30eb02c440d709c21346cf62cdcc8e6f86bc831ee",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "351c0f7ffa67ea69d03633a30eb02c440d709c21346cf62cdcc8e6f86bc831ee"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-453750",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:04:13.750Z",
+    "durationMs": 32951,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "a276442eb12a67e680838dc4da943fa6418b25f093f6e72cd7c52698bae2571a",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "077a2d241c739116156b8adc7febb92dec8391f459fef3d60fd7e012553bf6c2",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 29030,
+      "promptTokens": 10161,
+      "completionTokens": 18869,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.21409,
+      "currency": "USD",
+      "humanMinutesSaved": 581,
+      "laborValueSavedUsd": 629.42,
+      "netRoiMultiplier": 2940
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 10161,
+        "completionTokens": 18869,
+        "totalTokens": 29030,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.21409,
+        "latencyMs": 31956,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 31956,
+        "costUsd": 0.21409,
+        "details": {
+          "promptTokens": 10161,
+          "completionTokens": 18869
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "a276442eb12a67e680838dc4da943fa6418b25f093f6e72cd7c52698bae2571a"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The attachment `dummy_invoice_processing_sample.docx` from the email contains detailed invoice information. Below is the structured data extracted from the document:\n\n```json\n{\n  \"invoiceDetails\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n    \"taxId\": \"84-2938471\",\n    \"v..."
+    }
+  },
+  {
+    "runId": "RUN-420799",
+    "workflowId": "workflow-0799",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:03:40.799Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "5ddfcadbcbb4c2682dbaa8b94d7f433a7af11df3c692cd451ef0e1f295475169",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "5ddfcadbcbb4c2682dbaa8b94d7f433a7af11df3c692cd451ef0e1f295475169"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-395352",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:03:15.352Z",
+    "durationMs": 35599,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "c1a77784c8c8a9a4e2db0e6bf552d1072f543c02c7016ea39758f42cf2fbe2bf",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "c138b2234c0c6690061ec7a7d700ccc96b1940decb79fa79686ded7e40b43398",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 37115,
+      "promptTokens": 12990,
+      "completionTokens": 24125,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.27372,
+      "currency": "USD",
+      "humanMinutesSaved": 742,
+      "laborValueSavedUsd": 803.83,
+      "netRoiMultiplier": 2937
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 12990,
+        "completionTokens": 24125,
+        "totalTokens": 37115,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.27372,
+        "latencyMs": 35331,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 35331,
+        "costUsd": 0.27372,
+        "details": {
+          "promptTokens": 12990,
+          "completionTokens": 24125
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "c1a77784c8c8a9a4e2db0e6bf552d1072f543c02c7016ea39758f42cf2fbe2bf"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The email with the subject \"Fwd: test mail\" has been successfully marked as read. Here is a summary of the processed email and the extracted invoice details:\n\n### Processed Email Summary\n- **Subject:** Fwd: test mail\n- **From:** Ayush Yuvraj (ayushyuvraj31@gmail.com)\n- **Received Date:** 2026-10-21T18:50:41Z\n- **Has Attachments:** Yes\n- **Attachment Name:** ..."
+    }
+  },
+  {
+    "runId": "RUN-359755",
+    "workflowId": "workflow-9755",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T19:02:39.755Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "75a37ac10ae50523274cf2348bbbeb97ada3b864fce65d3e28d886f83939c33e",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "75a37ac10ae50523274cf2348bbbeb97ada3b864fce65d3e28d886f83939c33e"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-986702",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "interactive_chat",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T18:56:26.702Z",
+    "durationMs": 10724,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Canvas Co-Pilot Drawer"
+    },
+    "cryptography": {
+      "rootSha256": "6fa9353ceead0df0766bb6d53d8e877dd75a35b330cea8b8ed3f413a62045d61",
+      "inputSha256": "c7a4df6bd1c6c95602e34ad8a7a2ca2bb29246996d3bd0695cde9e022b5572a3",
+      "outputSha256": "4c55711d6aacfeee93c858da0cb01abeadc336d2bfee6ac19288d04209b1173b",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 19788,
+      "promptTokens": 6926,
+      "completionTokens": 12862,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.14594,
+      "currency": "USD",
+      "humanMinutesSaved": 396,
+      "laborValueSavedUsd": 429,
+      "netRoiMultiplier": 2940
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Enterprise Agent",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 6926,
+        "completionTokens": 12862,
+        "totalTokens": 19788,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.14594,
+        "latencyMs": 10724,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Canvas Co-Pilot Drawer",
+          "bytes": 32
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Enterprise Agent (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 10724,
+        "costUsd": 0.14594,
+        "details": {
+          "promptTokens": 6926,
+          "completionTokens": 12862
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "6fa9353ceead0df0766bb6d53d8e877dd75a35b330cea8b8ed3f413a62045d61"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "mark my latest 2 emaails as read",
+      "outputSnippet": "It seems that the tool to directly update the read status of an email is not available in the current set of tools. However, I can move the emails to a different folder, such as \"Read\" or \"Processed,\" which can serve as an alternative way to manage them.\n\nWould you like me to move these emails to a specific folder to indicate they have been processed? If so,..."
+    }
+  },
+  {
+    "runId": "RUN-889422",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T18:54:49.422Z",
+    "durationMs": 49021,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "e3a25196374da9bddbafe73c92694d72cb50999b335d5d38ecf557d743f01fac",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "98f6b04b6d754de4741afa63bba1951f027a0b03c6096e429dc3f6114406aa18",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 29795,
+      "promptTokens": 10428,
+      "completionTokens": 19367,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.21974,
+      "currency": "USD",
+      "humanMinutesSaved": 596,
+      "laborValueSavedUsd": 645.67,
+      "netRoiMultiplier": 2938
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 10428,
+        "completionTokens": 19367,
+        "totalTokens": 29795,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.21974,
+        "latencyMs": 48751,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 48751,
+        "costUsd": 0.21974,
+        "details": {
+          "promptTokens": 10428,
+          "completionTokens": 19367
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "e3a25196374da9bddbafe73c92694d72cb50999b335d5d38ecf557d743f01fac"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The attachment \"dummy_invoice_processing_sample.docx\" from the email with the subject \"Fwd: test mail\" has been successfully read. Below is the structured data extracted from the document, which contains detailed invoice information:\n\n```json\n{\n  \"invoice\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Technology Parkway, Suite 450, Austin..."
+    }
+  },
+  {
+    "runId": "RUN-840421",
+    "workflowId": "workflow-0421",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T18:54:00.421Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "363e7dbc05d91b715a1473fab52f55c0ed8b655352e39620694f338422c9830b",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "363e7dbc05d91b715a1473fab52f55c0ed8b655352e39620694f338422c9830b"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-103294",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T09:48:23.294Z",
+    "durationMs": 19713,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "13386b01eba7509047e0573291aa18a651911e2bd6c79ebb669dc5f3cc4273eb",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "6408497d0d89b9326ce53c79e6ae3e11d8cbae1908a96bb8e38eb65222340655",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 20638,
+      "promptTokens": 7223,
+      "completionTokens": 13415,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.15221,
+      "currency": "USD",
+      "humanMinutesSaved": 413,
+      "laborValueSavedUsd": 447.42,
+      "netRoiMultiplier": 2939
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 7223,
+        "completionTokens": 13415,
+        "totalTokens": 20638,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.15221,
+        "latencyMs": 19446,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 19446,
+        "costUsd": 0.15221,
+        "details": {
+          "promptTokens": 7223,
+          "completionTokens": 13415
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "13386b01eba7509047e0573291aa18a651911e2bd6c79ebb669dc5f3cc4273eb"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "The attachment from the email with subject \"Fwd: test mail\" has been successfully processed. Below is the structured data extracted from the invoice document:\n\n### Invoice Details\n\n- **Invoice Number:** INV-2026-08492\n- **Invoice Date:** October 14, 2026\n- **Due Date:** November 13, 2026\n- **PO Number:** PO-99214-X\n- **Payment Terms:** Net 30 Days\n- **Curren..."
+    }
+  },
+  {
+    "runId": "RUN-083581",
+    "workflowId": "workflow-3581",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T09:48:03.581Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "988c4131128ef6ec5f7671f02a14c4d76beb235bf0e680a90e31849696e895a3",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "988c4131128ef6ec5f7671f02a14c4d76beb235bf0e680a90e31849696e895a3"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
+    "runId": "RUN-045482",
+    "workflowId": "uc-outlook-intelligence",
+    "workflowName": "Outlook Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T09:47:25.482Z",
+    "durationMs": 7383,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "aae1504a1f6be8674f4c532e3cbed4ff3671b8431358df8f73146e65d59ab11d",
+      "inputSha256": "971dc161f713e51bbf962da26fc5d5c5fa43e70b83874c6a5e19767399411112",
+      "outputSha256": "e6ccf72a5bc55255cddc2c6916113418516feece1e106359a4d0b15141d8ee4f",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 4624,
+      "promptTokens": 1618,
+      "completionTokens": 3006,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.03411,
+      "currency": "USD",
+      "humanMinutesSaved": 92,
+      "laborValueSavedUsd": 99.67,
+      "netRoiMultiplier": 2922
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Mail & Attachment Extractor",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 1618,
+        "completionTokens": 3006,
+        "totalTokens": 4624,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.03411,
+        "latencyMs": 7120,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 53
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Mail & Attachment Extractor (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 7120,
+        "costUsd": 0.03411,
+        "details": {
+          "promptTokens": 1618,
+          "completionTokens": 3006
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "aae1504a1f6be8674f4c532e3cbed4ff3671b8431358df8f73146e65d59ab11d"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{\n  \"source\": \"cron_scheduler\",\n  \"scheduled\": true\n}",
+      "outputSnippet": "It appears that the authentication token for accessing the Microsoft Outlook 365 service has expired. This prevents me from listing or inspecting new messages in the inbox. To resolve this issue, please refresh the authentication token by signing in again with Microsoft credentials in the Outlook MCP node settings. Once the token is refreshed, I can proceed ..."
+    }
+  },
+  {
+    "runId": "RUN-038099",
+    "workflowId": "workflow-8099",
+    "workflowName": "Custom Workflow",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-10-21T09:47:18.099Z",
+    "durationMs": 1,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "6ba094e7a3d8b5538b2a57c5fb72c0d18b0860aedd81312d6ea81f78545ec4f4",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "cachedTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Workflow Agent",
+        "provider": "standard",
+        "modelId": "runtime-engine",
+        "displayName": "Standard Engine",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "ratePromptPerM": 0,
+        "rateCompletionPerM": 0,
+        "costUsd": 0,
+        "latencyMs": 0,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Visual Canvas Editor",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Workflow Agent (Standard Engine)",
+        "component": "runtime-engine",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 0,
+        "costUsd": 0,
+        "details": {
+          "promptTokens": 0,
+          "completionTokens": 0
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "6ba094e7a3d8b5538b2a57c5fb72c0d18b0860aedd81312d6ea81f78545ec4f4"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": ""
+    }
+  },
+  {
     "runId": "RUN-434243",
     "workflowId": "uc-outlook-intelligence",
     "workflowName": "Outlook Intelligence",

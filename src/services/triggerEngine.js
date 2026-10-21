@@ -257,6 +257,55 @@ export function disarmPollingWatcher(nodeId) {
 // Active Outlook MCP Stream Watchers Registry (Key: nodeId)
 const activeOutlookWatchers = new Map();
 
+const WATERMARK_STORAGE_PREFIX = 'keaos_stream_watermark_';
+
+/**
+ * Retrieves the persistent list of processed message IDs for a given trigger node from localStorage
+ */
+export function getPersistentWatermark(nodeId) {
+  if (!nodeId || typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(`${WATERMARK_STORAGE_PREFIX}${nodeId}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Records a message ID as processed in persistent storage (capped at 500 entries)
+ */
+export function recordProcessedMessage(nodeId, messageId) {
+  if (!nodeId || !messageId || typeof window === 'undefined') return;
+  try {
+    const current = getPersistentWatermark(nodeId);
+    if (!current.includes(messageId)) {
+      const updated = [messageId, ...current].slice(0, 500);
+      localStorage.setItem(`${WATERMARK_STORAGE_PREFIX}${nodeId}`, JSON.stringify(updated));
+    }
+  } catch (e) {
+    console.warn('Failed to record persistent watermark:', e);
+  }
+}
+
+/**
+ * Clears persistent watermark cache for a given trigger node
+ */
+export function clearWatermarkCache(nodeId) {
+  if (!nodeId || typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(`${WATERMARK_STORAGE_PREFIX}${nodeId}`);
+  } catch (e) {
+    console.warn('Failed to clear watermark cache:', e);
+  }
+  if (activeOutlookWatchers.has(nodeId)) {
+    const w = activeOutlookWatchers.get(nodeId);
+    if (w.seenItemIds) w.seenItemIds.clear();
+  }
+}
+
 /**
  * Arms an Outlook MCP Stream Watcher with Zero-Trust Gateway enforcement
  * and Discrete Batch Queue processing (N incoming items -> N discrete downstream rows).
@@ -269,7 +318,8 @@ export function armOutlookStreamWatcher(nodeId, {
   filter = '',
   search = '',
   unreadFilter = 'unread_only', // 'unread_only' | 'all' | 'read_only'
-  attachmentFilter = 'any' // 'any' | 'require_attachments' | 'no_attachments'
+  attachmentFilter = 'any', // 'any' | 'require_attachments' | 'no_attachments'
+  autoMarkAsRead = true
 }) {
   disarmOutlookStreamWatcher(nodeId);
 
@@ -301,7 +351,10 @@ export function armOutlookStreamWatcher(nodeId, {
     effectiveFilter = parts.join(' and ');
   }
 
-  const seenItemIds = new Set();
+  // Seed seenItemIds from persistent watermark cache
+  const initialWatermarks = getPersistentWatermark(nodeId);
+  const seenItemIds = new Set(initialWatermarks);
+
   const watcherState = {
     nodeId,
     stream,
@@ -312,6 +365,8 @@ export function armOutlookStreamWatcher(nodeId, {
     unreadFilter,
     attachmentFilter,
     effectiveFilter,
+    autoMarkAsRead,
+    seenItemIds,
     intervalId: null,
     isArmed: true,
     lastPolledAt: null,
@@ -372,18 +427,22 @@ export function armOutlookStreamWatcher(nodeId, {
 
       // Filter out already processed items using watermarking
       const newItems = rawItems.filter(item => item && item.id && !seenItemIds.has(item.id));
-      newItems.forEach(item => seenItemIds.add(item.id));
 
       if (newItems.length === 0) {
         // Idle check: Zero tokens consumed, zero downstream events fired
         return;
       }
 
+      // Sort chronologically: oldest unread first up to latest
+      newItems.sort((a, b) => new Date(a.receivedDateTime || 0) - new Date(b.receivedDateTime || 0));
+
       // DISCRETE QUEUE FAN-OUT:
       // If N items arrive in this interval, dispatch each one independently so downstream
       // agents and tabular sinks process them as N individual rows without mixing or jumbling!
       for (let idx = 0; idx < newItems.length; idx++) {
         const item = newItems[idx];
+        seenItemIds.add(item.id);
+        recordProcessedMessage(nodeId, item.id);
         watcherState.processedCount++;
 
         const discretePayload = {
@@ -419,6 +478,15 @@ export function armOutlookStreamWatcher(nodeId, {
             stream
           }
         }));
+
+        // Auto-mark email as read on remote Microsoft Graph API if enabled and capability is permitted
+        if (autoMarkAsRead && outlookServer && outlookServer.config?.token && (stream === 'inbox' || stream === 'sentitems' || stream === 'drafts')) {
+          try {
+            await executeRealMcpTool(outlookServer, 'mark_as_read', { messageId: item.id }, { disabledTools: watcherState.disabledTools });
+          } catch (markErr) {
+            console.warn(`[Auto-mark-as-read Notice]: ${markErr.message}`);
+          }
+        }
 
         // Allow 350ms delay between queued items for orderly sequential row ingestion
         if (idx < newItems.length - 1) {
@@ -571,8 +639,9 @@ export async function fireTriggerEvent({
                              (stream === 'tasks') ? 'list_tasks' :
                              (stream === 'contacts') ? 'list_contacts' : 'list_messages';
 
+          const maxBatch = cfg.maxBatchSize || triggerNode.data?.maxBatchSize || 25;
           const callArgs = {
-            limit: 1,
+            limit: Math.min(50, maxBatch),
             expandAttachments: true
           };
           if (isMailStream) callArgs.folder = folder;
@@ -583,9 +652,84 @@ export async function fireTriggerEvent({
             server: { transport: 'outlook-api', config: { token } },
             args: callArgs
           });
-          const items = liveResult?.value || liveResult?.messages || liveResult?.events || [];
-          if (items.length > 0) {
-            mcpLiveItem = items[0];
+          const rawItems = liveResult?.value || liveResult?.messages || liveResult?.events || [];
+
+          // Filter out already processed items using persistent watermark cache
+          const seenWatermark = new Set(getPersistentWatermark(triggerId));
+          const unreadItems = rawItems.filter(item => item && item.id && !seenWatermark.has(item.id));
+
+          // Sort chronologically: oldest unread first up to latest, so they process in order of arrival
+          unreadItems.sort((a, b) => new Date(a.receivedDateTime || 0) - new Date(b.receivedDateTime || 0));
+
+          if (unreadItems.length > 0) {
+            const firstItem = unreadItems[0];
+            mcpLiveItem = firstItem;
+
+            // Record watermark for first item
+            recordProcessedMessage(triggerId, firstItem.id);
+
+            const autoMark = cfg.autoMarkAsRead !== false && triggerNode.data?.autoMarkAsRead !== false;
+            if (autoMark && isMailStream) {
+              executeRealMcpTool({
+                toolName: 'mark_as_read',
+                server: { transport: 'outlook-api', config: { token } },
+                args: { messageId: firstItem.id }
+              }).catch(err => console.warn('Auto-mark error:', err));
+            }
+
+            // If multiple unread emails arrived, enqueue remaining items (1..N-1) into the FIFO execution queue
+            if (unreadItems.length > 1) {
+              setTimeout(async () => {
+                for (let idx = 1; idx < unreadItems.length; idx++) {
+                  const item = unreadItems[idx];
+                  const discretePayload = {
+                    source: 'outlook_mcp_stream',
+                    stream,
+                    batchIndex: idx + 1,
+                    batchTotal: unreadItems.length,
+                    item: {
+                      id: item.id,
+                      subject: item.subject || `Notification #${item.id}`,
+                      sender: item.from?.emailAddress?.address || item.from || 'sender@enterprise.corp',
+                      receivedDateTime: item.receivedDateTime || item.sentDateTime || item.createdDateTime || new Date().toISOString(),
+                      hasAttachments: Boolean(item.hasAttachments || (item.attachments && item.attachments.length > 0)),
+                      attachmentsCount: item.attachments?.length || 0,
+                      attachments: Array.isArray(item.attachments) ? item.attachments.map(att => ({
+                        id: att.id,
+                        name: att.name,
+                        contentType: att.contentType,
+                        sizeBytes: att.size,
+                        isInline: Boolean(att.isInline)
+                      })) : [],
+                      bodyPreview: item.bodyPreview || item.body?.content || ''
+                    }
+                  };
+
+                  recordProcessedMessage(triggerId, item.id);
+                  if (autoMark && isMailStream) {
+                    executeRealMcpTool({
+                      toolName: 'mark_as_read',
+                      server: { transport: 'outlook-api', config: { token } },
+                      args: { messageId: item.id }
+                    }).catch(err => console.warn('Auto-mark error:', err));
+                  }
+
+                  window.dispatchEvent(new CustomEvent('keaos:fire-trigger-node', {
+                    detail: {
+                      nodeId: triggerId,
+                      triggerType: triggerNode.data?.triggerType || 'poll',
+                      payloadText: JSON.stringify(discretePayload, null, 2),
+                      batchIndex: idx + 1,
+                      batchTotal: unreadItems.length,
+                      stream
+                    }
+                  }));
+
+                  // Brief yield between queueing
+                  await new Promise(r => setTimeout(r, 100));
+                }
+              }, 60);
+            }
           }
         }
       } catch (err) {
