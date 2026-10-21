@@ -262,12 +262,14 @@ const activeOutlookWatchers = new Map();
  * and Discrete Batch Queue processing (N incoming items -> N discrete downstream rows).
  */
 export function armOutlookStreamWatcher(nodeId, {
-  stream = 'inbox', // 'inbox' | 'sentitems' | 'calendar' | 'tasks' | 'contacts'
+  stream = 'inbox', // 'inbox' | 'sentitems' | 'drafts' | 'calendar' | 'tasks' | 'contacts'
   intervalSeconds = 60,
   maxBatchSize = 25,
   disabledTools = [],
   filter = '',
-  search = ''
+  search = '',
+  unreadFilter = 'unread_only', // 'unread_only' | 'all' | 'read_only'
+  attachmentFilter = 'any' // 'any' | 'require_attachments' | 'no_attachments'
 }) {
   disarmOutlookStreamWatcher(nodeId);
 
@@ -282,6 +284,23 @@ export function armOutlookStreamWatcher(nodeId, {
     throw new Error(errorMsg);
   }
 
+  // Construct dynamic OData filter from declarative settings if custom filter is not provided
+  let effectiveFilter = filter || '';
+  if (!effectiveFilter && (stream === 'inbox' || stream === 'sentitems' || stream === 'drafts')) {
+    const parts = [];
+    if (unreadFilter === 'unread_only') {
+      parts.push('isRead eq false');
+    } else if (unreadFilter === 'read_only') {
+      parts.push('isRead eq true');
+    }
+    if (attachmentFilter === 'require_attachments') {
+      parts.push('hasAttachments eq true');
+    } else if (attachmentFilter === 'no_attachments') {
+      parts.push('hasAttachments eq false');
+    }
+    effectiveFilter = parts.join(' and ');
+  }
+
   const seenItemIds = new Set();
   const watcherState = {
     nodeId,
@@ -290,6 +309,9 @@ export function armOutlookStreamWatcher(nodeId, {
     maxBatchSize,
     requiredTool,
     disabledTools,
+    unreadFilter,
+    attachmentFilter,
+    effectiveFilter,
     intervalId: null,
     isArmed: true,
     lastPolledAt: null,
@@ -314,31 +336,31 @@ export function armOutlookStreamWatcher(nodeId, {
 
       if (outlookServer && outlookServer.config?.token) {
         try {
-          if (stream === 'inbox' || stream === 'sentitems') {
-            const folderName = stream === 'sentitems' ? 'sentitems' : 'inbox';
+          if (stream === 'inbox' || stream === 'sentitems' || stream === 'drafts') {
+            const folderName = stream === 'sentitems' ? 'sentitems' : (stream === 'drafts' ? 'drafts' : 'inbox');
             const pollArgs = {
               folder: folderName,
               limit: Math.min(50, maxBatchSize || 25),
-              filter: filter || (stream === 'inbox' ? 'isRead eq false' : ''),
               expandAttachments: true
             };
+            if (effectiveFilter) pollArgs.filter = effectiveFilter;
             if (search) pollArgs.search = search;
 
-            const res = await executeRealMcpTool(outlookServer, 'list_messages', pollArgs, { disabledTools });
+            const res = await executeRealMcpTool(outlookServer, 'list_messages', pollArgs, { disabledTools: watcherState.disabledTools });
             if (res && Array.isArray(res.value)) {
               rawItems = res.value;
             }
           } else if (stream === 'calendar') {
             const res = await executeRealMcpTool(outlookServer, 'list_events', {
               limit: Math.min(50, maxBatchSize || 25)
-            }, { disabledTools });
+            }, { disabledTools: watcherState.disabledTools });
             if (res && Array.isArray(res.value)) {
               rawItems = res.value;
             }
           } else if (stream === 'tasks') {
             const res = await executeRealMcpTool(outlookServer, 'list_tasks', {
               limit: Math.min(50, maxBatchSize || 25)
-            }, { disabledTools });
+            }, { disabledTools: watcherState.disabledTools });
             if (res && Array.isArray(res.value)) {
               rawItems = res.value;
             }
@@ -531,14 +553,39 @@ export async function fireTriggerEvent({
         const mcpNode = (nodes || []).find(n => (n.data?.name || '').toLowerCase().includes('outlook') || n.data?.serviceName === 'Outlook');
         const token = mcpNode?.data?.config?.token || creds?.accessToken;
         if (token) {
+          const cfg = triggerNode.data?.config || triggerNode.data || {};
+          const stream = cfg.streamType || 'inbox';
+          const folder = stream === 'sentitems' ? 'sentitems' : (stream === 'drafts' ? 'drafts' : 'inbox');
+          const unreadFilter = cfg.unreadFilter || (cfg.unreadOnly ? 'unread_only' : 'all');
+          const attachmentFilter = cfg.attachmentFilter || 'any';
+
+          const parts = [];
+          if (unreadFilter === 'unread_only') parts.push('isRead eq false');
+          else if (unreadFilter === 'read_only') parts.push('isRead eq true');
+          if (attachmentFilter === 'require_attachments') parts.push('hasAttachments eq true');
+          else if (attachmentFilter === 'no_attachments') parts.push('hasAttachments eq false');
+          const liveFilter = parts.join(' and ');
+
+          const isMailStream = stream === 'inbox' || stream === 'sentitems' || stream === 'drafts';
+          const toolToCall = (stream === 'calendar') ? 'list_events' :
+                             (stream === 'tasks') ? 'list_tasks' :
+                             (stream === 'contacts') ? 'list_contacts' : 'list_messages';
+
+          const callArgs = {
+            limit: 1,
+            expandAttachments: true
+          };
+          if (isMailStream) callArgs.folder = folder;
+          if (liveFilter) callArgs.filter = liveFilter;
+
           const liveResult = await executeRealMcpTool({
-            toolName: 'list_messages',
+            toolName: toolToCall,
             server: { transport: 'outlook-api', config: { token } },
-            args: { limit: 1 }
+            args: callArgs
           });
-          const messages = liveResult?.value || liveResult?.messages || [];
-          if (messages.length > 0) {
-            mcpLiveItem = messages[0];
+          const items = liveResult?.value || liveResult?.messages || liveResult?.events || [];
+          if (items.length > 0) {
+            mcpLiveItem = items[0];
           }
         }
       } catch (err) {
@@ -708,9 +755,15 @@ export async function fireTriggerEvent({
 
     // TARGET B: AI Agent Core (Dispatches into multi-agent DAG)
     else if (target.type === 'agentCore') {
-      const formattedContext = typeof parsedPayload === 'string'
+      let formattedContext = typeof parsedPayload === 'string'
         ? parsedPayload
         : (parsedPayload.transcript || parsedPayload.text || parsedPayload.data || JSON.stringify(parsedPayload, null, 2));
+
+      // Preserve natural language ingress criteria or directive if specified on trigger node
+      const triggerDirective = triggerNode.data?.directive || triggerNode.data?.prompt || triggerNode.data?.naturalLanguagePrompt;
+      if (triggerDirective && typeof triggerDirective === 'string' && triggerDirective.trim()) {
+        formattedContext = `[TRIGGER DIRECTIVE / RELEVANCE CRITERIA]:\n"${triggerDirective.trim()}"\n\n[INGESTED STREAM PAYLOAD]:\n${formattedContext}`;
+      }
 
       window.dispatchEvent(new CustomEvent('keaos:ingestion-updated', {
         detail: { content: formattedContext, nodeId: triggerId }

@@ -71,11 +71,18 @@ export default function TriggerInspectorPanel({
   const [isPollingActive, setIsPollingActive] = useState(Boolean(triggerConfig.isPollingActive));
 
   // MCP Stream & Zero-Trust Gateway Ingress state
+  const outlookMcpNode = (nodes || []).find(n => 
+    n.type === 'pillar' && n.data?.pillarType === 'mcp' && 
+    (n.data?.serviceName === 'Outlook' || n.data?.name?.toLowerCase().includes('outlook'))
+  );
   const defaultSubMode = triggerConfig.pollSubMode || 
-    (nodeData?.name?.toLowerCase().includes('outlook') ? 'stream' : 
-     (triggerConfig.endpointUrl || triggerType === 'poll' ? 'rest' : 'stream'));
+    (nodeData?.name?.toLowerCase().includes('outlook') || nodeData?.name?.toLowerCase().includes('stream') || Boolean(outlookMcpNode) ? 'stream' : 
+     (triggerConfig.endpointUrl ? 'rest' : 'stream'));
   const [pollSubMode, setPollSubMode] = useState(defaultSubMode); // 'stream' | 'rest'
-  const [streamType, setStreamType] = useState(triggerConfig.streamType || 'inbox'); // 'inbox' | 'sentitems' | 'calendar' | 'tasks' | 'contacts'
+  const [streamType, setStreamType] = useState(triggerConfig.streamType || 'inbox'); // 'inbox' | 'sentitems' | 'drafts' | 'calendar' | 'tasks' | 'contacts'
+  const [unreadFilter, setUnreadFilter] = useState(triggerConfig.unreadFilter || (triggerConfig.unreadOnly === false ? 'all' : 'unread_only'));
+  const [attachmentFilter, setAttachmentFilter] = useState(triggerConfig.attachmentFilter || 'any');
+  const [naturalLanguageDirective, setNaturalLanguageDirective] = useState(nodeData?.directive || nodeData?.prompt || triggerConfig.naturalLanguagePrompt || '');
   const [batchMode, setBatchMode] = useState(triggerConfig.batchMode !== false);
   const [maxBatchSize, setMaxBatchSize] = useState(triggerConfig.maxBatchSize || 25);
   const [isSimulatingBatch, setIsSimulatingBatch] = useState(false);
@@ -89,10 +96,6 @@ export default function TriggerInspectorPanel({
     ? gatewayNode.data.disabledTools 
     : (Array.isArray(gatewayNode?.disabledTools) ? gatewayNode.disabledTools : []);
 
-  const outlookMcpNode = (nodes || []).find(n => 
-    n.type === 'pillar' && n.data?.pillarType === 'mcp' && 
-    (n.data?.serviceName === 'Outlook' || n.data?.name?.toLowerCase().includes('outlook'))
-  );
   const isMcpDeactivated = Boolean(outlookMcpNode?.data?.isDeactivated);
   const isGatewayDeactivated = Boolean(gatewayNode?.data?.isDeactivated);
   const isUnavailable = isMcpDeactivated || isGatewayDeactivated;
@@ -106,6 +109,7 @@ export default function TriggerInspectorPanel({
   // Stream capability permissions governed by Gateway & MCP active state
   const isInboxPermitted = !isUnavailable && !disabledTools.includes('list_messages');
   const isSentItemsPermitted = !isUnavailable && !disabledTools.includes('list_messages');
+  const isDraftsPermitted = !isUnavailable && !disabledTools.includes('list_messages');
   const isCalendarPermitted = !isUnavailable && !disabledTools.includes('list_events');
   const isTasksPermitted = !isUnavailable && !disabledTools.includes('list_tasks');
   const isContactsPermitted = !isUnavailable && !disabledTools.includes('list_contacts');
@@ -148,18 +152,25 @@ export default function TriggerInspectorPanel({
     if (cfg.pollSubMode) {
       setPollSubMode(cfg.pollSubMode);
     } else {
-      const derived = (selectedNode?.data?.name?.toLowerCase().includes('outlook')) ? 'stream' : 
-                      (cfg.endpointUrl || triggerType === 'poll' ? 'rest' : 'stream');
+      const hasOutlook = Boolean((nodes || []).find(n => n.type === 'pillar' && n.data?.pillarType === 'mcp' && (n.data?.serviceName === 'Outlook' || n.data?.name?.toLowerCase().includes('outlook'))));
+      const derived = (selectedNode?.data?.name?.toLowerCase().includes('outlook') || selectedNode?.data?.name?.toLowerCase().includes('stream') || hasOutlook) ? 'stream' : 
+                      (cfg.endpointUrl ? 'rest' : 'stream');
       setPollSubMode(derived);
     }
     if (cfg.endpointUrl !== undefined) setPollEndpoint(cfg.endpointUrl);
     if (cfg.pollIntervalSeconds !== undefined) setPollInterval(cfg.pollIntervalSeconds);
     if (cfg.deduplicateWatermark !== undefined) setPollWatermark(cfg.deduplicateWatermark);
     if (cfg.streamType) setStreamType(cfg.streamType);
+    if (cfg.unreadFilter !== undefined) setUnreadFilter(cfg.unreadFilter);
+    else if (cfg.unreadOnly !== undefined) setUnreadFilter(cfg.unreadOnly ? 'unread_only' : 'all');
+    if (cfg.attachmentFilter !== undefined) setAttachmentFilter(cfg.attachmentFilter);
+    if (selectedNode?.data?.directive || cfg.naturalLanguagePrompt) {
+      setNaturalLanguageDirective(selectedNode.data.directive || cfg.naturalLanguagePrompt);
+    }
     if (cfg.batchMode !== undefined) setBatchMode(cfg.batchMode);
     if (cfg.maxBatchSize !== undefined) setMaxBatchSize(cfg.maxBatchSize);
     if (cfg.isPollingActive !== undefined) setIsPollingActive(Boolean(cfg.isPollingActive));
-  }, [selectedNode?.id, selectedNode?.data?.config, triggerType]);
+  }, [selectedNode?.id, selectedNode?.data?.config, selectedNode?.data?.name, triggerType, nodes]);
 
   // Dispatch fire trigger event
   const fireTrigger = (payloadTextOverride = null) => {
@@ -327,7 +338,9 @@ export default function TriggerInspectorPanel({
             stream: streamType,
             intervalSeconds: pollInterval,
             maxBatchSize,
-            disabledTools
+            disabledTools,
+            unreadFilter,
+            attachmentFilter
           });
           setIsPollingActive(true);
           onUpdateNodeData(selectedNode.id, {
@@ -336,9 +349,13 @@ export default function TriggerInspectorPanel({
               isPollingActive: true,
               pollSubMode: 'stream',
               streamType,
+              unreadFilter,
+              attachmentFilter,
+              naturalLanguagePrompt: naturalLanguageDirective,
               pollIntervalSeconds: pollInterval,
               maxBatchSize
-            }
+            },
+            directive: naturalLanguageDirective
           });
         } catch (err) {
           alert(`❌ ${err.message}`);
@@ -384,13 +401,17 @@ export default function TriggerInspectorPanel({
       endpointUrl: pollEndpoint,
       deduplicateWatermark: pollWatermark,
       streamType,
+      unreadFilter,
+      attachmentFilter,
+      naturalLanguagePrompt: naturalLanguageDirective,
       batchMode,
       maxBatchSize
     };
 
     if (onUpdateNodeData) {
       onUpdateNodeData(selectedNode.id, {
-        config: updatedConfig
+        config: updatedConfig,
+        directive: naturalLanguageDirective
       });
     }
 
@@ -403,7 +424,9 @@ export default function TriggerInspectorPanel({
             stream: streamType,
             intervalSeconds: pollInterval,
             maxBatchSize,
-            disabledTools
+            disabledTools,
+            unreadFilter,
+            attachmentFilter
           });
         } catch (err) {
           console.warn('Failed to re-arm stream watcher:', err);
@@ -483,12 +506,30 @@ export default function TriggerInspectorPanel({
 
       if (token) {
         try {
+          const folder = streamType === 'sentitems' ? 'sentitems' : (streamType === 'drafts' ? 'drafts' : 'inbox');
+          const isMail = streamType === 'inbox' || streamType === 'sentitems' || streamType === 'drafts';
+          const parts = [];
+          if (unreadFilter === 'unread_only') parts.push('isRead eq false');
+          else if (unreadFilter === 'read_only') parts.push('isRead eq true');
+          if (attachmentFilter === 'require_attachments') parts.push('hasAttachments eq true');
+          else if (attachmentFilter === 'no_attachments') parts.push('hasAttachments eq false');
+          const testFilter = parts.join(' and ');
+
+          const toolToCall = (streamType === 'calendar') ? 'list_events' :
+                             (streamType === 'tasks') ? 'list_tasks' :
+                             (streamType === 'contacts') ? 'list_contacts' : 'list_messages';
+
           const liveResult = await executeRealMcpTool({
-            toolName: 'list_messages',
+            toolName: toolToCall,
             server: { transport: 'outlook-api', config: { token } },
-            args: { limit: maxBatchSize || 5 }
+            args: {
+              ...(isMail ? { folder } : {}),
+              limit: maxBatchSize || 5,
+              ...(testFilter ? { filter: testFilter } : {}),
+              expandAttachments: true
+            }
           });
-          const items = liveResult?.value || liveResult?.messages || [];
+          const items = liveResult?.value || liveResult?.messages || liveResult?.events || [];
           if (Array.isArray(items) && items.length > 0) {
             realBatch = items;
           }
@@ -974,8 +1015,9 @@ export default function TriggerInspectorPanel({
                 <div className="space-y-1">
                   {[
                     { key: 'inbox', label: '📥 Inbox (Incoming Mail)', tool: 'list_messages', permitted: isInboxPermitted },
-                    { key: 'sentitems', label: '📤 Sent Items (User & Auto-Generated)', tool: 'list_messages', permitted: isSentItemsPermitted },
-                    { key: 'calendar', label: '📅 Calendar (Meeting Invites)', tool: 'list_events', permitted: isCalendarPermitted },
+                    { key: 'sentitems', label: '📤 Sent Items (Outbound Mail)', tool: 'list_messages', permitted: isSentItemsPermitted },
+                    { key: 'drafts', label: '📝 Drafts (Pending & Unsent)', tool: 'list_messages', permitted: isDraftsPermitted },
+                    { key: 'calendar', label: '📅 Calendar (Meeting Invites & Reminders)', tool: 'list_events', permitted: isCalendarPermitted },
                     { key: 'tasks', label: '☑️ Tasks & To-Do Lists', tool: 'list_tasks', permitted: isTasksPermitted },
                     { key: 'contacts', label: '👥 Contacts Directory', tool: 'list_contacts', permitted: isContactsPermitted }
                   ].map(s => (
@@ -1011,6 +1053,106 @@ export default function TriggerInspectorPanel({
                   ))}
                 </div>
               </div>
+
+              {/* Declarative Filter Controls for Mail Streams */}
+              {['inbox', 'sentitems', 'drafts'].includes(streamType) && (
+                <div className="space-y-2 pt-1 border-t border-slate-700/30">
+                  {/* Unread / Read Filter */}
+                  <div className={`p-2 border rounded-none ${t.subCard} border ${t.border} space-y-1.5`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-300 font-bold' : 'text-slate-700 font-bold'}`}>
+                        Read / Unread Policy
+                      </span>
+                      <span className="text-[9.5px] font-mono text-emerald-400 font-semibold">
+                        {unreadFilter === 'unread_only' ? 'isRead eq false' : unreadFilter === 'read_only' ? 'isRead eq true' : 'All Messages'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { id: 'unread_only', label: 'Unread Only' },
+                        { id: 'all', label: 'All Mails' },
+                        { id: 'read_only', label: 'Read Only' }
+                      ].map(f => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => {
+                            setUnreadFilter(f.id);
+                            updateTriggerConfig({ unreadFilter: f.id, unreadOnly: f.id === 'unread_only' });
+                          }}
+                          className={`py-1 px-1.5 text-[10px] font-mono border rounded-none transition-all text-center ${
+                            unreadFilter === f.id
+                              ? 'bg-[#009A44] text-white border-emerald-400 font-bold shadow-sm'
+                              : isDarkMode
+                                ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                          }`}
+                        >
+                          {unreadFilter === f.id ? '✓ ' : ''}{f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Attachment Requirement Filter */}
+                  <div className={`p-2 border rounded-none ${t.subCard} border ${t.border} space-y-1.5`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-300 font-bold' : 'text-slate-700 font-bold'}`}>
+                        Attachment Requirement
+                      </span>
+                      <span className="text-[9.5px] font-mono text-[#0091DA] font-semibold">
+                        {attachmentFilter === 'require_attachments' ? 'Files Required' : attachmentFilter === 'no_attachments' ? 'No Files' : 'Any Mail'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { id: 'any', label: 'Any Mail' },
+                        { id: 'require_attachments', label: 'With Files' },
+                        { id: 'no_attachments', label: 'No Files' }
+                      ].map(af => (
+                        <button
+                          key={af.id}
+                          type="button"
+                          onClick={() => {
+                            setAttachmentFilter(af.id);
+                            updateTriggerConfig({ attachmentFilter: af.id });
+                          }}
+                          className={`py-1 px-1.5 text-[10px] font-mono border rounded-none transition-all text-center ${
+                            attachmentFilter === af.id
+                              ? 'bg-[#00338D] text-white border-[#0091DA] font-bold shadow-sm'
+                              : isDarkMode
+                                ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                          }`}
+                        >
+                          {attachmentFilter === af.id ? '✓ ' : ''}{af.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Natural Language Ingress Directive */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-mono uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Natural Language Criteria (Passed to LLM)
+                      </span>
+                      <span className="text-[9.5px] font-mono text-[#00A3A6]">Zero Waste Triage</span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={naturalLanguageDirective}
+                      onChange={(e) => {
+                        setNaturalLanguageDirective(e.target.value);
+                        updateTriggerConfig({ naturalLanguagePrompt: e.target.value });
+                        if (onUpdateNodeData) onUpdateNodeData(selectedNode.id, { directive: e.target.value });
+                      }}
+                      placeholder="e.g. Only process emails regarding invoices, POs, or vendor bills; skip newsletters."
+                      className={`w-full p-2 text-[10.5px] font-mono rounded-none ${t.input} resize-y leading-relaxed`}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Polling Interval Presets */}
               <div className="space-y-1">

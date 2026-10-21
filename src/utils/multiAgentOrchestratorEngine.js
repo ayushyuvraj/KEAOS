@@ -5,6 +5,17 @@ import {
 import { getEpisodicMemoryStore } from './meetingSimulatorEngine';
 import { calculateInferenceCost } from '../services/modelPricingService';
 import { recordWorkflowExecution } from '../services/unifiedAuditService';
+import { executeRealMcpTool, getRegisteredMcpServers } from '../services/mcpClientService';
+import { parseToolCallFromText, findToolInCatalog } from './universalAgentEngine';
+import {
+  identifyMcpService,
+  getOfficialMcpTools,
+  GITHUB_OFFICIAL_ACTIONS,
+  SLACK_OFFICIAL_ACTIONS,
+  JIRA_OFFICIAL_ACTIONS,
+  NEO4J_OFFICIAL_ACTIONS,
+  OUTLOOK_OFFICIAL_ACTIONS
+} from '../constants/mcpOfficialCatalogs';
 
 /**
  * Universal SHA-256 Audit Fingerprint Generator (W3C WebCrypto)
@@ -133,12 +144,20 @@ export function getAgentAttachedPillars(agentId, nodes = [], edges = []) {
     if (!src || src.data?.isDeactivated || src.type === 'agentCore') return null;
     return {
       id: src.data.toolId || src.id,
+      nodeId: src.id,
       name: src.data.name,
+      displayName: src.data.displayName || src.data.name,
       type: src.data.pillarType,
       config: src.data.config || {},
+      disabledTools: src.data.disabledTools || src.data.config?.disabledTools || [],
+      tools: src.data.tools || [],
+      basis: src.data.basis || {},
+      transport: src.data.transport || src.data.config?.transport,
+      serviceName: src.data.serviceName,
       customDirective: src.data.customDirective || null,
       referenceDoc: src.data.referenceDoc || null,
-      handle: e.targetHandle
+      handle: e.targetHandle,
+      data: src.data
     };
   }).filter(Boolean);
 }
@@ -241,13 +260,131 @@ async function executeSingleAgentInPipeline({
     }
   }
 
-  // 4. SKILLS & MCP PROTOCOL TOOLS
+  // 4. SKILLS, GATEWAY & MCP PROTOCOL TOOLS
   const skillNodes = attachedPillars.filter(p => p.type === 'skills');
-  const mcpNodes = attachedPillars.filter(p => p.type === 'mcp');
   const toolNodes = attachedPillars.filter(p => p.type === 'tools');
 
+  // Resolve Gateway Node & Zero-Trust Perimeter Checks
+  const gatewayNode = attachedPillars.find(p => p.type === 'gateway');
+  const disabledTools = Array.isArray(gatewayNode?.disabledTools)
+    ? gatewayNode.disabledTools
+    : (Array.isArray(gatewayNode?.config?.disabledTools)
+      ? gatewayNode.config.disabledTools
+      : (Array.isArray(gatewayNode?.data?.disabledTools) ? gatewayNode.data.disabledTools : []));
+
+  if (gatewayNode) {
+    let gwMsg = `Zero-Trust Ingress/Egress Gateway active.`;
+    if (disabledTools.length > 0) {
+      gwMsg += ` Perimeter enforcement: ${disabledTools.length} tool(s) blocked.`;
+    }
+    await logStep('Ingress & Egress Gateway', gwMsg, 'gateway', 250);
+  }
+
+  // Resolve MCP servers (directly attached or wired via Gateway)
+  let mcpNodes = attachedPillars.filter(p => p.type === 'mcp');
+
+  if (gatewayNode) {
+    const gatewayIncomingEdges = (allEdges || []).filter(e => e.target === gatewayNode.nodeId || e.target === gatewayNode.id);
+    const nodeLookup = Object.fromEntries((allNodes || []).map(n => [n.id, n]));
+    const gatewayUpstreamMcps = gatewayIncomingEdges
+      .map(e => nodeLookup[e.source])
+      .filter(src => src && src.data?.pillarType === 'mcp' && !src.data?.isDeactivated)
+      .map(src => ({
+        id: src.data.toolId || src.id,
+        nodeId: src.id,
+        name: src.data.name,
+        displayName: src.data.displayName || src.data.name,
+        type: 'mcp',
+        config: src.data.config || {},
+        disabledTools: src.data.disabledTools || src.data.config?.disabledTools || [],
+        tools: src.data.tools || [],
+        basis: src.data.basis || {},
+        transport: src.data.transport || src.data.config?.transport,
+        serviceName: src.data.serviceName,
+        data: src.data
+      }));
+
+    for (const gwMcp of gatewayUpstreamMcps) {
+      if (!mcpNodes.some(m => m.id === gwMcp.id || m.nodeId === gwMcp.nodeId)) {
+        mcpNodes.push(gwMcp);
+      }
+    }
+  }
+
+  // Fallback: If no MCP nodes are directly attached to this agent or its gateway, check canvas MCPs
+  if (mcpNodes.length === 0) {
+    const canvasMcps = (allNodes || []).filter(n => n.type === 'pillar' && n.data?.pillarType === 'mcp' && !n.data?.isDeactivated);
+    for (const src of canvasMcps) {
+      mcpNodes.push({
+        id: src.data.toolId || src.id,
+        nodeId: src.id,
+        name: src.data.name,
+        displayName: src.data.displayName || src.data.name,
+        type: 'mcp',
+        config: src.data.config || {},
+        disabledTools: src.data.disabledTools || src.data.config?.disabledTools || [],
+        tools: src.data.tools || [],
+        basis: src.data.basis || {},
+        transport: src.data.transport || src.data.config?.transport,
+        serviceName: src.data.serviceName,
+        data: src.data
+      });
+    }
+  }
+
+  // Merge with registered MCP server credentials & official catalog tools
+  const allSavedMcps = getRegisteredMcpServers();
+  const availableToolsMap = new Map();
+
+  for (const m of mcpNodes) {
+    if (!m.config?.token || !m.transport || !m.tools?.length) {
+      const matching = (allSavedMcps || []).find(s => 
+        s.id === m.id || 
+        s.name === m.name || 
+        s.displayName === m.displayName || 
+        (s.basis?.username && s.basis.username === m.basis?.username)
+      );
+      if (matching) {
+        m.config = { ...(matching.config || {}), ...(m.config || {}) };
+        m.transport = m.transport || matching.transport || 'outlook-api';
+        m.serviceName = m.serviceName || matching.serviceName;
+        if (!m.tools?.length && matching.tools?.length) m.tools = matching.tools;
+        if (!m.basis && matching.basis) m.basis = matching.basis;
+      }
+    }
+
+    const sName = identifyMcpService(m, m.nodeId || m.id);
+    if (sName === 'outlook' && (!m.tools || m.tools.length < OUTLOOK_OFFICIAL_ACTIONS.length)) {
+      m.tools = OUTLOOK_OFFICIAL_ACTIONS;
+    } else if (sName === 'github' && (!m.tools || m.tools.length < GITHUB_OFFICIAL_ACTIONS.length)) {
+      m.tools = GITHUB_OFFICIAL_ACTIONS;
+    } else if (sName === 'slack' && (!m.tools || m.tools.length < SLACK_OFFICIAL_ACTIONS.length)) {
+      m.tools = SLACK_OFFICIAL_ACTIONS;
+    } else if (sName === 'jira' && (!m.tools || m.tools.length < JIRA_OFFICIAL_ACTIONS.length)) {
+      m.tools = JIRA_OFFICIAL_ACTIONS;
+    } else if (sName === 'neo4j' && (!m.tools || m.tools.length < NEO4J_OFFICIAL_ACTIONS.length)) {
+      m.tools = NEO4J_OFFICIAL_ACTIONS;
+    } else if (!m.tools || m.tools.length === 0) {
+      const official = getOfficialMcpTools(m);
+      if (official.length > 0) m.tools = official;
+    }
+
+    const isServerDeactivated = Boolean(m.isDeactivated || m.data?.isDeactivated);
+    const tools = m.tools || m.data?.tools || [];
+    for (const t of tools) {
+      const isBlocked = isServerDeactivated || disabledTools.includes(t.name);
+      availableToolsMap.set(t.name.toLowerCase(), {
+        tool: t,
+        toolName: t.name,
+        mcpServer: m,
+        isBlocked,
+        isServerDeactivated
+      });
+    }
+  }
+
   if (mcpNodes.length > 0) {
-    await logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} active MCP servers (${mcpNodes.map(m => m.name).join(', ')}).`, 'mcp', 320);
+    await logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} active MCP servers with ${availableToolsMap.size} capabilities (${mcpNodes.map(m => m.displayName || m.name).join(', ')}).`, 'mcp', 320);
   }
 
   if (skillNodes.length > 0) {
@@ -265,9 +402,48 @@ async function executeSingleAgentInPipeline({
         return txt;
       }).join('\n')}`
     : '';
+
   const mcpContext = mcpNodes.length > 0
-    ? `\n[CONNECTED MCP PROTOCOL SERVERS]:\n${mcpNodes.map(m => `- ${m.name}`).join('\n')}`
+    ? `\n[CONNECTED MCP PROTOCOL SERVERS & CAPABILITY PERIMETER (Zero-Trust Gateway Enforced)]:
+The following Model Context Protocol (MCP) servers are wired to this agent. You have authenticated access to these external systems and their live tools through the Ingress/Egress Gateway.
+
+${mcpNodes.map((m, idx) => {
+  const isServerDeactivated = Boolean(m.isDeactivated || m.data?.isDeactivated);
+  const allTools = m.tools || m.data?.tools || [];
+  const activeTools = isServerDeactivated ? [] : allTools.filter(t => !disabledTools.includes(t.name));
+  const blockedTools = isServerDeactivated ? allTools : allTools.filter(t => disabledTools.includes(t.name));
+  const b = m.basis || m.data?.basis || {};
+
+  let text = `MCP Server ${idx + 1}: "${m.displayName || m.name}" (${m.serviceName || m.transport || 'API Protocol'})\n`;
+  if (b.accountEmail) text += `  - Account Mailbox: ${b.accountEmail}\n`;
+  if (b.authenticatedAs || b.username) text += `  - Authenticated Identity: ${b.authenticatedAs || b.username}\n`;
+  text += `  - PERMITTED TOOLS (${activeTools.length} enabled at Gateway):\n${activeTools.map(t => {
+    const props = t.inputSchema?.properties ? Object.keys(t.inputSchema.properties) : [];
+    const paramsStr = props.length > 0 ? ` [parameters: ${props.join(', ')}]` : '';
+    return `    • \`${t.name}\`${paramsStr}: ${t.description || t.displayName || 'Tool action'}`;
+  }).join('\n') || '    (None enabled)'}\n`;
+  if (blockedTools.length > 0) {
+    text += `  - BLOCKED TOOLS AT GATEWAY PERIMETER (${blockedTools.length} disabled by operator):\n${blockedTools.map(t => `    • \`${t.name}\`: BLOCKED by Gateway Zero-Trust policy`).join('\n')}\n`;
+  }
+  return text;
+}).join('\n\n')}
+
+[TOOL EXECUTION & SYNTAX PROTOCOL]:
+When querying external systems or inspecting live state (e.g. reading emails, checking attachments, listing items), issue the tool call immediately using this exact format:
+<<<TOOL_CALL>>>
+{
+  "tool": "<tool_name>",
+  "arguments": {
+    "<param_key>": "<param_value>"
+  }
+}
+<<<END_TOOL_CALL>>>
+If a tool is listed under BLOCKED TOOLS, do not attempt to call it. Explain that it is blocked at the Gateway perimeter.
+When summarizing or extracting data from incoming emails and attachments:
+1. Call "read_attachment_content" with {"messageId": "<message_id>"} if attachments are present.
+2. Once verified tool output is returned, output the final structured record with clear fields.`
     : '';
+
   const memoryPrompt = memoryContext ? `\n[HISTORICAL EPISODIC MEMORY]:\n${memoryContext}` : '';
 
   const fullSystemPrompt = `${basePrompt}${roleContext}${skillsContext}${mcpContext}${memoryPrompt}
@@ -328,23 +504,122 @@ You are participating in an institutional multi-agent workflow. Review all upstr
     350
   );
 
-  // 7. INFERENCE DISPATCH (LIVE GENUINE API ONLY - ZERO CANNED SIMULATIONS)
+  // 7. INFERENCE DISPATCH & AUTONOMOUS REACT TOOL LOOP
   let responseText = '';
   let totalTokens = 0;
   let modelLatency = 0;
 
-  try {
-    const chatResult = await executeUniversalChat({
-      provider,
-      modelId,
-      systemPrompt: fullSystemPrompt,
-      messages: [{ role: 'user', content: processedInput }],
-      temperature: agentNode.data?.temperature ?? 0.2
-    });
+  let currentMessages = [
+    { role: 'user', content: processedInput }
+  ];
+  const MAX_TOOL_STEPS = 4;
+  let toolStepCount = 0;
 
-    responseText = chatResult.text;
-    totalTokens = chatResult.totalTokens;
-    modelLatency = chatResult.durationMs;
+  try {
+    while (toolStepCount < MAX_TOOL_STEPS) {
+      toolStepCount++;
+      const chatResult = await executeUniversalChat({
+        provider,
+        modelId,
+        systemPrompt: fullSystemPrompt,
+        messages: currentMessages,
+        temperature: agentNode.data?.temperature ?? 0.1
+      });
+
+      const rawText = chatResult.text || '';
+      totalTokens += chatResult.totalTokens || 0;
+      modelLatency += chatResult.durationMs || 0;
+
+      const toolCall = parseToolCallFromText(rawText);
+      if (!toolCall) {
+        responseText = rawText;
+        break;
+      }
+
+      const { toolName, args } = toolCall;
+      const toolEntry = findToolInCatalog(toolName, availableToolsMap);
+
+      if (!toolEntry) {
+        await logStep('Tool Lookup Failed', `Tool "${toolName}" was not found across connected MCP servers.`, 'mcp', 100);
+        currentMessages.push({ role: 'assistant', content: rawText });
+        currentMessages.push({
+          role: 'user',
+          content: `[TOOL EXECUTION ERROR]: Tool "${toolName}" is not registered on any connected MCP server. Available tools: ${Array.from(availableToolsMap.keys()).join(', ')}.`
+        });
+        continue;
+      }
+
+      const { tool, mcpServer, isBlocked } = toolEntry;
+
+      // Zero-Trust Gateway Perimeter Check
+      if (isBlocked || disabledTools.includes(toolName)) {
+        await logStep(
+          'Gateway Policy Violation',
+          `Tool "${toolName}" BLOCKED by Zero-Trust Egress Gateway.`,
+          'gateway',
+          150
+        );
+        currentMessages.push({ role: 'assistant', content: rawText });
+        currentMessages.push({
+          role: 'user',
+          content: `[GATEWAY POLICY VIOLATION]: Execution of tool "${toolName}" was BLOCKED at the Gateway perimeter by operator Zero-Trust policy. Explain this security constraint.`
+        });
+        continue;
+      }
+
+      // Execute real MCP tool
+      await logStep(
+        'Live MCP Tool Execution',
+        `Executing "${toolName}" on ${mcpServer.displayName || mcpServer.name}...`,
+        'mcp',
+        300
+      );
+
+      let executionSuccess = false;
+      let toolResultData = null;
+
+      try {
+        toolResultData = await executeRealMcpTool(mcpServer, toolName, args, { disabledTools });
+        executionSuccess = true;
+        await logStep(
+          'Live MCP Tool Complete',
+          `Tool "${toolName}" executed successfully. Received response.`,
+          'mcp',
+          200
+        );
+      } catch (execErr) {
+        console.error(`MCP Tool "${toolName}" execution error in orchestrator:`, execErr);
+        await logStep(
+          'Live MCP Tool Failed',
+          `Execution error: ${execErr.message}`,
+          'mcp',
+          150
+        );
+        toolResultData = { error: execErr.message };
+      }
+
+      currentMessages.push({
+        role: 'assistant',
+        content: rawText || `<<<TOOL_CALL>>>\n{\n  "tool": "${toolName}",\n  "arguments": ${JSON.stringify(args, null, 2)}\n}\n<<<END_TOOL_CALL>>>`
+      });
+
+      if (executionSuccess) {
+        currentMessages.push({
+          role: 'user',
+          content: `[VERIFIED TOOL RESULT FOR "${toolName}"]:\n${typeof toolResultData === 'string' ? toolResultData : JSON.stringify(toolResultData, null, 2)}\n\nReview this result and synthesize your final output.`
+        });
+      } else {
+        currentMessages.push({
+          role: 'user',
+          content: `[TOOL EXECUTION FAILED FOR "${toolName}"]: ${toolResultData?.error || 'Unknown error'}. Please handle this gracefully.`
+        });
+      }
+    }
+
+    if (!responseText && currentMessages.length > 0) {
+      const lastAssistantMsg = [...currentMessages].reverse().find(m => m.role === 'assistant');
+      responseText = lastAssistantMsg?.content || 'Execution completed.';
+    }
   } catch (err) {
     console.error(`Live inference failed for ${agentName}:`, err);
     throw new Error(`Model Inference Failed (${PROVIDERS[provider]?.name || provider} ${modelId}): ${err.message}. Please configure API credentials in Settings.`);

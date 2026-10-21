@@ -90,7 +90,7 @@ export function parseToolCallFromText(text) {
 /**
  * Normalizes tool name resolution across all connected MCP servers.
  */
-function findToolInCatalog(requestedName, availableToolsMap) {
+export function findToolInCatalog(requestedName, availableToolsMap) {
   if (!requestedName || !availableToolsMap) return null;
   const clean = requestedName.toLowerCase().trim().replace(/[-]/g, '_');
 

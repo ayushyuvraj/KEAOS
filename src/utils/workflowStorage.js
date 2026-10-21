@@ -544,6 +544,265 @@ export function createOutlookStreamWorkflow() {
 }
 
 /**
+ * Pre-configured Outlook Intelligence workflow with zero-token autonomous ingress,
+ * strict Zero-Trust Gateway enforcement, and ReAct tool-calling.
+ */
+export function createOutlookIntelligenceWorkflow() {
+  const fw = FRAMEWORKS.find(f => f.id === 'microsoft-adk') || FRAMEWORKS[0];
+
+  const initialNodes = [
+    // 1. Ingress Trigger Node (Stream Watcher, 60px Origin Disc)
+    {
+      id: 'node-trigger-outlook-intel',
+      type: 'triggerNode',
+      position: { x: 140, y: 220 },
+      data: {
+        name: 'Outlook Stream Watcher',
+        triggerType: 'poll',
+        pollSubMode: 'stream',
+        streamType: 'inbox',
+        unreadFilter: 'unread_only',
+        attachmentFilter: 'any',
+        pollIntervalSeconds: 60,
+        maxBatchSize: 20,
+        isPollingActive: false,
+        lastStatus: 'idle',
+        label: 'OUTLOOK STREAM'
+      }
+    },
+    // 2. Central AI Agent Core
+    {
+      id: 'agent-core',
+      type: 'agentCore',
+      position: { x: 520, y: 165 },
+      data: {
+        name: 'Mail & Attachment Extractor',
+        framework: fw,
+        prompt: 'You are an institutional Mail & Attachment Intelligence Agent. On each trigger pulse, query the connected Outlook MCP to inspect incoming emails and attachments. Evaluate relevance (invoice line items, financial details, obligations), decode any attached documents, and output structured records in clean JSON format.',
+        temperature: 0.1,
+        topP: 0.95,
+        attachedCounts: {
+          model: 1,
+          skills: 1,
+          gateway: 1,
+          tools: 1
+        }
+      }
+    },
+    // 3. Foundation Model Node (Positioned at Top-Center)
+    {
+      id: 'node-model-outlook-intel',
+      type: 'pillar',
+      position: { x: 564, y: -20 },
+      data: {
+        pillarType: 'model',
+        name: 'OpenAI (gpt-4o)',
+        description: 'High-reasoning foundation model with function calling and strict schema guarantees.',
+        config: { provider: 'openai', modelId: 'gpt-4o', temperature: 0.1, topP: 0.95 }
+      }
+    },
+    // 4. MCP Egress Gateway (Positioned at Top-Right)
+    {
+      id: 'node-mcp-gw-intel',
+      type: 'pillar',
+      position: { x: 780, y: -20 },
+      data: {
+        pillarType: 'gateway',
+        itemId: 'gw-mcp-controller',
+        name: 'MCP Egress Gateway',
+        description: 'Zero-trust capability mediator. Filters and permits only verified Microsoft 365 tools.',
+        config: { gatewayType: 'mcp-egress', auditAllActions: true, disabledTools: [] }
+      }
+    },
+    // 5. Official Microsoft Outlook 365 MCP Server (Positioned above/right of Gateway)
+    {
+      id: 'node-mcp-outlook-intel',
+      type: 'pillar',
+      position: { x: 1060, y: -20 },
+      data: {
+        pillarType: 'mcp',
+        title: 'Microsoft Outlook 365',
+        name: 'Microsoft Outlook 365',
+        displayName: 'Microsoft Outlook 365',
+        subtitle: 'HTTP/SSE',
+        description: `Official Microsoft 365 Outlook Mail, Calendar & Attachments integration with ${OUTLOOK_OFFICIAL_ACTIONS.length} verified actions.`,
+        config: {},
+        tools: OUTLOOK_OFFICIAL_ACTIONS,
+        serviceName: 'Outlook',
+        transport: 'sse',
+        isRealMcp: true
+      }
+    },
+    // 6. Specialized Skills Node (Bottom Right)
+    {
+      id: 'node-skill-outlook-intel',
+      type: 'pillar',
+      position: { x: 750, y: 440 },
+      data: {
+        pillarType: 'skills',
+        name: 'Attachment & Data Extractor',
+        description: 'Decodes Base64 attachments, extracts invoice line items, and formats tabular records.',
+        config: { format: 'tabular_json', extractAttachments: true }
+      }
+    },
+    // 7. Deterministic Box / Table Normalizer (Zero-token compute)
+    {
+      id: 'node-deterministic-outlook-intel',
+      type: 'deterministicNode',
+      position: { x: 800, y: 220 },
+      data: {
+        name: 'Row & Schema Normalizer',
+        prompt: 'Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)',
+        ruleSummary: 'Normalizes extracted email fields into tabular columns (Sender, Subject, Amount, Due Date, Status)',
+        language: 'javascript',
+        code: `function process(inputs) {
+  let data = inputs;
+  if (typeof inputs === 'string') {
+    try { data = JSON.parse(inputs); } catch (e) { data = { raw: inputs }; }
+  }
+  const item = data?.item || data || {};
+  return {
+    record_id: item.id || ('REC-' + Date.now().toString().slice(-4)),
+    sender: item.from || item.sender || 'Direct Ingress',
+    subject: item.subject || item.title || item.name || 'Ingested Message',
+    received_at: item.receivedDateTime || item.timestamp || new Date().toISOString(),
+    has_attachments: Boolean(item.hasAttachments || item.attachments?.length),
+    attachments_count: item.attachments?.length || (item.hasAttachments ? 1 : 0),
+    attachment_names: Array.isArray(item.attachments) && item.attachments.length > 0 ? item.attachments.map(a => a.name).join(', ') : (item.hasAttachments ? 'Attached Files' : 'None'),
+    summary: (item.bodyPreview || item.content || item.summary || item.text || '').slice(0, 120),
+    status: 'EXTRACTED'
+  };
+}`,
+        lastStatus: 'idle'
+      }
+    },
+    // 8. Output Component Node (Positioned at far right, in continuous append mode)
+    {
+      id: 'node-output-outlook-intel',
+      type: 'outputNode',
+      position: { x: 1080, y: 200 },
+      data: {
+        title: 'Final Output Viewer',
+        outputContent: '',
+        content: '',
+        status: 'idle',
+        format: 'json',
+        persistenceStrategy: 'append',
+        runsHistory: [],
+        isExpanded: false
+      }
+    }
+  ];
+
+  const initialEdges = [
+    // Trigger -> Agent Core
+    {
+      id: 'edge-trigger-to-agent-intel',
+      source: 'node-trigger-outlook-intel',
+      sourceHandle: 'trigger-out',
+      target: 'agent-core',
+      targetHandle: 'tools-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#00A3A6', strokeWidth: 2, strokeDasharray: '4 4' }
+    },
+    // Model -> Agent Core
+    {
+      id: 'edge-model-outlook-intel',
+      source: 'node-model-outlook-intel',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'model-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#00338D', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    // Gateway -> Agent Core
+    {
+      id: 'edge-mcp-gw-intel',
+      source: 'node-mcp-gw-intel',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'mcp-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#00A3A6', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    // MCP Server -> Gateway
+    {
+      id: 'edge-mcp-to-gw-intel',
+      source: 'node-mcp-outlook-intel',
+      sourceHandle: 'out',
+      target: 'node-mcp-gw-intel',
+      targetHandle: 'mcp-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#00A3A6', strokeWidth: 2.0, strokeDasharray: '4 4' }
+    },
+    // Skill -> Agent Core
+    {
+      id: 'edge-skill-outlook-intel',
+      source: 'node-skill-outlook-intel',
+      sourceHandle: 'out',
+      target: 'agent-core',
+      targetHandle: 'skill-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#6D2077', strokeWidth: 1.8, strokeDasharray: '4 4' }
+    },
+    // Agent Core -> Row & Schema Normalizer
+    {
+      id: 'edge-agent-to-deterministic-intel',
+      source: 'agent-core',
+      sourceHandle: 'out',
+      target: 'node-deterministic-outlook-intel',
+      targetHandle: 'in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#EAAA00', strokeWidth: 2.0, strokeDasharray: '4 4' }
+    },
+    // Row & Schema Normalizer -> Final Output Viewer
+    {
+      id: 'edge-deterministic-to-output-intel',
+      source: 'node-deterministic-outlook-intel',
+      sourceHandle: 'out',
+      target: 'node-output-outlook-intel',
+      targetHandle: 'data-in',
+      type: 'deletable',
+      animated: false,
+      style: { stroke: '#10B981', strokeWidth: 2.2, strokeDasharray: '4 4' }
+    }
+  ];
+
+  return {
+    id: 'wf-outlook-intelligence',
+    name: 'Outlook Intelligence',
+    description: 'Autonomous MCP intelligence: periodic zero-token stream monitoring, attachment decoding, gateway policy enforcement, and structured synthesis.',
+    framework: fw,
+    activeUseCase: {
+      id: 'uc-outlook-intelligence',
+      name: 'Outlook Intelligence',
+      description: 'Autonomous MCP intelligence: periodic zero-token stream monitoring, attachment decoding, gateway policy enforcement, and structured synthesis.',
+      framework: fw,
+      agent: {
+        prompt: 'You are an institutional Mail & Attachment Intelligence Agent. On each trigger pulse, query the connected Outlook MCP to inspect incoming emails and attachments. Evaluate relevance (invoice line items, financial details, obligations), decode any attached documents, and output structured records in clean JSON format.',
+        temperature: 0.1,
+        topP: 0.95
+      }
+    },
+    nodes: initialNodes,
+    edges: initialEdges,
+    createdAt: Date.now() - 1800000,
+    updatedAt: Date.now(),
+    isStarred: true,
+    isLocked: false,
+    isWorkflowLocked: false,
+    tags: ['Outlook Intelligence', 'MCP Stream', 'Zero-Token Ingress', 'Gateway Enforced'],
+    stats: computeWorkflowStats(initialNodes)
+  };
+}
+
+/**
  * Creates the initial enterprise workflow from existing saved canvas state or default setup.
  */
 function createInitialDefaultWorkflow() {
@@ -599,10 +858,23 @@ export function loadAllWorkflows() {
     if (raw) {
       let parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        let registryMutated = false;
+
         // Ensure the official Outlook Stream Intelligence template workflow is available in registry
         if (!parsed.some(w => w.id === 'wf-outlook-stream-intelligence')) {
           const outlookWf = createOutlookStreamWorkflow();
           parsed.push(outlookWf);
+          registryMutated = true;
+        }
+
+        // Ensure the new Outlook Intelligence workflow is available in registry
+        if (!parsed.some(w => w.id === 'wf-outlook-intelligence')) {
+          const outlookIntelWf = createOutlookIntelligenceWorkflow();
+          parsed.push(outlookIntelWf);
+          registryMutated = true;
+        }
+
+        if (registryMutated) {
           try {
             localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(parsed));
           } catch (e) {
@@ -616,10 +888,11 @@ export function loadAllWorkflows() {
     console.warn('Failed to parse workflows registry from localStorage:', err);
   }
 
-  // If no registry exists yet, bootstrap with initial default workflow + Outlook Stream workflow
+  // If no registry exists yet, bootstrap with initial default workflow + Outlook workflows
   const initialWf = createInitialDefaultWorkflow();
   const outlookWf = createOutlookStreamWorkflow();
-  const initialList = [initialWf, outlookWf];
+  const outlookIntelWf = createOutlookIntelligenceWorkflow();
+  const initialList = [initialWf, outlookWf, outlookIntelWf];
   try {
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(initialList));
     localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, initialWf.id);
