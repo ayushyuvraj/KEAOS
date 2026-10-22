@@ -29,7 +29,6 @@ import {
   GitFork, 
   Database, 
   ShieldCheck, 
-  ShieldAlert,
   Fingerprint, 
   Activity, 
   Coins, 
@@ -44,8 +43,6 @@ import {
   Mic,
   FileText,
   Type,
-  Sun,
-  Moon,
   PanelRight,
   Map as MapIcon,
   GripVertical,
@@ -1800,7 +1797,6 @@ function CanvasInner({
   const isValidConnection = useCallback(
     (connection) => {
       if (isWorkflowLocked) return false;
-      if (!isEnforcerActive) return true;
 
       const { source, target, targetHandle } = connection;
       const sourceNode = nodes.find(n => n.id === source);
@@ -1948,7 +1944,7 @@ function CanvasInner({
 
       return false;
     },
-    [nodes, isEnforcerActive, setInvalidConnectionAlert, isWorkflowLocked]
+    [nodes, setInvalidConnectionAlert, isWorkflowLocked]
   );
 
   const onConnect = useCallback(
@@ -2168,28 +2164,7 @@ function CanvasInner({
     }, 200);
   }, [nodes, setIsAddMenuOpen, setIsInspectorOpen]);
 
-  const handleToggleEnforcer = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (isWorkflowLocked) {
-      setToastNotification('🔒 Socket Enforcer is locked in active workflow mode.');
-      setTimeout(() => setToastNotification(null), 2500);
-      return;
-    }
-    const nextVal = !isEnforcerActive;
-    if (setIsEnforcerActive) {
-      setIsEnforcerActive(nextVal);
-    }
-    const msg = nextVal
-      ? '🛡️ Socket Enforcer: STRICT VALIDATION ACTIVE'
-      : '⚠️ Socket Enforcer: BYPASSED (Freeform connections allowed)';
-    setToastNotification(msg);
-    setTimeout(() => {
-      setToastNotification((curr) => (curr === msg ? null : curr));
-    }, 3200);
-  };
+
 
   const handleToggleGatewayTool = useCallback((gatewayNodeId, toolName, enabled) => {
     setNodes((nds) =>
@@ -2901,36 +2876,6 @@ function CanvasInner({
             <Redo2 className="w-4 h-4" />
           </button>
 
-          {/* 6. Socket Enforcer Toggle */}
-          <button
-            onClick={handleToggleEnforcer}
-            disabled={isWorkflowLocked}
-            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
-              isWorkflowLocked
-                ? 'opacity-50 cursor-not-allowed text-slate-500'
-                : isEnforcerActive 
-                  ? (isDarkMode ? 'text-[#38BDF8] bg-[#38BDF8]/10' : 'text-[#0091DA] bg-sky-50') 
-                  : 'text-amber-400 bg-amber-400/10'
-            }`}
-            title={
-              isWorkflowLocked
-                ? 'Socket Enforcer is locked in active workflow mode'
-                : isEnforcerActive ? 'Socket Enforcer Active (Strict)' : 'Socket Enforcer Bypassed'
-            }
-          >
-            {isEnforcerActive ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
-          </button>
-
-          {/* 7. Light/Dark Theme Toggle */}
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
-              isDarkMode ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-black hover:bg-slate-100'
-            }`}
-            title="Toggle Light/Dark Theme"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-600" />}
-          </button>
         </div>
       </div>
 

@@ -461,7 +461,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
   // =========================================================================
   if (!isExpanded) {
     return (
-      <div className={`relative group w-[140px] select-none flex flex-col items-center ${isDeactivated ? 'opacity-40 grayscale' : 'opacity-100'}`}>
+      <div className={`relative group w-14 select-none flex flex-col items-center ${isDeactivated ? 'opacity-40 grayscale' : 'opacity-100'}`}>
         {/* Floating Micro-Toolbar on Hover */}
         <NodeActionToolbar
           nodeId={id}
@@ -492,7 +492,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
             position={Position.Left}
             id="data-in"
             style={{
-              top: '50%',
+              top: '28px',
               left: '-6px',
               width: '10px',
               height: '10px',
@@ -539,7 +539,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
             position={Position.Right}
             id="data-out"
             style={{
-              top: '50%',
+              top: '28px',
               right: '-6px',
               width: '10px',
               height: '10px',
@@ -554,8 +554,8 @@ export default function OutputDisplayNode({ id, data, selected }) {
         </div>
 
         {/* Node Name under Circle (Frosted Pill) */}
-        <div className="absolute top-[calc(100%+8px)] left-0 w-full px-1 text-center pointer-events-auto select-none flex flex-col items-center">
-          <div className={`px-2.5 py-0.5 rounded-full border backdrop-blur-md max-w-full inline-flex items-center justify-center ${
+        <div className="absolute top-[calc(100%+8px)] left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-auto select-none flex flex-col items-center">
+          <div className={`px-2.5 py-0.5 rounded-full border backdrop-blur-md max-w-[180px] inline-flex items-center justify-center ${
             isDarkMode 
               ? 'bg-[#1C1E24]/90 border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)]' 
               : 'bg-white/95 border-slate-200 shadow-[0_4px_16px_rgba(0,30,80,0.08)]'
@@ -664,7 +664,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
         position={Position.Left}
         id="data-in"
         style={{
-          top: '30px',
+          top: '28px',
           width: '10px',
           height: '10px',
           borderRadius: '0px',
@@ -682,7 +682,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
         position={Position.Right}
         id="data-out"
         style={{
-          top: '30px',
+          top: '28px',
           width: '10px',
           height: '10px',
           borderRadius: '0px',
