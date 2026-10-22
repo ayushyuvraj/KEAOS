@@ -1504,6 +1504,64 @@ export default function App() {
       return;
     }
 
+    if (pillarKey === 'outputNodeV2' || item?.nodeType === 'outputNodeV2') {
+      const newNodeId = `node-output-v2-${Date.now().toString().slice(-4)}`;
+      setNodes((nds) => {
+        const agentNode = targetAgentId 
+          ? nds.find(n => n.id === targetAgentId) 
+          : nds.find(n => n.type === 'agentCore');
+        const existingOuts = nds.filter(n => n.type === 'outputNode' || n.type === 'outputNodeV2');
+        const xPos = agentNode ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790;
+        const yPos = agentNode ? agentNode.position.y + 42 : 207;
+
+        const newNode = {
+          id: newNodeId,
+          type: 'outputNodeV2',
+          position: { x: xPos, y: yPos },
+          data: {
+            name: item.name || 'Output Viewer v2.0',
+            title: item.name || 'Output Viewer v2.0',
+            outputContent: '',
+            content: '',
+            status: 'idle',
+            format: 'markdown',
+            runsHistory: [],
+            sourceNodeType: null,
+            sourceNodeId: null,
+            sourceNodeName: null,
+            isExpanded: false
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      // Auto-wire from target agent's out handle
+      setEdges((eds) => {
+        const sourceAgent = targetAgentId || eds.find(e => e.source?.startsWith('agent-core') || e.target?.startsWith('agent-core'))?.source || (nodes.find(n => n.type === 'agentCore')?.id || 'agent-core');
+        return [
+          ...eds,
+          {
+            id: `edge-output-v2-${Date.now().toString().slice(-4)}`,
+            source: sourceAgent,
+            sourceHandle: 'out',
+            target: newNodeId,
+            targetHandle: 'data-in',
+            type: 'deletable',
+            animated: false,
+            style: { stroke: '#10B981', strokeWidth: 1.8, strokeDasharray: '4 4' }
+          }
+        ];
+      });
+
+      activeSlotTargetRef.current = null;
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `✨ Added Output Viewer v2.0 to Canvas` }
+      }));
+      return;
+    }
+
     if (pillarKey === 'outputNode') {
       const newNodeId = `node-output-${Date.now().toString().slice(-4)}`;
       setNodes((nds) => {

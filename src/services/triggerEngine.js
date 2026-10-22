@@ -926,7 +926,7 @@ export async function fireTriggerEvent({
     }
 
     // TARGET C: Direct Output Display Node (Continuous Tabular Stream)
-    else if (target.type === 'outputNode') {
+    else if (target.type === 'outputNode' || target.type === 'outputNodeV2') {
       const formattedOutput = typeof parsedPayload === 'object'
         ? JSON.stringify(parsedPayload, null, 2)
         : String(parsedPayload || '');
@@ -944,7 +944,7 @@ export async function fireTriggerEvent({
 
       results.push({
         targetId: target.id,
-        targetType: 'outputNode',
+        targetType: target.type,
         success: true
       });
     }

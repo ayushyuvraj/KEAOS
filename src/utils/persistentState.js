@@ -67,7 +67,7 @@ export function loadCanvasState() {
         // Sanitize on startup: ensure no zombie executing or generating states persist across reloads
         parsed.nodes = parsed.nodes.map(n => {
           let updatedData = { ...n.data };
-          if (n.type === 'outputNode' || n.type === 'ingestionNode') {
+          if (n.type === 'outputNode' || n.type === 'outputNodeV2' || n.type === 'ingestionNode') {
             if (updatedData.status === 'generating') {
               updatedData.status = updatedData.outputContent ? 'ready' : 'idle';
             }

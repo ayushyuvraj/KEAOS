@@ -1,9 +1,9 @@
 {
-  "activeWorkflowId": "wf-1792654292357-zq446",
+  "activeWorkflowId": "wf-meeting-intelligence",
   "uiState": {
     "isDarkMode": false,
-    "isSidebarCollapsed": true,
-    "isSidebarClosed": true,
+    "isSidebarCollapsed": false,
+    "isSidebarClosed": false,
     "isDrawerExpanded": false,
     "showMiniMap": false,
     "miniMapPos": {
@@ -17,7 +17,7 @@
   },
   "workflows": [
     {
-      "id": "wf-1792654292357-zq446",
+      "id": "wf-1792662183798-3xtj9",
       "name": "Untitled Workflow",
       "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
       "framework": {
@@ -30,7 +30,7 @@
         "category": "SDK"
       },
       "activeUseCase": {
-        "id": "uc-wf-1792654292357-zq446",
+        "id": "uc-wf-1792662183798-3xtj9",
         "name": "Untitled Workflow",
         "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
         "framework": {
@@ -79,11 +79,7 @@
               "memory": 1,
               "policies": 1
             },
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 228,
-            "height": 173
+            "isDarkMode": true
           }
         },
         {
@@ -103,11 +99,7 @@
               "temperature": 0.2,
               "topP": 1
             },
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
+            "isDarkMode": true
           }
         },
         {
@@ -123,11 +115,7 @@
             "status": "idle",
             "fileType": "auto",
             "isExpanded": false,
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
+            "isDarkMode": true
           }
         },
         {
@@ -146,11 +134,7 @@
               "gatewayType": "mcp-egress",
               "auditAllActions": true
             },
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
+            "isDarkMode": true
           }
         },
         {
@@ -168,11 +152,7 @@
               "redactSalaries": true,
               "maskEmails": true
             },
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
+            "isDarkMode": true
           }
         },
         {
@@ -190,11 +170,7 @@
               "ttlDays": 90,
               "store": "vector-sqlite"
             },
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
+            "isDarkMode": true
           }
         },
         {
@@ -212,11 +188,7 @@
               "length": "concise",
               "focus": "decisions"
             },
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
+            "isDarkMode": true
           }
         },
         {
@@ -231,12 +203,8 @@
             "content": "",
             "status": "idle",
             "format": "markdown",
-            "isExpanded": true,
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 560,
-            "height": 440
+            "isExpanded": false,
+            "isDarkMode": true
           }
         }
       ],
@@ -340,8 +308,8 @@
           }
         }
       ],
-      "createdAt": 1792654292357,
-      "updatedAt": 1792654848653,
+      "createdAt": 1792662183798,
+      "updatedAt": 1792668620434,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -356,6 +324,199 @@
         "skillCount": 1,
         "toolCount": 0,
         "policyCount": 1,
+        "hasAudit": false
+      }
+    },
+    {
+      "id": "wf-1792659865101-s3ud9",
+      "name": "Untitled Workflow",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792659865101-s3ud9",
+        "name": "Untitled Workflow",
+        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "node-output-v2-7373",
+          "type": "outputNodeV2",
+          "position": {
+            "x": 591.843134835194,
+            "y": 50.876409264092274
+          },
+          "data": {
+            "name": "Output Viewer v2.0 (Artifact Studio)",
+            "title": "Output Viewer v2.0 (Artifact Studio)",
+            "outputContent": "",
+            "content": "",
+            "status": "idle",
+            "format": "markdown",
+            "runsHistory": [],
+            "sourceNodeType": null,
+            "sourceNodeId": null,
+            "sourceNodeName": null,
+            "isExpanded": true,
+            "isDarkMode": false,
+            "filenamePrefix": "test123"
+          },
+          "measured": {
+            "width": 520,
+            "height": 520
+          },
+          "selected": true,
+          "dragging": false
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-output-v2-7374",
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "node-output-v2-7373",
+          "targetHandle": "data-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        }
+      ],
+      "createdAt": 1792659865101,
+      "updatedAt": 1792662072547,
+      "isStarred": false,
+      "isLocked": false,
+      "isWorkflowLocked": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 1,
+        "agentCount": 0,
+        "mcpCount": 0,
+        "modelCount": 0,
+        "skillCount": 0,
+        "toolCount": 0,
+        "policyCount": 0,
+        "hasAudit": false
+      }
+    },
+    {
+      "id": "wf-1792659670450-5zgjh",
+      "name": "Untitled Workflow",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792659670450-5zgjh",
+        "name": "Untitled Workflow",
+        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "node-output-v2-1283",
+          "type": "outputNodeV2",
+          "position": {
+            "x": 790,
+            "y": 207
+          },
+          "data": {
+            "name": "Output Viewer v2.0 (Artifact Studio)",
+            "title": "Output Viewer v2.0 (Artifact Studio)",
+            "outputContent": "",
+            "content": "",
+            "status": "idle",
+            "format": "markdown",
+            "runsHistory": [],
+            "sourceNodeType": null,
+            "sourceNodeId": null,
+            "sourceNodeName": null,
+            "isExpanded": false
+          },
+          "measured": {
+            "width": 56,
+            "height": 56
+          },
+          "selected": true
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-output-v2-1284",
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "node-output-v2-1283",
+          "targetHandle": "data-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        }
+      ],
+      "createdAt": 1792659670450,
+      "updatedAt": 1792659828632,
+      "isStarred": false,
+      "isLocked": false,
+      "isWorkflowLocked": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 1,
+        "agentCount": 0,
+        "mcpCount": 0,
+        "modelCount": 0,
+        "skillCount": 0,
+        "toolCount": 0,
+        "policyCount": 0,
         "hasAudit": false
       }
     },
@@ -1098,7 +1259,7 @@
         }
       ],
       "createdAt": 1792162747408,
-      "updatedAt": 1792514194644,
+      "updatedAt": 1792657459535,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -1186,7 +1347,7 @@
           },
           "measured": {
             "width": 228,
-            "height": 164
+            "height": 173
           },
           "selected": false
         },
@@ -1310,7 +1471,7 @@
             "isDarkMode": false
           },
           "measured": {
-            "width": 140,
+            "width": 56,
             "height": 56
           },
           "selected": false,
@@ -1334,8 +1495,34 @@
             "width": 140,
             "height": 60
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
+        },
+        {
+          "id": "node-output-v2-6578",
+          "type": "outputNodeV2",
+          "position": {
+            "x": 830,
+            "y": 207
+          },
+          "data": {
+            "name": "Output Viewer v2.0 (Artifact Studio)",
+            "title": "Output Viewer v2.0 (Artifact Studio)",
+            "outputContent": "",
+            "content": "",
+            "status": "idle",
+            "format": "markdown",
+            "runsHistory": [],
+            "sourceNodeType": null,
+            "sourceNodeId": null,
+            "sourceNodeName": null,
+            "isExpanded": false,
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 56,
+            "height": 56
+          }
         }
       ],
       "edges": [
@@ -1452,10 +1639,24 @@
             "strokeDasharray": "4 4"
           },
           "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
+        },
+        {
+          "id": "edge-output-v2-6595",
+          "source": "node-model-1",
+          "sourceHandle": "out",
+          "target": "node-output-v2-6578",
+          "targetHandle": "data-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
         }
       ],
       "createdAt": 1729080000000,
-      "updatedAt": 1792517664744,
+      "updatedAt": 1792671441945,
       "isStarred": true,
       "tags": [
         "Meeting Intelligence",
@@ -1464,7 +1665,7 @@
         "PII Redactor"
       ],
       "stats": {
-        "nodeCount": 7,
+        "nodeCount": 8,
         "agentCount": 1,
         "mcpCount": 0,
         "modelCount": 1,
@@ -1473,8 +1674,8 @@
         "policyCount": 1,
         "hasAudit": false
       },
-      "isLocked": true,
-      "isWorkflowLocked": true
+      "isLocked": false,
+      "isWorkflowLocked": false
     },
     {
       "id": "wf-outlook-stream-intelligence",
@@ -3241,7 +3442,7 @@
             "width": 228,
             "height": 173
           },
-          "selected": true
+          "selected": false
         },
         {
           "id": "node-model-outlook-intel",
@@ -4817,6 +5018,33 @@
           },
           "selected": false,
           "dragging": false
+        },
+        {
+          "id": "node-output-v2-0866",
+          "type": "outputNodeV2",
+          "position": {
+            "x": 830,
+            "y": 207
+          },
+          "data": {
+            "name": "Output Viewer v2.0 (Artifact Studio)",
+            "title": "Output Viewer v2.0 (Artifact Studio)",
+            "outputContent": "",
+            "content": "",
+            "status": "idle",
+            "format": "markdown",
+            "runsHistory": [],
+            "sourceNodeType": null,
+            "sourceNodeId": null,
+            "sourceNodeName": null,
+            "isExpanded": true,
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 520,
+            "height": 520
+          },
+          "selected": false
         }
       ],
       "edges": [
@@ -4906,13 +5134,27 @@
             "filter": "none"
           },
           "id": "xy-edge__node-trigger-9567trigger-out-agent-coreagent-in"
+        },
+        {
+          "id": "edge-output-v2-0871",
+          "source": "node-model-outlook-intel",
+          "sourceHandle": "out",
+          "target": "node-output-v2-0866",
+          "targetHandle": "data-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
         }
       ],
       "createdAt": 1792566380771,
-      "updatedAt": 1792654838762,
+      "updatedAt": 1792665569781,
       "isStarred": true,
-      "isLocked": true,
-      "isWorkflowLocked": true,
+      "isLocked": false,
+      "isWorkflowLocked": false,
       "tags": [
         "Outlook Intelligence",
         "MCP Stream",
@@ -4920,7 +5162,7 @@
         "Gateway Enforced"
       ],
       "stats": {
-        "nodeCount": 7,
+        "nodeCount": 8,
         "agentCount": 1,
         "mcpCount": 1,
         "modelCount": 1,
@@ -4941,15 +5183,15 @@
           "y": 165
         },
         "data": {
-          "name": "Meeting Intelligence Agent",
+          "name": "MIA2",
           "framework": {
-            "id": "google-adk",
-            "name": "Google ADK",
-            "subtitle": "Google Agent Development Kit & GenAI SDK",
-            "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-            "defaultModel": "gemini-2.0-flash",
+            "id": "langchain",
+            "name": "LangChain",
+            "subtitle": "Composable LCEL chains and agent toolkits",
+            "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+            "defaultModel": "claude-3-5-sonnet",
             "exportExtension": ".py",
-            "category": "SDK"
+            "category": "Chains"
           },
           "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
           "temperature": 0.2,
@@ -4957,7 +5199,7 @@
           "attachedCounts": {
             "model": 1,
             "skills": 1,
-            "mcp": 0,
+            "mcp": 1,
             "tools": 1,
             "gateway": 1,
             "memory": 1,
@@ -4968,81 +5210,41 @@
         "measured": {
           "width": 228,
           "height": 173
-        }
+        },
+        "selected": false
       },
       {
         "id": "node-model-1",
         "type": "pillar",
         "position": {
-          "x": 564,
-          "y": 55
+          "x": 565.01347427186,
+          "y": 80.7547264465507
         },
         "data": {
           "pillarType": "model",
-          "name": "GPT-4o",
-          "description": "Flagship omni reasoning, structured outputs, and precision tool calling.",
+          "name": "OpenAI (gpt-4o-mini)",
+          "description": "OpenAI foundation model configured for live enterprise inference.",
           "config": {
             "provider": "openai",
-            "modelId": "gpt-4o",
+            "modelId": "gpt-4o-mini",
             "temperature": 0.2,
-            "topP": 1
+            "topP": 0.95
           },
           "isDarkMode": false
         },
         "measured": {
           "width": 140,
           "height": 60
-        }
-      },
-      {
-        "id": "node-ingest-1",
-        "type": "ingestionNode",
-        "position": {
-          "x": 474,
-          "y": 55
         },
-        "data": {
-          "title": "Universal File & Audio Ingest",
-          "content": "",
-          "status": "idle",
-          "fileType": "auto",
-          "isExpanded": false,
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        }
-      },
-      {
-        "id": "node-mcp-gw-1",
-        "type": "pillar",
-        "position": {
-          "x": 780,
-          "y": -20
-        },
-        "data": {
-          "pillarType": "gateway",
-          "itemId": "gw-mcp-controller",
-          "name": "MCP Egress Gateway",
-          "description": "Enforces zero-trust mediation between Agent Core and external MCP servers. Awaiting live MCP server connection.",
-          "config": {
-            "gatewayType": "mcp-egress",
-            "auditAllActions": true
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        }
+        "selected": false,
+        "dragging": false
       },
       {
         "id": "node-policy-1",
         "type": "pillar",
         "position": {
-          "x": 380,
-          "y": 440
+          "x": 475.9703566019082,
+          "y": 360.8355720777102
         },
         "data": {
           "pillarType": "policies",
@@ -5057,14 +5259,16 @@
         "measured": {
           "width": 140,
           "height": 60
-        }
+        },
+        "selected": false,
+        "dragging": false
       },
       {
         "id": "node-memory-1",
         "type": "pillar",
         "position": {
-          "x": 564,
-          "y": 440
+          "x": 561.4150911844831,
+          "y": 418.4097014757391
         },
         "data": {
           "pillarType": "memory",
@@ -5079,14 +5283,16 @@
         "measured": {
           "width": 140,
           "height": 60
-        }
+        },
+        "selected": false,
+        "dragging": false
       },
       {
         "id": "node-skill-1",
         "type": "pillar",
         "position": {
-          "x": 750,
-          "y": 440
+          "x": 657.6549750291884,
+          "y": 341.6441956117005
         },
         "data": {
           "pillarType": "skills",
@@ -5101,26 +5307,83 @@
         "measured": {
           "width": 140,
           "height": 60
-        }
+        },
+        "selected": false,
+        "dragging": false
       },
       {
-        "id": "node-output-1",
+        "id": "node-output-8631",
         "type": "outputNode",
         "position": {
-          "x": 790,
-          "y": 207
+          "x": 764.8517412039421,
+          "y": 217.77628528152655
         },
         "data": {
-          "title": "Agent Intelligence Output",
+          "name": "Final Output Viewer & Exporter",
+          "title": "Final Output Viewer & Exporter",
+          "outputContent": "",
           "content": "",
           "status": "idle",
           "format": "markdown",
+          "runsHistory": [],
+          "sourceNodeType": null,
+          "sourceNodeId": null,
+          "sourceNodeName": null,
           "isExpanded": false,
           "isDarkMode": false
         },
         "measured": {
-          "width": 560,
-          "height": 440
+          "width": 56,
+          "height": 56
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-ingest-1527",
+        "type": "ingestionNode",
+        "position": {
+          "x": 473.86795213577284,
+          "y": 42.65497502918843
+        },
+        "data": {
+          "title": "Universal File & Audio Ingest",
+          "content": "",
+          "status": "idle",
+          "isExpanded": false,
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-output-v2-6578",
+        "type": "outputNodeV2",
+        "position": {
+          "x": 830,
+          "y": 207
+        },
+        "data": {
+          "name": "Output Viewer v2.0 (Artifact Studio)",
+          "title": "Output Viewer v2.0 (Artifact Studio)",
+          "outputContent": "",
+          "content": "",
+          "status": "idle",
+          "format": "markdown",
+          "runsHistory": [],
+          "sourceNodeType": null,
+          "sourceNodeId": null,
+          "sourceNodeName": null,
+          "isExpanded": false,
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 56,
+          "height": 56
         }
       }
     ],
@@ -5149,20 +5412,6 @@
         "animated": false,
         "style": {
           "stroke": "#0091DA",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-mcp-gw",
-        "source": "node-mcp-gw-1",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "mcp-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00A3A6",
           "strokeWidth": 1.8,
           "strokeDasharray": "4 4"
         }
@@ -5222,25 +5471,69 @@
           "strokeWidth": 1.8,
           "strokeDasharray": "4 4"
         }
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "agent-core",
+        "sourceHandle": "out",
+        "target": "node-output-8631",
+        "targetHandle": "data-in",
+        "style": {
+          "stroke": "#10B981",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        },
+        "id": "xy-edge__agent-coreout-node-output-8631data-in"
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {},
+        "source": "node-ingest-1527",
+        "sourceHandle": "data-out",
+        "target": "agent-core",
+        "targetHandle": "tools-in",
+        "style": {
+          "stroke": "#0091DA",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        },
+        "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
+      },
+      {
+        "id": "edge-output-v2-6595",
+        "source": "node-model-1",
+        "sourceHandle": "out",
+        "target": "node-output-v2-6578",
+        "targetHandle": "data-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#10B981",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
       }
     ],
     "activeUseCase": {
-      "id": "uc-wf-1792654292357-zq446",
-      "name": "Untitled Workflow",
-      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "id": "uc-meeting-intel",
+      "name": "MIA2",
+      "description": "Autonomous multi-speaker synthesis, action items with owners, and task sync.",
       "framework": {
-        "id": "google-adk",
-        "name": "Google ADK",
-        "subtitle": "Google Agent Development Kit & GenAI SDK",
-        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-        "defaultModel": "gemini-2.0-flash",
+        "id": "langchain",
+        "name": "LangChain",
+        "subtitle": "Composable LCEL chains and agent toolkits",
+        "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+        "defaultModel": "claude-3-5-sonnet",
         "exportExtension": ".py",
-        "category": "SDK"
+        "category": "Chains"
       },
       "agent": {
-        "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+        "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
         "temperature": 0.2,
-        "topP": 0.95
+        "topP: 0.95": 0.95
       }
     },
     "version": "v7_real_mcp_engine"
@@ -10152,5 +10445,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1792654849461
+  "syncedAt": 1792671442767
 }

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { getRegisteredMcpServers } from '../services/mcpClientService';
+import { ArtifactStudioGlyph } from './nodes/OutputDisplayNodeV2';
 
 const PILLAR_ICONS = {
   model: Cpu,
@@ -151,6 +152,38 @@ export default function Palette({ onAddNode }) {
                 onClick={() => onAddNode('outputNode', { name: 'Final Output Viewer' })}
                 className="btn-tactile w-7 h-7 bg-[#10B981] hover:bg-[#059669] text-white flex items-center justify-center transition-all shrink-0 border border-[#047857] shadow-sm cursor-pointer"
                 title="Add Final Output Viewer & Exporter to canvas"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Output Viewer v2.0 (Artifact Studio) */}
+        {(!search || 'output result viewer sink studio v2 export table grid markdown'.includes(search.toLowerCase())) && (
+          <div 
+            className="border border-cyan-500/40 bg-[#FFFFFF] overflow-hidden shadow-sm transition-all hover:border-cyan-500" 
+            style={{ borderLeft: '3px solid #06B6D4' }}
+          >
+            <div className="p-2.5 bg-gradient-to-r from-cyan-50/70 via-white to-white flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 flex items-center justify-center shrink-0 shadow-sm">
+                  <ArtifactStudioGlyph className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h5 className="text-xs font-bold text-[#0B0F19] tracking-tight">Output Viewer v2.0</h5>
+                    <span className="text-[8px] font-mono px-1.5 py-0.2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-full">
+                      v2.0 NEW
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Square studio, sortable table, JSON & exports</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onAddNode('outputNodeV2', { name: 'Output Viewer v2.0' })}
+                className="btn-tactile w-7 h-7 bg-gradient-to-br from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-700 text-white flex items-center justify-center transition-all shrink-0 border border-cyan-500 shadow-sm cursor-pointer"
+                title="Add Output Viewer v2.0 (Artifact Studio) to canvas"
               >
                 <Plus className="w-4 h-4" />
               </button>

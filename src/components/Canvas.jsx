@@ -54,6 +54,7 @@ import {
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
 import DeletableEdge from './edges/DeletableEdge';
 import OutputDisplayNode from './nodes/OutputDisplayNode';
+import OutputDisplayNodeV2 from './nodes/OutputDisplayNodeV2';
 import IngestionNode from './nodes/IngestionNode';
 import DeterministicNode from './nodes/DeterministicNode';
 import TriggerNode from './nodes/TriggerNode';
@@ -67,6 +68,7 @@ const nodeTypes = {
   agentCore: AgentCoreNode,
   pillar: PillarNode,
   outputNode: OutputDisplayNode,
+  outputNodeV2: OutputDisplayNodeV2,
   ingestionNode: IngestionNode,
   deterministicNode: DeterministicNode,
   triggerNode: TriggerNode,
@@ -230,7 +232,7 @@ function CanvasInner({
         // Never update an output node connected to a deterministic rule or another agent!
         const outputNodeIdsToUpdate = new Set();
         nds.forEach((n) => {
-          if (n.type === 'outputNode' && !n.data?.isDeactivated) {
+          if ((n.type === 'outputNode' || n.type === 'outputNodeV2') && !n.data?.isDeactivated) {
             const isConnectedToExecutingAgent = (edges || []).some(
               (ed) => (executingAgentIds.has(ed.source) && ed.target === n.id) ||
                       (executingAgentIds.has(ed.target) && ed.source === n.id)
@@ -523,7 +525,7 @@ function CanvasInner({
           }
 
           // 2. Propagate to connected Canvas Output Nodes
-          if (n.type === 'outputNode') {
+          if (n.type === 'outputNode' || n.type === 'outputNodeV2') {
             const isConnected = (edges || []).some(
               (ed) => (ed.source === detail.nodeId && ed.target === n.id) || (ed.target === detail.nodeId && ed.source === n.id)
             );
@@ -636,18 +638,18 @@ function CanvasInner({
         } else if (sourceNodeId) {
           (edges || []).forEach(ed => {
             if (ed.source === sourceNodeId) {
-              const tgt = nds.find(n => n.id === ed.target && n.type === 'outputNode');
+              const tgt = nds.find(n => n.id === ed.target && (n.type === 'outputNode' || n.type === 'outputNodeV2'));
               if (tgt) connectedOutputIds.add(tgt.id);
             }
           });
         }
         if (connectedOutputIds.size === 0) {
-          const firstOut = nds.find(n => n.type === 'outputNode');
+          const firstOut = nds.find(n => n.type === 'outputNode' || n.type === 'outputNodeV2');
           if (firstOut) connectedOutputIds.add(firstOut.id);
         }
 
         return nds.map((n) => {
-          if (n.type === 'outputNode' && connectedOutputIds.has(n.id)) {
+          if ((n.type === 'outputNode' || n.type === 'outputNodeV2') && connectedOutputIds.has(n.id)) {
             const strategy = n.data?.persistenceStrategy || 'append';
             const prevHistory = Array.isArray(n.data?.runsHistory) ? n.data.runsHistory : [];
             const formattedContent = typeof output === 'string'
@@ -737,7 +739,7 @@ function CanvasInner({
             const targetNode = nds.find((n) => n.id === targetId);
             if (!targetNode || targetNode.data?.isDeactivated) return;
 
-            if (targetNode.type === 'outputNode') {
+            if (targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2') {
               const strategy = targetNode.data?.persistenceStrategy || 'append';
               const prevHistory = Array.isArray(targetNode.data?.runsHistory) ? targetNode.data.runsHistory : [];
               const formattedContent = typeof effectivePayload === 'object' 
@@ -1062,7 +1064,7 @@ function CanvasInner({
       const activeNodeId = executionState.nodeId || executionState.activeAgentId;
       setNodes((nds) =>
         nds.map((n) => {
-          if (n.type === 'outputNode') {
+          if (n.type === 'outputNode' || n.type === 'outputNodeV2') {
             // Only mark as generating if wired directly to the active executing node!
             const isConnectedToActiveNode = activeNodeId
               ? (edges || []).some(
@@ -1088,7 +1090,7 @@ function CanvasInner({
       // When execution is false, reset any output node that was left in generating state
       setNodes((nds) =>
         nds.map((n) => {
-          if (n.type === 'outputNode' && n.data?.status === 'generating') {
+          if ((n.type === 'outputNode' || n.type === 'outputNodeV2') && n.data?.status === 'generating') {
             return {
               ...n,
               data: {
@@ -1110,7 +1112,7 @@ function CanvasInner({
       setNodes((nds) =>
         nds.map((n) => {
           let updated = { ...n.data };
-          if (n.type === 'outputNode' && updated.status === 'generating') {
+          if ((n.type === 'outputNode' || n.type === 'outputNodeV2') && updated.status === 'generating') {
             updated.status = updated.outputContent ? 'ready' : 'idle';
           }
           if (updated.isExecuting) {
@@ -1400,7 +1402,7 @@ function CanvasInner({
     const clonedData = { ...JSON.parse(JSON.stringify(nodeToClone.data || {})) };
 
     // Strict Isolation: When duplicating an Output Node, ALWAYS start with a clean empty slate!
-    if (nodeToClone.type === 'outputNode') {
+    if (nodeToClone.type === 'outputNode' || nodeToClone.type === 'outputNodeV2') {
       clonedData.runsHistory = [];
       clonedData.outputContent = '';
       clonedData.status = 'idle';
@@ -1410,8 +1412,8 @@ function CanvasInner({
       clonedData.auditHash = null;
       clonedData.observability = { totalTokens: 0, latencyMs: 0 };
       clonedData.isExpanded = false;
-      clonedData.name = 'Output Viewer';
-      clonedData.title = 'Output Viewer';
+      clonedData.name = nodeToClone.type === 'outputNodeV2' ? 'Output Viewer v2.0' : 'Output Viewer';
+      clonedData.title = nodeToClone.type === 'outputNodeV2' ? 'Output Viewer v2.0' : 'Output Viewer';
     }
 
     if (nodeToClone.type === 'triggerNode') {
@@ -1805,15 +1807,15 @@ function CanvasInner({
       if (!sourceNode || !targetNode) return false;
 
       // Allow connections into Canvas Output Node from Agent Core, Tools, Deterministic Box, or another Output Node
-      if (targetNode.type === 'outputNode') {
-        if (sourceNode.type === 'agentCore' || sourceNode.type === 'pillar' || sourceNode.type === 'outputNode' || sourceNode.type === 'deterministicNode') {
+      if (targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2') {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'pillar' || sourceNode.type === 'outputNode' || sourceNode.type === 'outputNodeV2' || sourceNode.type === 'deterministicNode') {
           return true;
         }
       }
 
       // Allow pass-through connections from Output Node to downstream Agent Core, next Output Node, or Deterministic Box
-      if (sourceNode.type === 'outputNode') {
-        if (targetNode.type === 'agentCore' || targetNode.type === 'outputNode' || targetNode.type === 'deterministicNode') {
+      if (sourceNode.type === 'outputNode' || sourceNode.type === 'outputNodeV2') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2' || targetNode.type === 'deterministicNode') {
           return true;
         }
       }
@@ -1846,7 +1848,7 @@ function CanvasInner({
         return true;
       }
       // 4. Deterministic box feeding Output Node (or reverse connection drag)
-      if ((sourceNode.type === 'deterministicNode' && targetNode.type === 'outputNode') || (sourceNode.type === 'outputNode' && targetNode.type === 'deterministicNode')) {
+      if ((sourceNode.type === 'deterministicNode' && (targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2')) || ((sourceNode.type === 'outputNode' || sourceNode.type === 'outputNodeV2') && targetNode.type === 'deterministicNode')) {
         return true;
       }
 
@@ -1862,24 +1864,24 @@ function CanvasInner({
 
       // 6. Conditional Router connections (Logics)
       if (targetNode.type === 'routerNode') {
-        if (sourceNode.type === 'agentCore' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'outputNode' || sourceNode.type === 'routerNode' || sourceNode.type === 'approvalNode') {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'outputNode' || sourceNode.type === 'outputNodeV2' || sourceNode.type === 'routerNode' || sourceNode.type === 'approvalNode') {
           return true;
         }
       }
       if (sourceNode.type === 'routerNode') {
-        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode') {
           return true;
         }
       }
 
       // 7. Human-in-the-Loop Approval Gate connections (Governance)
       if (targetNode.type === 'approvalNode') {
-        if (sourceNode.type === 'agentCore' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'routerNode' || sourceNode.type === 'outputNode' || sourceNode.type === 'approvalNode') {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'routerNode' || sourceNode.type === 'outputNode' || sourceNode.type === 'outputNodeV2' || sourceNode.type === 'approvalNode') {
           return true;
         }
       }
       if (sourceNode.type === 'approvalNode') {
-        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode') {
           return true;
         }
       }
@@ -1979,7 +1981,7 @@ function CanvasInner({
         strokeColor = '#00A3A6';
         strokeWidth = 2.0;
         strokeDasharray = '4 4';
-      } else if ((sourceNode?.type === 'deterministicNode' && targetNode?.type === 'outputNode') || (sourceNode?.type === 'outputNode' && targetNode?.type === 'deterministicNode')) {
+      } else if ((sourceNode?.type === 'deterministicNode' && (targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2')) || ((sourceNode?.type === 'outputNode' || sourceNode?.type === 'outputNodeV2') && targetNode?.type === 'deterministicNode')) {
         strokeColor = '#10B981'; // Emerald accent for Deterministic to Output sink
         strokeWidth = 2.4;
         strokeDasharray = '5 4';
@@ -1987,7 +1989,7 @@ function CanvasInner({
         strokeColor = '#EAAA00'; // Amber Gold for Agent to Deterministic pipeline
         strokeWidth = 2.4;
         strokeDasharray = '5 4';
-      } else if (targetNode?.type === 'outputNode' || sourceNode?.type === 'outputNode') {
+      } else if (targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2' || sourceNode?.type === 'outputNode' || sourceNode?.type === 'outputNodeV2') {
         strokeColor = '#10B981'; // Emerald accent for data/output pipelines
       } else if (sourceNode?.type === 'ingestionNode' || params.targetHandle === 'tools-in' || params.targetHandle === 'tool-in' || sourceNode?.data?.pillarType === 'tools') {
         strokeColor = '#0091DA'; // Pacific Blue for data ingestion stream & tools
@@ -2122,7 +2124,7 @@ function CanvasInner({
         }
       } else if (sourceNode?.type === 'ingestionNode') {
         targetCategory = 'tools';
-      } else if (sourceNode?.type === 'outputNode') {
+      } else if (sourceNode?.type === 'outputNode' || sourceNode?.type === 'outputNodeV2') {
         targetCategory = 'outputNode';
       } else if (sourceNode?.type === 'triggerNode') {
         targetCategory = 'agentCore';
@@ -2409,10 +2411,10 @@ function CanvasInner({
         if (executionState.isExecuting && !n.data?.isDeactivated) {
           const isConnectedToWorkflow = incomingEdges.some(e => {
             const src = nodeLookup[e.source];
-            return src?.type === 'agentCore' || src?.type === 'outputNode';
+            return src?.type === 'agentCore' || src?.type === 'outputNode' || src?.type === 'outputNodeV2';
           }) || outgoingEdges.some(e => {
             const tgt = nodeLookup[e.target];
-            return tgt?.type === 'agentCore' || tgt?.type === 'outputNode';
+            return tgt?.type === 'agentCore' || tgt?.type === 'outputNode' || tgt?.type === 'outputNodeV2';
           });
           isStaged = isConnectedToWorkflow;
         }
@@ -2457,7 +2459,7 @@ function CanvasInner({
         upstreamPayload = payload;
       }
 
-      if (n.type === 'outputNode') {
+      if (n.type === 'outputNode' || n.type === 'outputNodeV2') {
         const incomingEdge = (edges || []).find(e => e.target === n.id);
         if (incomingEdge) {
           const upNode = nodeLookup[incomingEdge.source];
@@ -2581,15 +2583,15 @@ function CanvasInner({
           (executionState.pillarType === 'gateway' && (sourceNode.data.pillarType === 'gateway' || sourceNode.data.pillarType === 'mcp'))
         )) ||
         (sourceNode?.type === 'ingestionNode' && (executionState.pillarType === 'tools' || executionState.step === 'Starting')) ||
-        (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode' && (executionState.step === 'Complete' || executionState.step === 'Starting'))
+        (sourceNode?.type === 'agentCore' && (targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2') && (executionState.step === 'Complete' || executionState.step === 'Starting'))
       )) || Boolean(isDetActive) || Boolean(isTriggerActive);
 
       // Only animate edges when there is active execution or streaming in progress
       const isEdgeStreaming = (executionState.isExecuting && (
         isSourceActive ||
-        (sourceNode?.type === 'agentCore' && targetNode?.type === 'outputNode') ||
+        (sourceNode?.type === 'agentCore' && (targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2')) ||
         (sourceNode?.type === 'agentCore' && targetNode?.type === 'deterministicNode') ||
-        (sourceNode?.type === 'deterministicNode' && targetNode?.type === 'outputNode') ||
+        (sourceNode?.type === 'deterministicNode' && (targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2')) ||
         (sourceNode?.type === 'triggerNode' && (targetNode?.type === 'agentCore' || targetNode?.type === 'deterministicNode')) ||
         (sourceNode?.data?.pillarType === 'model' && targetNode?.type === 'agentCore') ||
         (sourceNode?.data?.pillarType === 'skills' && targetNode?.type === 'agentCore') ||
@@ -2608,7 +2610,7 @@ function CanvasInner({
         resolvedColor = isDarkMode ? '#2DD4BF' : '#00A3A6'; // Cyber Teal for Ingress Triggers
       } else if (sourceNode?.type === 'agentCore' && targetNode?.type === 'deterministicNode') {
         resolvedColor = isDarkMode ? '#FBBF24' : '#EAAA00'; // Amber for Agent -> Deterministic Rule
-      } else if (sourceNode?.type === 'deterministicNode' && targetNode?.type === 'outputNode') {
+      } else if (sourceNode?.type === 'deterministicNode' && (targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2')) {
         resolvedColor = isDarkMode ? '#34D399' : '#10B981'; // Emerald Green for Deterministic -> Output
       } else if (sourceNode?.type === 'ingestionNode' || sourcePillar === 'tools' || targetHandle === 'tools-in' || targetHandle === 'tool-in' || sourceHandle === 'tools-in') {
         resolvedColor = isDarkMode ? '#38BDF8' : '#0091DA'; // Pacific Blue for tools and data ingestion stream
@@ -2624,7 +2626,7 @@ function CanvasInner({
         resolvedColor = isDarkMode ? '#34D399' : '#009A44'; // Emerald in Dark / Green in Light
       } else if (isDetEdge) {
         resolvedColor = isDarkMode ? '#FBBF24' : '#EAAA00';
-      } else if (sourceNode?.type === 'outputNode' || targetNode?.type === 'outputNode') {
+      } else if (sourceNode?.type === 'outputNode' || sourceNode?.type === 'outputNodeV2' || targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2') {
         resolvedColor = isDarkMode ? '#34D399' : '#10B981';
       } else if (sourceNode?.type === 'routerNode') {
         resolvedColor = edge.sourceHandle === 'true-out' 

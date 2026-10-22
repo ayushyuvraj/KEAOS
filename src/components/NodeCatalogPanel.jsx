@@ -573,6 +573,16 @@ const NODE_CATEGORIES = [
           format: 'markdown',
           persistenceStrategy: 'append'
         }
+      },
+      {
+        id: 'output-final-viewer-v2',
+        nodeType: 'outputNodeV2',
+        name: 'Output Viewer v2.0 (Artifact Studio)',
+        description: 'Next-generation square studio with live Markdown, interactive sortable/searchable Data Grid, Monospace JSON stream, full export suite, and telemetry.',
+        config: {
+          format: 'markdown',
+          persistenceStrategy: 'append'
+        }
       }
     ]
   }

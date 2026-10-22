@@ -235,7 +235,7 @@ export default function Inspector({
   };
 
   const isAgent = selectedNode?.type === 'agentCore';
-  const isOutput = selectedNode?.type === 'outputNode';
+  const isOutput = selectedNode?.type === 'outputNode' || selectedNode?.type === 'outputNodeV2';
   const isIngest = selectedNode?.type === 'ingestionNode';
   const isDeterministic = selectedNode?.type === 'deterministicNode';
   const nodeData = selectedNode?.data || {};
