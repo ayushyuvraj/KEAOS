@@ -1,8 +1,8 @@
 {
-  "activeWorkflowId": "wf-meeting-intelligence",
+  "activeWorkflowId": "wf-1792831026760-e7ci6",
   "uiState": {
-    "isDarkMode": false,
-    "isSidebarCollapsed": false,
+    "isDarkMode": true,
+    "isSidebarCollapsed": true,
     "isSidebarClosed": false,
     "isDrawerExpanded": false,
     "showMiniMap": false,
@@ -10,14 +10,14 @@
       "x": 0,
       "y": 0
     },
-    "isInspectorOpen": false,
+    "isInspectorOpen": true,
     "isEnforcerActive": true,
     "viewMode": "canvas",
     "isWorkflowLocked": false
   },
   "workflows": [
     {
-      "id": "wf-1792662183798-3xtj9",
+      "id": "wf-1792831026760-e7ci6",
       "name": "Untitled Workflow",
       "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
       "framework": {
@@ -30,7 +30,512 @@
         "category": "SDK"
       },
       "activeUseCase": {
-        "id": "uc-wf-1792662183798-3xtj9",
+        "id": "uc-wf-1792831026760-e7ci6",
+        "name": "Untitled Workflow",
+        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "agent-core-4115",
+          "type": "agentCore",
+          "position": {
+            "x": 609.6077262111805,
+            "y": 220.66506120446275
+          },
+          "data": {
+            "name": "Autonomous Agent #1",
+            "framework": {
+              "id": "google-adk",
+              "name": "Google ADK",
+              "subtitle": "Google Agent Development Kit & GenAI SDK",
+              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+              "defaultModel": "gemini-2.0-flash",
+              "exportExtension": ".py",
+              "category": "SDK"
+            },
+            "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+            "temperature": 0.2,
+            "topP": 0.95
+          },
+          "measured": {
+            "width": 228,
+            "height": 173
+          },
+          "selected": true,
+          "dragging": false
+        },
+        {
+          "id": "node-model-9831",
+          "type": "pillar",
+          "position": {
+            "x": 653.6077262111805,
+            "y": 110.66506120446275
+          },
+          "data": {
+            "pillarType": "model",
+            "toolId": "model-openai-gpt-4o-mini",
+            "name": "OpenAI: gpt-4o-mini",
+            "description": "OpenAI gpt-4o-mini (Owner: system, Created: 7/17/2024)",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "provider": "openai",
+              "modelId": "gpt-4o-mini"
+            },
+            "tools": null,
+            "itemId": "model-openai-gpt-4o-mini"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-gateway-0651",
+          "type": "pillar",
+          "position": {
+            "x": 743.6077262111805,
+            "y": 110.66506120446275
+          },
+          "data": {
+            "pillarType": "gateway",
+            "toolId": "gw-mcp-controller",
+            "name": "MCP Egress Gateway",
+            "description": "Enforces zero-trust mediation between Agent Core and external MCP servers. Discovers all tools, manages execution scope, and routes actions.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "gatewayType": "mcp-egress",
+              "auditAllActions": true
+            },
+            "tools": null,
+            "itemId": "gw-mcp-controller"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-model-9832",
+          "source": "node-model-9831",
+          "sourceHandle": "out",
+          "target": "agent-core-4115",
+          "targetHandle": "model-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-gateway-0652",
+          "source": "node-gateway-0651",
+          "sourceHandle": "out",
+          "target": "agent-core-4115",
+          "targetHandle": "mcp-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#00A3A6",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        }
+      ],
+      "createdAt": 1792831026760,
+      "updatedAt": 1792831730825,
+      "isStarred": false,
+      "isLocked": false,
+      "isWorkflowLocked": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 3,
+        "agentCount": 1,
+        "mcpCount": 0,
+        "modelCount": 1,
+        "skillCount": 0,
+        "toolCount": 0,
+        "policyCount": 0,
+        "hasAudit": false
+      }
+    },
+    {
+      "id": "wf-1792827187202-2bukr",
+      "name": "Untitled Workflow",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792827187202-2bukr",
+        "name": "Untitled Workflow",
+        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "node-ingest-3116",
+          "type": "ingestionNode",
+          "position": {
+            "x": 420,
+            "y": 60
+          },
+          "data": {
+            "title": "Audio & Call Transcriber",
+            "content": "",
+            "status": "idle",
+            "fileType": "audio",
+            "isExpanded": false,
+            "isDarkMode": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "agent-core-3116",
+          "type": "agentCore",
+          "position": {
+            "x": 540,
+            "y": 180
+          },
+          "data": {
+            "name": "Meeting Intelligence Agent",
+            "framework": {
+              "id": "google-adk",
+              "name": "Google ADK",
+              "subtitle": "Google Agent Development Kit & GenAI SDK",
+              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+              "defaultModel": "gemini-2.0-flash",
+              "exportExtension": ".py",
+              "category": "SDK"
+            },
+            "prompt": "Analyze multi-speaker transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+            "temperature": 0.2,
+            "topP": 0.95,
+            "attachedCounts": {
+              "model": 1,
+              "skills": 1,
+              "mcp": 1,
+              "tools": 1,
+              "gateway": 0,
+              "memory": 1,
+              "policies": 1
+            },
+            "isDarkMode": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 228,
+            "height": 173
+          }
+        },
+        {
+          "id": "node-model-3116",
+          "type": "pillar",
+          "position": {
+            "x": 584,
+            "y": 60
+          },
+          "data": {
+            "pillarType": "model",
+            "name": "GPT-4o",
+            "description": "GPT-4o foundation reasoning model with structured JSON outputs.",
+            "config": {
+              "provider": "openai",
+              "modelId": "gpt-4o",
+              "temperature": 0.2,
+              "topP": 0.95
+            },
+            "isDarkMode": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-memory-3116",
+          "type": "pillar",
+          "position": {
+            "x": 564,
+            "y": 450
+          },
+          "data": {
+            "pillarType": "memory",
+            "name": "Episodic Sync Memory",
+            "description": "Maintains cross-session commitments and vector search.",
+            "config": {
+              "ttlDays": 90,
+              "store": "vector-sqlite"
+            },
+            "isDarkMode": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-policy-3116",
+          "type": "pillar",
+          "position": {
+            "x": 380,
+            "y": 450
+          },
+          "data": {
+            "pillarType": "policies",
+            "name": "PII Redactor",
+            "description": "Detects and redacts salaries, personal phones, SSNs, and confidential customer data.",
+            "config": {
+              "redactSalaries": true,
+              "maskEmails": true
+            },
+            "isDarkMode": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": true
+        },
+        {
+          "id": "node-skill-3116",
+          "type": "pillar",
+          "position": {
+            "x": 750,
+            "y": 450
+          },
+          "data": {
+            "pillarType": "skills",
+            "name": "Executive Summarizer",
+            "description": "Generates structured synthesis, highlights, and action points.",
+            "config": {
+              "focus": "executive"
+            },
+            "isDarkMode": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-mcp-3116",
+          "type": "pillar",
+          "position": {
+            "x": 800,
+            "y": 120
+          },
+          "data": {
+            "pillarType": "mcp",
+            "name": "Atlassian Jira MCP",
+            "description": "Exposes live tools and automated notifications.",
+            "config": {
+              "transport": "sse"
+            },
+            "isDarkMode": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-output-3116",
+          "type": "outputNodeV2",
+          "position": {
+            "x": 880,
+            "y": 180
+          },
+          "data": {
+            "title": "Agent Intelligence Output",
+            "outputContent": "",
+            "status": "idle",
+            "runsHistory": [],
+            "isDarkMode": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 56,
+            "height": 56
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-node-model-3116-to-agent-core-3116",
+          "source": "node-model-3116",
+          "sourceHandle": "out",
+          "target": "agent-core-3116",
+          "targetHandle": "model-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-node-ingest-3116-to-agent-core-3116",
+          "source": "node-ingest-3116",
+          "sourceHandle": "tools-out",
+          "target": "agent-core-3116",
+          "targetHandle": "tools-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#0091DA",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-node-memory-3116-to-agent-core-3116",
+          "source": "node-memory-3116",
+          "sourceHandle": "out",
+          "target": "agent-core-3116",
+          "targetHandle": "memory-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#483698",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-node-policy-3116-to-agent-core-3116",
+          "source": "node-policy-3116",
+          "sourceHandle": "out",
+          "target": "agent-core-3116",
+          "targetHandle": "policies-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#6D2077",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-node-skill-3116-to-agent-core-3116",
+          "source": "node-skill-3116",
+          "sourceHandle": "out",
+          "target": "agent-core-3116",
+          "targetHandle": "skill-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#009A44",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-node-mcp-3116-to-agent-core-3116",
+          "source": "node-mcp-3116",
+          "sourceHandle": "out",
+          "target": "agent-core-3116",
+          "targetHandle": "mcp-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#00A3A6",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-agent-core-3116-to-node-output-3116",
+          "source": "agent-core-3116",
+          "sourceHandle": "output-out",
+          "target": "node-output-3116",
+          "targetHandle": "in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 2
+          }
+        }
+      ],
+      "createdAt": 1792827187202,
+      "updatedAt": 1792830553556,
+      "isStarred": false,
+      "isLocked": false,
+      "isWorkflowLocked": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 8,
+        "agentCount": 1,
+        "mcpCount": 1,
+        "modelCount": 1,
+        "skillCount": 1,
+        "toolCount": 0,
+        "policyCount": 1,
+        "hasAudit": false
+      }
+    },
+    {
+      "id": "wf-1792826968738-ddmys",
+      "name": "Untitled Workflow",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792826968738-ddmys",
         "name": "Untitled Workflow",
         "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
         "framework": {
@@ -80,6 +585,10 @@
               "policies": 1
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 228,
+            "height": 173
           }
         },
         {
@@ -100,6 +609,10 @@
               "topP": 1
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -116,6 +629,10 @@
             "fileType": "auto",
             "isExpanded": false,
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -135,6 +652,10 @@
               "auditAllActions": true
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -153,6 +674,10 @@
               "maskEmails": true
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -171,6 +696,10 @@
               "store": "vector-sqlite"
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -189,6 +718,10 @@
               "focus": "decisions"
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -205,6 +738,10 @@
             "format": "markdown",
             "isExpanded": false,
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 56,
+            "height": 56
           }
         }
       ],
@@ -308,8 +845,8 @@
           }
         }
       ],
-      "createdAt": 1792662183798,
-      "updatedAt": 1792668620434,
+      "createdAt": 1792826968738,
+      "updatedAt": 1792830820694,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -324,199 +861,6 @@
         "skillCount": 1,
         "toolCount": 0,
         "policyCount": 1,
-        "hasAudit": false
-      }
-    },
-    {
-      "id": "wf-1792659865101-s3ud9",
-      "name": "Untitled Workflow",
-      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
-      "framework": {
-        "id": "google-adk",
-        "name": "Google ADK",
-        "subtitle": "Google Agent Development Kit & GenAI SDK",
-        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-        "defaultModel": "gemini-2.0-flash",
-        "exportExtension": ".py",
-        "category": "SDK"
-      },
-      "activeUseCase": {
-        "id": "uc-wf-1792659865101-s3ud9",
-        "name": "Untitled Workflow",
-        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
-        "framework": {
-          "id": "google-adk",
-          "name": "Google ADK",
-          "subtitle": "Google Agent Development Kit & GenAI SDK",
-          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-          "defaultModel": "gemini-2.0-flash",
-          "exportExtension": ".py",
-          "category": "SDK"
-        },
-        "agent": {
-          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
-          "temperature": 0.2,
-          "topP": 0.95
-        }
-      },
-      "nodes": [
-        {
-          "id": "node-output-v2-7373",
-          "type": "outputNodeV2",
-          "position": {
-            "x": 591.843134835194,
-            "y": 50.876409264092274
-          },
-          "data": {
-            "name": "Output Viewer v2.0 (Artifact Studio)",
-            "title": "Output Viewer v2.0 (Artifact Studio)",
-            "outputContent": "",
-            "content": "",
-            "status": "idle",
-            "format": "markdown",
-            "runsHistory": [],
-            "sourceNodeType": null,
-            "sourceNodeId": null,
-            "sourceNodeName": null,
-            "isExpanded": true,
-            "isDarkMode": false,
-            "filenamePrefix": "test123"
-          },
-          "measured": {
-            "width": 520,
-            "height": 520
-          },
-          "selected": true,
-          "dragging": false
-        }
-      ],
-      "edges": [
-        {
-          "id": "edge-output-v2-7374",
-          "source": "agent-core",
-          "sourceHandle": "out",
-          "target": "node-output-v2-7373",
-          "targetHandle": "data-in",
-          "type": "deletable",
-          "animated": false,
-          "style": {
-            "stroke": "#10B981",
-            "strokeWidth": 1.8,
-            "strokeDasharray": "4 4"
-          }
-        }
-      ],
-      "createdAt": 1792659865101,
-      "updatedAt": 1792662072547,
-      "isStarred": false,
-      "isLocked": false,
-      "isWorkflowLocked": false,
-      "tags": [
-        "New"
-      ],
-      "stats": {
-        "nodeCount": 1,
-        "agentCount": 0,
-        "mcpCount": 0,
-        "modelCount": 0,
-        "skillCount": 0,
-        "toolCount": 0,
-        "policyCount": 0,
-        "hasAudit": false
-      }
-    },
-    {
-      "id": "wf-1792659670450-5zgjh",
-      "name": "Untitled Workflow",
-      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
-      "framework": {
-        "id": "google-adk",
-        "name": "Google ADK",
-        "subtitle": "Google Agent Development Kit & GenAI SDK",
-        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-        "defaultModel": "gemini-2.0-flash",
-        "exportExtension": ".py",
-        "category": "SDK"
-      },
-      "activeUseCase": {
-        "id": "uc-wf-1792659670450-5zgjh",
-        "name": "Untitled Workflow",
-        "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
-        "framework": {
-          "id": "google-adk",
-          "name": "Google ADK",
-          "subtitle": "Google Agent Development Kit & GenAI SDK",
-          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-          "defaultModel": "gemini-2.0-flash",
-          "exportExtension": ".py",
-          "category": "SDK"
-        },
-        "agent": {
-          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
-          "temperature": 0.2,
-          "topP": 0.95
-        }
-      },
-      "nodes": [
-        {
-          "id": "node-output-v2-1283",
-          "type": "outputNodeV2",
-          "position": {
-            "x": 790,
-            "y": 207
-          },
-          "data": {
-            "name": "Output Viewer v2.0 (Artifact Studio)",
-            "title": "Output Viewer v2.0 (Artifact Studio)",
-            "outputContent": "",
-            "content": "",
-            "status": "idle",
-            "format": "markdown",
-            "runsHistory": [],
-            "sourceNodeType": null,
-            "sourceNodeId": null,
-            "sourceNodeName": null,
-            "isExpanded": false
-          },
-          "measured": {
-            "width": 56,
-            "height": 56
-          },
-          "selected": true
-        }
-      ],
-      "edges": [
-        {
-          "id": "edge-output-v2-1284",
-          "source": "agent-core",
-          "sourceHandle": "out",
-          "target": "node-output-v2-1283",
-          "targetHandle": "data-in",
-          "type": "deletable",
-          "animated": false,
-          "style": {
-            "stroke": "#10B981",
-            "strokeWidth": 1.8,
-            "strokeDasharray": "4 4"
-          }
-        }
-      ],
-      "createdAt": 1792659670450,
-      "updatedAt": 1792659828632,
-      "isStarred": false,
-      "isLocked": false,
-      "isWorkflowLocked": false,
-      "tags": [
-        "New"
-      ],
-      "stats": {
-        "nodeCount": 1,
-        "agentCount": 0,
-        "mcpCount": 0,
-        "modelCount": 0,
-        "skillCount": 0,
-        "toolCount": 0,
-        "policyCount": 0,
         "hasAudit": false
       }
     },
@@ -1495,34 +1839,8 @@
             "width": 140,
             "height": 60
           },
-          "selected": false,
+          "selected": true,
           "dragging": false
-        },
-        {
-          "id": "node-output-v2-6578",
-          "type": "outputNodeV2",
-          "position": {
-            "x": 830,
-            "y": 207
-          },
-          "data": {
-            "name": "Output Viewer v2.0 (Artifact Studio)",
-            "title": "Output Viewer v2.0 (Artifact Studio)",
-            "outputContent": "",
-            "content": "",
-            "status": "idle",
-            "format": "markdown",
-            "runsHistory": [],
-            "sourceNodeType": null,
-            "sourceNodeId": null,
-            "sourceNodeName": null,
-            "isExpanded": false,
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 56,
-            "height": 56
-          }
         }
       ],
       "edges": [
@@ -1639,24 +1957,10 @@
             "strokeDasharray": "4 4"
           },
           "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
-        },
-        {
-          "id": "edge-output-v2-6595",
-          "source": "node-model-1",
-          "sourceHandle": "out",
-          "target": "node-output-v2-6578",
-          "targetHandle": "data-in",
-          "type": "deletable",
-          "animated": false,
-          "style": {
-            "stroke": "#10B981",
-            "strokeWidth": 1.8,
-            "strokeDasharray": "4 4"
-          }
         }
       ],
       "createdAt": 1729080000000,
-      "updatedAt": 1792671441945,
+      "updatedAt": 1792671894830,
       "isStarred": true,
       "tags": [
         "Meeting Intelligence",
@@ -1665,7 +1969,7 @@
         "PII Redactor"
       ],
       "stats": {
-        "nodeCount": 8,
+        "nodeCount": 7,
         "agentCount": 1,
         "mcpCount": 0,
         "modelCount": 1,
@@ -1674,8 +1978,8 @@
         "policyCount": 1,
         "hasAudit": false
       },
-      "isLocked": false,
-      "isWorkflowLocked": false
+      "isLocked": true,
+      "isWorkflowLocked": true
     },
     {
       "id": "wf-outlook-stream-intelligence",
@@ -3346,10 +3650,10 @@
         }
       ],
       "createdAt": 1792382477311,
-      "updatedAt": 1792565009419,
+      "updatedAt": 1792823981690,
       "isStarred": false,
-      "isLocked": false,
-      "isWorkflowLocked": false,
+      "isLocked": true,
+      "isWorkflowLocked": true,
       "tags": [
         "Outlook MCP",
         "Attachment Decoding",
@@ -3427,15 +3731,15 @@
               "gateway": 1,
               "tools": 1
             },
-            "lastOutput": "The attachment \"dummy_invoice_consulting_services.docx\" from the email with the subject \"consulting\" has been successfully read and contains detailed financial information. Below is the structured data extracted from the document:\n\n```json\n{\n  \"invoiceDetails\": {\n    \"invoiceNumber\": \"SSA-2026-1087\",\n    \"invoiceDate\": \"October 20, 2026\",\n    \"dueDate\": \"November 04, 2026\",\n    \"engagementCode\": \"ENG-GOV-2026-Q3\",\n    \"paymentTerms\": \"Net 15 Days\",\n    \"billingCycle\": \"Monthly Recurring\"\n  },\n  \"clientDetails\": {\n    \"clientName\": \"Horizon Financial Holdings Corp.\",\n    \"contact\": \"Office of the Chief Compliance Officer\",\n    \"address\": \"600 Montgomery Street, Suite 3200, San Francisco, CA 94111, USA\",\n    \"accountReference\": \"HZ-88219\",\n    \"accountsPayableEmail\": \"finance@horizonfin.com\"\n  },\n  \"engagementDetails\": {\n    \"engagement\": \"Q3 2026 SOX Compliance & Risk Audit\",\n    \"leadPartner\": \"Eleanor Vance, J.D., CAMS\",\n    \"masterServiceAgreement\": \"MSA-2024-0091\",\n    \"scope\": \"IT General Controls (ITGC) & Security Audit\",\n    \"billingPeriod\": \"September 1 - September 30, 2026\",\n    \"auditReportStatus\": \"Final Delivered\"\n  },\n  \"lineItems\": [\n    {\n      \"description\": \"Lead Partner Advisory - SOX 404 Executive Oversight\",\n      \"consultant\": \"E. Vance (Senior Partner)\",\n      \"hours\": 12.0,\n      \"rate\": 650.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 7800.00\n    },\n    {\n      \"description\": \"Principal Risk Specialist - ITGC Controls Assessment\",\n      \"consultant\": \"M. Chen (Principal Consultant)\",\n      \"hours\": 45.0,\n      \"rate\": 380.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 17100.00\n    },\n    {\n      \"description\": \"Senior Security Compliance Auditor - Penetration Testing Review\",\n      \"consultant\": \"D. Rossi (Senior Associate)\",\n      \"hours\": 38.5,\n      \"rate\": 260.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 10010.00\n    },\n    {\n      \"description\": \"Compliance Reporting & Technical Documentation Preparation\",\n      \"deliverable\": \"Formal Audit Defense Package\",\n      \"quantity\": 1.0,\n      \"rate\": 2500.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 2500.00\n    },\n    {\n      \"description\": \"Regulatory Subscription Data Feeds (SEC & FINRA Rule Tracker)\",\n      \"sku\": \"SUB-GOV-DATA\",\n      \"quantity\": 1.0,\n      \"rate\": 450.00,\n      \"taxRate\": \"8.875%\",\n      \"amount\": 450.00\n    }\n  ],\n  \"financialSummary\": {\n    \"professionalFeesSubtotal\": 37410.00,\n    \"taxableSoftwareFeedItems\": 450.00,\n    \"salesUseTax\": 39.94,\n    \"retainerCreditApplied\": -5000.00,\n    \"netAmountPayable\": 32449.94\n  },\n  \"paymentInstructions\": {\n    \"depositoryBank\": \"Citibank, N.A. (Wall Street Branch)\",\n    \"accountHolder\": \"Stratton & Sterling Advisory LLC\",\n    \"accountNumber\": \"5541 2098 7741\",\n    \"routingNumber\": \"021000089\",\n    \"swiftBICCode\": \"CITIUS33\",\n    \"referenceTag\": \"INV-SSA-1087\",\n    \"inquiriesEmail\": \"ar-clientbilling@strattonsterling.com\"\n  },\n  \"metadata\": {\n    \"documentId\": \"SSA-INV-2026-1087\",\n    \"contractMatch\": \"MSA-2024-0091\",\n    \"costCenter\": \"CC-1020-LEGAL\",\n    \"taxCode\": \"NY-LOCAL-SERV\",\n    \"expenseType\": \"Professional / Advisory\",\n    \"approvalFlow\": \"VP & General Counsel\",\n    \"paymentStatus\": \"Pending Approval\",\n    \"extractionEngine\": \"Parser-V4-Pro\"\n  }\n}\n```\n\n### Next Steps:\n- **Mark the Email as Read:** To ensure that this email is not processed again in future runs.\n- **Review and Process Financial Data:** The extracted data can be used for financial analysis, reporting, or further processing as required.\n\nI will now mark the email as read.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"mark_as_read\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di-AAAAA==\"\n  }\n}\n<<<END_TOOL_CALL>>>",
-            "auditHash": "2bfd085858a5c52d4f81d05aeca8b809a3be635cdfbe198b3b0da61ecb1a0e59",
+            "lastOutput": "It seems that the authentication token for accessing the Microsoft Outlook 365 API has expired. This requires a fresh access token to proceed with listing unread messages. Please update the token in the Outlook MCP node settings or reconnect via \"Sign in with Microsoft\" to continue.\n\nOnce the token is refreshed, I will be able to proceed with inspecting unread emails for relevant content.",
+            "auditHash": "79bcaaeae0b9c75da18e0cebde766df9dbe1597286df235a81fdc117d0a228d4",
             "observability": {
-              "totalTokens": 31354,
-              "latencyMs": 23744,
+              "totalTokens": 6193,
+              "latencyMs": 9062,
               "modelUsed": "openai (gpt-4o)",
               "framework": "Microsoft ADK"
             },
-            "costUsd": 0.23124,
+            "costUsd": 0.04567,
             "isDarkMode": false
           },
           "measured": {
@@ -4768,225 +5072,6 @@
           "dragging": false
         },
         {
-          "id": "node-output-6744",
-          "type": "outputNode",
-          "position": {
-            "x": 774.469263467904,
-            "y": 223.02800945754026
-          },
-          "data": {
-            "name": "Final Output Viewer & Exporter",
-            "title": "Final Output Viewer & Exporter",
-            "outputContent": "The attachment \"dummy_invoice_consulting_services.docx\" from the email with the subject \"consulting\" has been successfully read and contains detailed financial information. Below is the structured data extracted from the document:\n\n```json\n{\n  \"invoiceDetails\": {\n    \"invoiceNumber\": \"SSA-2026-1087\",\n    \"invoiceDate\": \"October 20, 2026\",\n    \"dueDate\": \"November 04, 2026\",\n    \"engagementCode\": \"ENG-GOV-2026-Q3\",\n    \"paymentTerms\": \"Net 15 Days\",\n    \"billingCycle\": \"Monthly Recurring\"\n  },\n  \"clientDetails\": {\n    \"clientName\": \"Horizon Financial Holdings Corp.\",\n    \"contact\": \"Office of the Chief Compliance Officer\",\n    \"address\": \"600 Montgomery Street, Suite 3200, San Francisco, CA 94111, USA\",\n    \"accountReference\": \"HZ-88219\",\n    \"accountsPayableEmail\": \"finance@horizonfin.com\"\n  },\n  \"engagementDetails\": {\n    \"engagement\": \"Q3 2026 SOX Compliance & Risk Audit\",\n    \"leadPartner\": \"Eleanor Vance, J.D., CAMS\",\n    \"masterServiceAgreement\": \"MSA-2024-0091\",\n    \"scope\": \"IT General Controls (ITGC) & Security Audit\",\n    \"billingPeriod\": \"September 1 - September 30, 2026\",\n    \"auditReportStatus\": \"Final Delivered\"\n  },\n  \"lineItems\": [\n    {\n      \"description\": \"Lead Partner Advisory - SOX 404 Executive Oversight\",\n      \"consultant\": \"E. Vance (Senior Partner)\",\n      \"hours\": 12.0,\n      \"rate\": 650.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 7800.00\n    },\n    {\n      \"description\": \"Principal Risk Specialist - ITGC Controls Assessment\",\n      \"consultant\": \"M. Chen (Principal Consultant)\",\n      \"hours\": 45.0,\n      \"rate\": 380.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 17100.00\n    },\n    {\n      \"description\": \"Senior Security Compliance Auditor - Penetration Testing Review\",\n      \"consultant\": \"D. Rossi (Senior Associate)\",\n      \"hours\": 38.5,\n      \"rate\": 260.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 10010.00\n    },\n    {\n      \"description\": \"Compliance Reporting & Technical Documentation Preparation\",\n      \"deliverable\": \"Formal Audit Defense Package\",\n      \"quantity\": 1.0,\n      \"rate\": 2500.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 2500.00\n    },\n    {\n      \"description\": \"Regulatory Subscription Data Feeds (SEC & FINRA Rule Tracker)\",\n      \"sku\": \"SUB-GOV-DATA\",\n      \"quantity\": 1.0,\n      \"rate\": 450.00,\n      \"taxRate\": \"8.875%\",\n      \"amount\": 450.00\n    }\n  ],\n  \"financialSummary\": {\n    \"professionalFeesSubtotal\": 37410.00,\n    \"taxableSoftwareFeedItems\": 450.00,\n    \"salesUseTax\": 39.94,\n    \"retainerCreditApplied\": -5000.00,\n    \"netAmountPayable\": 32449.94\n  },\n  \"paymentInstructions\": {\n    \"depositoryBank\": \"Citibank, N.A. (Wall Street Branch)\",\n    \"accountHolder\": \"Stratton & Sterling Advisory LLC\",\n    \"accountNumber\": \"5541 2098 7741\",\n    \"routingNumber\": \"021000089\",\n    \"swiftBICCode\": \"CITIUS33\",\n    \"referenceTag\": \"INV-SSA-1087\",\n    \"inquiriesEmail\": \"ar-clientbilling@strattonsterling.com\"\n  },\n  \"metadata\": {\n    \"documentId\": \"SSA-INV-2026-1087\",\n    \"contractMatch\": \"MSA-2024-0091\",\n    \"costCenter\": \"CC-1020-LEGAL\",\n    \"taxCode\": \"NY-LOCAL-SERV\",\n    \"expenseType\": \"Professional / Advisory\",\n    \"approvalFlow\": \"VP & General Counsel\",\n    \"paymentStatus\": \"Pending Approval\",\n    \"extractionEngine\": \"Parser-V4-Pro\"\n  }\n}\n```\n\n### Next Steps:\n- **Mark the Email as Read:** To ensure that this email is not processed again in future runs.\n- **Review and Process Financial Data:** The extracted data can be used for financial analysis, reporting, or further processing as required.\n\nI will now mark the email as read.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"mark_as_read\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di-AAAAA==\"\n  }\n}\n<<<END_TOOL_CALL>>>",
-            "content": "",
-            "status": "ready",
-            "format": "markdown",
-            "runsHistory": [
-              {
-                "runNumber": 1,
-                "timestamp": "3:17:25 PM",
-                "content": "It appears that the authentication token for accessing the Microsoft Outlook 365 service has expired. This prevents me from listing or inspecting new messages in the inbox. To resolve this issue, please refresh the authentication token by signing in again with Microsoft credentials in the Outlook MCP node settings. Once the token is refreshed, I can proceed with checking for new emails and attachments.",
-                "auditHash": "ee0ffb237c212946a39a7da41ee957d930248bfc6dafbfadc978afb1c0cd379a",
-                "tokens": 4624,
-                "latencyMs": 7120,
-                "costUsd": 0.03411,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 2,
-                "timestamp": "3:18:23 PM",
-                "content": "The attachment from the email with subject \"Fwd: test mail\" has been successfully processed. Below is the structured data extracted from the invoice document:\n\n### Invoice Details\n\n- **Invoice Number:** INV-2026-08492\n- **Invoice Date:** October 14, 2026\n- **Due Date:** November 13, 2026\n- **PO Number:** PO-99214-X\n- **Payment Terms:** Net 30 Days\n- **Currency:** USD ($)\n\n### Billing Information\n\n- **Bill To:**\n  - **Company:** Nexus Dynamics International Corp.\n  - **Address:** 450 Lexington Avenue, Floor 18, New York, NY 10017, USA\n  - **Client ID:** ND-US-8910\n  - **Contact Email:** ap-invoices@nexusdynamics.io\n\n- **Service/Ship To:**\n  - **Location:** Nexus Dynamics Data Center Operations, Data Center 3 - East Coast Facility, 1200 Telecom Way, Building B, Ashburn, VA 20147, USA\n  - **Project Code:** PRJ-CLOUD-MIG-2026\n  - **Delivery Method:** Digital Delivery / SLA Service\n\n### Line Items\n\n1. **Enterprise Cloud Hosting - Tier 4 Dedicated Cluster (October 2026)**\n   - **SKU:** CLD-HOST-T4-MO\n   - **Quantity:** 1\n   - **Unit Price:** $4,200.00\n   - **Tax Rate:** 0.00%\n   - **Amount:** $4,200.00\n\n2. **Managed Kubernetes Cluster Maintenance & 24/7 SRE Support**\n   - **SKU:** SRE-OPS-247\n   - **Quantity:** 1\n   - **Unit Price:** $1,850.00\n   - **Tax Rate:** 0.00%\n   - **Amount:** $1,850.00\n\n3. **Premium API Gateway Traffic Routing (Overage: 2.4M calls)**\n   - **SKU:** API-RT-EXT\n   - **Quantity:** 24\n   - **Unit Price:** $15.00\n   - **Tax Rate:** 8.25%\n   - **Amount:** $360.00\n\n4. **Data Backup & Disaster Recovery Storage Vault (10 TB Block)**\n   - **SKU:** DR-STG-10TB\n   - **Quantity:** 2\n   - **Unit Price:** $320.00\n   - **Tax Rate:** 8.25%\n   - **Amount:** $640.00\n\n5. **Cybersecurity Threat Detection & SIEM Monitoring License**\n   - **SKU:** SEC-SIEM-ADV\n   - **Quantity:** 1\n   - **Unit Price:** $950.00\n   - **Tax Rate:** 8.25%\n   - **Amount:** $950.00\n\n6. **Professional Cloud Architecture Consulting (Hours)**\n   - **SKU:** CNS-ARCH-SR\n   - **Quantity:** 15\n   - **Unit Price:** $160.00\n   - **Tax Rate:** 0.00%\n   - **Amount:** $2,400.00\n\n### Financial Summary\n\n- **Subtotal:** $10,400.00\n- **Discount (Contract SLA 5%):** -$520.00\n- **Taxable Amount:** $1,950.00\n- **Estimated Sales Tax (8.25%):** $160.88\n- **Total Balance Due:** $10,040.88\n\n### Payment Instructions\n\n- **Bank Name:** JPMorgan Chase Bank, N.A.\n- **Account Name:** Apex Cloud Solutions LLC\n- **Account Number:** 9832 4021 7845\n- **Routing Transit Number (ABA):** 111000614\n- **SWIFT / BIC:** CHASUS33\n- **Payment Reference:** INV-2026-08492\n- **Late Fee:** 1.5% per month on overdue balances\n\n### Metadata\n\n- **Barcode/Tracking:** APEX-INV-8492-X\n- **OCR Template:** STD_CORP_INV_V3\n- **ERP Cost Center:** CC-7740-ENG\n- **Tax Jurisdiction:** US-TX-TRAVIS\n- **GL Account Code:** 6120-IT-CLOUD\n- **Match Status:** 2-Way PO Matched\n- **Approval Route:** L2-FinOperations\n- **Validation Checksum:** SHA256:7f9b...a12c\n\nThis document is generated for testing automated invoice processing, OCR capture, and ERP matching workflows. The security check indicates a low risk level with no injections detected, and the content has been sanitized.\n\nIf further actions are required, such as processing payments or updating financial records, please proceed accordingly.",
-                "auditHash": "c08fa51eab0b4e310a0e7d0945a76e5fd9793118072bc68fa309fcbc98e45692",
-                "tokens": 20638,
-                "latencyMs": 19446,
-                "costUsd": 0.15221,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 3,
-                "timestamp": "12:24:49 AM",
-                "content": "The attachment \"dummy_invoice_processing_sample.docx\" from the email with the subject \"Fwd: test mail\" has been successfully read. Below is the structured data extracted from the document, which contains detailed invoice information:\n\n```json\n{\n  \"invoice\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n    \"taxId\": \"84-2938471\",\n    \"vatReg\": \"US842938471\",\n    \"contact\": {\n      \"email\": \"billing@apexcloudsolutions.com\",\n      \"phone\": \"+1 (512) 555-0198\"\n    },\n    \"invoiceDetails\": {\n      \"invoiceNumber\": \"INV-2026-08492\",\n      \"invoiceDate\": \"October 14, 2026\",\n      \"dueDate\": \"November 13, 2026\",\n      \"poNumber\": \"PO-99214-X\",\n      \"paymentTerms\": \"Net 30 Days\",\n      \"currency\": \"USD ($)\"\n    },\n    \"billTo\": {\n      \"company\": \"Nexus Dynamics International Corp.\",\n      \"address\": \"450 Lexington Avenue, Floor 18, New York, NY 10017, USA\",\n      \"clientId\": \"ND-US-8910\",\n      \"contactEmail\": \"ap-invoices@nexusdynamics.io\"\n    },\n    \"serviceTo\": {\n      \"location\": \"Nexus Dynamics Data Center Operations, Data Center 3 - East Coast Facility, 1200 Telecom Way, Building B, Ashburn, VA 20147, USA\",\n      \"projectCode\": \"PRJ-CLOUD-MIG-2026\",\n      \"deliveryMethod\": \"Digital Delivery / SLA Service\"\n    },\n    \"items\": [\n      {\n        \"description\": \"Enterprise Cloud Hosting - Tier 4 Dedicated Cluster (October 2026)\",\n        \"sku\": \"CLD-HOST-T4-MO\",\n        \"quantity\": 1,\n        \"unitPrice\": 4200.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 4200.00\n      },\n      {\n        \"description\": \"Managed Kubernetes Cluster Maintenance & 24/7 SRE Support\",\n        \"sku\": \"SRE-OPS-247\",\n        \"quantity\": 1,\n        \"unitPrice\": 1850.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 1850.00\n      },\n      {\n        \"description\": \"Premium API Gateway Traffic Routing (Overage: 2.4M calls)\",\n        \"sku\": \"API-RT-EXT\",\n        \"quantity\": 24,\n        \"unitPrice\": 15.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 360.00\n      },\n      {\n        \"description\": \"Data Backup & Disaster Recovery Storage Vault (10 TB Block)\",\n        \"sku\": \"DR-STG-10TB\",\n        \"quantity\": 2,\n        \"unitPrice\": 320.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 640.00\n      },\n      {\n        \"description\": \"Cybersecurity Threat Detection & SIEM Monitoring License\",\n        \"sku\": \"SEC-SIEM-ADV\",\n        \"quantity\": 1,\n        \"unitPrice\": 950.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 950.00\n      },\n      {\n        \"description\": \"Professional Cloud Architecture Consulting (Hours)\",\n        \"sku\": \"CNS-ARCH-SR\",\n        \"quantity\": 15,\n        \"unitPrice\": 160.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 2400.00\n      }\n    ],\n    \"paymentInstructions\": {\n      \"bankName\": \"JPMorgan Chase Bank, N.A.\",\n      \"accountName\": \"Apex Cloud Solutions LLC\",\n      \"accountNumber\": \"9832 4021 7845\",\n      \"routingNumber\": \"111000614\",\n      \"swiftBic\": \"CHASUS33\",\n      \"paymentReference\": \"INV-2026-08492\",\n      \"lateFee\": \"1.5% per month on overdue balances\"\n    },\n    \"financialSummary\": {\n      \"subtotal\": 10400.00,\n      \"discount\": -520.00,\n      \"taxableAmount\": 1950.00,\n      \"estimatedSalesTax\": 160.88,\n      \"totalBalanceDue\": 10040.88\n    },\n    \"metadata\": {\n      \"barcodeTracking\": \"APEX-INV-8492-X\",\n      \"ocrTemplate\": \"STD_CORP_INV_V3\",\n      \"erpCostCenter\": \"CC-7740-ENG\",\n      \"taxJurisdiction\": \"US-TX-TRAVIS\",\n      \"glAccountCode\": \"6120-IT-CLOUD\",\n      \"matchStatus\": \"2-Way PO Matched\",\n      \"approvalRoute\": \"L2-FinOperations\",\n      \"validationChecksum\": \"SHA256:7f9b...a12c\"\n    }\n  }\n}\n```\n\n### Action Items:\n- The extracted invoice data should be reviewed for accuracy and completeness.\n- Ensure the invoice is processed according to the payment terms and remittance instructions.\n- Verify the metadata for ERP matching and approval routing.\n- Mark the email as read to prevent reprocessing.\n\nI will now mark the email as read to ensure it is not processed again in future checks.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"update_draft\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_gAAAA==\",\n    \"isRead\": true\n  }\n}\n<<<END_TOOL_CALL>>>",
-                "auditHash": "21e1f1b956631afdbfe7fba3404e0e319bc28fe959a071b45473de101fe8309b",
-                "tokens": 29795,
-                "latencyMs": 48751,
-                "costUsd": 0.21974,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 4,
-                "timestamp": "12:26:26 AM",
-                "content": "It seems that the tool to directly update the read status of an email is not available in the current set of tools. However, I can move the emails to a different folder, such as \"Read\" or \"Processed,\" which can serve as an alternative way to manage them.\n\nWould you like me to move these emails to a specific folder to indicate they have been processed? If so, please let me know the folder name, or I can create a new folder for this purpose.",
-                "auditHash": "931a9e00730d9d5d8419d34ec120a5d2029dac42399d32b02c73497c6db0c69e",
-                "tokens": 19788,
-                "latencyMs": 0,
-                "costUsd": 0.14594,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 5,
-                "timestamp": "12:33:15 AM",
-                "content": "The email with the subject \"Fwd: test mail\" has been successfully marked as read. Here is a summary of the processed email and the extracted invoice details:\n\n### Processed Email Summary\n- **Subject:** Fwd: test mail\n- **From:** Ayush Yuvraj (ayushyuvraj31@gmail.com)\n- **Received Date:** 2026-10-21T18:50:41Z\n- **Has Attachments:** Yes\n- **Attachment Name:** dummy_invoice_processing_sample.docx\n\n### Extracted Invoice Details\n```json\n{\n  \"invoiceDetails\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n    \"taxId\": \"84-2938471\",\n    \"vatReg\": \"US842938471\",\n    \"email\": \"billing@apexcloudsolutions.com\",\n    \"phone\": \"+1 (512) 555-0198\",\n    \"invoiceNumber\": \"INV-2026-08492\",\n    \"invoiceDate\": \"October 14, 2026\",\n    \"dueDate\": \"November 13, 2026\",\n    \"poNumber\": \"PO-99214-X\",\n    \"paymentTerms\": \"Net 30 Days\",\n    \"currency\": \"USD ($)\"\n  },\n  \"billingDetails\": {\n    \"billTo\": \"Nexus Dynamics International Corp.\",\n    \"attention\": \"Accounts Payable Department\",\n    \"address\": \"450 Lexington Avenue, Floor 18, New York, NY 10017, USA\",\n    \"clientId\": \"ND-US-8910\",\n    \"contact\": \"ap-invoices@nexusdynamics.io\"\n  },\n  \"serviceDetails\": {\n    \"serviceTo\": \"Nexus Dynamics Data Center Operations\",\n    \"facility\": \"Data Center 3 - East Coast Facility\",\n    \"address\": \"1200 Telecom Way, Building B, Ashburn, VA 20147, USA\",\n    \"projectCode\": \"PRJ-CLOUD-MIG-2026\",\n    \"deliveryMethod\": \"Digital Delivery / SLA Service\"\n  },\n  \"lineItems\": [\n    {\n      \"item\": 1,\n      \"description\": \"Enterprise Cloud Hosting - Tier 4 Dedicated Cluster (October 2026)\",\n      \"sku\": \"CLD-HOST-T4-MO\",\n      \"quantity\": 1,\n      \"unitPrice\": 4200.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 4200.00\n    },\n    {\n      \"item\": 2,\n      \"description\": \"Managed Kubernetes Cluster Maintenance & 24/7 SRE Support\",\n      \"sku\": \"SRE-OPS-247\",\n      \"quantity\": 1,\n      \"unitPrice\": 1850.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 1850.00\n    },\n    {\n      \"item\": 3,\n      \"description\": \"Premium API Gateway Traffic Routing (Overage: 2.4M calls)\",\n      \"sku\": \"API-RT-EXT\",\n      \"quantity\": 24,\n      \"unitPrice\": 15.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 360.00\n    },\n    {\n      \"item\": 4,\n      \"description\": \"Data Backup & Disaster Recovery Storage Vault (10 TB Block)\",\n      \"sku\": \"DR-STG-10TB\",\n      \"quantity\": 2,\n      \"unitPrice\": 320.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 640.00\n    },\n    {\n      \"item\": 5,\n      \"description\": \"Cybersecurity Threat Detection & SIEM Monitoring License\",\n      \"sku\": \"SEC-SIEM-ADV\",\n      \"quantity\": 1,\n      \"unitPrice\": 950.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 950.00\n    },\n    {\n      \"item\": 6,\n      \"description\": \"Professional Cloud Architecture Consulting (Hours)\",\n      \"sku\": \"CNS-ARCH-SR\",\n      \"quantity\": 15,\n      \"unitPrice\": 160.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 2400.00\n    }\n  ],\n  \"paymentInstructions\": {\n    \"bankName\": \"JPMorgan Chase Bank, N.A.\",\n    \"accountName\": \"Apex Cloud Solutions LLC\",\n    \"accountNumber\": \"9832 4021 7845\",\n    \"routingNumber\": \"111000614\",\n    \"swiftBIC\": \"CHASUS33\",\n    \"paymentReference\": \"INV-2026-08492\",\n    \"lateFee\": \"1.5% per month on overdue balances\"\n  },\n  \"financialSummary\": {\n    \"subtotal\": 10400.00,\n    \"discount\": -520.00,\n    \"taxableAmount\": 1950.00,\n    \"estimatedSalesTax\": 160.88,\n    \"totalBalanceDue\": 10040.88\n  },\n  \"metadata\": {\n    \"barcodeTracking\": \"APEX-INV-8492-X\",\n    \"ocrTemplate\": \"STD_CORP_INV_V3\",\n    \"erpCostCenter\": \"CC-7740-ENG\",\n    \"taxJurisdiction\": \"US-TX-TRAVIS\",\n    \"glAccountCode\": \"6120-IT-CLOUD\",\n    \"matchStatus\": \"2-Way PO Matched\",\n    \"approvalRoute\": \"L2-FinOperations\",\n    \"validationChecksum\": \"SHA256:7f9b...a12c\"\n  }\n}\n```\n\nThis structured data can now be used for further processing or integration into financial systems. If there are more emails to process, I will continue with the next steps.",
-                "auditHash": "7ad44166ed9423f0b6e435a90a170247e700acc2610b878d7550d3824a1e0572",
-                "tokens": 37115,
-                "latencyMs": 35331,
-                "costUsd": 0.27372,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 6,
-                "timestamp": "12:34:13 AM",
-                "content": "The attachment `dummy_invoice_processing_sample.docx` from the email contains detailed invoice information. Below is the structured data extracted from the document:\n\n```json\n{\n  \"invoiceDetails\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n    \"taxId\": \"84-2938471\",\n    \"vatReg\": \"US842938471\",\n    \"email\": \"billing@apexcloudsolutions.com\",\n    \"phone\": \"+1 (512) 555-0198\",\n    \"invoiceNumber\": \"INV-2026-08492\",\n    \"invoiceDate\": \"October 14, 2026\",\n    \"dueDate\": \"November 13, 2026\",\n    \"poNumber\": \"PO-99214-X\",\n    \"paymentTerms\": \"Net 30 Days\",\n    \"currency\": \"USD ($)\"\n  },\n  \"billingDetails\": {\n    \"billTo\": \"Nexus Dynamics International Corp.\",\n    \"attention\": \"Accounts Payable Department\",\n    \"address\": \"450 Lexington Avenue, Floor 18, New York, NY 10017, USA\",\n    \"clientId\": \"ND-US-8910\",\n    \"contact\": \"ap-invoices@nexusdynamics.io\"\n  },\n  \"serviceDetails\": {\n    \"serviceTo\": \"Nexus Dynamics Data Center Operations\",\n    \"facility\": \"Data Center 3 - East Coast Facility\",\n    \"address\": \"1200 Telecom Way, Building B, Ashburn, VA 20147, USA\",\n    \"projectCode\": \"PRJ-CLOUD-MIG-2026\",\n    \"deliveryMethod\": \"Digital Delivery / SLA Service\"\n  },\n  \"lineItems\": [\n    {\n      \"description\": \"Enterprise Cloud Hosting - Tier 4 Dedicated Cluster (October 2026)\",\n      \"sku\": \"CLD-HOST-T4-MO\",\n      \"quantity\": 1,\n      \"unitPrice\": 4200.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 4200.00\n    },\n    {\n      \"description\": \"Managed Kubernetes Cluster Maintenance & 24/7 SRE Support\",\n      \"sku\": \"SRE-OPS-247\",\n      \"quantity\": 1,\n      \"unitPrice\": 1850.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 1850.00\n    },\n    {\n      \"description\": \"Premium API Gateway Traffic Routing (Overage: 2.4M calls)\",\n      \"sku\": \"API-RT-EXT\",\n      \"quantity\": 24,\n      \"unitPrice\": 15.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 360.00\n    },\n    {\n      \"description\": \"Data Backup & Disaster Recovery Storage Vault (10 TB Block)\",\n      \"sku\": \"DR-STG-10TB\",\n      \"quantity\": 2,\n      \"unitPrice\": 320.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 640.00\n    },\n    {\n      \"description\": \"Cybersecurity Threat Detection & SIEM Monitoring License\",\n      \"sku\": \"SEC-SIEM-ADV\",\n      \"quantity\": 1,\n      \"unitPrice\": 950.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 950.00\n    },\n    {\n      \"description\": \"Professional Cloud Architecture Consulting (Hours)\",\n      \"sku\": \"CNS-ARCH-SR\",\n      \"quantity\": 15,\n      \"unitPrice\": 160.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 2400.00\n    }\n  ],\n  \"paymentInstructions\": {\n    \"bankName\": \"JPMorgan Chase Bank, N.A.\",\n    \"accountName\": \"Apex Cloud Solutions LLC\",\n    \"accountNumber\": \"9832 4021 7845\",\n    \"routingNumber\": \"111000614\",\n    \"swiftBIC\": \"CHASUS33\",\n    \"paymentReference\": \"INV-2026-08492\",\n    \"lateFee\": \"1.5% per month on overdue balances\"\n  },\n  \"financialSummary\": {\n    \"subtotal\": 10400.00,\n    \"discount\": -520.00,\n    \"taxableAmount\": 1950.00,\n    \"estimatedSalesTax\": 160.88,\n    \"totalBalanceDue\": 10040.88\n  },\n  \"metadata\": {\n    \"barcodeTracking\": \"APEX-INV-8492-X\",\n    \"ocrTemplate\": \"STD_CORP_INV_V3\",\n    \"erpCostCenter\": \"CC-7740-ENG\",\n    \"taxJurisdiction\": \"US-TX-TRAVIS\",\n    \"glAccountCode\": \"6120-IT-CLOUD\",\n    \"matchStatus\": \"2-Way PO Matched\",\n    \"approvalRoute\": \"L2-FinOperations\",\n    \"validationChecksum\": \"SHA256:7f9b...a12c\"\n  }\n}\n```\n\nThis structured data includes all relevant financial details and invoice line items extracted from the document. I will now mark this email as read to ensure it is not processed again in the future.\n\n### Marking Email as Read\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"update_draft\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_gAAAA==\",\n    \"isRead\": true\n  }\n}\n<<<END_TOOL_CALL>>>",
-                "auditHash": "0eaf1acca09d542b0affceb858553baee7887a677467c79b874a58061951cde2",
-                "tokens": 29030,
-                "latencyMs": 31956,
-                "costUsd": 0.21409,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 7,
-                "timestamp": "12:37:22 AM",
-                "content": "The attachment \"dummy_invoice_processing_sample.docx\" from the email with the subject \"Fwd: test mail\" has been successfully read. Below is the structured data extracted from the document, which contains detailed invoice information:\n\n```json\n{\n  \"invoiceDetails\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n    \"taxId\": \"84-2938471\",\n    \"vatReg\": \"US842938471\",\n    \"email\": \"billing@apexcloudsolutions.com\",\n    \"phone\": \"+1 (512) 555-0198\",\n    \"invoiceNumber\": \"INV-2026-08492\",\n    \"invoiceDate\": \"October 14, 2026\",\n    \"dueDate\": \"November 13, 2026\",\n    \"poNumber\": \"PO-99214-X\",\n    \"paymentTerms\": \"Net 30 Days\",\n    \"currency\": \"USD ($)\"\n  },\n  \"billingDetails\": {\n    \"billTo\": \"Nexus Dynamics International Corp.\",\n    \"attention\": \"Accounts Payable Department\",\n    \"address\": \"450 Lexington Avenue, Floor 18, New York, NY 10017, USA\",\n    \"clientId\": \"ND-US-8910\",\n    \"contact\": \"ap-invoices@nexusdynamics.io\"\n  },\n  \"serviceDetails\": {\n    \"serviceTo\": \"Nexus Dynamics Data Center Operations\",\n    \"facility\": \"Data Center 3 - East Coast Facility\",\n    \"address\": \"1200 Telecom Way, Building B, Ashburn, VA 20147, USA\",\n    \"projectCode\": \"PRJ-CLOUD-MIG-2026\",\n    \"deliveryMethod\": \"Digital Delivery / SLA Service\"\n  },\n  \"lineItems\": [\n    {\n      \"description\": \"Enterprise Cloud Hosting - Tier 4 Dedicated Cluster (October 2026)\",\n      \"sku\": \"CLD-HOST-T4-MO\",\n      \"quantity\": 1,\n      \"unitPrice\": 4200.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 4200.00\n    },\n    {\n      \"description\": \"Managed Kubernetes Cluster Maintenance & 24/7 SRE Support\",\n      \"sku\": \"SRE-OPS-247\",\n      \"quantity\": 1,\n      \"unitPrice\": 1850.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 1850.00\n    },\n    {\n      \"description\": \"Premium API Gateway Traffic Routing (Overage: 2.4M calls)\",\n      \"sku\": \"API-RT-EXT\",\n      \"quantity\": 24,\n      \"unitPrice\": 15.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 360.00\n    },\n    {\n      \"description\": \"Data Backup & Disaster Recovery Storage Vault (10 TB Block)\",\n      \"sku\": \"DR-STG-10TB\",\n      \"quantity\": 2,\n      \"unitPrice\": 320.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 640.00\n    },\n    {\n      \"description\": \"Cybersecurity Threat Detection & SIEM Monitoring License\",\n      \"sku\": \"SEC-SIEM-ADV\",\n      \"quantity\": 1,\n      \"unitPrice\": 950.00,\n      \"taxRate\": \"8.25%\",\n      \"amount\": 950.00\n    },\n    {\n      \"description\": \"Professional Cloud Architecture Consulting (Hours)\",\n      \"sku\": \"CNS-ARCH-SR\",\n      \"quantity\": 15,\n      \"unitPrice\": 160.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 2400.00\n    }\n  ],\n  \"paymentInstructions\": {\n    \"bankName\": \"JPMorgan Chase Bank, N.A.\",\n    \"accountName\": \"Apex Cloud Solutions LLC\",\n    \"accountNumber\": \"9832 4021 7845\",\n    \"routingNumber\": \"111000614\",\n    \"swiftBic\": \"CHASUS33\",\n    \"paymentReference\": \"INV-2026-08492\",\n    \"lateFee\": \"1.5% per month on overdue balances\"\n  },\n  \"financialSummary\": {\n    \"subtotal\": 10400.00,\n    \"discount\": -520.00,\n    \"taxableAmount\": 1950.00,\n    \"estimatedSalesTax\": 160.88,\n    \"totalBalanceDue\": 10040.88\n  },\n  \"metadata\": {\n    \"barcodeTracking\": \"APEX-INV-8492-X\",\n    \"ocrTemplate\": \"STD_CORP_INV_V3\",\n    \"erpCostCenter\": \"CC-7740-ENG\",\n    \"taxJurisdiction\": \"US-TX-TRAVIS\",\n    \"glAccountCode\": \"6120-IT-CLOUD\",\n    \"matchStatus\": \"2-Way PO Matched\",\n    \"approvalRoute\": \"L2-FinOperations\",\n    \"validationChecksum\": \"SHA256:7f9b...a12c\"\n  }\n}\n```\n\n### Action Items:\n- Mark the email as read to ensure it is not processed again.\n- Store the extracted invoice data in the appropriate financial system or database for further processing or auditing.\n\nI will now mark the email as read.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"update_draft\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_gAAAA==\",\n    \"isRead\": true\n  }\n}\n<<<END_TOOL_CALL>>>",
-                "auditHash": "5471797380804ecd515ffd91db8c653f5b4648d04a41b76d4762bbf5389c216e",
-                "tokens": 29693,
-                "latencyMs": 160007,
-                "costUsd": 0.21898,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 8,
-                "timestamp": "12:43:21 AM",
-                "content": "The attachment \"dummy_invoice_processing_sample.docx\" from the email with the subject \"Fwd: test mail\" has been successfully read and contains detailed invoice information. Below is the structured data extracted from the document:\n\n### Invoice Details\n\n```json\n{\n  \"invoice\": {\n    \"issuer\": {\n      \"name\": \"APEX CLOUD SOLUTIONS LLC\",\n      \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n      \"taxId\": \"84-2938471\",\n      \"vatReg\": \"US842938471\",\n      \"contact\": {\n        \"email\": \"billing@apexcloudsolutions.com\",\n        \"phone\": \"+1 (512) 555-0198\"\n      }\n    },\n    \"invoiceNumber\": \"INV-2026-08492\",\n    \"invoiceDate\": \"October 14, 2026\",\n    \"dueDate\": \"November 13, 2026\",\n    \"poNumber\": \"PO-99214-X\",\n    \"paymentTerms\": \"Net 30 Days\",\n    \"currency\": \"USD ($)\",\n    \"billTo\": {\n      \"name\": \"Nexus Dynamics International Corp.\",\n      \"address\": \"450 Lexington Avenue, Floor 18, New York, NY 10017, USA\",\n      \"clientId\": \"ND-US-8910\",\n      \"contact\": \"ap-invoices@nexusdynamics.io\"\n    },\n    \"shipTo\": {\n      \"name\": \"Nexus Dynamics Data Center Operations\",\n      \"address\": \"1200 Telecom Way, Building B, Ashburn, VA 20147, USA\",\n      \"projectCode\": \"PRJ-CLOUD-MIG-2026\",\n      \"deliveryMethod\": \"Digital Delivery / SLA Service\"\n    },\n    \"items\": [\n      {\n        \"description\": \"Enterprise Cloud Hosting - Tier 4 Dedicated Cluster (October 2026)\",\n        \"sku\": \"CLD-HOST-T4-MO\",\n        \"quantity\": 1,\n        \"unitPrice\": 4200.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 4200.00\n      },\n      {\n        \"description\": \"Managed Kubernetes Cluster Maintenance & 24/7 SRE Support\",\n        \"sku\": \"SRE-OPS-247\",\n        \"quantity\": 1,\n        \"unitPrice\": 1850.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 1850.00\n      },\n      {\n        \"description\": \"Premium API Gateway Traffic Routing (Overage: 2.4M calls)\",\n        \"sku\": \"API-RT-EXT\",\n        \"quantity\": 24,\n        \"unitPrice\": 15.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 360.00\n      },\n      {\n        \"description\": \"Data Backup & Disaster Recovery Storage Vault (10 TB Block)\",\n        \"sku\": \"DR-STG-10TB\",\n        \"quantity\": 2,\n        \"unitPrice\": 320.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 640.00\n      },\n      {\n        \"description\": \"Cybersecurity Threat Detection & SIEM Monitoring License\",\n        \"sku\": \"SEC-SIEM-ADV\",\n        \"quantity\": 1,\n        \"unitPrice\": 950.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 950.00\n      },\n      {\n        \"description\": \"Professional Cloud Architecture Consulting (Hours)\",\n        \"sku\": \"CNS-ARCH-SR\",\n        \"quantity\": 15,\n        \"unitPrice\": 160.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 2400.00\n      }\n    ],\n    \"paymentInstructions\": {\n      \"bankName\": \"JPMorgan Chase Bank, N.A.\",\n      \"accountName\": \"Apex Cloud Solutions LLC\",\n      \"accountNumber\": \"9832 4021 7845\",\n      \"routingNumber\": \"111000614\",\n      \"swiftBic\": \"CHASUS33\",\n      \"paymentReference\": \"INV-2026-08492\",\n      \"lateFee\": \"1.5% per month on overdue balances\"\n    },\n    \"financialSummary\": {\n      \"subtotal\": 10400.00,\n      \"discount\": -520.00,\n      \"taxableAmount\": 1950.00,\n      \"estimatedSalesTax\": 160.88,\n      \"totalBalanceDue\": 10040.88\n    },\n    \"metadata\": {\n      \"barcodeTracking\": \"APEX-INV-8492-X\",\n      \"ocrTemplate\": \"STD_CORP_INV_V3\",\n      \"erpCostCenter\": \"CC-7740-ENG\",\n      \"taxJurisdiction\": \"US-TX-TRAVIS\",\n      \"glAccountCode\": \"6120-IT-CLOUD\",\n      \"matchStatus\": \"2-Way PO Matched\",\n      \"approvalRoute\": \"L2-FinOperations\",\n      \"validationChecksum\": \"SHA256:7f9b...a12c\"\n    }\n  }\n}\n```\n\n### Action Items\n- **Mark Email as Read:** To ensure this email is not processed again in the future.\n- **Store Extracted Data:** Save the structured JSON data to the appropriate financial or ERP system for further processing or record-keeping.\n\nI will now proceed to mark the email as read.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"update_draft\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_gAAAA==\",\n    \"isRead\": true\n  }\n}\n<<<END_TOOL_CALL>>>",
-                "auditHash": "f50ff9e4a692f36a65a3eeeca5bdd5891bf11aa52ac3331d1c5d3075cbc07fc8",
-                "tokens": 29716,
-                "latencyMs": 326021,
-                "costUsd": 0.21915,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 9,
-                "timestamp": "12:50:20 AM",
-                "content": "It appears that the execution handler for marking emails as read is not configured on the Microsoft Outlook 365 server. As a result, I am unable to mark the email as read at this time. \n\n### Action Items\n- **Manual Intervention Required:** Please manually mark the email with subject \"Fwd: test mail\" as read in your Outlook inbox to prevent it from being processed again in future cycles.\n- **Configuration Check:** It may be beneficial to check the configuration settings for the Outlook MCP server to ensure all necessary handlers are properly set up for future operations.\n\nIf there are any further actions or additional emails to process, please let me know!",
-                "auditHash": "39f70e03a853b8227b4b49cb31c4b089f95722bc065b16c9e530decdd1dae7f1",
-                "tokens": 37688,
-                "latencyMs": 325282,
-                "costUsd": 0.27795,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 10,
-                "timestamp": "12:54:40 AM",
-                "content": "The attachment \"dummy_invoice_processing_sample.docx\" from the email with the subject \"Fwd: test mail\" has been successfully read. Below is the structured data extracted from the document, which contains detailed financial information:\n\n### Extracted Invoice Details\n\n```json\n{\n  \"invoice\": {\n    \"company\": \"APEX CLOUD SOLUTIONS LLC\",\n    \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n    \"taxId\": \"84-2938471\",\n    \"vatReg\": \"US842938471\",\n    \"email\": \"billing@apexcloudsolutions.com\",\n    \"phone\": \"+1 (512) 555-0198\",\n    \"invoiceNumber\": \"INV-2026-08492\",\n    \"invoiceDate\": \"October 14, 2026\",\n    \"dueDate\": \"November 13, 2026\",\n    \"poNumber\": \"PO-99214-X\",\n    \"paymentTerms\": \"Net 30 Days\",\n    \"currency\": \"USD ($)\",\n    \"billTo\": {\n      \"company\": \"Nexus Dynamics International Corp.\",\n      \"address\": \"450 Lexington Avenue, Floor 18, New York, NY 10017, USA\",\n      \"clientId\": \"ND-US-8910\",\n      \"contact\": \"ap-invoices@nexusdynamics.io\"\n    },\n    \"serviceShipTo\": {\n      \"location\": \"Nexus Dynamics Data Center Operations, Data Center 3 - East Coast Facility, 1200 Telecom Way, Building B, Ashburn, VA 20147, USA\",\n      \"projectCode\": \"PRJ-CLOUD-MIG-2026\",\n      \"deliveryMethod\": \"Digital Delivery / SLA Service\"\n    },\n    \"items\": [\n      {\n        \"description\": \"Enterprise Cloud Hosting - Tier 4 Dedicated Cluster (October 2026)\",\n        \"sku\": \"CLD-HOST-T4-MO\",\n        \"quantity\": 1,\n        \"unitPrice\": 4200.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 4200.00\n      },\n      {\n        \"description\": \"Managed Kubernetes Cluster Maintenance & 24/7 SRE Support\",\n        \"sku\": \"SRE-OPS-247\",\n        \"quantity\": 1,\n        \"unitPrice\": 1850.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 1850.00\n      },\n      {\n        \"description\": \"Premium API Gateway Traffic Routing (Overage: 2.4M calls)\",\n        \"sku\": \"API-RT-EXT\",\n        \"quantity\": 24,\n        \"unitPrice\": 15.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 360.00\n      },\n      {\n        \"description\": \"Data Backup & Disaster Recovery Storage Vault (10 TB Block)\",\n        \"sku\": \"DR-STG-10TB\",\n        \"quantity\": 2,\n        \"unitPrice\": 320.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 640.00\n      },\n      {\n        \"description\": \"Cybersecurity Threat Detection & SIEM Monitoring License\",\n        \"sku\": \"SEC-SIEM-ADV\",\n        \"quantity\": 1,\n        \"unitPrice\": 950.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 950.00\n      },\n      {\n        \"description\": \"Professional Cloud Architecture Consulting (Hours)\",\n        \"sku\": \"CNS-ARCH-SR\",\n        \"quantity\": 15,\n        \"unitPrice\": 160.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 2400.00\n      }\n    ],\n    \"paymentInstructions\": {\n      \"bankName\": \"JPMorgan Chase Bank, N.A.\",\n      \"accountName\": \"Apex Cloud Solutions LLC\",\n      \"accountNumber\": \"9832 4021 7845\",\n      \"routingNumber\": \"111000614\",\n      \"swiftBic\": \"CHASUS33\",\n      \"paymentReference\": \"INV-2026-08492\",\n      \"lateFee\": \"1.5% per month on overdue balances\"\n    },\n    \"financialSummary\": {\n      \"subtotal\": 10400.00,\n      \"discount\": -520.00,\n      \"taxableAmount\": 1950.00,\n      \"estimatedSalesTax\": 160.88,\n      \"totalBalanceDue\": 10040.88\n    },\n    \"metadata\": {\n      \"barcodeTracking\": \"APEX-INV-8492-X\",\n      \"ocrTemplate\": \"STD_CORP_INV_V3\",\n      \"erpCostCenter\": \"CC-7740-ENG\",\n      \"taxJurisdiction\": \"US-TX-TRAVIS\",\n      \"glAccountCode\": \"6120-IT-CLOUD\",\n      \"matchStatus\": \"2-Way PO Matched\",\n      \"approvalRoute\": \"L2-FinOperations\",\n      \"validationChecksum\": \"SHA256:7f9b...a12c\"\n    }\n  }\n}\n```\n\n### Next Steps\n- **Mark Email as Read:** To ensure this email is not processed again in the future.\n- **Further Processing:** This structured data can be used for automated invoice processing, ERP integration, or financial analysis.\n\nI will now mark the email as read.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"mark_as_read\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_gAAAA==\",\n    \"isRead\": true\n  }\n}\n<<<END_TOOL_CALL>>>",
-                "auditHash": "f7dc2fbd03bec63d61e9a07559c03beda57df6ada5f7d3a74770e04ac710bb83",
-                "tokens": 31664,
-                "latencyMs": 225036,
-                "costUsd": 0.23353,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 11,
-                "timestamp": "12:55:13 AM",
-                "content": "The content of the attachment \"Func.xlsx\" from Email 1 has been successfully extracted. Here is a summary of the relevant financial information contained within the document:\n\n### Summary of \"Func.xlsx\" Content:\n- **Report ID & Name:** Krungsri Inventory\n- **Business / Module Mode:** Static Deterministic\n- **Key Reports and Descriptions:**\n  1. **BOT Gap Report:** Projects contractual and behavioral cash flows across Bank of Thailand maturity and repricing time buckets.\n  2. **BVE Report:** Projects all future cash flows and discounts them back to present value across interest rate shocks to calculate Economic Value of Equity.\n  3. **Maturity Gap Report:** Projects principal runoff, prepayments, and Weighted Average Life (WAL) across maturity time buckets.\n  4. **Maturity Gap Deferred Revenue Report:** Calculates amortization of deferred revenue, unamortized fees, and loan origination costs across maturity buckets.\n  5. **Elimination Sheet From Bank:** Projects cash flows for interbank and intra-entity placements and borrowings between the Bank and its units.\n  6. **Consolidated Maturity Gap:** Aggregates maturity cash flows across the entire banking group.\n  7. **NII Summary:** Simulates interest income and expense over time horizons across base and shocked interest rate scenarios.\n  8. **NII Detail:** Computes granular product- and account-level interest accruals and margins.\n  9. **BOT Funding Concentration Report:** Aggregates end-of-day liability balances and funding sources.\n  10. **THB Deposit & BE Concentration of 20 largest Customers Report:** Aggregates customer balances for Bills of Exchange (BE) and deposits.\n\n- **Automation & Functional Verdict:**\n  - Many reports have been automated in version 8.1.2, reducing the need for manual or custom database uploads.\n  - Enhanced features include native Tiered Balance Cash Flow support and improved partition management for multi-entity processing.\n\n- **Security and Integrity:**\n  - The document is marked as low risk with no security threats detected.\n\n### Action Items:\n- **Mark Email 1 as Read:** To ensure it is not processed again in future cycles.\n- **Proceed to Analyze Email 2:** If necessary, based on its relevance and attachment content.\n\nI will now mark Email 1 as read.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"mark_as_read\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_QAAAA==\",\n    \"isRead\": true\n  }\n}\n<<<END_TOOL_CALL>>>",
-                "auditHash": "fbd34082efcd30817af520ace046620c1cc856173dc2f8d357add4ce471072e7",
-                "tokens": 33673,
-                "latencyMs": 18120,
-                "costUsd": 0.24834,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 12,
-                "timestamp": "12:56:14 AM",
-                "content": "The attachment \"dummy_invoice_processing_sample.docx\" contains detailed invoice information. Below is the structured JSON output of the extracted data:\n\n```json\n{\n  \"invoice\": {\n    \"company\": {\n      \"name\": \"APEX CLOUD SOLUTIONS LLC\",\n      \"address\": \"100 Technology Parkway, Suite 450, Austin, TX 78759, United States\",\n      \"taxId\": \"84-2938471\",\n      \"vatReg\": \"US842938471\",\n      \"email\": \"billing@apexcloudsolutions.com\",\n      \"phone\": \"+1 (512) 555-0198\"\n    },\n    \"invoiceDetails\": {\n      \"invoiceNumber\": \"INV-2026-08492\",\n      \"invoiceDate\": \"October 14, 2026\",\n      \"dueDate\": \"November 13, 2026\",\n      \"poNumber\": \"PO-99214-X\",\n      \"paymentTerms\": \"Net 30 Days\",\n      \"currency\": \"USD ($)\"\n    },\n    \"billTo\": {\n      \"name\": \"Nexus Dynamics International Corp.\",\n      \"address\": \"450 Lexington Avenue, Floor 18, New York, NY 10017, USA\",\n      \"clientId\": \"ND-US-8910\",\n      \"contact\": \"ap-invoices@nexusdynamics.io\"\n    },\n    \"serviceTo\": {\n      \"name\": \"Nexus Dynamics Data Center Operations\",\n      \"address\": \"Data Center 3 - East Coast Facility, 1200 Telecom Way, Building B, Ashburn, VA 20147, USA\",\n      \"projectCode\": \"PRJ-CLOUD-MIG-2026\",\n      \"deliveryMethod\": \"Digital Delivery / SLA Service\"\n    },\n    \"items\": [\n      {\n        \"description\": \"Enterprise Cloud Hosting - Tier 4 Dedicated Cluster (October 2026)\",\n        \"sku\": \"CLD-HOST-T4-MO\",\n        \"quantity\": 1,\n        \"unitPrice\": 4200.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 4200.00\n      },\n      {\n        \"description\": \"Managed Kubernetes Cluster Maintenance & 24/7 SRE Support\",\n        \"sku\": \"SRE-OPS-247\",\n        \"quantity\": 1,\n        \"unitPrice\": 1850.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 1850.00\n      },\n      {\n        \"description\": \"Premium API Gateway Traffic Routing (Overage: 2.4M calls)\",\n        \"sku\": \"API-RT-EXT\",\n        \"quantity\": 24,\n        \"unitPrice\": 15.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 360.00\n      },\n      {\n        \"description\": \"Data Backup & Disaster Recovery Storage Vault (10 TB Block)\",\n        \"sku\": \"DR-STG-10TB\",\n        \"quantity\": 2,\n        \"unitPrice\": 320.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 640.00\n      },\n      {\n        \"description\": \"Cybersecurity Threat Detection & SIEM Monitoring License\",\n        \"sku\": \"SEC-SIEM-ADV\",\n        \"quantity\": 1,\n        \"unitPrice\": 950.00,\n        \"taxRate\": \"8.25%\",\n        \"amount\": 950.00\n      },\n      {\n        \"description\": \"Professional Cloud Architecture Consulting (Hours)\",\n        \"sku\": \"CNS-ARCH-SR\",\n        \"quantity\": 15,\n        \"unitPrice\": 160.00,\n        \"taxRate\": \"0.00%\",\n        \"amount\": 2400.00\n      }\n    ],\n    \"paymentInstructions\": {\n      \"bankName\": \"JPMorgan Chase Bank, N.A.\",\n      \"accountName\": \"Apex Cloud Solutions LLC\",\n      \"accountNumber\": \"9832 4021 7845\",\n      \"routingNumber\": \"111000614\",\n      \"swiftBic\": \"CHASUS33\",\n      \"paymentReference\": \"INV-2026-08492\",\n      \"lateFee\": \"1.5% per month on overdue balances\"\n    },\n    \"financialSummary\": {\n      \"subtotal\": 10400.00,\n      \"discount\": -520.00,\n      \"taxableAmount\": 1950.00,\n      \"estimatedSalesTax\": 160.88,\n      \"totalBalanceDue\": 10040.88\n    },\n    \"metadata\": {\n      \"barcodeTracking\": \"APEX-INV-8492-X\",\n      \"ocrTemplate\": \"STD_CORP_INV_V3\",\n      \"erpCostCenter\": \"CC-7740-ENG\",\n      \"taxJurisdiction\": \"US-TX-TRAVIS\",\n      \"glAccountCode\": \"6120-IT-CLOUD\",\n      \"matchStatus\": \"2-Way PO Matched\",\n      \"approvalRoute\": \"L2-FinOperations\",\n      \"validationChecksum\": \"SHA256:7f9b...a12c\"\n    }\n  }\n}\n```\n\n### Next Steps:\n- **Mark the email as read** to update the mailbox state.\n- **Store or process** the extracted invoice data as required by your workflow.\n\nLet's proceed to mark the email as read.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"mark_as_read\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_AAAAA==\",\n    \"isRead\": true\n  }\n}\n<<<END_TOOL_CALL>>>",
-                "auditHash": "b23a0e879418a71d1c544df25dafdf76d0e91e7ce9aab4de897be58067392870",
-                "tokens": 31390,
-                "latencyMs": 18783,
-                "costUsd": 0.2315,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 13,
-                "timestamp": "1:03:24 AM",
-                "content": "The latest two unread emails have been successfully marked as read. Here are the details:\n\n1. **Email ID**: `AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_gAAAA==`\n   - **Status**: Marked as Read\n\n2. **Email ID**: `AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di_QAAAA==`\n   - **Status**: Marked as Read\n\nIf you need any further assistance, feel free to ask!",
-                "auditHash": "8d5a5ae9ea2e2ec61348eaa46b8c249b50c37c01c1d105716d0daee5afe4bfc7",
-                "tokens": 12209,
-                "latencyMs": 0,
-                "costUsd": 0.09004,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              },
-              {
-                "runNumber": 14,
-                "timestamp": "1:11:48 AM",
-                "content": "The attachment \"dummy_invoice_consulting_services.docx\" from the email with the subject \"consulting\" has been successfully read and contains detailed financial information. Below is the structured data extracted from the document:\n\n```json\n{\n  \"invoiceDetails\": {\n    \"invoiceNumber\": \"SSA-2026-1087\",\n    \"invoiceDate\": \"October 20, 2026\",\n    \"dueDate\": \"November 04, 2026\",\n    \"engagementCode\": \"ENG-GOV-2026-Q3\",\n    \"paymentTerms\": \"Net 15 Days\",\n    \"billingCycle\": \"Monthly Recurring\"\n  },\n  \"clientDetails\": {\n    \"clientName\": \"Horizon Financial Holdings Corp.\",\n    \"contact\": \"Office of the Chief Compliance Officer\",\n    \"address\": \"600 Montgomery Street, Suite 3200, San Francisco, CA 94111, USA\",\n    \"accountReference\": \"HZ-88219\",\n    \"accountsPayableEmail\": \"finance@horizonfin.com\"\n  },\n  \"engagementDetails\": {\n    \"engagement\": \"Q3 2026 SOX Compliance & Risk Audit\",\n    \"leadPartner\": \"Eleanor Vance, J.D., CAMS\",\n    \"masterServiceAgreement\": \"MSA-2024-0091\",\n    \"scope\": \"IT General Controls (ITGC) & Security Audit\",\n    \"billingPeriod\": \"September 1 - September 30, 2026\",\n    \"auditReportStatus\": \"Final Delivered\"\n  },\n  \"lineItems\": [\n    {\n      \"description\": \"Lead Partner Advisory - SOX 404 Executive Oversight\",\n      \"consultant\": \"E. Vance (Senior Partner)\",\n      \"hours\": 12.0,\n      \"rate\": 650.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 7800.00\n    },\n    {\n      \"description\": \"Principal Risk Specialist - ITGC Controls Assessment\",\n      \"consultant\": \"M. Chen (Principal Consultant)\",\n      \"hours\": 45.0,\n      \"rate\": 380.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 17100.00\n    },\n    {\n      \"description\": \"Senior Security Compliance Auditor - Penetration Testing Review\",\n      \"consultant\": \"D. Rossi (Senior Associate)\",\n      \"hours\": 38.5,\n      \"rate\": 260.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 10010.00\n    },\n    {\n      \"description\": \"Compliance Reporting & Technical Documentation Preparation\",\n      \"deliverable\": \"Formal Audit Defense Package\",\n      \"quantity\": 1.0,\n      \"rate\": 2500.00,\n      \"taxRate\": \"0.00%\",\n      \"amount\": 2500.00\n    },\n    {\n      \"description\": \"Regulatory Subscription Data Feeds (SEC & FINRA Rule Tracker)\",\n      \"sku\": \"SUB-GOV-DATA\",\n      \"quantity\": 1.0,\n      \"rate\": 450.00,\n      \"taxRate\": \"8.875%\",\n      \"amount\": 450.00\n    }\n  ],\n  \"financialSummary\": {\n    \"professionalFeesSubtotal\": 37410.00,\n    \"taxableSoftwareFeedItems\": 450.00,\n    \"salesUseTax\": 39.94,\n    \"retainerCreditApplied\": -5000.00,\n    \"netAmountPayable\": 32449.94\n  },\n  \"paymentInstructions\": {\n    \"depositoryBank\": \"Citibank, N.A. (Wall Street Branch)\",\n    \"accountHolder\": \"Stratton & Sterling Advisory LLC\",\n    \"accountNumber\": \"5541 2098 7741\",\n    \"routingNumber\": \"021000089\",\n    \"swiftBICCode\": \"CITIUS33\",\n    \"referenceTag\": \"INV-SSA-1087\",\n    \"inquiriesEmail\": \"ar-clientbilling@strattonsterling.com\"\n  },\n  \"metadata\": {\n    \"documentId\": \"SSA-INV-2026-1087\",\n    \"contractMatch\": \"MSA-2024-0091\",\n    \"costCenter\": \"CC-1020-LEGAL\",\n    \"taxCode\": \"NY-LOCAL-SERV\",\n    \"expenseType\": \"Professional / Advisory\",\n    \"approvalFlow\": \"VP & General Counsel\",\n    \"paymentStatus\": \"Pending Approval\",\n    \"extractionEngine\": \"Parser-V4-Pro\"\n  }\n}\n```\n\n### Next Steps:\n- **Mark the Email as Read:** To ensure that this email is not processed again in future runs.\n- **Review and Process Financial Data:** The extracted data can be used for financial analysis, reporting, or further processing as required.\n\nI will now mark the email as read.\n\n<<<TOOL_CALL>>>\n{\n  \"tool\": \"mark_as_read\",\n  \"arguments\": {\n    \"messageId\": \"AQMkADAwATZiZmYAZC01MWYzLWE3ZjAtMDACLTAwCgBGAAAD8MJCiPQibkOHi_Y9Y0wfHgcAJWO2-enD70KyS59s8OkZuAAAAgEMAAAAJWO2-enD70KyS59s8OkZuAAB40di-AAAAA==\"\n  }\n}\n<<<END_TOOL_CALL>>>",
-                "auditHash": "2bfd085858a5c52d4f81d05aeca8b809a3be635cdfbe198b3b0da61ecb1a0e59",
-                "tokens": 31354,
-                "latencyMs": 23744,
-                "costUsd": 0.23124,
-                "source": "agent",
-                "sourceNodeType": "agent",
-                "sourceNodeId": "agent-core",
-                "sourceNodeName": "Mail & Attachment Extractor"
-              }
-            ],
-            "sourceNodeType": "agent",
-            "sourceNodeId": "agent-core",
-            "sourceNodeName": "Mail & Attachment Extractor",
-            "isExpanded": false,
-            "auditHash": "2bfd085858a5c52d4f81d05aeca8b809a3be635cdfbe198b3b0da61ecb1a0e59",
-            "observability": {
-              "totalTokens": 31354,
-              "latencyMs": 23744,
-              "modelUsed": "openai (gpt-4o)",
-              "framework": "Microsoft ADK"
-            },
-            "costUsd": 0.23124,
-            "isDarkMode": false
-          },
-          "measured": {
-            "width": 56,
-            "height": 56
-          },
-          "selected": false,
-          "dragging": false
-        },
-        {
           "id": "node-trigger-9567",
           "type": "triggerNode",
           "position": {
@@ -5023,28 +5108,51 @@
           "id": "node-output-v2-0866",
           "type": "outputNodeV2",
           "position": {
-            "x": 830,
-            "y": 207
+            "x": 837.205704187811,
+            "y": 223.8133097715593
           },
           "data": {
             "name": "Output Viewer v2.0 (Artifact Studio)",
             "title": "Output Viewer v2.0 (Artifact Studio)",
-            "outputContent": "",
+            "outputContent": "It seems that the authentication token for accessing the Microsoft Outlook 365 API has expired. This requires a fresh access token to proceed with listing unread messages. Please update the token in the Outlook MCP node settings or reconnect via \"Sign in with Microsoft\" to continue.\n\nOnce the token is refreshed, I will be able to proceed with inspecting unread emails for relevant content.",
             "content": "",
-            "status": "idle",
+            "status": "ready",
             "format": "markdown",
-            "runsHistory": [],
-            "sourceNodeType": null,
-            "sourceNodeId": null,
-            "sourceNodeName": null,
-            "isExpanded": true,
-            "isDarkMode": false
+            "runsHistory": [
+              {
+                "runNumber": 1,
+                "timestamp": "5:04:11 PM",
+                "content": "It seems that the authentication token for accessing the Microsoft Outlook 365 API has expired. This requires a fresh access token to proceed with listing unread messages. Please update the token in the Outlook MCP node settings or reconnect via \"Sign in with Microsoft\" to continue.\n\nOnce the token is refreshed, I will be able to proceed with inspecting unread emails for relevant content.",
+                "auditHash": "79bcaaeae0b9c75da18e0cebde766df9dbe1597286df235a81fdc117d0a228d4",
+                "tokens": 6193,
+                "latencyMs": 9062,
+                "costUsd": 0.04567,
+                "source": "agent",
+                "sourceNodeType": "agent",
+                "sourceNodeId": "agent-core",
+                "sourceNodeName": "Mail & Attachment Extractor"
+              }
+            ],
+            "sourceNodeType": "agent",
+            "sourceNodeId": "agent-core",
+            "sourceNodeName": "Mail & Attachment Extractor",
+            "isExpanded": false,
+            "isDarkMode": false,
+            "auditHash": "79bcaaeae0b9c75da18e0cebde766df9dbe1597286df235a81fdc117d0a228d4",
+            "observability": {
+              "totalTokens": 6193,
+              "latencyMs": 9062,
+              "modelUsed": "openai (gpt-4o)",
+              "framework": "Microsoft ADK"
+            },
+            "costUsd": 0.04567
           },
           "measured": {
-            "width": 520,
-            "height": 520
+            "width": 56,
+            "height": 56
           },
-          "selected": false
+          "selected": false,
+          "dragging": false
         }
       ],
       "edges": [
@@ -5108,21 +5216,6 @@
           "animated": true,
           "type": "deletable",
           "data": {},
-          "source": "agent-core",
-          "sourceHandle": "out",
-          "target": "node-output-6744",
-          "targetHandle": "data-in",
-          "style": {
-            "stroke": "#10B981",
-            "strokeWidth": 1.8,
-            "strokeDasharray": "4 4"
-          },
-          "id": "xy-edge__agent-coreout-node-output-6744data-in"
-        },
-        {
-          "animated": true,
-          "type": "deletable",
-          "data": {},
           "source": "node-trigger-9567",
           "sourceHandle": "trigger-out",
           "target": "agent-core",
@@ -5136,25 +5229,26 @@
           "id": "xy-edge__node-trigger-9567trigger-out-agent-coreagent-in"
         },
         {
-          "id": "edge-output-v2-0871",
-          "source": "node-model-outlook-intel",
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "agent-core",
           "sourceHandle": "out",
           "target": "node-output-v2-0866",
           "targetHandle": "data-in",
-          "type": "deletable",
-          "animated": false,
           "style": {
             "stroke": "#10B981",
             "strokeWidth": 1.8,
             "strokeDasharray": "4 4"
-          }
+          },
+          "id": "xy-edge__agent-coreout-node-output-v2-0866data-in"
         }
       ],
       "createdAt": 1792566380771,
-      "updatedAt": 1792665569781,
+      "updatedAt": 1792830942891,
       "isStarred": true,
-      "isLocked": false,
-      "isWorkflowLocked": false,
+      "isLocked": true,
+      "isWorkflowLocked": true,
       "tags": [
         "Outlook Intelligence",
         "MCP Stream",
@@ -5162,7 +5256,7 @@
         "Gateway Enforced"
       ],
       "stats": {
-        "nodeCount": 8,
+        "nodeCount": 7,
         "agentCount": 1,
         "mcpCount": 1,
         "modelCount": 1,
@@ -5176,223 +5270,93 @@
   "canvasState": {
     "nodes": [
       {
-        "id": "agent-core",
+        "id": "agent-core-4115",
         "type": "agentCore",
         "position": {
-          "x": 520,
-          "y": 165
+          "x": 609.6077262111805,
+          "y": 220.66506120446275
         },
         "data": {
-          "name": "MIA2",
+          "name": "Autonomous Agent #1",
           "framework": {
-            "id": "langchain",
-            "name": "LangChain",
-            "subtitle": "Composable LCEL chains and agent toolkits",
-            "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
-            "defaultModel": "claude-3-5-sonnet",
+            "id": "google-adk",
+            "name": "Google ADK",
+            "subtitle": "Google Agent Development Kit & GenAI SDK",
+            "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+            "defaultModel": "gemini-2.0-flash",
             "exportExtension": ".py",
-            "category": "Chains"
+            "category": "SDK"
           },
-          "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
           "temperature": 0.2,
-          "topP": 0.95,
-          "attachedCounts": {
-            "model": 1,
-            "skills": 1,
-            "mcp": 1,
-            "tools": 1,
-            "gateway": 1,
-            "memory": 1,
-            "policies": 1
-          },
-          "isDarkMode": false
+          "topP": 0.95
         },
         "measured": {
           "width": 228,
           "height": 173
         },
-        "selected": false
+        "selected": true,
+        "dragging": false
       },
       {
-        "id": "node-model-1",
+        "id": "node-model-9831",
         "type": "pillar",
         "position": {
-          "x": 565.01347427186,
-          "y": 80.7547264465507
+          "x": 653.6077262111805,
+          "y": 110.66506120446275
         },
         "data": {
           "pillarType": "model",
-          "name": "OpenAI (gpt-4o-mini)",
-          "description": "OpenAI foundation model configured for live enterprise inference.",
+          "toolId": "model-openai-gpt-4o-mini",
+          "name": "OpenAI: gpt-4o-mini",
+          "description": "OpenAI gpt-4o-mini (Owner: system, Created: 7/17/2024)",
+          "customDirective": null,
+          "referenceDoc": null,
           "config": {
             "provider": "openai",
-            "modelId": "gpt-4o-mini",
-            "temperature": 0.2,
-            "topP": 0.95
+            "modelId": "gpt-4o-mini"
           },
-          "isDarkMode": false
+          "tools": null,
+          "itemId": "model-openai-gpt-4o-mini"
         },
         "measured": {
           "width": 140,
           "height": 60
-        },
-        "selected": false,
-        "dragging": false
+        }
       },
       {
-        "id": "node-policy-1",
+        "id": "node-gateway-0651",
         "type": "pillar",
         "position": {
-          "x": 475.9703566019082,
-          "y": 360.8355720777102
+          "x": 743.6077262111805,
+          "y": 110.66506120446275
         },
         "data": {
-          "pillarType": "policies",
-          "name": "PII Redactor",
-          "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+          "pillarType": "gateway",
+          "toolId": "gw-mcp-controller",
+          "name": "MCP Egress Gateway",
+          "description": "Enforces zero-trust mediation between Agent Core and external MCP servers. Discovers all tools, manages execution scope, and routes actions.",
+          "customDirective": null,
+          "referenceDoc": null,
           "config": {
-            "redactSalaries": true,
-            "maskEmails": true
+            "gatewayType": "mcp-egress",
+            "auditAllActions": true
           },
-          "isDarkMode": false
+          "tools": null,
+          "itemId": "gw-mcp-controller"
         },
         "measured": {
           "width": 140,
           "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-memory-1",
-        "type": "pillar",
-        "position": {
-          "x": 561.4150911844831,
-          "y": 418.4097014757391
-        },
-        "data": {
-          "pillarType": "memory",
-          "name": "Episodic Sync Memory",
-          "description": "Remembers past meeting action items to verify resolution across weeks.",
-          "config": {
-            "ttlDays": 90,
-            "store": "vector-sqlite"
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-skill-1",
-        "type": "pillar",
-        "position": {
-          "x": 657.6549750291884,
-          "y": 341.6441956117005
-        },
-        "data": {
-          "pillarType": "skills",
-          "name": "Executive Summarizer",
-          "description": "Generates TL;DR, high-level takeaways, and strategic themes.",
-          "config": {
-            "length": "concise",
-            "focus": "decisions"
-          },
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-output-8631",
-        "type": "outputNode",
-        "position": {
-          "x": 764.8517412039421,
-          "y": 217.77628528152655
-        },
-        "data": {
-          "name": "Final Output Viewer & Exporter",
-          "title": "Final Output Viewer & Exporter",
-          "outputContent": "",
-          "content": "",
-          "status": "idle",
-          "format": "markdown",
-          "runsHistory": [],
-          "sourceNodeType": null,
-          "sourceNodeId": null,
-          "sourceNodeName": null,
-          "isExpanded": false,
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 56,
-          "height": 56
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-ingest-1527",
-        "type": "ingestionNode",
-        "position": {
-          "x": 473.86795213577284,
-          "y": 42.65497502918843
-        },
-        "data": {
-          "title": "Universal File & Audio Ingest",
-          "content": "",
-          "status": "idle",
-          "isExpanded": false,
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-output-v2-6578",
-        "type": "outputNodeV2",
-        "position": {
-          "x": 830,
-          "y": 207
-        },
-        "data": {
-          "name": "Output Viewer v2.0 (Artifact Studio)",
-          "title": "Output Viewer v2.0 (Artifact Studio)",
-          "outputContent": "",
-          "content": "",
-          "status": "idle",
-          "format": "markdown",
-          "runsHistory": [],
-          "sourceNodeType": null,
-          "sourceNodeId": null,
-          "sourceNodeName": null,
-          "isExpanded": false,
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 56,
-          "height": 56
         }
       }
     ],
     "edges": [
       {
-        "id": "edge-model",
-        "source": "node-model-1",
+        "id": "edge-model-9832",
+        "source": "node-model-9831",
         "sourceHandle": "out",
-        "target": "agent-core",
+        "target": "agent-core-4115",
         "targetHandle": "model-in",
         "type": "deletable",
         "animated": false,
@@ -5403,142 +5367,164 @@
         }
       },
       {
-        "id": "edge-ingest-1",
-        "source": "node-ingest-1",
-        "sourceHandle": "data-out",
-        "target": "agent-core",
-        "targetHandle": "tools-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#0091DA",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-policy",
-        "source": "node-policy-1",
+        "id": "edge-gateway-0652",
+        "source": "node-gateway-0651",
         "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "policy-in",
+        "target": "agent-core-4115",
+        "targetHandle": "mcp-in",
         "type": "deletable",
         "animated": false,
         "style": {
-          "stroke": "#470A68",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-memory",
-        "source": "node-memory-1",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "memory-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#483698",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-skill-1",
-        "source": "node-skill-1",
-        "sourceHandle": "out",
-        "target": "agent-core",
-        "targetHandle": "skill-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#6D2077",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "id": "edge-output-1",
-        "source": "agent-core",
-        "sourceHandle": "out",
-        "target": "node-output-1",
-        "targetHandle": "data-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#10B981",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
-      },
-      {
-        "animated": false,
-        "type": "deletable",
-        "data": {},
-        "source": "agent-core",
-        "sourceHandle": "out",
-        "target": "node-output-8631",
-        "targetHandle": "data-in",
-        "style": {
-          "stroke": "#10B981",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        },
-        "id": "xy-edge__agent-coreout-node-output-8631data-in"
-      },
-      {
-        "animated": false,
-        "type": "deletable",
-        "data": {},
-        "source": "node-ingest-1527",
-        "sourceHandle": "data-out",
-        "target": "agent-core",
-        "targetHandle": "tools-in",
-        "style": {
-          "stroke": "#0091DA",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        },
-        "id": "xy-edge__node-ingest-1527data-out-agent-coretools-in"
-      },
-      {
-        "id": "edge-output-v2-6595",
-        "source": "node-model-1",
-        "sourceHandle": "out",
-        "target": "node-output-v2-6578",
-        "targetHandle": "data-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#10B981",
+          "stroke": "#00A3A6",
           "strokeWidth": 1.8,
           "strokeDasharray": "4 4"
         }
       }
     ],
     "activeUseCase": {
-      "id": "uc-meeting-intel",
-      "name": "MIA2",
-      "description": "Autonomous multi-speaker synthesis, action items with owners, and task sync.",
+      "id": "uc-wf-1792831026760-e7ci6",
+      "name": "Untitled Workflow",
+      "description": "Pristine blank canvas. Connect models, skills, tools, and gateways.",
       "framework": {
-        "id": "langchain",
-        "name": "LangChain",
-        "subtitle": "Composable LCEL chains and agent toolkits",
-        "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
-        "defaultModel": "claude-3-5-sonnet",
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
         "exportExtension": ".py",
-        "category": "Chains"
+        "category": "SDK"
       },
       "agent": {
-        "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+        "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
         "temperature": 0.2,
-        "topP: 0.95": 0.95
+        "topP": 0.95
       }
     },
     "version": "v7_real_mcp_engine"
   },
   "registeredMcps": [
+    {
+      "id": "node-mcp-3116",
+      "name": "Atlassian Jira MCP",
+      "displayName": "Atlassian Jira MCP",
+      "serviceName": "Jira",
+      "description": "Exposes live tools and automated notifications.",
+      "tools": [
+        {
+          "name": "create_jira_issue",
+          "displayName": "Create an issue",
+          "category": "Issue Actions",
+          "type": "write",
+          "description": "Creates a sprint ticket, task, story, or bug in Jira Cloud."
+        },
+        {
+          "name": "get_jira_issue",
+          "displayName": "Get issue details",
+          "category": "Issue Actions",
+          "type": "read",
+          "description": "Retrieves issue summary, status, assignee, priority, and custom fields."
+        },
+        {
+          "name": "update_jira_issue",
+          "displayName": "Update an issue",
+          "category": "Issue Actions",
+          "type": "write",
+          "description": "Modifies summary, description, priority, or field values."
+        },
+        {
+          "name": "delete_jira_issue",
+          "displayName": "Delete an issue",
+          "category": "Issue Actions",
+          "type": "destructive",
+          "description": "Permanently deletes an issue from Jira."
+        },
+        {
+          "name": "transition_jira_issue",
+          "displayName": "Transition issue status",
+          "category": "Issue Actions",
+          "type": "write",
+          "description": "Moves issue through workflow (e.g. In Progress, Review, Done)."
+        },
+        {
+          "name": "assign_jira_issue",
+          "displayName": "Assign issue",
+          "category": "Issue Actions",
+          "type": "write",
+          "description": "Assigns issue ticket to a team member by account ID."
+        },
+        {
+          "name": "search_jira_issues",
+          "displayName": "Search issues via JQL",
+          "category": "Issue Actions",
+          "type": "read",
+          "description": "Performs flexible Jira Query Language (JQL) searches."
+        },
+        {
+          "name": "add_issue_comment",
+          "displayName": "Add comment to issue",
+          "category": "Comment Actions",
+          "type": "write",
+          "description": "Posts a new comment on a Jira issue ticket."
+        },
+        {
+          "name": "get_issue_comments",
+          "displayName": "Get issue comments",
+          "category": "Comment Actions",
+          "type": "read",
+          "description": "Lists all discussion comments on a Jira issue."
+        },
+        {
+          "name": "list_jira_projects",
+          "displayName": "List projects",
+          "category": "Project & Sprint Actions",
+          "type": "read",
+          "description": "Lists all accessible projects, keys, and project leads."
+        },
+        {
+          "name": "get_project_details",
+          "displayName": "Get project details",
+          "category": "Project & Sprint Actions",
+          "type": "read",
+          "description": "Retrieves project issue types, components, and versions."
+        },
+        {
+          "name": "list_project_versions",
+          "displayName": "List release versions",
+          "category": "Project & Sprint Actions",
+          "type": "read",
+          "description": "Lists release versions, release dates, and archived status."
+        },
+        {
+          "name": "list_active_sprints",
+          "displayName": "List active sprints",
+          "category": "Project & Sprint Actions",
+          "type": "read",
+          "description": "Lists currently active sprints on agile boards."
+        },
+        {
+          "name": "add_worklog",
+          "displayName": "Log work time",
+          "category": "Worklog Actions",
+          "type": "write",
+          "description": "Logs time spent (e.g., 2h 30m) on a Jira ticket."
+        },
+        {
+          "name": "get_worklogs",
+          "displayName": "Get issue worklogs",
+          "category": "Worklog Actions",
+          "type": "read",
+          "description": "Retrieves logged time entries on a specific issue."
+        }
+      ],
+      "config": {
+        "transport": "sse"
+      },
+      "basis": null,
+      "transport": "sse",
+      "url": "",
+      "isRealMcp": true,
+      "verifiedAt": "2026-10-24T07:33:34.502Z"
+    },
     {
       "pillarType": "mcp",
       "title": "Microsoft Outlook 365",
@@ -10445,5 +10431,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1792671442767
+  "syncedAt": 1792831731635
 }

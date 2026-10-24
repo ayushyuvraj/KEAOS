@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 
 import CanvasExecutionDrawer from './CanvasExecutionDrawer';
+import CanvasPromptBar from './CanvasPromptBar';
 import DeletableEdge from './edges/DeletableEdge';
 import OutputDisplayNode from './nodes/OutputDisplayNode';
 import OutputDisplayNodeV2 from './nodes/OutputDisplayNodeV2';
@@ -2892,6 +2893,22 @@ function CanvasInner({
         onExecutionStateChange={setExecutionState}
         isExpanded={isDrawerExpanded}
         setIsExpanded={setIsDrawerExpanded}
+      />
+
+      {/* AI Canvas Architect Prompt Bar (Google Stitch Style) */}
+      <CanvasPromptBar
+        nodes={nodes}
+        edges={edges}
+        setNodes={setNodes}
+        setEdges={setEdges}
+        takeSnapshot={takeSnapshot}
+        rfInstance={rfInstance}
+        isDarkMode={isDarkMode}
+        onToast={(msg) => {
+          setToastNotification(msg);
+          setTimeout(() => setToastNotification((c) => (c === msg ? null : c)), 2500);
+        }}
+        isDrawerExpanded={isDrawerExpanded}
       />
 
       {/* Summary MiniMap */}

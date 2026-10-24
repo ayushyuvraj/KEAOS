@@ -36,7 +36,7 @@ export const PROVIDERS = {
   },
   ollama: {
     id: 'ollama',
-    name: 'Ollama (Cloud & Local)',
+    name: 'Ollama',
     envKey: 'VITE_OLLAMA_BASE_URL',
     storageKey: 'keaos_key_ollama',
     urlStorageKey: 'keaos_url_ollama',
@@ -48,7 +48,7 @@ export const PROVIDERS = {
   },
   openrouter: {
     id: 'openrouter',
-    name: 'OpenRouter (200+ Models)',
+    name: 'OpenRouter',
     envKey: 'VITE_OPENROUTER_API_KEY',
     storageKey: 'keaos_key_openrouter',
     defaultModel: 'anthropic/claude-3.5-sonnet',

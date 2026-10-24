@@ -489,6 +489,43 @@ input[type="range"].modern-slider::-moz-range-thumb {
   will-change: transform, opacity;
 }
 
+/* Google Stitch Animated Gradient Glow Border */
+@keyframes stitchBorderShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
 
+.stitch-glow-border {
+  background: linear-gradient(
+    135deg,
+    #6366F1 0%,
+    #A855F7 25%,
+    #EC4899 50%,
+    #06B6D4 75%,
+    #3B82F6 100%
+  );
+  background-size: 300% 300%;
+  animation: stitchBorderShimmer 6s ease infinite;
+}
 
+.stitch-glow-border-active {
+  background: linear-gradient(
+    135deg,
+    #0091DA 0%,
+    #8B5CF6 25%,
+    #EC4899 50%,
+    #06B6D4 75%,
+    #00338D 100%
+  );
+  background-size: 250% 250%;
+  animation: stitchBorderShimmer 3s ease infinite;
+  box-shadow: 0 0 24px rgba(139, 92, 246, 0.35), 0 0 48px rgba(6, 182, 212, 0.2);
+}
 
