@@ -19,9 +19,18 @@ export function normalizeAndRepairWorkflow(nodes = [], edges = [], options = {})
   const normalizedNodes = nodes.map((node, i) => {
     let type = node.type || 'pillar';
     let data = { ...(node.data || {}) };
+    const nodeIdentity = `${node.id || ''} ${data.name || ''} ${data.itemId || ''} ${data.title || ''}`.toLowerCase();
 
-    if (type === 'outputDisplayNode' || type === 'outputDisplayNodeV2' || type === 'output') {
+    // Correct any misclassified node types (especially from LLM outputs)
+    if (type === 'outputDisplayNode' || type === 'outputDisplayNodeV2' || type === 'output' ||
+        (type === 'pillar' && (nodeIdentity.includes('output-final-viewer') || nodeIdentity.includes('output viewer') || nodeIdentity.includes('artifact studio')))) {
       type = 'outputNodeV2';
+    } else if (type === 'ingestNode' || type === 'ingest' ||
+        (type === 'pillar' && (nodeIdentity.includes('ingest') || nodeIdentity.includes('audio & call') || nodeIdentity.includes('document ingest') || nodeIdentity.includes('file & audio')))) {
+      type = 'ingestionNode';
+    } else if (type === 'agent' || type === 'core' ||
+        (type === 'pillar' && (nodeIdentity.includes('agent-core') || nodeIdentity.includes('autonomous agent') || nodeIdentity.includes('ai agent')))) {
+      type = 'agentCore';
     } else if (type === 'modelNode') {
       type = 'pillar';
       data.pillarType = 'model';
@@ -108,8 +117,30 @@ export function normalizeAndRepairWorkflow(nodes = [], edges = [], options = {})
     };
   });
 
+  let primaryAgent = normalizedNodes.find(n => n.type === 'agentCore');
+
+  // CRITICAL INVARIANT: Central Agent Hub Guarantee
+  // If the workflow contains peripheral capabilities (model, skills, ingest, output) but lacks an agentCore reasoning hub,
+  // automatically instantiate the primary agentCore so the pipeline has its central brain and all sockets can connect!
+  if (!primaryAgent && normalizedNodes.length > 0) {
+    const agentId = `agent-core-${Date.now().toString().slice(-4)}`;
+    primaryAgent = {
+      id: agentId,
+      type: 'agentCore',
+      position: { x: 540, y: 180 },
+      data: {
+        name: 'Autonomous Enterprise Agent',
+        framework: FRAMEWORKS[0],
+        prompt: 'Execute enterprise multi-step workflow with analytical fidelity and compliance enforcement.',
+        temperature: 0.2,
+        topP: 0.95,
+        attachedCounts: { model: 1, skills: 1, mcp: 0, tools: 0, gateway: 0, memory: 0, policies: 0 }
+      }
+    };
+    normalizedNodes.unshift(primaryAgent);
+  }
+
   const nodeMap = new Map(normalizedNodes.map(n => [n.id, n]));
-  const primaryAgent = normalizedNodes.find(n => n.type === 'agentCore');
 
   // 2. Canonical Socket Normalization for all existing edges
   const repairedEdges = [];
@@ -511,6 +542,21 @@ export function getCanvasArchitectSystemPrompt() {
   return `You are the KEAOS Enterprise Agent Canvas Architect.
 Your mission is to translate natural language user directives into fully-formed, valid KEAOS agent graph workflows.
 
+### MANDATORY CENTRAL REASONING CORE INVARIANT:
+Every valid KEAOS workflow MUST contain at least one central reasoning agent node with type: "agentCore".
+Node #1 in your "nodes" array MUST ALWAYS be this central "agentCore" node (e.g. id: "agent-core-1", type: "agentCore", data: { name: "...", prompt: "...", temperature: 0.2, topP: 0.95 }).
+NEVER emit only peripheral nodes without an agentCore! All peripheral nodes (models, skills, policies, ingestion, outputs) MUST be connected via edges to this central agentCore.
+
+### STRICT NODE TYPES:
+- Central Reasoning Agent: type="agentCore" (NEVER "pillar")
+- Ingestion Nodes (File, Audio, PDF, Text Ingest): type="ingestionNode" (NEVER "pillar")
+- Output Nodes (Artifact Studio, Output Display): type="outputNodeV2" (NEVER "pillar")
+- Peripheral Capabilities (Models, Skills, Memory, Policies, MCP, Gateway, Tools, Audit, Observability, Cost-Benefit): type="pillar"
+- Human Approval Gate: type="approvalNode"
+- Conditional Router: type="routerNode"
+- Deterministic Logic: type="deterministicNode"
+- Triggers (Schedule, Webhook, File, Manual): type="triggerNode"
+
 ### AUTHORITATIVE COMPONENT CATALOG (STRICT INSTITUTIONAL MANDATE):
 Every peripheral node (pillar: model, skills, policies, mcp, gateway, memory, tools, audit, observability, cost_benefit) MUST originate directly from the official right-panel catalog below.
 ABSOLUTELY FORBIDDEN: NEVER hallucinate, guess, or create imaginary nodes or generic placeholders (e.g. NEVER emit an empty name or a generic description like "Specialized reasoning capability attached to the agent workflow").
@@ -523,14 +569,14 @@ Every "pillar" node in your output MUST specify:
 
 ${catalogManifest}
 
-### KEAOS Architectural Rules & Node Types:
+### KEAOS Architectural Rules & Sockets:
 1. "agentCore": Central autonomous reasoning agent.
    - Sockets available on agentCore:
      - "model-in": connects from a "pillar" with data.pillarType="model" (max 1)
      - "skill-in": connects from a "pillar" with data.pillarType="skills" (unlimited)
      - "policy-in": connects from a "pillar" with data.pillarType="policies" (unlimited, also accepts "policies-in")
      - "mcp-in": connects from a "pillar" with data.pillarType="mcp" or "gateway" (unlimited, also accepts "gateway-in")
-     - "tools-in": connects from a "pillar" with data.pillarType="tools" or "ingestionNode" (also accepts "tool-in")
+     - "tools-in": connects from a "pillar" with data.pillarType="tools" or "ingestionNode" (data-out -> tools-in)
      - "memory-in": connects from a "pillar" with data.pillarType="memory" (max 1)
      - "agent-in": connects from "triggerNode" (trigger-out) or upstream agent ("out")
      - "out": emits reasoning output to "outputNodeV2" ("data-in"), "approvalNode" ("in"), "routerNode" ("in"), "deterministicNode" ("in"), or downstream agents ("agent-in")
@@ -563,7 +609,15 @@ ${catalogManifest}
   4. "pillar" with pillarType="policies", itemId="pol-pii-masker", name="PII & Confidentiality Redactor"
   5. "pillar" with pillarType="skills", itemId="skill-summarizer", name="Executive Summarizer"
   And EXACTLY 4 edges connecting each peripheral to the agentCore.
-  Zero extra nodes!
+
+- If the user directive is: "Creating an agent with document ingestion, Gemini 2.0 Flash model, summarizer skill, and output display."
+  Return EXACTLY 5 nodes:
+  1. "agentCore" (Autonomous Enterprise Agent)
+  2. "ingestionNode" (Universal File & Audio Ingest)
+  3. "pillar" with pillarType="model", itemId="model-gemini-2-flash", name="Gemini 2.0 Flash"
+  4. "pillar" with pillarType="skills", itemId="skill-summarizer", name="Executive Summarizer"
+  5. "outputNodeV2" (Output Viewer v2.0 Artifact Studio)
+  And EXACTLY 4 edges connecting each node to the agentCore (ingestion -> tools-in, model -> model-in, skill -> skill-in, agentCore out -> output data-in).
 
 ### Response Protocol:
 1. IF the user asks for a capability that does NOT exist in the catalog, or if their prompt is ambiguous, DO NOT invent an imaginary node. Return JSON with:
@@ -687,11 +741,11 @@ export function buildDynamicWorkflowLocally({
   const answer = (clarificationAnswer || '').toLowerCase();
   const fullText = `${text} ${answer}`;
 
-  // Incremental Branch: If existing canvas has an AgentCore and user directive is adding/wiring/replacing
+  // Incremental Branch: If existing canvas has nodes and user directive is adding/wiring/replacing or adding an agent
   const existingAgent = existingNodes.find(n => n.type === 'agentCore');
   const isIncrementalDirective = Boolean(
-    existingAgent &&
-    /\b(add|connect|attach|wire|link|append|also|now|replace|update|change|include|memory|skill|policy|guardrail|mcp|tool|model|brain)\b/i.test(text)
+    (existingAgent || existingNodes.length > 0) &&
+    /\b(add|connect|attach|wire|link|append|also|now|replace|update|change|include|memory|skill|policy|guardrail|mcp|tool|model|brain|agent|core)\b/i.test(text)
   );
 
   if (isIncrementalDirective) {
@@ -700,7 +754,130 @@ export function buildDynamicWorkflowLocally({
     let pillarType = 'skills';
     let targetHandle = 'skill-in';
 
-    if (/\b(memory|vector|episodic|sync|chroma)\b/i.test(text)) {
+    if (/\b(agent|ai agent|agent core|autonomous agent|agent component|core agent)\b/i.test(text)) {
+      if (!existingAgent) {
+        // There are existing orphan nodes on canvas, and user is adding the central agent!
+        const agentId = `agent-core-${Date.now().toString().slice(-4)}`;
+        const newAgent = {
+          id: agentId,
+          type: 'agentCore',
+          position: { x: 540, y: 180 },
+          data: {
+            name: 'Autonomous Enterprise Agent',
+            framework: FRAMEWORKS[0],
+            prompt: 'Execute enterprise multi-step workflow with analytical fidelity and compliance enforcement.',
+            temperature: 0.2,
+            topP: 0.95,
+            attachedCounts: { model: 0, skills: 0, mcp: 0, tools: 0, gateway: 0, memory: 0, policies: 0 }
+          }
+        };
+
+        const autoEdges = [];
+        existingNodes.forEach(node => {
+          if (node.type === 'pillar') {
+            const pt = node.data?.pillarType;
+            let targetHandle = 'skill-in';
+            if (pt === 'model') targetHandle = 'model-in';
+            else if (pt === 'policies') targetHandle = 'policy-in';
+            else if (pt === 'memory') targetHandle = 'memory-in';
+            else if (pt === 'mcp' || pt === 'gateway') targetHandle = 'mcp-in';
+            else if (pt === 'tools') targetHandle = 'tools-in';
+            else if (pt === 'audit') targetHandle = 'audit-in';
+            else if (pt === 'observability') targetHandle = 'observability-in';
+            else if (pt === 'cost-benefit' || pt === 'cost_benefit') targetHandle = 'cost-benefit-in';
+
+            autoEdges.push({
+              id: `edge-${node.id}-to-${agentId}`,
+              source: node.id,
+              sourceHandle: 'out',
+              target: agentId,
+              targetHandle,
+              type: 'deletable',
+              animated: true
+            });
+          } else if (node.type === 'ingestionNode') {
+            autoEdges.push({
+              id: `edge-${node.id}-to-${agentId}`,
+              source: node.id,
+              sourceHandle: 'data-out',
+              target: agentId,
+              targetHandle: 'tools-in',
+              type: 'deletable',
+              animated: true
+            });
+          } else if (node.type === 'triggerNode') {
+            autoEdges.push({
+              id: `edge-${node.id}-to-${agentId}`,
+              source: node.id,
+              sourceHandle: 'trigger-out',
+              target: agentId,
+              targetHandle: 'agent-in',
+              type: 'deletable',
+              animated: true
+            });
+          } else if (node.type === 'outputNode' || node.type === 'outputNodeV2') {
+            autoEdges.push({
+              id: `edge-${agentId}-to-${node.id}`,
+              source: agentId,
+              sourceHandle: 'out',
+              target: node.id,
+              targetHandle: 'data-in',
+              type: 'deletable',
+              animated: true
+            });
+          }
+        });
+
+        return {
+          needsClarification: false,
+          action: 'append',
+          summary: `Instantiated central Autonomous Agent and auto-wired ${autoEdges.length} peripheral components.`,
+          steps: [
+            'Instantiated Autonomous Agent reasoning hub at canvas center',
+            `Auto-wired ${autoEdges.length} existing peripheral components to their typed sockets`
+          ],
+          nodes: [newAgent],
+          edges: autoEdges
+        };
+      } else {
+        // Multi-Agent: Instantiate downstream agent connected via A2A
+        const agentId = `agent-core-${Date.now().toString().slice(-4)}`;
+        const newAgent = {
+          id: agentId,
+          type: 'agentCore',
+          position: { x: (existingAgent.position?.x || 540) + 380, y: existingAgent.position?.y || 180 },
+          data: {
+            name: 'Downstream Autonomous Agent',
+            framework: FRAMEWORKS[0],
+            prompt: 'Collaborate with upstream agent and execute downstream processing.',
+            temperature: 0.2,
+            topP: 0.95,
+            attachedCounts: { model: 0, skills: 0, mcp: 0, tools: 0, gateway: 0, memory: 0, policies: 0 }
+          }
+        };
+        const newEdge = {
+          id: `edge-${existingAgent.id}-to-${agentId}`,
+          source: existingAgent.id,
+          sourceHandle: 'out',
+          target: agentId,
+          targetHandle: 'agent-in',
+          type: 'deletable',
+          animated: true,
+          style: { stroke: '#00338D', strokeWidth: 2 }
+        };
+        return {
+          needsClarification: false,
+          action: 'append',
+          summary: `Added Downstream Autonomous Agent connected to ${existingAgent.data?.name || 'Agent'}.`,
+          steps: [
+            'Instantiated secondary Autonomous Agent from catalog',
+            `Connected A2A dispatch stream from ${existingAgent.id} to ${agentId}`
+          ],
+          nodes: [newAgent],
+          edges: [newEdge]
+        };
+      }
+    } else if (/\b(memory|vector|episodic|sync|chroma)\b/i.test(text)) {
       pillarType = 'memory';
       targetHandle = 'memory-in';
       matchedItem = resolveCatalogItem(text, 'memory') || resolveCatalogItem('mem-episodic-sync', 'memory');
@@ -1387,7 +1564,9 @@ Respond strictly in JSON matching the protocol.`;
       }
 
       if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
-        const layout = computeArchitectLayout(parsed.nodes, parsed.edges || []);
+        // Pre-repair workflow: guarantees central agentCore presence, correct node types, and auto-wired edges
+        const repaired = normalizeAndRepairWorkflow(parsed.nodes, parsed.edges || [], { autoWireExisting: true });
+        const layout = computeArchitectLayout(repaired.nodes, repaired.edges);
         return {
           needsClarification: false,
           action: parsed.action || (isEditMode ? 'append' : 'create'),

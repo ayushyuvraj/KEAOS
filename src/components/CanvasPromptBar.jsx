@@ -441,7 +441,12 @@ export default function CanvasPromptBar({
       const wiringStepId = logStep(`Wiring ${finalEdges.length} strictly-typed socket connections`, 'running');
       await new Promise((r) => setTimeout(r, 140));
       setEdges([...finalEdges]);
-      updateStep(wiringStepId, { status: 'done', text: `Connected all socket ports: Model, Ingest, Memory, Skills, Policies, Output` });
+      updateStep(wiringStepId, {
+        status: 'done',
+        text: finalEdges.length > 0
+          ? `Connected ${finalEdges.length} socket ports: ${Array.from(new Set(finalEdges.map(e => (e.targetHandle || e.sourceHandle || '').replace('-in', '')))).filter(Boolean).map(s => s.toUpperCase()).join(', ')}`
+          : 'No socket connections needed'
+      });
     } else {
       // Incremental Placement: keep existing nodes and merge in new/modified components
       updateStep(initStepId, { status: 'done', text: `Synchronized workflow topology (${finalNodes.length} nodes)` });
@@ -489,7 +494,12 @@ export default function CanvasPromptBar({
       const wiringStepId = logStep(`Updating socket connections...`, 'running');
       await new Promise((r) => setTimeout(r, 140));
       setEdges([...finalEdges]);
-      updateStep(wiringStepId, { status: 'done', text: `Connected all socket ports: Model, Ingest, Memory, Skills, Policies, Output` });
+      updateStep(wiringStepId, {
+        status: 'done',
+        text: finalEdges.length > 0
+          ? `Connected ${finalEdges.length} socket ports: ${Array.from(new Set(finalEdges.map(e => (e.targetHandle || e.sourceHandle || '').replace('-in', '')))).filter(Boolean).map(s => s.toUpperCase()).join(', ')}`
+          : 'No socket connections needed'
+      });
     }
 
     // 5. Fit View so the new architecture is centered
@@ -545,7 +555,8 @@ export default function CanvasPromptBar({
     // Check if the prompt is asking for an incremental change to existing canvas
     const isIncrementalDirective = Boolean(
       nodes.length > 0 &&
-      /\b(add|connect|attach|wire|link|append|also|now|replace|update|change|include)\b/i.test(textToUse)
+      (/\b(add|connect|attach|wire|link|append|also|now|replace|update|change|include)\b/i.test(textToUse) ||
+       (/\b(agent|ai agent|agent core|agent component|memory|model|skill|policy|guardrail|mcp|tool|ingest|output)\b/i.test(textToUse) && textToUse.trim().split(/\s+/).length <= 4))
     );
 
     try {

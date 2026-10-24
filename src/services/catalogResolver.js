@@ -328,6 +328,12 @@ export function resolveCatalogItem(identifier, pillarTypeHint = null) {
 }
 
 function findByKeywords(raw, list) {
+  // Agent Core Keywords (Autonomous Agent / AI Agent Component)
+  if (/\b(ai agent|agent core|autonomous agent|agent component|core agent)\b/i.test(raw) ||
+      (raw.includes('agent') && (raw.includes('component') || raw.includes('core') || raw.includes('node') || raw.includes('box') || raw.includes('ai')))) {
+    return list.find(i => i.id === 'agent-core-primary' || i.nodeType === 'agentCore' || i.pillarType === 'agentCore') || null;
+  }
+
   // Model Keywords
   if (/\b(gpt[- ]?4o?[- ]?mini|gpt[- ]?4[- ]?mini)\b/i.test(raw) || (raw.includes('mini') && (raw.includes('gpt') || raw.includes('4o')))) {
     return list.find(i => i.id === 'model-gpt-4o-mini') || null;

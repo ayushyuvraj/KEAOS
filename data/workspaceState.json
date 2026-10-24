@@ -1,5 +1,5 @@
 {
-  "activeWorkflowId": "wf-1792870331758-k1ees",
+  "activeWorkflowId": "wf-1792874578283-xgnmb",
   "uiState": {
     "isDarkMode": false,
     "isSidebarCollapsed": true,
@@ -17,7 +17,7 @@
   },
   "workflows": [
     {
-      "id": "wf-1792870331758-k1ees",
+      "id": "wf-1792874578283-xgnmb",
       "name": "Untitled Workflow",
       "description": "",
       "framework": {
@@ -30,7 +30,7 @@
         "category": "SDK"
       },
       "activeUseCase": {
-        "id": "uc-wf-1792870331758-k1ees",
+        "id": "uc-wf-1792874578283-xgnmb",
         "name": "Untitled Workflow",
         "description": "",
         "framework": {
@@ -50,11 +50,31 @@
       },
       "nodes": [
         {
-          "id": "agent-core-5009",
+          "id": "node-ingest-8651",
+          "type": "ingestionNode",
+          "position": {
+            "x": 120,
+            "y": 100
+          },
+          "data": {
+            "title": "Universal Document & Text Ingest",
+            "content": "",
+            "status": "idle",
+            "fileType": "auto",
+            "isExpanded": false
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "agent-core-8651",
           "type": "agentCore",
           "position": {
-            "x": 540,
-            "y": 180
+            "x": 300,
+            "y": 220
           },
           "data": {
             "name": "Autonomous Enterprise Agent",
@@ -74,276 +94,10 @@
               "model": 1,
               "skills": 1,
               "mcp": 0,
-              "tools": 0,
-              "gateway": 0,
-              "memory": 1,
-              "policies": 1,
-              "audit": 0,
-              "observability": 0,
-              "cost_benefit": 0,
-              "agent": 0
-            }
-          },
-          "className": "animate-in zoom-in-95 duration-200",
-          "measured": {
-            "width": 228,
-            "height": 173
-          }
-        },
-        {
-          "id": "node-model-5009",
-          "type": "pillar",
-          "position": {
-            "x": 584,
-            "y": 60
-          },
-          "data": {
-            "pillarType": "model",
-            "itemId": "model-gpt-4o-mini",
-            "name": "GPT-4o Mini",
-            "description": "OpenAI: Fast, cost-efficient model for lightweight meeting processing.",
-            "config": {
-              "provider": "openai",
-              "modelId": "gpt-4o-mini",
-              "temperature": 0.2,
-              "topP": 0.95
-            }
-          },
-          "className": "animate-in zoom-in-95 duration-200",
-          "measured": {
-            "width": 140,
-            "height": 60
-          }
-        },
-        {
-          "id": "node-memory-5009",
-          "type": "pillar",
-          "position": {
-            "x": 564,
-            "y": 450
-          },
-          "data": {
-            "pillarType": "memory",
-            "itemId": "mem-episodic-sync",
-            "name": "Episodic Recurring Sync Memory",
-            "description": "Remembers past meeting action items to verify resolution across weeks.",
-            "config": {
-              "ttlDays": 90,
-              "storage": "sqlite-vector",
-              "sessionScoped": false
-            }
-          },
-          "className": "animate-in zoom-in-95 duration-200",
-          "measured": {
-            "width": 140,
-            "height": 60
-          }
-        },
-        {
-          "id": "node-policy-5009",
-          "type": "pillar",
-          "position": {
-            "x": 380,
-            "y": 450
-          },
-          "data": {
-            "pillarType": "policies",
-            "itemId": "pol-pii-masker",
-            "name": "PII & Confidentiality Redactor",
-            "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
-            "config": {
-              "redactSalaries": true,
-              "maskEmails": true,
-              "regexRules": "strict"
-            }
-          },
-          "className": "animate-in zoom-in-95 duration-200",
-          "measured": {
-            "width": 140,
-            "height": 60
-          }
-        },
-        {
-          "id": "node-skill-skill-summarizer-5009",
-          "type": "pillar",
-          "position": {
-            "x": 720,
-            "y": 450
-          },
-          "data": {
-            "pillarType": "skills",
-            "itemId": "skill-summarizer",
-            "name": "Executive Summarizer",
-            "description": "Generates TL;DR, high-level takeaways, and strategic themes.",
-            "config": {
-              "format": "bullet_points",
-              "length": "concise",
-              "focus": "decisions"
-            }
-          },
-          "className": "animate-in zoom-in-95 duration-200",
-          "measured": {
-            "width": 140,
-            "height": 60
-          }
-        }
-      ],
-      "edges": [
-        {
-          "id": "edge-node-model-5009-to-agent-core-5009",
-          "source": "node-model-5009",
-          "sourceHandle": "out",
-          "target": "agent-core-5009",
-          "targetHandle": "model-in",
-          "type": "deletable",
-          "animated": true,
-          "style": {
-            "stroke": "#00338D",
-            "strokeWidth": 2
-          }
-        },
-        {
-          "id": "edge-node-memory-5009-to-agent-core-5009",
-          "source": "node-memory-5009",
-          "sourceHandle": "out",
-          "target": "agent-core-5009",
-          "targetHandle": "memory-in",
-          "type": "deletable",
-          "animated": true,
-          "style": {
-            "stroke": "#483698",
-            "strokeWidth": 2
-          }
-        },
-        {
-          "id": "edge-node-policy-5009-to-agent-core-5009",
-          "source": "node-policy-5009",
-          "sourceHandle": "out",
-          "target": "agent-core-5009",
-          "targetHandle": "policy-in",
-          "type": "deletable",
-          "animated": true,
-          "style": {
-            "stroke": "#6D2077",
-            "strokeWidth": 2
-          }
-        },
-        {
-          "id": "edge-node-skill-skill-summarizer-5009-to-agent-core-5009",
-          "source": "node-skill-skill-summarizer-5009",
-          "sourceHandle": "out",
-          "target": "agent-core-5009",
-          "targetHandle": "skill-in",
-          "type": "deletable",
-          "animated": true,
-          "style": {
-            "stroke": "#009A44",
-            "strokeWidth": 2
-          }
-        }
-      ],
-      "createdAt": 1792870331758,
-      "updatedAt": 1792870357419,
-      "isStarred": false,
-      "isLocked": false,
-      "isWorkflowLocked": false,
-      "tags": [
-        "New"
-      ],
-      "stats": {
-        "nodeCount": 5,
-        "agentCount": 1,
-        "mcpCount": 0,
-        "modelCount": 1,
-        "skillCount": 1,
-        "toolCount": 0,
-        "policyCount": 1,
-        "hasAudit": false
-      },
-      "agentLogs": []
-    },
-    {
-      "id": "wf-1792869224621-u5bih",
-      "name": "test abc",
-      "description": "",
-      "framework": {
-        "id": "google-adk",
-        "name": "Google ADK",
-        "subtitle": "Google Agent Development Kit & GenAI SDK",
-        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-        "defaultModel": "gemini-2.0-flash",
-        "exportExtension": ".py",
-        "category": "SDK"
-      },
-      "activeUseCase": {
-        "id": "uc-wf-1792869224621-u5bih",
-        "name": "test abc",
-        "description": "",
-        "framework": {
-          "id": "google-adk",
-          "name": "Google ADK",
-          "subtitle": "Google Agent Development Kit & GenAI SDK",
-          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-          "defaultModel": "gemini-2.0-flash",
-          "exportExtension": ".py",
-          "category": "SDK"
-        },
-        "agent": {
-          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
-          "temperature": 0.2,
-          "topP": 0.95
-        }
-      },
-      "nodes": [
-        {
-          "id": "node-ingest-6864",
-          "type": "ingestionNode",
-          "position": {
-            "x": 400,
-            "y": 60
-          },
-          "data": {
-            "title": "Universal Document & Text Ingest",
-            "content": "",
-            "status": "idle",
-            "fileType": "auto",
-            "isExpanded": false
-          },
-          "className": "animate-in zoom-in-95 duration-200",
-          "measured": {
-            "width": 140,
-            "height": 60
-          }
-        },
-        {
-          "id": "agent-core-6864",
-          "type": "agentCore",
-          "position": {
-            "x": 540,
-            "y": 180
-          },
-          "data": {
-            "name": "Autonomous Enterprise Agent",
-            "framework": {
-              "id": "google-adk",
-              "name": "Google ADK",
-              "subtitle": "Google Agent Development Kit & GenAI SDK",
-              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-              "defaultModel": "gemini-2.0-flash",
-              "exportExtension": ".py",
-              "category": "SDK"
-            },
-            "prompt": "Execute enterprise multi-step workflow with analytical fidelity and compliance enforcement.",
-            "temperature": 0.2,
-            "topP": 0.95,
-            "attachedCounts": {
-              "model": 2,
-              "skills": 1,
-              "mcp": 0,
               "tools": 1,
               "gateway": 0,
               "memory": 0,
-              "policies": 1,
+              "policies": 0,
               "audit": 0,
               "observability": 0,
               "cost_benefit": 0,
@@ -357,11 +111,11 @@
           }
         },
         {
-          "id": "node-model-6864",
+          "id": "node-model-8651",
           "type": "pillar",
           "position": {
-            "x": 584,
-            "y": 60
+            "x": 344,
+            "y": 100
           },
           "data": {
             "pillarType": "model",
@@ -382,59 +136,11 @@
           }
         },
         {
-          "id": "node-memory-6866",
+          "id": "node-skill-skill-summarizer-8652",
           "type": "pillar",
           "position": {
-            "x": 564,
-            "y": 450
-          },
-          "data": {
-            "pillarType": "memory",
-            "itemId": "mem-episodic-sync",
-            "name": "Episodic Recurring Sync Memory",
-            "description": "Remembers past meeting action items to verify resolution across weeks.",
-            "config": {
-              "ttlDays": 90,
-              "storage": "sqlite-vector",
-              "sessionScoped": false
-            }
-          },
-          "className": "animate-in zoom-in-95 duration-200",
-          "measured": {
-            "width": 140,
-            "height": 60
-          }
-        },
-        {
-          "id": "node-policy-6867",
-          "type": "pillar",
-          "position": {
-            "x": 380,
-            "y": 450
-          },
-          "data": {
-            "pillarType": "policies",
-            "itemId": "pol-pii-masker",
-            "name": "PII & Confidentiality Redactor",
-            "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
-            "config": {
-              "redactSalaries": true,
-              "maskEmails": true,
-              "regexRules": "strict"
-            }
-          },
-          "className": "animate-in zoom-in-95 duration-200",
-          "measured": {
-            "width": 140,
-            "height": 60
-          }
-        },
-        {
-          "id": "node-skill-skill-summarizer-6868",
-          "type": "pillar",
-          "position": {
-            "x": 720,
-            "y": 450
+            "x": 480,
+            "y": 480
           },
           "data": {
             "pillarType": "skills",
@@ -454,56 +160,69 @@
           }
         },
         {
-          "id": "node-output-6868",
+          "id": "node-output-8652",
           "type": "outputNodeV2",
           "position": {
-            "x": 880,
-            "y": 180
+            "x": 1300,
+            "y": 220
           },
           "data": {
             "title": "Agent Intelligence Output",
             "outputContent": "",
             "status": "idle",
-            "runsHistory": []
+            "runsHistory": [],
+            "isExpanded": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
-            "width": 56,
-            "height": 56
+            "width": 520,
+            "height": 520
           }
         },
         {
-          "id": "node-memory-1630",
-          "type": "pillar",
+          "id": "agent-core-9779",
+          "type": "agentCore",
           "position": {
-            "x": 744,
-            "y": 60
+            "x": 940,
+            "y": 220
           },
           "data": {
-            "pillarType": "model",
-            "itemId": "model-gpt-4o-mini",
-            "name": "GPT-4o Mini",
-            "description": "OpenAI: Fast, cost-efficient model for lightweight meeting processing.",
-            "config": {
-              "provider": "openai",
-              "modelId": "gpt-4o-mini",
-              "temperature": 0.2,
-              "topP": 1
+            "name": "Downstream Autonomous Agent",
+            "framework": {
+              "id": "google-adk",
+              "name": "Google ADK",
+              "subtitle": "Google Agent Development Kit & GenAI SDK",
+              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+              "defaultModel": "gemini-2.0-flash",
+              "exportExtension": ".py",
+              "category": "SDK"
+            },
+            "prompt": "Collaborate with upstream agent and execute downstream processing.",
+            "temperature": 0.2,
+            "topP": 0.95,
+            "attachedCounts": {
+              "model": 0,
+              "skills": 0,
+              "mcp": 0,
+              "tools": 0,
+              "gateway": 0,
+              "memory": 0,
+              "policies": 0
             }
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
-            "width": 140,
-            "height": 60
+            "width": 228,
+            "height": 173
           }
         }
       ],
       "edges": [
         {
-          "id": "edge-node-model-6864-to-agent-core-6864",
-          "source": "node-model-6864",
+          "id": "edge-node-model-8651-to-agent-core-8651",
+          "source": "node-model-8651",
           "sourceHandle": "out",
-          "target": "agent-core-6864",
+          "target": "agent-core-8651",
           "targetHandle": "model-in",
           "type": "deletable",
           "animated": true,
@@ -513,10 +232,10 @@
           }
         },
         {
-          "id": "edge-node-ingest-6864-to-agent-core-6864",
-          "source": "node-ingest-6864",
+          "id": "edge-node-ingest-8651-to-agent-core-8651",
+          "source": "node-ingest-8651",
           "sourceHandle": "out",
-          "target": "agent-core-6864",
+          "target": "agent-core-8651",
           "targetHandle": "tools-in",
           "type": "deletable",
           "animated": true,
@@ -526,23 +245,10 @@
           }
         },
         {
-          "id": "edge-node-policy-6867-to-agent-core-6864",
-          "source": "node-policy-6867",
+          "id": "edge-node-skill-skill-summarizer-8652-to-agent-core-8651",
+          "source": "node-skill-skill-summarizer-8652",
           "sourceHandle": "out",
-          "target": "agent-core-6864",
-          "targetHandle": "policy-in",
-          "type": "deletable",
-          "animated": true,
-          "style": {
-            "stroke": "#6D2077",
-            "strokeWidth": 2
-          }
-        },
-        {
-          "id": "edge-node-skill-skill-summarizer-6868-to-agent-core-6864",
-          "source": "node-skill-skill-summarizer-6868",
-          "sourceHandle": "out",
-          "target": "agent-core-6864",
+          "target": "agent-core-8651",
           "targetHandle": "skill-in",
           "type": "deletable",
           "animated": true,
@@ -552,10 +258,10 @@
           }
         },
         {
-          "id": "edge-agent-core-6864-to-node-output-6868",
-          "source": "agent-core-6864",
+          "id": "edge-agent-core-8651-to-node-output-8652",
+          "source": "agent-core-8651",
           "sourceHandle": "out",
-          "target": "node-output-6868",
+          "target": "node-output-8652",
           "targetHandle": "data-in",
           "type": "deletable",
           "animated": true,
@@ -565,17 +271,21 @@
           }
         },
         {
-          "id": "edge-node-memory-1630-to-agent-core-6864",
-          "source": "node-memory-1630",
+          "id": "edge-agent-core-8651-to-agent-core-9779",
+          "source": "agent-core-8651",
           "sourceHandle": "out",
-          "target": "agent-core-6864",
-          "targetHandle": "model-in",
+          "target": "agent-core-9779",
+          "targetHandle": "agent-in",
           "type": "deletable",
-          "animated": true
+          "animated": true,
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 2
+          }
         }
       ],
-      "createdAt": 1792869224621,
-      "updatedAt": 1792870302730,
+      "createdAt": 1792874578283,
+      "updatedAt": 1792874670574,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -583,20 +293,20 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 8,
-        "agentCount": 1,
+        "nodeCount": 6,
+        "agentCount": 2,
         "mcpCount": 0,
-        "modelCount": 2,
+        "modelCount": 1,
         "skillCount": 1,
         "toolCount": 0,
-        "policyCount": 1,
+        "policyCount": 0,
         "hasAudit": false
       },
       "agentLogs": []
     },
     {
-      "id": "wf-1792866373015-iiyaz",
-      "name": "test3",
+      "id": "wf-1792873823152-dh8el",
+      "name": "xyz",
       "description": "",
       "framework": {
         "id": "google-adk",
@@ -608,8 +318,8 @@
         "category": "SDK"
       },
       "activeUseCase": {
-        "id": "uc-wf-1792866373015-iiyaz",
-        "name": "test3",
+        "id": "uc-wf-1792873823152-dh8el",
+        "name": "xyz",
         "description": "",
         "framework": {
           "id": "google-adk",
@@ -631,15 +341,15 @@
           "id": "agent-core-1",
           "type": "agentCore",
           "data": {
-            "name": "Specific Agent Name",
-            "prompt": "Detailed system instruction for the agent",
+            "name": "Local Llama 3.3 Agent",
+            "prompt": "Agent utilizing Llama 3.3 for local inference with sentiment analysis capabilities.",
             "temperature": 0.2,
             "topP": 0.95,
             "attachedCounts": {
               "model": 1,
               "skills": 1,
               "mcp": 1,
-              "tools": 0,
+              "tools": 1,
               "gateway": 0,
               "memory": 1,
               "policies": 1,
@@ -664,14 +374,14 @@
           "type": "pillar",
           "data": {
             "pillarType": "model",
-            "itemId": "model-gpt-4o",
-            "name": "GPT-4o",
-            "description": "OpenAI: Flagship omni model with strong instruction following and JSON schemas.",
+            "itemId": "model-ollama-llama3",
+            "name": "Ollama: Llama 3.3 (Local)",
+            "description": "Ollama: 100% Private local inference on your own hardware via localhost:11434.",
             "config": {
-              "provider": "openai",
-              "modelId": "gpt-4o",
-              "temperature": 0.2,
-              "topP": 0.74
+              "provider": "ollama",
+              "modelId": "llama3",
+              "baseUrl": "http://localhost:11434",
+              "temperature": 0.2
             }
           },
           "position": {
@@ -682,26 +392,1924 @@
           "measured": {
             "width": 140,
             "height": 60
-          },
-          "selected": false
+          }
         },
         {
-          "id": "node-policy-1",
+          "id": "node-memory-1",
           "type": "pillar",
           "data": {
-            "pillarType": "policies",
-            "itemId": "pol-pii-masker",
-            "name": "PII & Confidentiality Redactor",
-            "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+            "pillarType": "memory",
+            "itemId": "mem-chroma-vector",
+            "name": "Chroma Semantic Vector Store",
+            "description": "Embeds and indexes all company meetings for cross-meeting RAG.",
             "config": {
-              "redactSalaries": true,
-              "maskEmails": true,
-              "regexRules": "strict"
+              "collection": "org_transcripts",
+              "topK": 5,
+              "embeddingModel": "text-embedding-004"
             }
           },
           "position": {
-            "x": 380,
+            "x": 564,
             "y": 450
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-skill-1",
+          "type": "pillar",
+          "data": {
+            "pillarType": "skills",
+            "itemId": "skill-sentiment",
+            "name": "Sentiment & Conflict Detector",
+            "description": "Identifies unaddressed objections, team morale, and debates.",
+            "config": {
+              "trackConsensus": true,
+              "highlightFriction": true
+            }
+          },
+          "position": {
+            "x": 720,
+            "y": 450
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-approval-1",
+          "type": "pillar",
+          "data": {
+            "pillarType": "governance",
+            "itemId": "approval-gate-primary",
+            "name": "Approval Gate",
+            "description": "Human-in-the-Loop checkpoint. Pauses execution for explicit human review, sign-off, or rejection.",
+            "config": {
+              "reviewerRole": "Compliance Officer",
+              "instructions": "Verify payload criteria before releasing downstream.",
+              "timeoutPolicy": "manual"
+            }
+          },
+          "position": {
+            "x": 370.18675721561965,
+            "y": 373.5993208828523
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": true,
+          "dragging": false
+        },
+        {
+          "id": "node-mcp-outlook-ayush",
+          "type": "pillar",
+          "data": {
+            "pillarType": "mcp",
+            "itemId": "node-mcp-2174",
+            "name": "Outlook MCP (Ayush Yuvraj)",
+            "description": "Official Enterprise Microsoft Outlook MCP with 63 categorized tools.",
+            "config": {
+              "token": "EwBYBMl6BAAUCBUz0PacyGyQMzAdZCXlnFTa1qQAATvmzcDVUhpjcvN+nVPYbWbsFm3GgU1K/inmCT2VFe7istVj8ly3V+jfFDeNhwz2DTU48WZHmGv7LvvbxMwJvakfHkyFuswij48IGWE9qBQgmzwfXN5T2Eq1ka/hA4SzdQmUh99ZNLPT2e1EKW0dGjOXap2i7GOz5BbPt34H8F27KgildAXq6/e/1WVIUuysv97eVnevxQF/scttF3Ak7xuaVeMolnj7LomV2x+ebVJOSEnG6fXV3U/cg7/D8Gan49pxM43wqfxOzW7hF6WaxwhrJkKoILYWRUu2mrFwfEppZitwtYIlxDC8KjDZFJT7kf86phqf9siA5u0sGtfWLEMQZgAAEFhCDTnHoG4VXBLDpskbNQggA35b6W0FR+Jd7f18AUgsTmvVuZ4sXdAmM4e8FaHpvtLjUFudEnAOKpZ20LLKiDNmT3K6bEaC5xXvmkL6S3D2+XztiKW7lQ1Cm+neZSIb8ThuFdkE8iVlQNZMf3DrOl8Z/ojMm8o0LDqSaj4lU0h+mniRbMl6N52qsxZMfg05621elkJtqpJ6LHUxIDLCR2v2lnERd9h7i9A1UMjMhJcKxm7gBVVyQiFtbVtdpjMFxufxopRrWIDaR3i/iSI8B86E3qInFtx8tEL9REQErTPxGg/mUZ1BBI2sqP1s0DVyXTWpiXsgTriU/MQRVHA/egO/ecmAtdVRzmPenPwu9NscSWM5YsxHDKUN8Ysd8bmiRWPjp0f8J43dJI0Kp6MU1qEQldokz6VLOdnStb+AzKwrHuwNrI0+JPPvsV2Z7umV2txVIczG0ZHoBF96k4yh2j5czzFuDsc3i08LrjRyfMdXr7y/EQ5/JfuzTXQFrBh5KCsf5cbVT3yqlJqVVN6/zcUFmwaMFsRGXlivZ6ZweBH7qpWiL+7+XvMppSAklMiYAqv02yyfPTvhmO8pdPvikhgD/9q06EBskI1LWw2arrE9DpXJsSRWeyPNKAv2fNrUPwJ2GMyv99B4APDev5qZjc3cyD1UiWUkZhn0Wi94g6foIxGNlxXJdT/9RAl4xNalRMZl1joAhbqML/mmT8dqv0znVhGGg1GQSK33B4qlnQWv7TvR/TaKphrAi3+kmeFnxvE+J61fxnxpSSUB/UFEuwXtcmmFeSXtUG/e7dSTnH3J+6UOioqTtWJednmWJdZzXZH8RACguk7lB6X6XZ1qOej+4tMFeVjW+LNP3i4V2CIno0Q3fZzO9qFFXAeLL4ZLMJQbxK0A35QsIr4nZNqprjclLV4/KHi6+XH1iXNtFdSr2trMM9YEMMiEgRiCYHsW8Roqu/XIbVNSYyw7AVPfdIRHJq37MPLU6dZoqQqeeoTdMD7S1peDu2RdyCWWPRm3jPpIAsDaZSaCEEZqszverrsMwt/OuNRNj0j5rdA2JTwWL30CWVGXv2qfVvwr/7/L4TB9ZgM=",
+              "authType": "token",
+              "email": "ayushyuvraj31@hotmail.com"
+            },
+            "tools": [
+              {
+                "name": "list_messages",
+                "displayName": "List Emails",
+                "category": "Mail Operations",
+                "type": "read",
+                "description": "Lists messages from the user mailbox or a specific folder (GET /me/messages).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "folder": {
+                      "type": "string",
+                      "description": "Folder name or ID (e.g., inbox, drafts, sentitems, archive)"
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Maximum number of messages to return (default: 10, max: 50)"
+                    },
+                    "filter": {
+                      "type": "string",
+                      "description": "OData filter query (e.g., isRead eq false or from/emailAddress/address eq 'exec@corp.com')"
+                    },
+                    "search": {
+                      "type": "string",
+                      "description": "KQL search keyword across subject, body, or sender"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "get_message",
+                "displayName": "Get Email Details",
+                "category": "Mail Operations",
+                "type": "read",
+                "description": "Retrieves complete message content, HTML body, internet headers, and recipient arrays (GET /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The unique Microsoft Graph ID of the message"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "search_messages",
+                "displayName": "Search Emails",
+                "category": "Mail Operations",
+                "type": "read",
+                "description": "Executes full-text keyword search across email subjects, sender addresses, and body text.",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "description": "Search term or keyword to search for"
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Maximum search results to return (default: 10)"
+                    }
+                  },
+                  "required": [
+                    "query"
+                  ]
+                }
+              },
+              {
+                "name": "send_mail",
+                "displayName": "Send Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Sends a new email message to recipients (POST /me/sendMail).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "List of recipient email addresses"
+                    },
+                    "cc": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Optional CC recipient email addresses"
+                    },
+                    "bcc": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Optional BCC recipient email addresses"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Email subject line"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Email body text or HTML content"
+                    },
+                    "importance": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ],
+                      "description": "Importance priority level"
+                    }
+                  },
+                  "required": [
+                    "to",
+                    "subject",
+                    "body"
+                  ]
+                }
+              },
+              {
+                "name": "create_draft",
+                "displayName": "Create Draft Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Composes a new draft message in the Drafts folder without sending (POST /me/messages).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Recipient email addresses"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Draft subject line"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Draft body content"
+                    }
+                  },
+                  "required": [
+                    "subject",
+                    "body"
+                  ]
+                }
+              },
+              {
+                "name": "update_draft",
+                "displayName": "Update Draft Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Modifies subject, body, or recipients of an existing unsent draft message (PATCH /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The draft message ID to update"
+                    },
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Updated recipient list"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Updated subject line"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Updated body content"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "send_draft",
+                "displayName": "Send Draft Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Dispatches an existing draft message to its specified recipients (POST /me/messages/{id}/send).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The draft message ID to send"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "reply_mail",
+                "displayName": "Reply to Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Sends a reply message to the original sender of an email (POST /me/messages/{id}/reply).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID being replied to"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Reply text message to send"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "comment"
+                  ]
+                }
+              },
+              {
+                "name": "reply_all_mail",
+                "displayName": "Reply All to Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Sends a reply to all recipients and the sender of an email thread (POST /me/messages/{id}/replyAll).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID being replied to"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Reply text message to send to all recipients"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "comment"
+                  ]
+                }
+              },
+              {
+                "name": "forward_mail",
+                "displayName": "Forward Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Forwards an email to specified recipients with optional forwarding commentary (POST /me/messages/{id}/forward).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to forward"
+                    },
+                    "to": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Recipient email addresses to forward to"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Optional forward message body commentary"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "to"
+                  ]
+                }
+              },
+              {
+                "name": "delete_message",
+                "displayName": "Delete Email",
+                "category": "Mail Operations",
+                "type": "destructive",
+                "description": "Permanently deletes an email message or moves it to Deleted Items (DELETE /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to delete"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "move_message",
+                "displayName": "Move Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Moves an email message to a specified destination mail folder (POST /me/messages/{id}/move).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to move"
+                    },
+                    "destinationId": {
+                      "type": "string",
+                      "description": "Destination folder ID or well-known name (e.g., archive, junkemail)"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "destinationId"
+                  ]
+                }
+              },
+              {
+                "name": "copy_message",
+                "displayName": "Copy Email",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Copies an email message to a specified destination mail folder without removing it from original location (POST /me/messages/{id}/copy).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to copy"
+                    },
+                    "destinationId": {
+                      "type": "string",
+                      "description": "Destination folder ID or well-known name (e.g., archive, processed)"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "destinationId"
+                  ]
+                }
+              },
+              {
+                "name": "mark_as_read",
+                "displayName": "Mark Email as Read",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Marks an email message as read in the user mailbox, clearing the unread badge (PATCH /me/messages/{id} with isRead: true).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The unique Microsoft Graph ID of the message to mark as read"
+                    },
+                    "isRead": {
+                      "type": "boolean",
+                      "description": "True to mark as read (default: true)",
+                      "default": true
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "mark_as_unread",
+                "displayName": "Mark Email as Unread",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Marks an email message as unread in the user mailbox (PATCH /me/messages/{id} with isRead: false).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The unique Microsoft Graph ID of the message to mark as unread"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "update_message",
+                "displayName": "Update Email Properties",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Updates message properties such as read status, categories, importance, or subject (PATCH /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The unique Microsoft Graph ID of the message"
+                    },
+                    "isRead": {
+                      "type": "boolean",
+                      "description": "Update read status (true/false)"
+                    },
+                    "importance": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ],
+                      "description": "Importance level"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "List of color category tags"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Updated subject line"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "flag_message",
+                "displayName": "Flag Email for Follow-Up",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Sets a follow-up flag on an email message with optional due date (PATCH /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to flag"
+                    },
+                    "flagStatus": {
+                      "type": "string",
+                      "enum": [
+                        "flagged",
+                        "complete",
+                        "notFlagged"
+                      ],
+                      "description": "Flag state (default: flagged)",
+                      "default": "flagged"
+                    },
+                    "dueDateTime": {
+                      "type": "string",
+                      "description": "Optional follow-up due date ISO string"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "complete_message_flag",
+                "displayName": "Complete Email Flag",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Marks an email follow-up flag as completed (PATCH /me/messages/{id} with flagStatus: complete).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID whose flag to complete"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "set_message_categories",
+                "displayName": "Assign Email Categories",
+                "category": "Mail Operations",
+                "type": "write",
+                "description": "Assigns Outlook master color categories to an email for visual tagging and triage (PATCH /me/messages/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to categorize"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Array of category names (e.g. [\"Invoice\", \"AI Processed\", \"Urgent\"])"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "categories"
+                  ]
+                }
+              },
+              {
+                "name": "get_mime_content",
+                "displayName": "Get Raw MIME (.eml)",
+                "category": "Mail Operations",
+                "type": "read",
+                "description": "Retrieves the complete raw RFC822 MIME byte stream (.eml format) for forensic auditing or compliance archive (GET /me/messages/{id}/$value).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to export in MIME format"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "list_mail_folders",
+                "displayName": "List Mail Folders",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Lists all mail folders in the user mailbox (GET /me/mailFolders).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "includeHidden": {
+                      "type": "boolean",
+                      "description": "Whether to include system or hidden folders"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "create_mail_folder",
+                "displayName": "Create Mail Folder",
+                "category": "Folders & Attachments",
+                "type": "write",
+                "description": "Creates a new mail folder under root or a parent folder (POST /me/mailFolders).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "displayName": {
+                      "type": "string",
+                      "description": "Name of the new folder"
+                    },
+                    "parentFolderId": {
+                      "type": "string",
+                      "description": "Optional parent folder ID to create subfolder under"
+                    }
+                  },
+                  "required": [
+                    "displayName"
+                  ]
+                }
+              },
+              {
+                "name": "get_mail_folder",
+                "displayName": "Get Mail Folder Info",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Retrieves folder details including total item count and unread count (GET /me/mailFolders/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "folderId": {
+                      "type": "string",
+                      "description": "Folder ID or well-known name (e.g. inbox, archive, drafts)"
+                    }
+                  },
+                  "required": [
+                    "folderId"
+                  ]
+                }
+              },
+              {
+                "name": "update_mail_folder",
+                "displayName": "Rename / Update Mail Folder",
+                "category": "Folders & Attachments",
+                "type": "write",
+                "description": "Renames an existing mail folder (PATCH /me/mailFolders/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "folderId": {
+                      "type": "string",
+                      "description": "The folder ID to update"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "description": "New display name for the folder"
+                    }
+                  },
+                  "required": [
+                    "folderId",
+                    "displayName"
+                  ]
+                }
+              },
+              {
+                "name": "delete_mail_folder",
+                "displayName": "Delete Mail Folder",
+                "category": "Folders & Attachments",
+                "type": "destructive",
+                "description": "Permanently deletes a custom mail folder and its contents (DELETE /me/mailFolders/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "folderId": {
+                      "type": "string",
+                      "description": "The folder ID to delete"
+                    }
+                  },
+                  "required": [
+                    "folderId"
+                  ]
+                }
+              },
+              {
+                "name": "list_message_attachments",
+                "displayName": "List Attachments",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Retrieves all attachments (files, embedded items, and cloud reference links) with metadata for a message (GET /me/messages/{id}/attachments).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID to fetch attachments from"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "read_attachment_content",
+                "displayName": "Read & Decode Attachment",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Downloads, decodes, and security-sanitizes file attachment content into clean text, tabular data, or structured JSON with SHA-256 fingerprinting (GET /me/messages/{id}/attachments/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID containing the attachment"
+                    },
+                    "attachmentId": {
+                      "type": "string",
+                      "description": "Optional specific attachment ID (or reads first file attachment if omitted)"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "read_item_attachment",
+                "displayName": "Read Embedded Item (Email/Event)",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Unpacks nested Outlook items (e.g. attached .eml email threads, .ics calendar invitations, or .vcf contacts) with full subject, sender, and body content.",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The outer message ID containing the item attachment"
+                    },
+                    "attachmentId": {
+                      "type": "string",
+                      "description": "The specific item attachment ID"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "get_reference_attachment",
+                "displayName": "Get Cloud Reference Attachment",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Inspects cloud reference attachments linked to OneDrive or SharePoint files, retrieving source URLs, permissions, and file metadata.",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID containing the reference attachment"
+                    },
+                    "attachmentId": {
+                      "type": "string",
+                      "description": "The reference attachment ID"
+                    }
+                  },
+                  "required": [
+                    "messageId"
+                  ]
+                }
+              },
+              {
+                "name": "download_attachment_raw",
+                "displayName": "Download Raw Attachment Stream",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Streams the raw binary content directly from Microsoft Graph (GET /me/messages/{id}/attachments/{id}/$value) without Base64 overhead.",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The message ID containing the attachment"
+                    },
+                    "attachmentId": {
+                      "type": "string",
+                      "description": "The attachment ID to stream"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "attachmentId"
+                  ]
+                }
+              },
+              {
+                "name": "add_message_attachment",
+                "displayName": "Add File Attachment (< 3MB)",
+                "category": "Folders & Attachments",
+                "type": "write",
+                "description": "Attaches a file to a draft message (POST /me/messages/{id}/attachments). Supports inline attachments with contentId.",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The draft message ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Filename of the attachment"
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "description": "MIME type of the file (e.g., application/pdf)"
+                    },
+                    "contentBytes": {
+                      "type": "string",
+                      "description": "Base64-encoded file content"
+                    },
+                    "isInline": {
+                      "type": "boolean",
+                      "description": "Whether the attachment is rendered inline in the email body"
+                    },
+                    "contentId": {
+                      "type": "string",
+                      "description": "Optional Content-ID header for inline referencing (cid:)"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "name",
+                    "contentBytes"
+                  ]
+                }
+              },
+              {
+                "name": "upload_large_attachment",
+                "displayName": "Upload Large Attachment (3MB–150MB)",
+                "category": "Folders & Attachments",
+                "type": "write",
+                "description": "Uploads large files (up to 150 MB) using a chunked resumable upload session (POST /me/messages/{id}/attachments/createUploadSession).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The draft message ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Filename of the attachment"
+                    },
+                    "size": {
+                      "type": "number",
+                      "description": "Total file size in bytes"
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "description": "MIME type of the file"
+                    },
+                    "contentBytes": {
+                      "type": "string",
+                      "description": "Base64-encoded full file content to chunk-upload"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "name",
+                    "size",
+                    "contentBytes"
+                  ]
+                }
+              },
+              {
+                "name": "delete_attachment",
+                "displayName": "Delete Attachment",
+                "category": "Folders & Attachments",
+                "type": "destructive",
+                "description": "Permanently deletes an attachment from a draft email message (DELETE /me/messages/{id}/attachments/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string",
+                      "description": "The draft message ID"
+                    },
+                    "attachmentId": {
+                      "type": "string",
+                      "description": "The attachment ID to delete"
+                    }
+                  },
+                  "required": [
+                    "messageId",
+                    "attachmentId"
+                  ]
+                }
+              },
+              {
+                "name": "list_event_attachments",
+                "displayName": "List Event Attachments",
+                "category": "Folders & Attachments",
+                "type": "read",
+                "description": "Lists all attachments linked to a calendar meeting or event (GET /me/events/{id}/attachments).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The calendar event ID"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "add_event_attachment",
+                "displayName": "Add Event Attachment",
+                "category": "Folders & Attachments",
+                "type": "write",
+                "description": "Attaches a document or agenda file to a calendar event (POST /me/events/{id}/attachments).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The calendar event ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Filename of the attachment"
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "description": "MIME type of the file"
+                    },
+                    "contentBytes": {
+                      "type": "string",
+                      "description": "Base64-encoded file content"
+                    }
+                  },
+                  "required": [
+                    "eventId",
+                    "name",
+                    "contentBytes"
+                  ]
+                }
+              },
+              {
+                "name": "list_events",
+                "displayName": "List Calendar Events",
+                "category": "Calendar & Scheduling",
+                "type": "read",
+                "description": "Lists upcoming calendar events from the default calendar (GET /me/events).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "limit": {
+                      "type": "number",
+                      "description": "Maximum events to return (default: 10)"
+                    },
+                    "filter": {
+                      "type": "string",
+                      "description": "OData filter query"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "get_calendar_view",
+                "displayName": "Get Calendar Schedule",
+                "category": "Calendar & Scheduling",
+                "type": "read",
+                "description": "Retrieves occurrences of events within a specific time window (GET /me/calendarView).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "startDateTime": {
+                      "type": "string",
+                      "description": "Start time ISO string (e.g., 2026-10-09T08:00:00Z)"
+                    },
+                    "endDateTime": {
+                      "type": "string",
+                      "description": "End time ISO string (e.g., 2026-10-09T18:00:00Z)"
+                    }
+                  },
+                  "required": [
+                    "startDateTime",
+                    "endDateTime"
+                  ]
+                }
+              },
+              {
+                "name": "get_event",
+                "displayName": "Get Event Details",
+                "category": "Calendar & Scheduling",
+                "type": "read",
+                "description": "Retrieves complete event metadata, location, attendees, and Teams meeting links (GET /me/events/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The unique Microsoft Graph ID of the event"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "create_event",
+                "displayName": "Schedule Event",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Schedules a calendar event with attendees, agenda, and optional online Teams meeting (POST /me/events).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "subject": {
+                      "type": "string",
+                      "description": "Event title / meeting subject"
+                    },
+                    "start": {
+                      "type": "string",
+                      "description": "Start time ISO string (e.g., 2026-10-10T14:00:00)"
+                    },
+                    "end": {
+                      "type": "string",
+                      "description": "End time ISO string (e.g., 2026-10-10T15:00:00)"
+                    },
+                    "timeZone": {
+                      "type": "string",
+                      "description": "Time zone identifier (default: UTC)"
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "List of attendee email addresses"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Meeting description / agenda notes"
+                    },
+                    "location": {
+                      "type": "string",
+                      "description": "Physical meeting location or room"
+                    },
+                    "isOnlineMeeting": {
+                      "type": "boolean",
+                      "description": "Whether to generate a Microsoft Teams online meeting link"
+                    }
+                  },
+                  "required": [
+                    "subject",
+                    "start",
+                    "end"
+                  ]
+                }
+              },
+              {
+                "name": "update_event",
+                "displayName": "Update Event",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Modifies timing, attendees, location, or agenda of an existing event (PATCH /me/events/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to update"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Updated subject"
+                    },
+                    "start": {
+                      "type": "string",
+                      "description": "Updated start time ISO string"
+                    },
+                    "end": {
+                      "type": "string",
+                      "description": "Updated end time ISO string"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Updated agenda notes"
+                    },
+                    "location": {
+                      "type": "string",
+                      "description": "Updated location"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "delete_event",
+                "displayName": "Cancel / Delete Event",
+                "category": "Calendar & Scheduling",
+                "type": "destructive",
+                "description": "Cancels a meeting and removes it from the calendar (DELETE /me/events/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to cancel / delete"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "accept_event",
+                "displayName": "Accept Meeting",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Formally accepts a calendar meeting invitation (POST /me/events/{id}/accept).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to accept"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Optional acceptance response message"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "decline_event",
+                "displayName": "Decline Meeting",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Declines a calendar meeting invitation (POST /me/events/{id}/decline).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to decline"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Optional decline reasoning comment"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "tentatively_accept_event",
+                "displayName": "Tentative Accept Meeting",
+                "category": "Calendar & Scheduling",
+                "type": "write",
+                "description": "Tentatively accepts a calendar meeting invitation (POST /me/events/{id}/tentativelyAccept).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "The event ID to tentatively accept"
+                    },
+                    "comment": {
+                      "type": "string",
+                      "description": "Optional comment"
+                    }
+                  },
+                  "required": [
+                    "eventId"
+                  ]
+                }
+              },
+              {
+                "name": "find_meeting_times",
+                "displayName": "Find Optimal Meeting Times",
+                "category": "Calendar & Scheduling",
+                "type": "read",
+                "description": "Checks free/busy availability of requested attendees and suggests optimal meeting slots (POST /me/findMeetingTimes).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Attendee email addresses to coordinate"
+                    },
+                    "meetingDurationMinutes": {
+                      "type": "number",
+                      "description": "Duration of the proposed meeting in minutes (default: 30)"
+                    },
+                    "startWindow": {
+                      "type": "string",
+                      "description": "Start boundary ISO string"
+                    },
+                    "endWindow": {
+                      "type": "string",
+                      "description": "End boundary ISO string"
+                    }
+                  },
+                  "required": [
+                    "attendees"
+                  ]
+                }
+              },
+              {
+                "name": "list_contacts",
+                "displayName": "List Contacts",
+                "category": "Contacts & People",
+                "type": "read",
+                "description": "Lists contacts from the user personal address book (GET /me/contacts).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "limit": {
+                      "type": "number",
+                      "description": "Maximum contacts to return (default: 20)"
+                    },
+                    "filter": {
+                      "type": "string",
+                      "description": "OData filter expression"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "get_contact",
+                "displayName": "Get Contact Details",
+                "category": "Contacts & People",
+                "type": "read",
+                "description": "Retrieves complete profile, emails, phones, and job title of a contact (GET /me/contacts/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string",
+                      "description": "The unique contact ID"
+                    }
+                  },
+                  "required": [
+                    "contactId"
+                  ]
+                }
+              },
+              {
+                "name": "create_contact",
+                "displayName": "Create Contact",
+                "category": "Contacts & People",
+                "type": "write",
+                "description": "Adds a new person to the address book (POST /me/contacts).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "givenName": {
+                      "type": "string",
+                      "description": "First name"
+                    },
+                    "surname": {
+                      "type": "string",
+                      "description": "Last name"
+                    },
+                    "emailAddress": {
+                      "type": "string",
+                      "description": "Primary email address"
+                    },
+                    "companyName": {
+                      "type": "string",
+                      "description": "Company or organization"
+                    },
+                    "jobTitle": {
+                      "type": "string",
+                      "description": "Job title"
+                    },
+                    "mobilePhone": {
+                      "type": "string",
+                      "description": "Mobile phone number"
+                    }
+                  },
+                  "required": [
+                    "givenName",
+                    "emailAddress"
+                  ]
+                }
+              },
+              {
+                "name": "update_contact",
+                "displayName": "Update Contact",
+                "category": "Contacts & People",
+                "type": "write",
+                "description": "Updates information for an existing contact (PATCH /me/contacts/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string",
+                      "description": "The contact ID to update"
+                    },
+                    "givenName": {
+                      "type": "string",
+                      "description": "Updated first name"
+                    },
+                    "surname": {
+                      "type": "string",
+                      "description": "Updated last name"
+                    },
+                    "emailAddress": {
+                      "type": "string",
+                      "description": "Updated email address"
+                    },
+                    "companyName": {
+                      "type": "string",
+                      "description": "Updated company"
+                    },
+                    "jobTitle": {
+                      "type": "string",
+                      "description": "Updated title"
+                    }
+                  },
+                  "required": [
+                    "contactId"
+                  ]
+                }
+              },
+              {
+                "name": "delete_contact",
+                "displayName": "Delete Contact",
+                "category": "Contacts & People",
+                "type": "destructive",
+                "description": "Removes a contact from personal address book (DELETE /me/contacts/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string",
+                      "description": "The contact ID to remove"
+                    }
+                  },
+                  "required": [
+                    "contactId"
+                  ]
+                }
+              },
+              {
+                "name": "list_todo_lists",
+                "displayName": "List To Do Lists",
+                "category": "Tasks & To Do",
+                "type": "read",
+                "description": "Enumerates Microsoft To Do task lists and folders (GET /me/todo/lists).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              {
+                "name": "list_tasks",
+                "displayName": "List Tasks",
+                "category": "Tasks & To Do",
+                "type": "read",
+                "description": "Lists tasks within a specific To Do list (GET /me/todo/lists/{id}/tasks).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "listId": {
+                      "type": "string",
+                      "description": "The To Do list ID (or default list if omitted)"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "notStarted",
+                        "inProgress",
+                        "completed"
+                      ],
+                      "description": "Filter tasks by status"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "create_task",
+                "displayName": "Create Task",
+                "category": "Tasks & To Do",
+                "type": "write",
+                "description": "Creates a new task in Microsoft To Do (POST /me/todo/lists/{id}/tasks).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "listId": {
+                      "type": "string",
+                      "description": "Optional list ID (uses default task list if omitted)"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Task title / description"
+                    },
+                    "dueDateTime": {
+                      "type": "string",
+                      "description": "Due date ISO string (e.g., 2026-10-15T18:00:00Z)"
+                    },
+                    "importance": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ],
+                      "description": "Task importance"
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Task notes or checklist details"
+                    }
+                  },
+                  "required": [
+                    "title"
+                  ]
+                }
+              },
+              {
+                "name": "update_task",
+                "displayName": "Update Task",
+                "category": "Tasks & To Do",
+                "type": "write",
+                "description": "Updates task title, completion status, or due date (PATCH /me/todo/lists/{id}/tasks/{taskId}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "listId": {
+                      "type": "string",
+                      "description": "The list ID containing the task"
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "description": "The task ID to update"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Updated title"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "notStarted",
+                        "inProgress",
+                        "completed"
+                      ],
+                      "description": "Updated status"
+                    },
+                    "dueDateTime": {
+                      "type": "string",
+                      "description": "Updated due date ISO string"
+                    }
+                  },
+                  "required": [
+                    "taskId"
+                  ]
+                }
+              },
+              {
+                "name": "delete_task",
+                "displayName": "Delete Task",
+                "category": "Tasks & To Do",
+                "type": "destructive",
+                "description": "Permanently deletes a task from Microsoft To Do (DELETE /me/todo/lists/{id}/tasks/{taskId}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "listId": {
+                      "type": "string",
+                      "description": "The list ID containing the task"
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "description": "The task ID to remove"
+                    }
+                  },
+                  "required": [
+                    "taskId"
+                  ]
+                }
+              },
+              {
+                "name": "list_message_rules",
+                "displayName": "List Inbox Rules",
+                "category": "Mailbox Settings",
+                "type": "read",
+                "description": "Lists automated inbox sorting, forwarding, and categorization rules (GET /me/mailFolders/inbox/messageRules).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              {
+                "name": "get_mailbox_settings",
+                "displayName": "Get Mailbox Settings",
+                "category": "Mailbox Settings",
+                "type": "read",
+                "description": "Inspects user timezone, working hours, language, and automatic Out-of-Office (OOO) status (GET /me/mailboxSettings).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              {
+                "name": "create_message_rule",
+                "displayName": "Create Inbox Rule",
+                "category": "Mailbox Settings",
+                "type": "write",
+                "description": "Creates an automated server-side inbox rule for sorting, moving, or forwarding messages (POST /me/mailFolders/inbox/messageRules).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "displayName": {
+                      "type": "string",
+                      "description": "Rule name"
+                    },
+                    "sequence": {
+                      "type": "number",
+                      "description": "Evaluation sequence priority order"
+                    },
+                    "conditions": {
+                      "type": "object",
+                      "description": "Rule conditions (e.g. senderContains, subjectContains, hasAttachments)"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "description": "Actions to perform (e.g. moveToFolder, markAsRead, assignCategories)"
+                    }
+                  },
+                  "required": [
+                    "displayName",
+                    "actions"
+                  ]
+                }
+              },
+              {
+                "name": "delete_message_rule",
+                "displayName": "Delete Inbox Rule",
+                "category": "Mailbox Settings",
+                "type": "destructive",
+                "description": "Permanently deletes an automated inbox rule (DELETE /me/mailFolders/inbox/messageRules/{id}).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "ruleId": {
+                      "type": "string",
+                      "description": "The rule ID to delete"
+                    }
+                  },
+                  "required": [
+                    "ruleId"
+                  ]
+                }
+              },
+              {
+                "name": "get_user_profile",
+                "displayName": "Get Account Profile",
+                "category": "Mailbox Settings",
+                "type": "read",
+                "description": "Retrieves authenticated user identity, primary mailbox email, display name, and tenant ID (GET /me).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              {
+                "name": "get_automatic_replies",
+                "displayName": "Get Out-of-Office Status",
+                "category": "Mailbox Settings",
+                "type": "read",
+                "description": "Inspects active Out-of-Office (OOO) automatic reply status, internal/external reply text, and schedule (GET /me/mailboxSettings/automaticRepliesSetting).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              },
+              {
+                "name": "set_automatic_replies",
+                "displayName": "Set Out-of-Office Replies",
+                "category": "Mailbox Settings",
+                "type": "write",
+                "description": "Configures Out-of-Office (OOO) auto-replies, status (disabled, alwaysEnabled, scheduled), and messages (PATCH /me/mailboxSettings).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "disabled",
+                        "alwaysEnabled",
+                        "scheduled"
+                      ],
+                      "description": "Auto-reply status"
+                    },
+                    "internalReplyMessage": {
+                      "type": "string",
+                      "description": "Message sent to internal colleagues"
+                    },
+                    "externalReplyMessage": {
+                      "type": "string",
+                      "description": "Message sent to external senders"
+                    },
+                    "scheduledStartDateTime": {
+                      "type": "string",
+                      "description": "Start time if status is scheduled"
+                    },
+                    "scheduledEndDateTime": {
+                      "type": "string",
+                      "description": "End time if status is scheduled"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              },
+              {
+                "name": "list_categories",
+                "displayName": "List Color Categories",
+                "category": "Mailbox Settings",
+                "type": "read",
+                "description": "Lists all master color categories defined in the user Outlook account (GET /me/outlook/masterCategories).",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ]
+          },
+          "position": {
+            "x": 985.2971137521223,
+            "y": 194.46519524617997
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-gateway",
+          "type": "pillar",
+          "data": {
+            "pillarType": "gateway",
+            "itemId": "gw-mcp-controller",
+            "name": "MCP Egress Gateway",
+            "description": "Enforces zero-trust mediation between Agent Core and external MCP servers. Discovers all tools, manages execution scope, and routes actions.",
+            "config": {
+              "gatewayType": "mcp-egress",
+              "auditAllActions": true
+            }
+          },
+          "position": {
+            "x": 980,
+            "y": 0
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-tool-ingest-universal-file",
+          "type": "pillar",
+          "data": {
+            "pillarType": "tools",
+            "itemId": "ingest-universal-file",
+            "name": "Universal File & Audio Ingest",
+            "description": "Accepts audio (MP3, WAV, M4A) with auto-transcription, PDFs, DOCX, CSV spreadsheets, and raw notes on canvas.",
+            "config": {
+              "fileType": "auto"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 60
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-model-to-agent",
+          "source": "node-model-1",
+          "sourceHandle": "out",
+          "target": "agent-core-1",
+          "targetHandle": "model-in",
+          "type": "deletable",
+          "animated": true
+        },
+        {
+          "id": "edge-memory-to-agent",
+          "source": "node-memory-1",
+          "sourceHandle": "out",
+          "target": "agent-core-1",
+          "targetHandle": "memory-in",
+          "type": "deletable",
+          "animated": true
+        },
+        {
+          "id": "edge-skill-to-agent",
+          "source": "node-skill-1",
+          "sourceHandle": "out",
+          "target": "agent-core-1",
+          "targetHandle": "skill-in",
+          "type": "deletable",
+          "animated": true
+        },
+        {
+          "id": "edge-approval-to-agent",
+          "source": "node-approval-1",
+          "sourceHandle": "out",
+          "target": "agent-core-1",
+          "targetHandle": "policy-in",
+          "type": "deletable",
+          "animated": true
+        },
+        {
+          "id": "edge-node-gateway-to-agent-core-1",
+          "source": "node-gateway",
+          "sourceHandle": "out",
+          "target": "agent-core-1",
+          "targetHandle": "mcp-in",
+          "type": "deletable",
+          "animated": true
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {},
+          "source": "node-mcp-outlook-ayush",
+          "sourceHandle": "out",
+          "target": "node-gateway",
+          "targetHandle": "mcp-in",
+          "style": {
+            "stroke": "#00A3A6",
+            "strokeWidth": 2,
+            "strokeDasharray": "4 4"
+          },
+          "id": "xy-edge__node-mcp-outlook-ayushout-node-gatewaymcp-in"
+        },
+        {
+          "id": "edge-node-tool-ingest-universal-file-to-agent-core-1",
+          "source": "node-tool-ingest-universal-file",
+          "sourceHandle": "out",
+          "target": "agent-core-1",
+          "targetHandle": "tools-in",
+          "type": "deletable",
+          "animated": true
+        }
+      ],
+      "createdAt": 1792873823152,
+      "updatedAt": 1792874568634,
+      "isStarred": false,
+      "isLocked": false,
+      "isWorkflowLocked": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 8,
+        "agentCount": 1,
+        "mcpCount": 1,
+        "modelCount": 1,
+        "skillCount": 1,
+        "toolCount": 1,
+        "policyCount": 0,
+        "hasAudit": false
+      },
+      "agentLogs": []
+    },
+    {
+      "id": "wf-1792873566806-5p5vp",
+      "name": "abc",
+      "description": "",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792873566806-5p5vp",
+        "name": "abc",
+        "description": "",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "node-model-1",
+          "type": "pillar",
+          "data": {
+            "pillarType": "model",
+            "itemId": "model-gemini-2-flash",
+            "name": "Gemini 2.0 Flash",
+            "description": "Google: Fast, multimodal audio & text, 1M+ context window for meeting transcripts.",
+            "config": {
+              "provider": "google",
+              "modelId": "gemini-2-flash",
+              "temperature": 0.2,
+              "topP": 0.95
+            }
+          },
+          "position": {
+            "x": 584,
+            "y": 60
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-ingest-1",
+          "type": "pillar",
+          "data": {
+            "pillarType": "tools",
+            "itemId": "ingest-universal-file",
+            "name": "Universal File & Audio Ingest",
+            "description": "Accepts audio (MP3, WAV, M4A) with auto-transcription, PDFs, DOCX, CSV spreadsheets, and raw notes on canvas.",
+            "config": {
+              "fileType": "auto"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 60
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -734,234 +2342,21 @@
           }
         },
         {
-          "id": "node-mcp-9833",
+          "id": "node-output-1",
           "type": "pillar",
-          "position": {
-            "x": 800,
-            "y": 120
-          },
           "data": {
-            "pillarType": "mcp",
-            "itemId": "mcp-slack",
-            "name": "Slack MCP Server",
-            "description": "Real-time JSON-RPC connection to Slack workspace. Posts channel updates, sends direct messages, and routes meeting action summaries.",
+            "pillarType": "outputNode",
+            "itemId": "output-final-viewer-v2",
+            "name": "Output Viewer v2.0 (Artifact Studio)",
+            "description": "Next-generation square studio with live Markdown, interactive sortable/searchable Data Grid, Monospace JSON stream, and export suite.",
             "config": {
-              "connectionMode": "bot_token",
-              "defaultChannel": "#general"
-            },
-            "tools": [
-              {
-                "name": "join_slack_channel",
-                "displayName": "Join a channel",
-                "category": "Channel Actions",
-                "type": "write",
-                "description": "Joins an existing public Slack channel so the agent can post and receive updates."
-              },
-              {
-                "name": "leave_slack_channel",
-                "displayName": "Leave a channel",
-                "category": "Channel Actions",
-                "type": "write",
-                "description": "Leaves a specified Slack channel when conversation completes."
-              },
-              {
-                "name": "list_slack_channels",
-                "displayName": "List channels",
-                "category": "Channel Actions",
-                "type": "read",
-                "description": "Lists all public and accessible private channels in the workspace."
-              },
-              {
-                "name": "get_channel_info",
-                "displayName": "Get channel details",
-                "category": "Channel Actions",
-                "type": "read",
-                "description": "Retrieves topic, purpose, member count, and creation timestamp."
-              },
-              {
-                "name": "create_slack_channel",
-                "displayName": "Create a channel",
-                "category": "Channel Actions",
-                "type": "write",
-                "description": "Creates a new public or private Slack channel."
-              },
-              {
-                "name": "archive_slack_channel",
-                "displayName": "Archive a channel",
-                "category": "Channel Actions",
-                "type": "destructive",
-                "description": "Archives an existing Slack channel."
-              },
-              {
-                "name": "invite_to_channel",
-                "displayName": "Invite user to channel",
-                "category": "Channel Actions",
-                "type": "write",
-                "description": "Adds workspace users to a specified channel."
-              },
-              {
-                "name": "get_channel_history",
-                "displayName": "Get conversation history",
-                "category": "Channel Actions",
-                "type": "read",
-                "description": "Fetches recent conversation messages from a channel."
-              },
-              {
-                "name": "set_channel_topic",
-                "displayName": "Set channel topic",
-                "category": "Channel Actions",
-                "type": "write",
-                "description": "Updates the topic of a channel (e.g. current status, meeting summary, sprint goal)."
-              },
-              {
-                "name": "set_channel_purpose",
-                "displayName": "Set channel purpose",
-                "category": "Channel Actions",
-                "type": "write",
-                "description": "Sets or updates the stated purpose/description of a Slack channel."
-              },
-              {
-                "name": "post_slack_message",
-                "displayName": "Post a message",
-                "category": "Message Actions",
-                "type": "write",
-                "description": "Sends a formatted markdown or block kit message to a Slack channel."
-              },
-              {
-                "name": "reply_to_thread",
-                "displayName": "Reply to thread",
-                "category": "Message Actions",
-                "type": "write",
-                "description": "Posts a response directly into an existing message thread without notifying the entire channel."
-              },
-              {
-                "name": "get_thread_replies",
-                "displayName": "Get thread replies",
-                "category": "Message Actions",
-                "type": "read",
-                "description": "Retrieves all conversation messages and replies from a specific thread."
-              },
-              {
-                "name": "update_slack_message",
-                "displayName": "Update a message",
-                "category": "Message Actions",
-                "type": "write",
-                "description": "Edits the text of an existing message in a Slack channel."
-              },
-              {
-                "name": "delete_slack_message",
-                "displayName": "Delete a message",
-                "category": "Message Actions",
-                "type": "destructive",
-                "description": "Permanently removes a message from a Slack channel."
-              },
-              {
-                "name": "get_slack_message_permalink",
-                "displayName": "Get message permalink",
-                "category": "Message Actions",
-                "type": "read",
-                "description": "Generates a permanent browser URL link to a specific message."
-              },
-              {
-                "name": "add_reaction",
-                "displayName": "Add emoji reaction",
-                "category": "Message Actions",
-                "type": "write",
-                "description": "Adds an emoji reaction to a message."
-              },
-              {
-                "name": "remove_reaction",
-                "displayName": "Remove emoji reaction",
-                "category": "Message Actions",
-                "type": "write",
-                "description": "Removes an emoji reaction from a message."
-              },
-              {
-                "name": "search_slack_messages",
-                "displayName": "Search messages",
-                "category": "Message Actions",
-                "type": "read",
-                "description": "Searches across channels and public history for messages matching a query."
-              },
-              {
-                "name": "open_direct_message",
-                "displayName": "Open direct message",
-                "category": "Direct Messages",
-                "type": "write",
-                "description": "Opens or retrieves a 1-on-1 or multi-person DM conversation with target user IDs."
-              },
-              {
-                "name": "send_direct_message",
-                "displayName": "Send direct message",
-                "category": "Direct Messages",
-                "type": "write",
-                "description": "Sends a private DM alert or action item notification directly to a user."
-              },
-              {
-                "name": "pin_slack_message",
-                "displayName": "Pin message to channel",
-                "category": "Pins & Reminders",
-                "type": "write",
-                "description": "Pins an important announcement or meeting decision to the channel."
-              },
-              {
-                "name": "unpin_slack_message",
-                "displayName": "Unpin message from channel",
-                "category": "Pins & Reminders",
-                "type": "write",
-                "description": "Unpins a message from a Slack channel."
-              },
-              {
-                "name": "list_pinned_messages",
-                "displayName": "List pinned messages",
-                "category": "Pins & Reminders",
-                "type": "read",
-                "description": "Retrieves all messages currently pinned in a Slack channel."
-              },
-              {
-                "name": "create_slack_reminder",
-                "displayName": "Create reminder",
-                "category": "Pins & Reminders",
-                "type": "write",
-                "description": "Schedules a Slack reminder for a user or channel regarding task deadlines."
-              },
-              {
-                "name": "list_slack_users",
-                "displayName": "List workspace users",
-                "category": "User Actions",
-                "type": "read",
-                "description": "Lists all active members and bots in the Slack workspace."
-              },
-              {
-                "name": "get_user_profile",
-                "displayName": "Get user profile",
-                "category": "User Actions",
-                "type": "read",
-                "description": "Retrieves user display name, email, avatar, and title."
-              },
-              {
-                "name": "set_user_status",
-                "displayName": "Set user status",
-                "category": "User Actions",
-                "type": "write",
-                "description": "Updates custom status emoji and text."
-              },
-              {
-                "name": "upload_slack_file",
-                "displayName": "Upload file / snippet",
-                "category": "File Actions",
-                "type": "write",
-                "description": "Uploads a document, image, or code snippet to a channel."
-              },
-              {
-                "name": "list_slack_files",
-                "displayName": "List uploaded files",
-                "category": "File Actions",
-                "type": "read",
-                "description": "Lists files shared in the workspace or specific channels."
-              }
-            ],
-            "serviceName": "Slack"
+              "format": "markdown",
+              "persistenceStrategy": "append"
+            }
+          },
+          "position": {
+            "x": 840,
+            "y": 300
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -970,46 +2365,9 @@
           }
         }
       ],
-      "edges": [
-        {
-          "id": "edge-node-model-1-to-agent-core-1",
-          "source": "node-model-1",
-          "sourceHandle": "out",
-          "target": "agent-core-1",
-          "targetHandle": "model-in",
-          "type": "deletable",
-          "animated": true
-        },
-        {
-          "id": "edge-node-policy-1-to-agent-core-1",
-          "source": "node-policy-1",
-          "sourceHandle": "out",
-          "target": "agent-core-1",
-          "targetHandle": "policy-in",
-          "type": "deletable",
-          "animated": true
-        },
-        {
-          "id": "edge-node-skill-1-to-agent-core-1",
-          "source": "node-skill-1",
-          "sourceHandle": "out",
-          "target": "agent-core-1",
-          "targetHandle": "skill-in",
-          "type": "deletable",
-          "animated": true
-        },
-        {
-          "id": "edge-node-mcp-9833-to-agent-core-1",
-          "source": "node-mcp-9833",
-          "sourceHandle": "out",
-          "target": "agent-core-1",
-          "targetHandle": "mcp-in",
-          "type": "deletable",
-          "animated": true
-        }
-      ],
-      "createdAt": 1792866373015,
-      "updatedAt": 1792869213608,
+      "edges": [],
+      "createdAt": 1792873566806,
+      "updatedAt": 1792873753394,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -1017,13 +2375,13 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 5,
-        "agentCount": 1,
-        "mcpCount": 1,
+        "nodeCount": 4,
+        "agentCount": 0,
+        "mcpCount": 0,
         "modelCount": 1,
         "skillCount": 1,
-        "toolCount": 0,
-        "policyCount": 1,
+        "toolCount": 1,
+        "policyCount": 0,
         "hasAudit": false
       },
       "agentLogs": []
@@ -1767,7 +3125,7 @@
         }
       ],
       "createdAt": 1792162747408,
-      "updatedAt": 1792657459535,
+      "updatedAt": 1792873564808,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -1786,7 +3144,8 @@
         "hasAudit": false
       },
       "isLocked": true,
-      "isWorkflowLocked": true
+      "isWorkflowLocked": true,
+      "agentLogs": []
     },
     {
       "id": "wf-meeting-intelligence",
@@ -5434,11 +6793,31 @@
   "canvasState": {
     "nodes": [
       {
-        "id": "agent-core-5009",
+        "id": "node-ingest-8651",
+        "type": "ingestionNode",
+        "position": {
+          "x": 120,
+          "y": 100
+        },
+        "data": {
+          "title": "Universal Document & Text Ingest",
+          "content": "",
+          "status": "idle",
+          "fileType": "auto",
+          "isExpanded": false
+        },
+        "className": "animate-in zoom-in-95 duration-200",
+        "measured": {
+          "width": 140,
+          "height": 60
+        }
+      },
+      {
+        "id": "agent-core-8651",
         "type": "agentCore",
         "position": {
-          "x": 540,
-          "y": 180
+          "x": 300,
+          "y": 220
         },
         "data": {
           "name": "Autonomous Enterprise Agent",
@@ -5458,10 +6837,10 @@
             "model": 1,
             "skills": 1,
             "mcp": 0,
-            "tools": 0,
+            "tools": 1,
             "gateway": 0,
-            "memory": 1,
-            "policies": 1,
+            "memory": 0,
+            "policies": 0,
             "audit": 0,
             "observability": 0,
             "cost_benefit": 0,
@@ -5475,20 +6854,20 @@
         }
       },
       {
-        "id": "node-model-5009",
+        "id": "node-model-8651",
         "type": "pillar",
         "position": {
-          "x": 584,
-          "y": 60
+          "x": 344,
+          "y": 100
         },
         "data": {
           "pillarType": "model",
-          "itemId": "model-gpt-4o-mini",
-          "name": "GPT-4o Mini",
-          "description": "OpenAI: Fast, cost-efficient model for lightweight meeting processing.",
+          "itemId": "model-gemini-2-flash",
+          "name": "Gemini 2.0 Flash",
+          "description": "Google: Fast, multimodal audio & text, 1M+ context window for meeting transcripts.",
           "config": {
-            "provider": "openai",
-            "modelId": "gpt-4o-mini",
+            "provider": "google",
+            "modelId": "gemini-2.0-flash",
             "temperature": 0.2,
             "topP": 0.95
           }
@@ -5500,59 +6879,11 @@
         }
       },
       {
-        "id": "node-memory-5009",
+        "id": "node-skill-skill-summarizer-8652",
         "type": "pillar",
         "position": {
-          "x": 564,
-          "y": 450
-        },
-        "data": {
-          "pillarType": "memory",
-          "itemId": "mem-episodic-sync",
-          "name": "Episodic Recurring Sync Memory",
-          "description": "Remembers past meeting action items to verify resolution across weeks.",
-          "config": {
-            "ttlDays": 90,
-            "storage": "sqlite-vector",
-            "sessionScoped": false
-          }
-        },
-        "className": "animate-in zoom-in-95 duration-200",
-        "measured": {
-          "width": 140,
-          "height": 60
-        }
-      },
-      {
-        "id": "node-policy-5009",
-        "type": "pillar",
-        "position": {
-          "x": 380,
-          "y": 450
-        },
-        "data": {
-          "pillarType": "policies",
-          "itemId": "pol-pii-masker",
-          "name": "PII & Confidentiality Redactor",
-          "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
-          "config": {
-            "redactSalaries": true,
-            "maskEmails": true,
-            "regexRules": "strict"
-          }
-        },
-        "className": "animate-in zoom-in-95 duration-200",
-        "measured": {
-          "width": 140,
-          "height": 60
-        }
-      },
-      {
-        "id": "node-skill-skill-summarizer-5009",
-        "type": "pillar",
-        "position": {
-          "x": 720,
-          "y": 450
+          "x": 480,
+          "y": 480
         },
         "data": {
           "pillarType": "skills",
@@ -5570,14 +6901,71 @@
           "width": 140,
           "height": 60
         }
+      },
+      {
+        "id": "node-output-8652",
+        "type": "outputNodeV2",
+        "position": {
+          "x": 1300,
+          "y": 220
+        },
+        "data": {
+          "title": "Agent Intelligence Output",
+          "outputContent": "",
+          "status": "idle",
+          "runsHistory": [],
+          "isExpanded": false
+        },
+        "className": "animate-in zoom-in-95 duration-200",
+        "measured": {
+          "width": 520,
+          "height": 520
+        }
+      },
+      {
+        "id": "agent-core-9779",
+        "type": "agentCore",
+        "position": {
+          "x": 940,
+          "y": 220
+        },
+        "data": {
+          "name": "Downstream Autonomous Agent",
+          "framework": {
+            "id": "google-adk",
+            "name": "Google ADK",
+            "subtitle": "Google Agent Development Kit & GenAI SDK",
+            "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+            "defaultModel": "gemini-2.0-flash",
+            "exportExtension": ".py",
+            "category": "SDK"
+          },
+          "prompt": "Collaborate with upstream agent and execute downstream processing.",
+          "temperature": 0.2,
+          "topP": 0.95,
+          "attachedCounts": {
+            "model": 0,
+            "skills": 0,
+            "mcp": 0,
+            "tools": 0,
+            "gateway": 0,
+            "memory": 0,
+            "policies": 0
+          }
+        },
+        "className": "animate-in zoom-in-95 duration-200",
+        "measured": {
+          "width": 228,
+          "height": 173
+        }
       }
     ],
     "edges": [
       {
-        "id": "edge-node-model-5009-to-agent-core-5009",
-        "source": "node-model-5009",
+        "id": "edge-node-model-8651-to-agent-core-8651",
+        "source": "node-model-8651",
         "sourceHandle": "out",
-        "target": "agent-core-5009",
+        "target": "agent-core-8651",
         "targetHandle": "model-in",
         "type": "deletable",
         "animated": false,
@@ -5587,36 +6975,23 @@
         }
       },
       {
-        "id": "edge-node-memory-5009-to-agent-core-5009",
-        "source": "node-memory-5009",
+        "id": "edge-node-ingest-8651-to-agent-core-8651",
+        "source": "node-ingest-8651",
         "sourceHandle": "out",
-        "target": "agent-core-5009",
-        "targetHandle": "memory-in",
+        "target": "agent-core-8651",
+        "targetHandle": "tools-in",
         "type": "deletable",
         "animated": false,
         "style": {
-          "stroke": "#483698",
+          "stroke": "#0091DA",
           "strokeWidth": 2
         }
       },
       {
-        "id": "edge-node-policy-5009-to-agent-core-5009",
-        "source": "node-policy-5009",
+        "id": "edge-node-skill-skill-summarizer-8652-to-agent-core-8651",
+        "source": "node-skill-skill-summarizer-8652",
         "sourceHandle": "out",
-        "target": "agent-core-5009",
-        "targetHandle": "policy-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#6D2077",
-          "strokeWidth": 2
-        }
-      },
-      {
-        "id": "edge-node-skill-skill-summarizer-5009-to-agent-core-5009",
-        "source": "node-skill-skill-summarizer-5009",
-        "sourceHandle": "out",
-        "target": "agent-core-5009",
+        "target": "agent-core-8651",
         "targetHandle": "skill-in",
         "type": "deletable",
         "animated": false,
@@ -5624,10 +6999,36 @@
           "stroke": "#009A44",
           "strokeWidth": 2
         }
+      },
+      {
+        "id": "edge-agent-core-8651-to-node-output-8652",
+        "source": "agent-core-8651",
+        "sourceHandle": "out",
+        "target": "node-output-8652",
+        "targetHandle": "data-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#00338D",
+          "strokeWidth": 2
+        }
+      },
+      {
+        "id": "edge-agent-core-8651-to-agent-core-9779",
+        "source": "agent-core-8651",
+        "sourceHandle": "out",
+        "target": "agent-core-9779",
+        "targetHandle": "agent-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#00338D",
+          "strokeWidth": 2
+        }
       }
     ],
     "activeUseCase": {
-      "id": "uc-wf-1792870331758-k1ees",
+      "id": "uc-wf-1792874578283-xgnmb",
       "name": "Untitled Workflow",
       "description": "",
       "framework": {
@@ -10903,5 +12304,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1792870358232
+  "syncedAt": 1792874671381
 }
