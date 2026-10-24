@@ -329,31 +329,31 @@ export function resolveCatalogItem(identifier, pillarTypeHint = null) {
 
 function findByKeywords(raw, list) {
   // Model Keywords
-  if (raw.includes('gpt-4o-mini') || (raw.includes('4o') && raw.includes('mini'))) {
+  if (/\b(gpt[- ]?4o?[- ]?mini|gpt[- ]?4[- ]?mini)\b/i.test(raw) || (raw.includes('mini') && (raw.includes('gpt') || raw.includes('4o')))) {
     return list.find(i => i.id === 'model-gpt-4o-mini') || null;
   }
-  if (raw.includes('gpt-4o') || raw.includes('gpt4o') || raw.includes('openai') || raw.includes('gpt-4') || raw.includes('gpt4')) {
+  if (/\b(gpt[- ]?4o|gpt4o|gpt[- ]?4|gpt4|openai|chatgpt)\b/i.test(raw)) {
     return list.find(i => i.id === 'model-gpt-4o') || null;
   }
-  if (raw.includes('gemini-2') || raw.includes('flash')) {
+  if (/\b(gemini[- ]?2|flash)\b/i.test(raw)) {
     return list.find(i => i.id === 'model-gemini-2-flash') || null;
   }
-  if (raw.includes('gemini-1.5') || raw.includes('gemini-pro') || raw.includes('gemini')) {
+  if (/\b(gemini[- ]?1\.?5|gemini[- ]?pro|gemini)\b/i.test(raw)) {
     return list.find(i => i.id === 'model-gemini-1-5-pro') || null;
   }
-  if (raw.includes('sonnet') || raw.includes('claude-3-5-sonnet') || (raw.includes('claude') && !raw.includes('haiku'))) {
+  if (/\b(sonnet|claude[- ]?3[- ]?5[- ]?sonnet)\b/i.test(raw) || (raw.includes('claude') && !raw.includes('haiku'))) {
     return list.find(i => i.id === 'model-claude-3-5-sonnet') || null;
   }
-  if (raw.includes('haiku')) {
+  if (/\b(haiku|claude[- ]?3[- ]?5[- ]?haiku)\b/i.test(raw)) {
     return list.find(i => i.id === 'model-claude-3-5-haiku') || null;
   }
-  if (raw.includes('llama') || (raw.includes('ollama') && !raw.includes('deepseek'))) {
+  if (/\b(llama|ollama)\b/i.test(raw) && !raw.includes('deepseek')) {
     return list.find(i => i.id === 'model-ollama-llama3') || null;
   }
-  if (raw.includes('deepseek') && raw.includes('local')) {
+  if (/\bdeepseek\b/i.test(raw) && (raw.includes('local') || raw.includes('ollama'))) {
     return list.find(i => i.id === 'model-ollama-deepseek') || null;
   }
-  if (raw.includes('deepseek')) {
+  if (/\bdeepseek\b/i.test(raw)) {
     return list.find(i => i.id === 'model-openrouter-deepseek') || null;
   }
 

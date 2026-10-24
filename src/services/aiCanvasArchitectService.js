@@ -547,6 +547,24 @@ ${catalogManifest}
 - Do not leave any pillar or policy node unconnected.
 - Always generate the corresponding edge in the "edges" array for every node created.
 
+### ZERO-ASSUMPTION ARCHITECTURAL FIDELITY (STRICT MANDATE):
+- Synthesize ONLY the exact components requested by the user. NEVER add unsolicited peripheral nodes!
+- DO NOT add an "ingestionNode" unless the user explicitly asks for file/audio/document ingestion, transcript upload, or data intake.
+- DO NOT add an "outputNodeV2" unless the user explicitly asks for output display, viewer, results studio, or export.
+- DO NOT add "memory" unless the user explicitly mentions memory, recall, vector search, or context store.
+- DO NOT add "policies" unless the user explicitly mentions policies, guardrails, PII redaction, NDA, or compliance.
+- DO NOT add "skills" unless the user explicitly asks for skills (e.g. summarizer, action extractor, sentiment).
+- DO NOT add "mcp" unless the user explicitly asks for MCP integrations (e.g. Slack, Jira, Outlook, GitHub, Neo4j).
+- If the user directive is: "an agent with gpt 4o mini, memory, pii guardrail and summariser skill"
+  Return EXACTLY 5 nodes:
+  1. "agentCore" (Autonomous Enterprise Agent)
+  2. "pillar" with pillarType="model", itemId="model-gpt-4o-mini", name="GPT-4o Mini"
+  3. "pillar" with pillarType="memory", itemId="mem-episodic-sync", name="Episodic Recurring Sync Memory"
+  4. "pillar" with pillarType="policies", itemId="pol-pii-masker", name="PII & Confidentiality Redactor"
+  5. "pillar" with pillarType="skills", itemId="skill-summarizer", name="Executive Summarizer"
+  And EXACTLY 4 edges connecting each peripheral to the agentCore.
+  Zero extra nodes!
+
 ### Response Protocol:
 1. IF the user asks for a capability that does NOT exist in the catalog, or if their prompt is ambiguous, DO NOT invent an imaginary node. Return JSON with:
    {
@@ -657,7 +675,14 @@ export const CANVAS_ARCHITECT_SYSTEM_PROMPT = getCanvasArchitectSystemPrompt();
  * Intelligent Semantic Intent Engine (Local Fallback & Rapid Intent Extractor)
  * Generates rich, authentic KEAOS workflows when offline or as robust baseline.
  */
-export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existingEdges = [], clarificationAnswer = null }) {
+export function buildDynamicWorkflowLocally({
+  prompt,
+  existingNodes = [],
+  existingEdges = [],
+  clarificationAnswer = null,
+  provider = 'google',
+  modelId = 'gemini-2.0-flash'
+}) {
   const text = (prompt || '').toLowerCase();
   const answer = (clarificationAnswer || '').toLowerCase();
   const fullText = `${text} ${answer}`;
@@ -666,7 +691,7 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
   const existingAgent = existingNodes.find(n => n.type === 'agentCore');
   const isIncrementalDirective = Boolean(
     existingAgent &&
-    /\b(add|connect|attach|wire|link|append|also|now|replace|update|change|include|memory|skill|policy|guardrail|mcp|tool|model)\b/i.test(text)
+    /\b(add|connect|attach|wire|link|append|also|now|replace|update|change|include|memory|skill|policy|guardrail|mcp|tool|model|brain)\b/i.test(text)
   );
 
   if (isIncrementalDirective) {
@@ -675,71 +700,23 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
     let pillarType = 'skills';
     let targetHandle = 'skill-in';
 
-    if (text.includes('memory') || text.includes('vector') || text.includes('episodic') || text.includes('sync')) {
+    if (/\b(memory|vector|episodic|sync|chroma)\b/i.test(text)) {
       pillarType = 'memory';
       targetHandle = 'memory-in';
-      matchedItem = resolveCatalogItem('mem-episodic-sync', 'memory') || resolveCatalogItem('memory', 'memory');
-    } else if (text.includes('pii') || text.includes('mask') || text.includes('redact') || text.includes('confidential')) {
+      matchedItem = resolveCatalogItem(text, 'memory') || resolveCatalogItem('mem-episodic-sync', 'memory');
+    } else if (/\b(policy|guardrail|pii|mask|redact|nda|trade secret|confidential|compliance)\b/i.test(text)) {
       pillarType = 'policies';
       targetHandle = 'policy-in';
-      matchedItem = resolveCatalogItem('pol-pii-masker', 'policies');
-    } else if (text.includes('nda') || text.includes('trade secret') || text.includes('secret')) {
-      pillarType = 'policies';
-      targetHandle = 'policy-in';
-      matchedItem = resolveCatalogItem('pol-trade-secret', 'policies');
-    } else if (text.includes('guardrail') || text.includes('policy') || text.includes('compliance')) {
-      pillarType = 'policies';
-      targetHandle = 'policy-in';
-      matchedItem = resolveCatalogItem('pol-pii-masker', 'policies');
-    } else if (text.includes('summariz') || text.includes('summary') || text.includes('tldr')) {
-      pillarType = 'skills';
-      targetHandle = 'skill-in';
-      matchedItem = resolveCatalogItem('skill-summarizer', 'skills');
-    } else if (text.includes('action') || text.includes('task') || text.includes('owner')) {
-      pillarType = 'skills';
-      targetHandle = 'skill-in';
-      matchedItem = resolveCatalogItem('skill-action-extractor', 'skills');
-    } else if (text.includes('decision')) {
-      pillarType = 'skills';
-      targetHandle = 'skill-in';
-      matchedItem = resolveCatalogItem('skill-decisions', 'skills');
-    } else if (text.includes('mom') || text.includes('minute')) {
-      pillarType = 'skills';
-      targetHandle = 'skill-in';
-      matchedItem = resolveCatalogItem('skill-mom', 'skills');
-    } else if (text.includes('sentiment') || text.includes('conflict')) {
-      pillarType = 'skills';
-      targetHandle = 'skill-in';
-      matchedItem = resolveCatalogItem('skill-sentiment', 'skills');
-    } else if (text.includes('slack')) {
-      pillarType = 'mcp';
-      targetHandle = 'mcp-in';
-      matchedItem = resolveCatalogItem('mcp-slack', 'mcp');
-    } else if (text.includes('jira')) {
-      pillarType = 'mcp';
-      targetHandle = 'mcp-in';
-      matchedItem = resolveCatalogItem('mcp-jira', 'mcp');
-    } else if (text.includes('outlook') || text.includes('email') || text.includes('mail')) {
-      pillarType = 'mcp';
-      targetHandle = 'mcp-in';
-      matchedItem = resolveCatalogItem('mcp-outlook', 'mcp');
-    } else if (text.includes('github') || text.includes('git')) {
-      pillarType = 'mcp';
-      targetHandle = 'mcp-in';
-      matchedItem = resolveCatalogItem('mcp-github', 'mcp');
-    } else if (text.includes('gpt-4') || text.includes('openai')) {
+      matchedItem = resolveCatalogItem(text, 'policies') || resolveCatalogItem('pol-pii-masker', 'policies');
+    } else if (/\b(model|brain|foundation|llm|gpt|claude|gemini|ollama|llama|deepseek)\b/i.test(text)) {
       pillarType = 'model';
       targetHandle = 'model-in';
-      matchedItem = resolveCatalogItem('model-gpt-4o', 'model');
-    } else if (text.includes('claude') || text.includes('sonnet') || text.includes('anthropic')) {
-      pillarType = 'model';
-      targetHandle = 'model-in';
-      matchedItem = resolveCatalogItem('model-claude-3-5-sonnet', 'model');
-    } else if (text.includes('gemini') || text.includes('google')) {
-      pillarType = 'model';
-      targetHandle = 'model-in';
-      matchedItem = resolveCatalogItem('model-gemini-2-flash', 'model');
-    } else if (text.includes('audio') || text.includes('voice') || text.includes('transcript')) {
+      matchedItem = resolveCatalogItem(text, 'model') || resolveCatalogItem('model-gpt-4o', 'model');
+    } else if (/\b(slack|jira|outlook|github|neo4j|mcp)\b/i.test(text)) {
+      pillarType = 'mcp';
+      targetHandle = 'mcp-in';
+      matchedItem = resolveCatalogItem(text, 'mcp') || resolveCatalogItem('mcp-outlook', 'mcp');
+    } else if (/\b(audio|voice|speech|recording|call|transcript|transcri)\b/i.test(text)) {
       const ingestNodeId = `node-ingest-${Date.now().toString().slice(-4)}`;
       const newNode = {
         id: ingestNodeId,
@@ -768,6 +745,69 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
         action: 'append',
         summary: `Attached Audio & Call Transcriber to ${existingAgent.data?.name || 'Agent'}.`,
         steps: ['Resolved Ingestion Node from catalog', `Wired to tools-in socket on ${existingAgent.id}`],
+        nodes: [newNode],
+        edges: [newEdge]
+      };
+    } else if (/\b(ingest|document|file|pdf|raw text)\b/i.test(text)) {
+      const ingestNodeId = `node-ingest-${Date.now().toString().slice(-4)}`;
+      const newNode = {
+        id: ingestNodeId,
+        type: 'ingestionNode',
+        position: { x: (existingAgent.position?.x || 540) - 140, y: (existingAgent.position?.y || 180) - 120 },
+        data: {
+          title: 'Universal Document & Text Ingest',
+          content: '',
+          status: 'idle',
+          fileType: 'auto',
+          isExpanded: false
+        }
+      };
+      const newEdge = {
+        id: `edge-${ingestNodeId}-to-${existingAgent.id}`,
+        source: ingestNodeId,
+        sourceHandle: 'data-out',
+        target: existingAgent.id,
+        targetHandle: 'tools-in',
+        type: 'deletable',
+        animated: true,
+        style: { stroke: '#0091DA', strokeWidth: 2 }
+      };
+      return {
+        needsClarification: false,
+        action: 'append',
+        summary: `Attached Universal Document & Text Ingest to ${existingAgent.data?.name || 'Agent'}.`,
+        steps: ['Resolved Ingestion Node from catalog', `Wired to tools-in socket on ${existingAgent.id}`],
+        nodes: [newNode],
+        edges: [newEdge]
+      };
+    } else if (/\b(output|viewer|display|result|export|studio|artifact)\b/i.test(text)) {
+      const outputNodeId = `node-output-${Date.now().toString().slice(-4)}`;
+      const newNode = {
+        id: outputNodeId,
+        type: 'outputNodeV2',
+        position: { x: (existingAgent.position?.x || 540) + 340, y: existingAgent.position?.y || 180 },
+        data: {
+          title: 'Agent Intelligence Output',
+          outputContent: '',
+          status: 'idle',
+          runsHistory: []
+        }
+      };
+      const newEdge = {
+        id: `edge-${existingAgent.id}-to-${outputNodeId}`,
+        source: existingAgent.id,
+        sourceHandle: 'output-out',
+        target: outputNodeId,
+        targetHandle: 'in',
+        type: 'deletable',
+        animated: true,
+        style: { stroke: '#00338D', strokeWidth: 2 }
+      };
+      return {
+        needsClarification: false,
+        action: 'append',
+        summary: `Attached Output Viewer v2.0 to ${existingAgent.data?.name || 'Agent'}.`,
+        steps: ['Resolved Output Viewer Node from catalog', `Wired to output-out socket on ${existingAgent.id}`],
         nodes: [newNode],
         edges: [newEdge]
       };
@@ -846,7 +886,7 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
   }
 
   // Check if ambiguous input requires clarification
-  const isVague = text.length < 15 && !text.includes('meeting') && !text.includes('support') && !text.includes('review') && !text.includes('jira') && !text.includes('slack');
+  const isVague = text.length < 15 && !text.includes('meeting') && !text.includes('support') && !text.includes('review') && !text.includes('jira') && !text.includes('slack') && !text.includes('agent') && !text.includes('gpt') && !text.includes('claude') && !text.includes('gemini') && !text.includes('memory') && !text.includes('skill');
   if (isVague && !clarificationAnswer) {
     return {
       needsClarification: true,
@@ -869,37 +909,10 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
   // Derive specialized agent attributes based on semantic tokens
   let agentName = 'Autonomous Enterprise Agent';
   let agentPrompt = 'Execute enterprise multi-step workflow with analytical fidelity and compliance enforcement.';
-  let isMeeting = fullText.includes('meeting') || fullText.includes('transcript') || fullText.includes('call') || fullText.includes('audio');
-  let isSupport = fullText.includes('support') || fullText.includes('customer') || fullText.includes('ticket') || fullText.includes('helpdesk');
-  let isCode = fullText.includes('code') || fullText.includes('github') || fullText.includes('pr') || fullText.includes('review') || fullText.includes('repo');
-  let isApprovalNeeded = fullText.includes('approv') || fullText.includes('human') || fullText.includes('review') || fullText.includes('gate');
-  let hasJira = fullText.includes('jira');
-  let hasSlack = fullText.includes('slack');
-  let hasOutlook = fullText.includes('email') || fullText.includes('mail') || fullText.includes('outlook');
-  let hasAudio = fullText.includes('audio') || fullText.includes('voice') || fullText.includes('recording') || fullText.includes('speech');
-
-  // Foundation Model Choice from Official Catalog
-  let selectedProvider = 'google';
-  let selectedModelId = 'gemini-2.0-flash';
-  let modelSearchKey = 'gemini-2.0-flash';
-  if (fullText.includes('gpt-4') || fullText.includes('openai')) {
-    selectedProvider = 'openai';
-    selectedModelId = 'gpt-4o';
-    modelSearchKey = 'model-gpt-4o';
-  } else if (fullText.includes('claude') || fullText.includes('anthropic') || fullText.includes('sonnet')) {
-    selectedProvider = 'anthropic';
-    selectedModelId = 'claude-3-5-sonnet-20241022';
-    modelSearchKey = 'model-claude-3-5-sonnet';
-  } else if (fullText.includes('ollama') || fullText.includes('llama') || fullText.includes('local')) {
-    selectedProvider = 'ollama';
-    selectedModelId = 'llama3.3';
-    modelSearchKey = 'model-ollama-llama-3-3';
-  }
-
-  const matchedModel = resolveCatalogItem(modelSearchKey, 'model') || resolveCatalogItem('model-gpt-4o', 'model');
-  const modelName = matchedModel?.name || 'GPT-4o';
-  const modelDesc = matchedModel?.description || `${modelName} foundation reasoning model with structured JSON outputs.`;
-  const modelConfig = { ...(matchedModel?.config || {}), provider: selectedProvider, modelId: selectedModelId, temperature: 0.2, topP: 0.95 };
+  const isMeeting = /\b(meeting|call|audio)\b/i.test(fullText);
+  const isSupport = /\b(support|customer|ticket|helpdesk)\b/i.test(fullText);
+  const isCode = /\b(code|github|pr|pull request|review|repo)\b/i.test(fullText);
+  const isApprovalNeeded = /\b(approv|human[ -]in[ -]the[ -]loop|hitl|review gate|sign[ -]off)\b/i.test(fullText);
 
   if (isMeeting) {
     agentName = 'Meeting Intelligence Agent';
@@ -912,11 +925,112 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
     agentPrompt = 'Perform deep static analysis on GitHub PR diffs, detect anti-patterns, check security policies, and recommend fixes.';
   }
 
+  // 1. Foundation Model Choice strictly resolved from Catalog
+  let matchedModel = resolveCatalogItem(fullText, 'model');
+  if (!matchedModel) {
+    // If user directive did not specify a model in text, use the active dropdown model
+    matchedModel = resolveCatalogItem(modelId, 'model') || 
+                   resolveCatalogItem(provider, 'model') || 
+                   resolveCatalogItem('model-gemini-2-flash', 'model');
+  }
+
+  const modelName = matchedModel?.name || 'Foundation Model';
+  const modelDesc = matchedModel?.description || `${modelName} foundation reasoning model with structured JSON outputs.`;
+  const modelConfig = { ...(matchedModel?.config || {}), temperature: 0.2, topP: 0.95 };
+
+  // 2. Ingestion Tool Check (STRICT OPT-IN: Only created if explicitly requested)
+  const hasAudio = /\b(audio|voice|speech|recording|call|transcri)\b/i.test(fullText);
+  const wantsIngest = /\b(ingest|ingestion|upload|document|pdf|file|raw text|text ingest|input tool)\b/i.test(fullText) || hasAudio;
+
+  // 3. Memory Check (STRICT OPT-IN: Only created if explicitly requested)
+  const wantsMemory = /\b(memory|recall|remember|episodic|vector|chroma|context store|retrieval)\b/i.test(fullText);
+  let matchedMemory = null;
+  if (wantsMemory) {
+    let memKey = 'mem-episodic-sync';
+    if (/\b(chroma|vector|rag|semantic search)\b/i.test(fullText)) {
+      memKey = 'mem-chroma-vector';
+    }
+    matchedMemory = resolveCatalogItem(memKey, 'memory') || resolveCatalogItem('mem-episodic-sync', 'memory');
+  }
+
+  // 4. Policy Guardrail Check (STRICT OPT-IN: Only created if explicitly requested)
+  const wantsPolicy = /\b(policy|policies|guardrail|guardrails|guard|pii|redact|mask|confidential|nda|trade secret|compliance|safety)\b/i.test(fullText);
+  let matchedPolicy = null;
+  if (wantsPolicy) {
+    let policySearchKey = 'pol-pii-masker';
+    if (/\b(nda|trade secret|secret|ip|intellectual)\b/i.test(fullText)) {
+      policySearchKey = 'pol-trade-secret';
+    }
+    matchedPolicy = resolveCatalogItem(policySearchKey, 'policies') || resolveCatalogItem('pol-pii-masker', 'policies');
+  }
+
+  // 5. Skills Check (STRICT OPT-IN: Only created if explicitly requested)
+  const skillsToAttach = [];
+  if (/\b(sentiment|conflict|morale|tone)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('skill-sentiment', 'skills');
+    if (item && !skillsToAttach.some(s => s.id === item.id)) skillsToAttach.push(item);
+  }
+  if (/\b(action|task|assignee|todo|deliverable)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('skill-action-extractor', 'skills');
+    if (item && !skillsToAttach.some(s => s.id === item.id)) skillsToAttach.push(item);
+  }
+  if (/\b(mom|minute|meeting notes)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('skill-mom', 'skills');
+    if (item && !skillsToAttach.some(s => s.id === item.id)) skillsToAttach.push(item);
+  }
+  if (/\b(decision|agreement|consensus)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('skill-decisions', 'skills');
+    if (item && !skillsToAttach.some(s => s.id === item.id)) skillsToAttach.push(item);
+  }
+  if (/\b(summar|summary|tldr|synopsis|recap)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('skill-summarizer', 'skills');
+    if (item && !skillsToAttach.some(s => s.id === item.id)) skillsToAttach.unshift(item);
+  }
+  if (/\b(email|followup|mail compose)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('skill-followup-email', 'skills');
+    if (item && !skillsToAttach.some(s => s.id === item.id)) skillsToAttach.push(item);
+  }
+  if (/\b(depth|exhaustive|deep analysis)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('skill-depth-maximizer', 'skills');
+    if (item && !skillsToAttach.some(s => s.id === item.id)) skillsToAttach.push(item);
+  }
+  // If user explicitly said "skill" or "skills" but didn't name one, attach summarizer as sensible fallback
+  if (skillsToAttach.length === 0 && /\bskill(s)?\b/i.test(fullText)) {
+    const defaultSkill = resolveCatalogItem('skill-summarizer', 'skills');
+    if (defaultSkill) skillsToAttach.push(defaultSkill);
+  }
+
+  // 6. MCP Servers Check (STRICT OPT-IN: Only created if explicitly requested)
+  const mcpToAttach = [];
+  if (/\bslack\b/i.test(fullText)) {
+    const item = resolveCatalogItem('mcp-slack', 'mcp');
+    if (item && !mcpToAttach.some(m => m.id === item.id)) mcpToAttach.push(item);
+  }
+  if (/\bjira\b/i.test(fullText)) {
+    const item = resolveCatalogItem('mcp-jira', 'mcp');
+    if (item && !mcpToAttach.some(m => m.id === item.id)) mcpToAttach.push(item);
+  }
+  if (/\b(outlook|m365|calendar mcp|mail mcp)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('mcp-outlook', 'mcp');
+    if (item && !mcpToAttach.some(m => m.id === item.id)) mcpToAttach.push(item);
+  }
+  if (/\b(github|repo|pull request)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('mcp-github', 'mcp');
+    if (item && !mcpToAttach.some(m => m.id === item.id)) mcpToAttach.push(item);
+  }
+  if (/\b(neo4j|cypher|graph db|graph database)\b/i.test(fullText)) {
+    const item = resolveCatalogItem('mcp-neo4j-graph', 'mcp');
+    if (item && !mcpToAttach.some(m => m.id === item.id)) mcpToAttach.push(item);
+  }
+
+  // 7. Output Studio Check (STRICT OPT-IN: Only created if explicitly requested)
+  const wantsOutput = /\b(output|viewer|display|result|export|studio|artifact|dashboard)\b/i.test(fullText);
+
   const nodes = [];
   const edges = [];
   const steps = [];
 
-  // 1. Agent Core
+  // A. Agent Core
   const agentId = `agent-core-${Date.now().toString().slice(-4)}`;
   nodes.push({
     id: agentId,
@@ -928,12 +1042,20 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
       prompt: agentPrompt,
       temperature: 0.2,
       topP: 0.95,
-      attachedCounts: { model: 1, skills: 1, mcp: (hasJira || hasSlack ? 1 : 0), tools: 1, gateway: 0, memory: 1, policies: 1 }
+      attachedCounts: {
+        model: 1,
+        skills: skillsToAttach.length,
+        mcp: mcpToAttach.length,
+        tools: wantsIngest ? 1 : 0,
+        gateway: 0,
+        memory: wantsMemory ? 1 : 0,
+        policies: wantsPolicy ? 1 : 0
+      }
     }
   });
   steps.push(`Configured Agent Core: "${agentName}" with analytical system prompt`);
 
-  // 2. Foundation Model (Hydrated strictly from Catalog)
+  // B. Foundation Model (always wired to agentCore)
   const modelNodeId = `node-model-${Date.now().toString().slice(-4)}`;
   nodes.push({
     id: modelNodeId,
@@ -959,113 +1081,91 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
   });
   steps.push(`Attached Foundation Model: ${modelName} to model-in socket`);
 
-  // 3. Ingestion Node
-  const ingestNodeId = `node-ingest-${Date.now().toString().slice(-4)}`;
-  nodes.push({
-    id: ingestNodeId,
-    type: 'ingestionNode',
-    position: { x: 420, y: 60 },
-    data: {
-      title: hasAudio ? 'Audio & Call Transcriber' : 'Universal Document & Text Ingest',
-      content: '',
-      status: 'idle',
-      fileType: hasAudio ? 'audio' : 'auto',
-      isExpanded: false
-    }
-  });
-  edges.push({
-    id: `edge-${ingestNodeId}-to-${agentId}`,
-    source: ingestNodeId,
-    sourceHandle: 'data-out',
-    target: agentId,
-    targetHandle: 'tools-in',
-    type: 'deletable',
-    animated: true,
-    style: { stroke: '#0091DA', strokeWidth: 2 }
-  });
-  steps.push(`Wired Ingestion Node: ${hasAudio ? 'Audio Transcriber' : 'Document Ingest'} to tools-in socket`);
-
-  // 4. Memory Node (Hydrated strictly from Catalog)
-  const matchedMemory = resolveCatalogItem('mem-episodic-sync', 'memory');
-  const memoryNodeId = `node-memory-${Date.now().toString().slice(-4)}`;
-  nodes.push({
-    id: memoryNodeId,
-    type: 'pillar',
-    position: { x: 564, y: 450 },
-    data: {
-      pillarType: 'memory',
-      itemId: matchedMemory?.id || 'mem-episodic-sync',
-      name: matchedMemory?.name || 'Episodic Sync Memory',
-      description: matchedMemory?.description || 'Maintains cross-session commitments and vector search.',
-      config: matchedMemory?.config || { ttlDays: 90, store: 'vector-sqlite' }
-    }
-  });
-  edges.push({
-    id: `edge-${memoryNodeId}-to-${agentId}`,
-    source: memoryNodeId,
-    sourceHandle: 'out',
-    target: agentId,
-    targetHandle: 'memory-in',
-    type: 'deletable',
-    animated: true,
-    style: { stroke: '#483698', strokeWidth: 2 }
-  });
-  steps.push('Connected Episodic Memory to memory-in socket');
-
-  // 5. Policy Guardrail Node (Hydrated strictly from Catalog)
-  let policySearchKey = 'pol-pii-masker';
-  if (fullText.includes('nda') || fullText.includes('trade secret')) {
-    policySearchKey = 'pol-trade-secret';
-  }
-  const matchedPolicy = resolveCatalogItem(policySearchKey, 'policies') || resolveCatalogItem('pol-pii-masker', 'policies');
-  const policyNodeId = `node-policy-${Date.now().toString().slice(-4)}`;
-  nodes.push({
-    id: policyNodeId,
-    type: 'pillar',
-    position: { x: 380, y: 450 },
-    data: {
-      pillarType: 'policies',
-      itemId: matchedPolicy?.id || 'pol-pii-masker',
-      name: matchedPolicy?.name || 'PII & Confidentiality Redactor',
-      description: matchedPolicy?.description || 'Detects and masks personal data, salaries, phone numbers, and NDA terms.',
-      config: matchedPolicy?.config || { redactSalaries: true, maskEmails: true }
-    }
-  });
-  edges.push({
-    id: `edge-${policyNodeId}-to-${agentId}`,
-    source: policyNodeId,
-    sourceHandle: 'out',
-    target: agentId,
-    targetHandle: 'policy-in',
-    type: 'deletable',
-    animated: true,
-    style: { stroke: '#6D2077', strokeWidth: 2 }
-  });
-  steps.push(`Enforced Policy Guardrail: ${matchedPolicy?.name || 'PII Redactor'} on policy-in socket`);
-
-  // 6. Skill Nodes (Hydrated strictly from Catalog: Summarizer, Action Items, MoM, Sentiment, Decisions)
-  const skillsToAttach = [];
-  if (fullText.includes('sentiment') || fullText.includes('conflict')) {
-    const item = resolveCatalogItem('skill-sentiment', 'skills');
-    if (item) skillsToAttach.push(item);
-  }
-  if (fullText.includes('action') || isSupport || isMeeting) {
-    const item = resolveCatalogItem('skill-action-extractor', 'skills');
-    if (item) skillsToAttach.push(item);
-  }
-  if (fullText.includes('mom') || fullText.includes('minutes')) {
-    const item = resolveCatalogItem('skill-mom', 'skills');
-    if (item) skillsToAttach.push(item);
-  }
-  if (fullText.includes('decision')) {
-    const item = resolveCatalogItem('skill-decisions', 'skills');
-    if (item) skillsToAttach.push(item);
-  }
-  if (fullText.includes('summar') || fullText.includes('executive') || skillsToAttach.length === 0) {
-    const item = resolveCatalogItem('skill-summarizer', 'skills');
-    if (item && !skillsToAttach.some(s => s.id === item.id)) skillsToAttach.unshift(item);
+  // C. Ingestion Node (ONLY if requested)
+  if (wantsIngest) {
+    const ingestNodeId = `node-ingest-${Date.now().toString().slice(-4)}`;
+    nodes.push({
+      id: ingestNodeId,
+      type: 'ingestionNode',
+      position: { x: 420, y: 60 },
+      data: {
+        title: hasAudio ? 'Audio & Call Transcriber' : 'Universal Document & Text Ingest',
+        content: '',
+        status: 'idle',
+        fileType: hasAudio ? 'audio' : 'auto',
+        isExpanded: false
+      }
+    });
+    edges.push({
+      id: `edge-${ingestNodeId}-to-${agentId}`,
+      source: ingestNodeId,
+      sourceHandle: 'data-out',
+      target: agentId,
+      targetHandle: 'tools-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#0091DA', strokeWidth: 2 }
+    });
+    steps.push(`Wired Ingestion Node: ${hasAudio ? 'Audio Transcriber' : 'Document Ingest'} to tools-in socket`);
   }
 
+  // D. Memory Node (ONLY if requested)
+  if (wantsMemory && matchedMemory) {
+    const memoryNodeId = `node-memory-${Date.now().toString().slice(-4)}`;
+    nodes.push({
+      id: memoryNodeId,
+      type: 'pillar',
+      position: { x: 564, y: 450 },
+      data: {
+        pillarType: 'memory',
+        itemId: matchedMemory.id,
+        name: matchedMemory.name,
+        description: matchedMemory.description,
+        config: matchedMemory.config || { ttlDays: 90, store: 'vector-sqlite' }
+      }
+    });
+    edges.push({
+      id: `edge-${memoryNodeId}-to-${agentId}`,
+      source: memoryNodeId,
+      sourceHandle: 'out',
+      target: agentId,
+      targetHandle: 'memory-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#483698', strokeWidth: 2 }
+    });
+    steps.push(`Connected ${matchedMemory.name} to memory-in socket`);
+  }
+
+  // E. Policy Guardrail Node (ONLY if requested)
+  if (wantsPolicy && matchedPolicy) {
+    const policyNodeId = `node-policy-${Date.now().toString().slice(-4)}`;
+    nodes.push({
+      id: policyNodeId,
+      type: 'pillar',
+      position: { x: 380, y: 450 },
+      data: {
+        pillarType: 'policies',
+        itemId: matchedPolicy.id,
+        name: matchedPolicy.name,
+        description: matchedPolicy.description,
+        config: matchedPolicy.config || { redactSalaries: true, maskEmails: true }
+      }
+    });
+    edges.push({
+      id: `edge-${policyNodeId}-to-${agentId}`,
+      source: policyNodeId,
+      sourceHandle: 'out',
+      target: agentId,
+      targetHandle: 'policy-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#6D2077', strokeWidth: 2 }
+    });
+    steps.push(`Enforced Policy Guardrail: ${matchedPolicy.name} on policy-in socket`);
+  }
+
+  // F. Skill Nodes (ONLY if requested)
   skillsToAttach.forEach((sk, idx) => {
     const skillNodeId = `node-skill-${sk.id}-${Date.now().toString().slice(-4)}`;
     nodes.push({
@@ -1093,27 +1193,20 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
     steps.push(`Loaded Specialized Skill: ${sk.name} on skill-in socket`);
   });
 
-  // 7. MCP Integrations (Hydrated strictly from Catalog: Slack / Jira / Outlook / GitHub / Neo4j)
-  if (hasSlack || hasJira || hasOutlook || isSupport || isCode || fullText.includes('neo4j') || fullText.includes('graph')) {
-    let mcpSearchKey = 'mcp-outlook';
-    if (hasSlack) mcpSearchKey = 'mcp-slack';
-    else if (hasJira) mcpSearchKey = 'mcp-jira';
-    else if (isCode || fullText.includes('github')) mcpSearchKey = 'mcp-github';
-    else if (fullText.includes('neo4j') || fullText.includes('graph')) mcpSearchKey = 'mcp-neo4j';
-
-    const matchedMcp = resolveCatalogItem(mcpSearchKey, 'mcp') || resolveCatalogItem('mcp-outlook', 'mcp');
-    const mcpNodeId = `node-mcp-${Date.now().toString().slice(-4)}`;
+  // G. MCP Integrations (ONLY if requested)
+  mcpToAttach.forEach((mcp, idx) => {
+    const mcpNodeId = `node-mcp-${Date.now().toString().slice(-4)}-${idx}`;
     nodes.push({
       id: mcpNodeId,
       type: 'pillar',
-      position: { x: 800, y: -20 },
+      position: { x: 800 + (idx * 160), y: -20 },
       data: {
         pillarType: 'mcp',
-        itemId: matchedMcp?.id || 'mcp-outlook',
-        name: matchedMcp?.name || 'Microsoft Outlook MCP',
-        description: matchedMcp?.description || 'Enterprise email and calendar integration.',
-        tools: matchedMcp?.tools || [],
-        config: matchedMcp?.config || { transport: 'sse' }
+        itemId: mcp.id,
+        name: mcp.name,
+        description: mcp.description,
+        tools: mcp.tools || [],
+        config: mcp.config || { transport: 'sse' }
       }
     });
     edges.push({
@@ -1126,10 +1219,10 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
       animated: true,
       style: { stroke: '#00A3A6', strokeWidth: 2 }
     });
-    steps.push(`Integrated Live MCP Server: ${matchedMcp?.name || 'MCP Server'} to mcp-in socket`);
-  }
+    steps.push(`Integrated Live MCP Server: ${mcp.name} to mcp-in socket`);
+  });
 
-  // 8. Human-in-the-loop Approval Gate (if requested)
+  // H. Human-in-the-loop Approval Gate (ONLY if requested)
   let lastDownstreamId = agentId;
   let lastSourceHandle = 'output-out';
   if (isApprovalNeeded) {
@@ -1159,37 +1252,49 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
     steps.push('Inserted Human-in-the-Loop Approval Gate before final output');
   }
 
-  // 9. Output Viewer v2.0 (Artifact Studio)
-  const outputNodeId = `node-output-${Date.now().toString().slice(-4)}`;
-  nodes.push({
-    id: outputNodeId,
-    type: 'outputNodeV2',
-    position: { x: isApprovalNeeded ? 1160 : 880, y: 180 },
-    data: {
-      title: 'Agent Intelligence Output',
-      outputContent: '',
-      status: 'idle',
-      runsHistory: []
-    }
-  });
-  edges.push({
-    id: `edge-${lastDownstreamId}-to-${outputNodeId}`,
-    source: lastDownstreamId,
-    sourceHandle: lastSourceHandle,
-    target: outputNodeId,
-    targetHandle: 'in',
-    type: 'deletable',
-    animated: true,
-    style: { stroke: '#00338D', strokeWidth: 2 }
-  });
-  steps.push('Connected Output Viewer v2.0 (Artifact Studio) for live results & export');
+  // I. Output Viewer v2.0 (ONLY if requested)
+  if (wantsOutput) {
+    const outputNodeId = `node-output-${Date.now().toString().slice(-4)}`;
+    nodes.push({
+      id: outputNodeId,
+      type: 'outputNodeV2',
+      position: { x: isApprovalNeeded ? 1160 : 880, y: 180 },
+      data: {
+        title: 'Agent Intelligence Output',
+        outputContent: '',
+        status: 'idle',
+        runsHistory: []
+      }
+    });
+    edges.push({
+      id: `edge-${lastDownstreamId}-to-${outputNodeId}`,
+      source: lastDownstreamId,
+      sourceHandle: lastSourceHandle,
+      target: outputNodeId,
+      targetHandle: 'in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#00338D', strokeWidth: 2 }
+    });
+    steps.push('Connected Output Viewer v2.0 (Artifact Studio) for live results & export');
+  }
 
   const layout = computeArchitectLayout(nodes, edges);
+
+  const summaryParts = [
+    modelName,
+    wantsPolicy ? (matchedPolicy?.name || 'Policy Guardrail') : null,
+    wantsMemory ? (matchedMemory?.name || 'Memory Store') : null,
+    ...skillsToAttach.map(s => s.name),
+    ...mcpToAttach.map(m => m.name),
+    wantsIngest ? 'Ingestion' : null,
+    wantsOutput ? 'Output Studio' : null
+  ].filter(Boolean);
 
   return {
     needsClarification: false,
     action: 'create',
-    summary: `Synthesized "${agentName}" with ${modelName}, policy guardrails, skills, and Output Viewer v2.0.`,
+    summary: `Synthesized "${agentName}" with ${summaryParts.join(', ')}.`,
     steps,
     nodes: layout.nodes,
     edges: layout.edges
@@ -1218,7 +1323,9 @@ export async function synthesizeCanvasWorkflow({
       prompt,
       existingNodes,
       existingEdges,
-      clarificationAnswer
+      clarificationAnswer,
+      provider,
+      modelId
     });
   }
 

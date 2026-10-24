@@ -1,5 +1,5 @@
 {
-  "activeWorkflowId": "wf-1792869224621-u5bih",
+  "activeWorkflowId": "wf-1792870331758-k1ees",
   "uiState": {
     "isDarkMode": false,
     "isSidebarCollapsed": true,
@@ -16,6 +16,252 @@
     "isWorkflowLocked": false
   },
   "workflows": [
+    {
+      "id": "wf-1792870331758-k1ees",
+      "name": "Untitled Workflow",
+      "description": "",
+      "framework": {
+        "id": "google-adk",
+        "name": "Google ADK",
+        "subtitle": "Google Agent Development Kit & GenAI SDK",
+        "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+        "defaultModel": "gemini-2.0-flash",
+        "exportExtension": ".py",
+        "category": "SDK"
+      },
+      "activeUseCase": {
+        "id": "uc-wf-1792870331758-k1ees",
+        "name": "Untitled Workflow",
+        "description": "",
+        "framework": {
+          "id": "google-adk",
+          "name": "Google ADK",
+          "subtitle": "Google Agent Development Kit & GenAI SDK",
+          "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+          "defaultModel": "gemini-2.0-flash",
+          "exportExtension": ".py",
+          "category": "SDK"
+        },
+        "agent": {
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      "nodes": [
+        {
+          "id": "agent-core-5009",
+          "type": "agentCore",
+          "position": {
+            "x": 540,
+            "y": 180
+          },
+          "data": {
+            "name": "Autonomous Enterprise Agent",
+            "framework": {
+              "id": "google-adk",
+              "name": "Google ADK",
+              "subtitle": "Google Agent Development Kit & GenAI SDK",
+              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+              "defaultModel": "gemini-2.0-flash",
+              "exportExtension": ".py",
+              "category": "SDK"
+            },
+            "prompt": "Execute enterprise multi-step workflow with analytical fidelity and compliance enforcement.",
+            "temperature": 0.2,
+            "topP": 0.95,
+            "attachedCounts": {
+              "model": 1,
+              "skills": 1,
+              "mcp": 0,
+              "tools": 0,
+              "gateway": 0,
+              "memory": 1,
+              "policies": 1,
+              "audit": 0,
+              "observability": 0,
+              "cost_benefit": 0,
+              "agent": 0
+            }
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 228,
+            "height": 173
+          }
+        },
+        {
+          "id": "node-model-5009",
+          "type": "pillar",
+          "position": {
+            "x": 584,
+            "y": 60
+          },
+          "data": {
+            "pillarType": "model",
+            "itemId": "model-gpt-4o-mini",
+            "name": "GPT-4o Mini",
+            "description": "OpenAI: Fast, cost-efficient model for lightweight meeting processing.",
+            "config": {
+              "provider": "openai",
+              "modelId": "gpt-4o-mini",
+              "temperature": 0.2,
+              "topP": 0.95
+            }
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-memory-5009",
+          "type": "pillar",
+          "position": {
+            "x": 564,
+            "y": 450
+          },
+          "data": {
+            "pillarType": "memory",
+            "itemId": "mem-episodic-sync",
+            "name": "Episodic Recurring Sync Memory",
+            "description": "Remembers past meeting action items to verify resolution across weeks.",
+            "config": {
+              "ttlDays": 90,
+              "storage": "sqlite-vector",
+              "sessionScoped": false
+            }
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-policy-5009",
+          "type": "pillar",
+          "position": {
+            "x": 380,
+            "y": 450
+          },
+          "data": {
+            "pillarType": "policies",
+            "itemId": "pol-pii-masker",
+            "name": "PII & Confidentiality Redactor",
+            "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+            "config": {
+              "redactSalaries": true,
+              "maskEmails": true,
+              "regexRules": "strict"
+            }
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-skill-skill-summarizer-5009",
+          "type": "pillar",
+          "position": {
+            "x": 720,
+            "y": 450
+          },
+          "data": {
+            "pillarType": "skills",
+            "itemId": "skill-summarizer",
+            "name": "Executive Summarizer",
+            "description": "Generates TL;DR, high-level takeaways, and strategic themes.",
+            "config": {
+              "format": "bullet_points",
+              "length": "concise",
+              "focus": "decisions"
+            }
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-node-model-5009-to-agent-core-5009",
+          "source": "node-model-5009",
+          "sourceHandle": "out",
+          "target": "agent-core-5009",
+          "targetHandle": "model-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-node-memory-5009-to-agent-core-5009",
+          "source": "node-memory-5009",
+          "sourceHandle": "out",
+          "target": "agent-core-5009",
+          "targetHandle": "memory-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#483698",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-node-policy-5009-to-agent-core-5009",
+          "source": "node-policy-5009",
+          "sourceHandle": "out",
+          "target": "agent-core-5009",
+          "targetHandle": "policy-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#6D2077",
+            "strokeWidth": 2
+          }
+        },
+        {
+          "id": "edge-node-skill-skill-summarizer-5009-to-agent-core-5009",
+          "source": "node-skill-skill-summarizer-5009",
+          "sourceHandle": "out",
+          "target": "agent-core-5009",
+          "targetHandle": "skill-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#009A44",
+            "strokeWidth": 2
+          }
+        }
+      ],
+      "createdAt": 1792870331758,
+      "updatedAt": 1792870357419,
+      "isStarred": false,
+      "isLocked": false,
+      "isWorkflowLocked": false,
+      "tags": [
+        "New"
+      ],
+      "stats": {
+        "nodeCount": 5,
+        "agentCount": 1,
+        "mcpCount": 0,
+        "modelCount": 1,
+        "skillCount": 1,
+        "toolCount": 0,
+        "policyCount": 1,
+        "hasAudit": false
+      },
+      "agentLogs": []
+    },
     {
       "id": "wf-1792869224621-u5bih",
       "name": "test abc",
@@ -91,12 +337,12 @@
             "temperature": 0.2,
             "topP": 0.95,
             "attachedCounts": {
-              "model": 1,
+              "model": 2,
               "skills": 1,
               "mcp": 0,
               "tools": 1,
               "gateway": 0,
-              "memory": 1,
+              "memory": 0,
               "policies": 1,
               "audit": 0,
               "observability": 0,
@@ -225,6 +471,31 @@
             "width": 56,
             "height": 56
           }
+        },
+        {
+          "id": "node-memory-1630",
+          "type": "pillar",
+          "position": {
+            "x": 744,
+            "y": 60
+          },
+          "data": {
+            "pillarType": "model",
+            "itemId": "model-gpt-4o-mini",
+            "name": "GPT-4o Mini",
+            "description": "OpenAI: Fast, cost-efficient model for lightweight meeting processing.",
+            "config": {
+              "provider": "openai",
+              "modelId": "gpt-4o-mini",
+              "temperature": 0.2,
+              "topP": 1
+            }
+          },
+          "className": "animate-in zoom-in-95 duration-200",
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
         }
       ],
       "edges": [
@@ -251,19 +522,6 @@
           "animated": true,
           "style": {
             "stroke": "#0091DA",
-            "strokeWidth": 2
-          }
-        },
-        {
-          "id": "edge-node-memory-6866-to-agent-core-6864",
-          "source": "node-memory-6866",
-          "sourceHandle": "out",
-          "target": "agent-core-6864",
-          "targetHandle": "memory-in",
-          "type": "deletable",
-          "animated": true,
-          "style": {
-            "stroke": "#483698",
             "strokeWidth": 2
           }
         },
@@ -305,10 +563,19 @@
             "stroke": "#00338D",
             "strokeWidth": 2
           }
+        },
+        {
+          "id": "edge-node-memory-1630-to-agent-core-6864",
+          "source": "node-memory-1630",
+          "sourceHandle": "out",
+          "target": "agent-core-6864",
+          "targetHandle": "model-in",
+          "type": "deletable",
+          "animated": true
         }
       ],
       "createdAt": 1792869224621,
-      "updatedAt": 1792869268675,
+      "updatedAt": 1792870302730,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -316,10 +583,10 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 7,
+        "nodeCount": 8,
         "agentCount": 1,
         "mcpCount": 0,
-        "modelCount": 1,
+        "modelCount": 2,
         "skillCount": 1,
         "toolCount": 0,
         "policyCount": 1,
@@ -5167,27 +5434,7 @@
   "canvasState": {
     "nodes": [
       {
-        "id": "node-ingest-6864",
-        "type": "ingestionNode",
-        "position": {
-          "x": 400,
-          "y": 60
-        },
-        "data": {
-          "title": "Universal Document & Text Ingest",
-          "content": "",
-          "status": "idle",
-          "fileType": "auto",
-          "isExpanded": false
-        },
-        "className": "animate-in zoom-in-95 duration-200",
-        "measured": {
-          "width": 140,
-          "height": 60
-        }
-      },
-      {
-        "id": "agent-core-6864",
+        "id": "agent-core-5009",
         "type": "agentCore",
         "position": {
           "x": 540,
@@ -5211,7 +5458,7 @@
             "model": 1,
             "skills": 1,
             "mcp": 0,
-            "tools": 1,
+            "tools": 0,
             "gateway": 0,
             "memory": 1,
             "policies": 1,
@@ -5228,7 +5475,7 @@
         }
       },
       {
-        "id": "node-model-6864",
+        "id": "node-model-5009",
         "type": "pillar",
         "position": {
           "x": 584,
@@ -5236,12 +5483,12 @@
         },
         "data": {
           "pillarType": "model",
-          "itemId": "model-gemini-2-flash",
-          "name": "Gemini 2.0 Flash",
-          "description": "Google: Fast, multimodal audio & text, 1M+ context window for meeting transcripts.",
+          "itemId": "model-gpt-4o-mini",
+          "name": "GPT-4o Mini",
+          "description": "OpenAI: Fast, cost-efficient model for lightweight meeting processing.",
           "config": {
-            "provider": "google",
-            "modelId": "gemini-2.0-flash",
+            "provider": "openai",
+            "modelId": "gpt-4o-mini",
             "temperature": 0.2,
             "topP": 0.95
           }
@@ -5253,7 +5500,7 @@
         }
       },
       {
-        "id": "node-memory-6866",
+        "id": "node-memory-5009",
         "type": "pillar",
         "position": {
           "x": 564,
@@ -5277,7 +5524,7 @@
         }
       },
       {
-        "id": "node-policy-6867",
+        "id": "node-policy-5009",
         "type": "pillar",
         "position": {
           "x": 380,
@@ -5301,7 +5548,7 @@
         }
       },
       {
-        "id": "node-skill-skill-summarizer-6868",
+        "id": "node-skill-skill-summarizer-5009",
         "type": "pillar",
         "position": {
           "x": 720,
@@ -5323,34 +5570,14 @@
           "width": 140,
           "height": 60
         }
-      },
-      {
-        "id": "node-output-6868",
-        "type": "outputNodeV2",
-        "position": {
-          "x": 880,
-          "y": 180
-        },
-        "data": {
-          "title": "Agent Intelligence Output",
-          "outputContent": "",
-          "status": "idle",
-          "runsHistory": [],
-          "isExpanded": false
-        },
-        "className": "animate-in zoom-in-95 duration-200",
-        "measured": {
-          "width": 56,
-          "height": 56
-        }
       }
     ],
     "edges": [
       {
-        "id": "edge-node-model-6864-to-agent-core-6864",
-        "source": "node-model-6864",
+        "id": "edge-node-model-5009-to-agent-core-5009",
+        "source": "node-model-5009",
         "sourceHandle": "out",
-        "target": "agent-core-6864",
+        "target": "agent-core-5009",
         "targetHandle": "model-in",
         "type": "deletable",
         "animated": false,
@@ -5360,23 +5587,10 @@
         }
       },
       {
-        "id": "edge-node-ingest-6864-to-agent-core-6864",
-        "source": "node-ingest-6864",
+        "id": "edge-node-memory-5009-to-agent-core-5009",
+        "source": "node-memory-5009",
         "sourceHandle": "out",
-        "target": "agent-core-6864",
-        "targetHandle": "tools-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#0091DA",
-          "strokeWidth": 2
-        }
-      },
-      {
-        "id": "edge-node-memory-6866-to-agent-core-6864",
-        "source": "node-memory-6866",
-        "sourceHandle": "out",
-        "target": "agent-core-6864",
+        "target": "agent-core-5009",
         "targetHandle": "memory-in",
         "type": "deletable",
         "animated": false,
@@ -5386,10 +5600,10 @@
         }
       },
       {
-        "id": "edge-node-policy-6867-to-agent-core-6864",
-        "source": "node-policy-6867",
+        "id": "edge-node-policy-5009-to-agent-core-5009",
+        "source": "node-policy-5009",
         "sourceHandle": "out",
-        "target": "agent-core-6864",
+        "target": "agent-core-5009",
         "targetHandle": "policy-in",
         "type": "deletable",
         "animated": false,
@@ -5399,10 +5613,10 @@
         }
       },
       {
-        "id": "edge-node-skill-skill-summarizer-6868-to-agent-core-6864",
-        "source": "node-skill-skill-summarizer-6868",
+        "id": "edge-node-skill-skill-summarizer-5009-to-agent-core-5009",
+        "source": "node-skill-skill-summarizer-5009",
         "sourceHandle": "out",
-        "target": "agent-core-6864",
+        "target": "agent-core-5009",
         "targetHandle": "skill-in",
         "type": "deletable",
         "animated": false,
@@ -5410,24 +5624,11 @@
           "stroke": "#009A44",
           "strokeWidth": 2
         }
-      },
-      {
-        "id": "edge-agent-core-6864-to-node-output-6868",
-        "source": "agent-core-6864",
-        "sourceHandle": "out",
-        "target": "node-output-6868",
-        "targetHandle": "data-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#00338D",
-          "strokeWidth": 2
-        }
       }
     ],
     "activeUseCase": {
-      "id": "uc-wf-1792869224621-u5bih",
-      "name": "test abc",
+      "id": "uc-wf-1792870331758-k1ees",
+      "name": "Untitled Workflow",
       "description": "",
       "framework": {
         "id": "google-adk",
@@ -10702,5 +10903,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1792869269484
+  "syncedAt": 1792870358232
 }

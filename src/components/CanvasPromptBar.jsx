@@ -532,7 +532,15 @@ export default function CanvasPromptBar({
 
     const providerObj = PROVIDERS[selectedProvider];
     logStep(`User Directive: "${textToUse}"`, 'done');
-    const reasonStepId = logStep(`Reasoning with ${providerObj?.name || selectedProvider} (${selectedModelId})`, 'running');
+    const credential = getProviderCredential(selectedProvider);
+    const hasLiveApi = Boolean(credential) || selectedProvider === 'ollama';
+
+    const reasonStepId = logStep(
+      hasLiveApi
+        ? `Reasoning with ${providerObj?.name || selectedProvider} (${selectedModelId})`
+        : `Synthesizing via KEAOS Institutional Engine (${providerObj?.name || selectedProvider} API key not configured)`,
+      'running'
+    );
 
     // Check if the prompt is asking for an incremental change to existing canvas
     const isIncrementalDirective = Boolean(
