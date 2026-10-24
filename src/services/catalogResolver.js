@@ -318,10 +318,12 @@ export function resolveCatalogItem(identifier, pillarTypeHint = null) {
   const keywordMatch = findByKeywords(raw, candidates);
   if (keywordMatch) return keywordMatch;
 
-  // 6. If pillarTypeHint was provided but no match in hint candidates, try all items
+  // 6. If pillarTypeHint was provided, only accept fallback matches that adhere to pillarTypeHint
   if (pillarTypeHint && candidates.length !== allItems.length) {
     const fallbackMatch = findByKeywords(raw, allItems);
-    if (fallbackMatch) return fallbackMatch;
+    if (fallbackMatch && (fallbackMatch.pillarType === pillarTypeHint || fallbackMatch.nodeType === pillarTypeHint)) {
+      return fallbackMatch;
+    }
   }
 
   return null;

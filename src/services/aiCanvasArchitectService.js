@@ -593,54 +593,59 @@ ${catalogManifest}
 - Do not leave any pillar or policy node unconnected.
 - Always generate the corresponding edge in the "edges" array for every node created.
 
-### ZERO-ASSUMPTION ARCHITECTURAL FIDELITY (STRICT MANDATE):
-- Synthesize ONLY the exact components requested by the user. NEVER add unsolicited peripheral nodes!
-- DO NOT add an "ingestionNode" unless the user explicitly asks for file/audio/document ingestion, transcript upload, or data intake.
-- DO NOT add an "outputNodeV2" unless the user explicitly asks for output display, viewer, results studio, or export.
-- DO NOT add "memory" unless the user explicitly mentions memory, recall, vector search, or context store.
-- DO NOT add "policies" unless the user explicitly mentions policies, guardrails, PII redaction, NDA, or compliance.
-- DO NOT add "skills" unless the user explicitly asks for skills (e.g. summarizer, action extractor, sentiment).
-- DO NOT add "mcp" unless the user explicitly asks for MCP integrations (e.g. Slack, Jira, Outlook, GitHub, Neo4j).
-- If the user directive is: "an agent with gpt 4o mini, memory, pii guardrail and summariser skill"
-  Return EXACTLY 5 nodes:
-  1. "agentCore" (Autonomous Enterprise Agent)
-  2. "pillar" with pillarType="model", itemId="model-gpt-4o-mini", name="GPT-4o Mini"
-  3. "pillar" with pillarType="memory", itemId="mem-episodic-sync", name="Episodic Recurring Sync Memory"
-  4. "pillar" with pillarType="policies", itemId="pol-pii-masker", name="PII & Confidentiality Redactor"
-  5. "pillar" with pillarType="skills", itemId="skill-summarizer", name="Executive Summarizer"
-  And EXACTLY 4 edges connecting each peripheral to the agentCore.
+### INTELLIGENT ARCHITECTURAL INFERENCE & THREE-STEP SYNTHESIS:
+You are an intelligent System Architect, NOT a rigid string-matcher. The user's input may be:
+- A high-level concept or architecture (e.g. "create a RAG structure for me", "customer support bot", "code reviewer")
+- A specific list of components (e.g. "an agent with document ingestion, gemini 2.0 flash, summarizer skill, and output display")
+- A long real-world enterprise story or workflow description (e.g. "We receive customer tickets, parse sentiment, query Jira, redact sensitive user info, and send Slack alerts")
 
-- If the user directive is: "Creating an agent with document ingestion, Gemini 2.0 Flash model, summarizer skill, and output display."
-  Return EXACTLY 5 nodes:
-  1. "agentCore" (Autonomous Enterprise Agent)
-  2. "ingestionNode" (Universal File & Audio Ingest)
-  3. "pillar" with pillarType="model", itemId="model-gemini-2-flash", name="Gemini 2.0 Flash"
-  4. "pillar" with pillarType="skills", itemId="skill-summarizer", name="Executive Summarizer"
-  5. "outputNodeV2" (Output Viewer v2.0 Artifact Studio)
-  And EXACTLY 4 edges connecting each node to the agentCore (ingestion -> tools-in, model -> model-in, skill -> skill-in, agentCore out -> output data-in).
+Your mission is to execute this 3-step architectural reasoning process:
+1. UNDERSTAND THE ARCHITECTURAL GOAL:
+   Analyze the user's prompt (short concept, detailed specification, or long enterprise story) to understand the end-to-end data flow, domain objectives, and required capabilities: Ingestion, Reasoning Brain, Knowledge/Memory, Policies, Specialized Skills, External Tool Integrations (MCP), and Output Sink.
+
+2. INFER & MAP TO THE CATALOG:
+   Cross-reference the required capabilities with the Authoritative Component Catalog above to select the best building blocks:
+   - "RAG structure", "Document Q&A", "Knowledge Retrieval", "Semantic Search":
+     -> Central Reasoning: "agentCore" (RAG Knowledge Assistant)
+     -> Ingestion: "ingestionNode" (Universal Document & Text Ingest)
+     -> Brain: "pillar" with pillarType="model" (matching user model or "model-gpt-4o" / "model-gemini-2-flash")
+     -> Knowledge Memory: "pillar" with pillarType="memory", itemId="mem-chroma-vector" (Chroma Vector Database Memory)
+     -> Output: "outputNodeV2" (Output Viewer v2.0 Artifact Studio)
+   - "Customer Support", "Ticket Triage", "Helpdesk":
+     -> Central Reasoning: "agentCore" (Customer Support & Triage Agent)
+     -> Model + "skill-sentiment" (Sentiment Analyzer) + "mcp-jira" (Jira) or "mcp-slack" (Slack) + "pol-pii-masker" (PII Redactor) + "outputNodeV2"
+   - "Code Review", "PR Auditor", "GitHub Security":
+     -> Central Reasoning: "agentCore" (Autonomous Code Reviewer)
+     -> Model + "mcp-github" (GitHub MCP) + "pol-nda-guard" (Trade Secret Guard) + "outputNodeV2"
+   - "Meeting Intelligence", "Call Notes", "Executive MoM":
+     -> Central Reasoning: "agentCore" (Meeting Intelligence Agent)
+     -> Ingestion: "ingestionNode" (Audio & Call Transcriber) + Model + "skill-summarizer" + "skill-action-extractor" + "outputNodeV2"
+
+   CRITICAL RULE: NEVER claim high-level concepts (like "RAG structure", "Support Bot", "ETL Pipeline", "Audit Flow", "Meeting Bot") are missing component names! Assemble them dynamically from the catalog building blocks!
+
+3. BRING TO CANVAS & CONNECT IN A LOGICALLY COHERENT MANNER:
+   - Node #1 in "nodes" array MUST ALWAYS be "type: agentCore", initialized with a tailored "data.prompt" matching the user's domain.
+   - Every peripheral node MUST be connected to the central agentCore using its valid typed socket:
+     - Ingestion: sourceHandle="data-out" -> targetHandle="tools-in" on agentCore
+     - Model: sourceHandle="out" -> targetHandle="model-in" on agentCore
+     - Memory: sourceHandle="out" -> targetHandle="memory-in" on agentCore
+     - Policy: sourceHandle="out" -> targetHandle="policy-in" on agentCore
+     - Skills: sourceHandle="out" -> targetHandle="skill-in" on agentCore
+     - MCP: sourceHandle="out" -> targetHandle="mcp-in" on agentCore
+     - Output: agentCore sourceHandle="out" -> targetHandle="data-in" on outputNodeV2
+   - Generate valid edges in the "edges" array for every node created.
 
 ### Response Protocol:
-1. IF the user asks for a capability that does NOT exist in the catalog, or if their prompt is ambiguous, DO NOT invent an imaginary node. Return JSON with:
-   {
-     "needsClarification": true,
-     "clarificationQuestion": "Component '[requested]' is not found in the institutional catalog. Which of these available components would you like to use?",
-     "clarificationOptions": [
-       { "id": "pol-pii-masker", "label": "PII & Confidentiality Redactor", "description": "Detects and masks salaries, personal emails, phone numbers" },
-       { "id": "pol-trade-secret", "label": "Enterprise NDA & Trade Secret Guard", "description": "Enforces strict IP boundary protection" }
-     ],
-     "steps": ["Analyzing user prompt", "Requested component not found in catalog; requesting selection from available institutional items"]
-   }
-
-2. IF the prompt is clear (or clarification answer is provided), return the complete synthesized workflow in JSON:
+1. Return the complete synthesized workflow in JSON:
    {
      "needsClarification": false,
      "action": "create" | "edit" | "append",
      "summary": "1-sentence executive summary of the architecture",
      "steps": [
-       "Identified pipeline goal",
+       "Identified pipeline goal from user directive",
        "Instantiated Agent Core with tailored system prompt",
        "Configured Foundation Model & Specialized Skills from catalog",
-       "Attached Policy Guardrails & MCP integrations from catalog",
+       "Attached Policy Guardrails, Memory & MCP integrations from catalog",
        "Connected Output Studio & verified typed socket rules"
      ],
      "nodes": [
@@ -1063,7 +1068,7 @@ export function buildDynamicWorkflowLocally({
   }
 
   // Check if ambiguous input requires clarification
-  const isVague = text.length < 15 && !text.includes('meeting') && !text.includes('support') && !text.includes('review') && !text.includes('jira') && !text.includes('slack') && !text.includes('agent') && !text.includes('gpt') && !text.includes('claude') && !text.includes('gemini') && !text.includes('memory') && !text.includes('skill');
+  const isVague = text.length < 15 && !text.includes('rag') && !text.includes('meeting') && !text.includes('support') && !text.includes('review') && !text.includes('jira') && !text.includes('slack') && !text.includes('agent') && !text.includes('gpt') && !text.includes('claude') && !text.includes('gemini') && !text.includes('memory') && !text.includes('skill');
   if (isVague && !clarificationAnswer) {
     return {
       needsClarification: true,
@@ -1086,12 +1091,16 @@ export function buildDynamicWorkflowLocally({
   // Derive specialized agent attributes based on semantic tokens
   let agentName = 'Autonomous Enterprise Agent';
   let agentPrompt = 'Execute enterprise multi-step workflow with analytical fidelity and compliance enforcement.';
+  const isRAG = /\b(rag|retrieval|vector search|semantic search|knowledge base|document search|document q&a)\b/i.test(fullText);
   const isMeeting = /\b(meeting|call|audio)\b/i.test(fullText);
   const isSupport = /\b(support|customer|ticket|helpdesk)\b/i.test(fullText);
   const isCode = /\b(code|github|pr|pull request|review|repo)\b/i.test(fullText);
   const isApprovalNeeded = /\b(approv|human[ -]in[ -]the[ -]loop|hitl|review gate|sign[ -]off)\b/i.test(fullText);
 
-  if (isMeeting) {
+  if (isRAG) {
+    agentName = 'RAG Knowledge & Retrieval Agent';
+    agentPrompt = 'Ingest enterprise documentation, perform semantic vector search against Chroma vector database, and generate grounded, cited answers.';
+  } else if (isMeeting) {
     agentName = 'Meeting Intelligence Agent';
     agentPrompt = 'Analyze multi-speaker transcripts, extract decisions, action items with owners, and draft follow-up communications.';
   } else if (isSupport) {
@@ -1104,7 +1113,7 @@ export function buildDynamicWorkflowLocally({
 
   // 1. Foundation Model Choice strictly resolved from Catalog
   let matchedModel = resolveCatalogItem(fullText, 'model');
-  if (!matchedModel) {
+  if (!matchedModel || matchedModel.pillarType !== 'model') {
     // If user directive did not specify a model in text, use the active dropdown model
     matchedModel = resolveCatalogItem(modelId, 'model') || 
                    resolveCatalogItem(provider, 'model') || 
@@ -1115,16 +1124,16 @@ export function buildDynamicWorkflowLocally({
   const modelDesc = matchedModel?.description || `${modelName} foundation reasoning model with structured JSON outputs.`;
   const modelConfig = { ...(matchedModel?.config || {}), temperature: 0.2, topP: 0.95 };
 
-  // 2. Ingestion Tool Check (STRICT OPT-IN: Only created if explicitly requested)
+  // 2. Ingestion Tool Check (STRICT OPT-IN: Only created if explicitly requested or needed for RAG/meeting)
   const hasAudio = /\b(audio|voice|speech|recording|call|transcri)\b/i.test(fullText);
-  const wantsIngest = /\b(ingest|ingestion|upload|document|pdf|file|raw text|text ingest|input tool)\b/i.test(fullText) || hasAudio;
+  const wantsIngest = /\b(ingest|ingestion|upload|document|pdf|file|raw text|text ingest|input tool)\b/i.test(fullText) || hasAudio || isRAG;
 
-  // 3. Memory Check (STRICT OPT-IN: Only created if explicitly requested)
-  const wantsMemory = /\b(memory|recall|remember|episodic|vector|chroma|context store|retrieval)\b/i.test(fullText);
+  // 3. Memory Check (STRICT OPT-IN: Only created if explicitly requested or needed for RAG)
+  const wantsMemory = /\b(memory|recall|remember|episodic|vector|chroma|context store|retrieval|rag)\b/i.test(fullText) || isRAG;
   let matchedMemory = null;
   if (wantsMemory) {
     let memKey = 'mem-episodic-sync';
-    if (/\b(chroma|vector|rag|semantic search)\b/i.test(fullText)) {
+    if (/\b(chroma|vector|rag|semantic search)\b/i.test(fullText) || isRAG) {
       memKey = 'mem-chroma-vector';
     }
     matchedMemory = resolveCatalogItem(memKey, 'memory') || resolveCatalogItem('mem-episodic-sync', 'memory');
@@ -1200,8 +1209,8 @@ export function buildDynamicWorkflowLocally({
     if (item && !mcpToAttach.some(m => m.id === item.id)) mcpToAttach.push(item);
   }
 
-  // 7. Output Studio Check (STRICT OPT-IN: Only created if explicitly requested)
-  const wantsOutput = /\b(output|viewer|display|result|export|studio|artifact|dashboard)\b/i.test(fullText);
+  // 7. Output Studio Check (STRICT OPT-IN: Only created if explicitly requested or needed for RAG)
+  const wantsOutput = /\b(output|viewer|display|result|export|studio|artifact|dashboard)\b/i.test(fullText) || isRAG;
 
   const nodes = [];
   const edges = [];
