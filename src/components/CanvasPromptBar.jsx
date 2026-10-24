@@ -287,8 +287,13 @@ export default function CanvasPromptBar({
       const nodeName = node.data?.name || node.data?.title || node.data?.pillarType || node.type;
       setCurrentStepText(`Placing ${nodeName}...`);
       
+      const safePosition = (node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number' && !isNaN(node.position.x) && !isNaN(node.position.y))
+        ? node.position
+        : { x: 540 + (i * 40), y: 180 + (i * 20) };
+
       const nodeWithGlow = {
         ...node,
+        position: safePosition,
         className: 'animate-in zoom-in-95 duration-200'
       };
       placedNodes.push(nodeWithGlow);

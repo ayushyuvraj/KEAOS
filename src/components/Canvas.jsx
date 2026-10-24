@@ -70,6 +70,8 @@ const nodeTypes = {
   pillar: PillarNode,
   outputNode: OutputDisplayNode,
   outputNodeV2: OutputDisplayNodeV2,
+  outputDisplayNode: OutputDisplayNode,
+  outputDisplayNodeV2: OutputDisplayNodeV2,
   ingestionNode: IngestionNode,
   deterministicNode: DeterministicNode,
   triggerNode: TriggerNode,
@@ -972,8 +974,8 @@ function CanvasInner({
 
       const sourceNode = (nodes || []).find((n) => n.id === sourceAgentId);
       const newOutputId = `node-output-${Date.now().toString().slice(-4)}`;
-      const xPos = sourceNode ? sourceNode.position.x + 280 : 700;
-      const yPos = sourceNode ? sourceNode.position.y : 220;
+      const xPos = (sourceNode?.position?.x != null && !isNaN(sourceNode.position.x)) ? sourceNode.position.x + 280 : 700;
+      const yPos = (sourceNode?.position?.y != null && !isNaN(sourceNode.position.y)) ? sourceNode.position.y : 220;
 
       const newOutputNode = {
         id: newOutputId,
@@ -1276,8 +1278,8 @@ function CanvasInner({
 
       const sourceNode = (nodes || []).find((n) => n.id === sourceAgentId);
       const newAgentId = `agent-core-${Date.now().toString().slice(-4)}`;
-      const xPos = sourceNode ? sourceNode.position.x + 360 : 700;
-      const yPos = sourceNode ? sourceNode.position.y : 220;
+      const xPos = (sourceNode?.position?.x != null && !isNaN(sourceNode.position.x)) ? sourceNode.position.x + 360 : 700;
+      const yPos = (sourceNode?.position?.y != null && !isNaN(sourceNode.position.y)) ? sourceNode.position.y : 220;
 
       const existingAgents = (nodes || []).filter(n => n.type === 'agentCore');
       const agentCount = existingAgents.length + 1;
@@ -1427,8 +1429,8 @@ function CanvasInner({
       ...JSON.parse(JSON.stringify(nodeToClone)),
       id: newId,
       position: {
-        x: nodeToClone.position.x + 50,
-        y: nodeToClone.position.y + 50
+        x: (nodeToClone?.position?.x != null && !isNaN(nodeToClone.position.x) ? nodeToClone.position.x : 500) + 50,
+        y: (nodeToClone?.position?.y != null && !isNaN(nodeToClone.position.y) ? nodeToClone.position.y : 200) + 50
       },
       data: clonedData,
       selected: true
@@ -2479,8 +2481,16 @@ function CanvasInner({
         }
       }
 
+      const safeX = (n.position && typeof n.position.x === 'number' && !isNaN(n.position.x)) 
+        ? n.position.x 
+        : (500 + (n.id ? (n.id.length * 17) % 250 : 0));
+      const safeY = (n.position && typeof n.position.y === 'number' && !isNaN(n.position.y)) 
+        ? n.position.y 
+        : 200;
+
       return {
         ...n,
+        position: { x: safeX, y: safeY },
         data: {
           ...n.data,
           isDarkMode,

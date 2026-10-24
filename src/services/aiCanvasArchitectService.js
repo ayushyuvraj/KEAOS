@@ -9,14 +9,43 @@ import { FRAMEWORKS } from '../constants/frameworks';
 export function computeArchitectLayout(nodes, edges) {
   if (!Array.isArray(nodes) || nodes.length === 0) return { nodes: [], edges: edges || [] };
 
-  const agentNodes = nodes.filter(n => n.type === 'agentCore');
-  const triggerNodes = nodes.filter(n => n.type === 'triggerNode');
-  const ingestionNodes = nodes.filter(n => n.type === 'ingestionNode');
-  const deterministicNodes = nodes.filter(n => n.type === 'deterministicNode');
-  const approvalNodes = nodes.filter(n => n.type === 'approvalNode');
-  const routerNodes = nodes.filter(n => n.type === 'routerNode');
-  const outputNodes = nodes.filter(n => n.type === 'outputNode' || n.type === 'outputNodeV2');
-  const pillarNodes = nodes.filter(n => n.type === 'pillar');
+  // First, normalize all nodes and guarantee safe default position
+  const safeNodes = nodes.map((node, i) => {
+    let type = node.type || 'pillar';
+    // Type normalization
+    if (type === 'outputDisplayNode' || type === 'outputDisplayNodeV2' || type === 'output') {
+      type = 'outputNodeV2';
+    } else if (type === 'modelNode') {
+      type = 'pillar';
+      node.data = { ...node.data, pillarType: 'model' };
+    } else if (type === 'skillNode') {
+      type = 'pillar';
+      node.data = { ...node.data, pillarType: 'skills' };
+    } else if (type === 'mcpNode') {
+      type = 'pillar';
+      node.data = { ...node.data, pillarType: 'mcp' };
+    } else if (type === 'policyNode') {
+      type = 'pillar';
+      node.data = { ...node.data, pillarType: 'policies' };
+    }
+
+    return {
+      ...node,
+      type,
+      position: (node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number' && !isNaN(node.position.x) && !isNaN(node.position.y))
+        ? { ...node.position }
+        : { x: 540 + (i * 40), y: 180 + (i * 20) }
+    };
+  });
+
+  const agentNodes = safeNodes.filter(n => n.type === 'agentCore');
+  const triggerNodes = safeNodes.filter(n => n.type === 'triggerNode');
+  const ingestionNodes = safeNodes.filter(n => n.type === 'ingestionNode');
+  const deterministicNodes = safeNodes.filter(n => n.type === 'deterministicNode');
+  const approvalNodes = safeNodes.filter(n => n.type === 'approvalNode');
+  const routerNodes = safeNodes.filter(n => n.type === 'routerNode');
+  const outputNodes = safeNodes.filter(n => n.type === 'outputNode' || n.type === 'outputNodeV2');
+  const pillarNodes = safeNodes.filter(n => n.type === 'pillar');
 
   // Single Agent Layout (Classical KEAOS Star Architecture)
   if (agentNodes.length <= 1) {
@@ -24,60 +53,95 @@ export function computeArchitectLayout(nodes, edges) {
     const centerX = 540;
     const centerY = 180;
 
-    const positionedNodes = nodes.map(node => {
+    let skillIndex = 0;
+    let policyIndex = 0;
+    let mcpIndex = 0;
+    let modelIndex = 0;
+    let toolIndex = 0;
+    let gateIndex = 0;
+    let triggerIndex = 0;
+    let ingestIndex = 0;
+
+    const positionedNodes = safeNodes.map(node => {
       // 1. Agent Core
-      if (node.id === primaryAgentId) {
+      if (node.id === primaryAgentId || (agentNodes.length === 0 && node.type === 'agentCore')) {
         return { ...node, position: { x: centerX, y: centerY } };
       }
 
       // 2. Triggers
       if (node.type === 'triggerNode') {
-        return { ...node, position: { x: centerX - 360, y: centerY } };
+        const pos = { x: centerX - 380 - (triggerIndex * 140), y: centerY + (triggerIndex * 80) };
+        triggerIndex++;
+        return { ...node, position: pos };
       }
 
       // 3. Ingestion Nodes
       if (node.type === 'ingestionNode') {
-        return { ...node, position: { x: centerX - 120, y: centerY - 120 } };
+        const pos = { x: centerX - 140 - (ingestIndex * 180), y: centerY - 120 };
+        ingestIndex++;
+        return { ...node, position: pos };
       }
 
       // 4. Pillars attached to primary agent
       if (node.type === 'pillar') {
         const pillarType = node.data?.pillarType;
         switch (pillarType) {
-          case 'model':
-            return { ...node, position: { x: centerX + 44, y: centerY - 120 } };
-          case 'gateway':
-            return { ...node, position: { x: centerX + 260, y: centerY - 180 } };
-          case 'mcp':
-            return { ...node, position: { x: centerX + 260, y: centerY - 60 } };
-          case 'policies':
-            return { ...node, position: { x: centerX - 160, y: centerY + 270 } };
-          case 'memory':
+          case 'model': {
+            const pos = { x: centerX + 44 + (modelIndex * 160), y: centerY - 120 };
+            modelIndex++;
+            return { ...node, position: pos };
+          }
+          case 'gateway': {
+            const pos = { x: centerX + 260 + (mcpIndex * 180), y: centerY - 180 };
+            mcpIndex++;
+            return { ...node, position: pos };
+          }
+          case 'mcp': {
+            const pos = { x: centerX + 260 + (mcpIndex * 180), y: centerY - 60 };
+            mcpIndex++;
+            return { ...node, position: pos };
+          }
+          case 'policies': {
+            const pos = { x: centerX - 160 - (policyIndex * 180), y: centerY + 270 };
+            policyIndex++;
+            return { ...node, position: pos };
+          }
+          case 'memory': {
             return { ...node, position: { x: centerX + 24, y: centerY + 270 } };
-          case 'skills':
-            return { ...node, position: { x: centerX + 210, y: centerY + 270 } };
+          }
+          case 'skills': {
+            const pos = { x: centerX + 180 + (skillIndex * 180), y: centerY + 270 };
+            skillIndex++;
+            return { ...node, position: pos };
+          }
           case 'audit':
             return { ...node, position: { x: centerX - 260, y: centerY + 130 } };
           case 'observability':
             return { ...node, position: { x: centerX - 260, y: centerY + 230 } };
           case 'cost_benefit':
             return { ...node, position: { x: centerX + 360, y: centerY + 180 } };
-          case 'tools':
-            return { ...node, position: { x: centerX - 140, y: centerY - 120 } };
-          default:
-            return { ...node, position: { x: centerX + 180, y: centerY + 120 } };
+          case 'tools': {
+            const pos = { x: centerX - 140 - (toolIndex * 180), y: centerY - 120 };
+            toolIndex++;
+            return { ...node, position: pos };
+          }
+          default: {
+            return { ...node, position: { x: centerX + 180 + (toolIndex * 120), y: centerY + 120 } };
+          }
         }
       }
 
       // 5. Approvals / Routers (Mid-pipeline)
       if (node.type === 'approvalNode' || node.type === 'routerNode') {
-        return { ...node, position: { x: centerX + 320, y: centerY } };
+        const pos = { x: centerX + 320 + (gateIndex * 220), y: centerY };
+        gateIndex++;
+        return { ...node, position: pos };
       }
 
       // 6. Output Studio
       if (node.type === 'outputNode' || node.type === 'outputNodeV2') {
         const hasGate = approvalNodes.length > 0 || routerNodes.length > 0;
-        return { ...node, position: { x: centerX + (hasGate ? 620 : 340), y: centerY } };
+        return { ...node, position: { x: centerX + (hasGate ? 620 : 340) + (gateIndex > 1 ? (gateIndex - 1) * 200 : 0), y: centerY } };
       }
 
       // 7. Deterministic Nodes
@@ -85,20 +149,78 @@ export function computeArchitectLayout(nodes, edges) {
         return { ...node, position: { x: centerX + 320, y: centerY + 140 } };
       }
 
-      return node;
+      // Fallback: guaranteed valid position
+      return {
+        ...node,
+        position: node.position || { x: centerX + 300, y: centerY + 200 }
+      };
     });
 
     return { nodes: positionedNodes, edges: edges || [] };
   }
 
-  // Multi-Agent Pipeline Layout (Sequential horizontal chaining)
-  const spacingX = 480;
-  const positionedNodes = nodes.map((node) => {
+  // Multi-Agent Pipeline Layout (Chained horizontal agents with localized pillar orbits)
+  const spacingX = 640;
+  const agentPositions = {};
+  agentNodes.forEach((ag, idx) => {
+    agentPositions[ag.id] = { x: 300 + idx * spacingX, y: 220 };
+  });
+
+  const positionedNodes = safeNodes.map((node, i) => {
     if (node.type === 'agentCore') {
-      const idx = agentNodes.findIndex(a => a.id === node.id);
-      return { ...node, position: { x: 300 + idx * spacingX, y: 180 } };
+      return { ...node, position: agentPositions[node.id] || { x: 300 + i * spacingX, y: 220 } };
     }
-    return node;
+
+    // Find which agent this node connects to (via edges)
+    const connectedEdge = (edges || []).find(e => e.source === node.id || e.target === node.id);
+    const targetAgentId = connectedEdge 
+      ? (agentPositions[connectedEdge.target] ? connectedEdge.target : (agentPositions[connectedEdge.source] ? connectedEdge.source : agentNodes[0]?.id))
+      : agentNodes[0]?.id;
+
+    const baseAgentPos = agentPositions[targetAgentId] || { x: 300, y: 220 };
+    const ax = baseAgentPos.x;
+    const ay = baseAgentPos.y;
+
+    if (node.type === 'pillar') {
+      const pt = node.data?.pillarType;
+      switch (pt) {
+        case 'model': return { ...node, position: { x: ax + 44, y: ay - 120 } };
+        case 'tools': return { ...node, position: { x: ax - 140, y: ay - 120 } };
+        case 'memory': return { ...node, position: { x: ax + 24, y: ay + 260 } };
+        case 'policies': return { ...node, position: { x: ax - 160, y: ay + 260 } };
+        case 'skills': return { ...node, position: { x: ax + 180, y: ay + 260 } };
+        case 'mcp': return { ...node, position: { x: ax + 260, y: ay - 60 } };
+        case 'gateway': return { ...node, position: { x: ax + 260, y: ay - 160 } };
+        default: return { ...node, position: { x: ax + 120, y: ay + 140 } };
+      }
+    }
+
+    if (node.type === 'ingestionNode') {
+      return { ...node, position: { x: ax - 180, y: ay - 120 } };
+    }
+
+    if (node.type === 'triggerNode') {
+      return { ...node, position: { x: ax - 360, y: ay } };
+    }
+
+    if (node.type === 'approvalNode' || node.type === 'routerNode') {
+      return { ...node, position: { x: ax + 340, y: ay } };
+    }
+
+    if (node.type === 'outputNode' || node.type === 'outputNodeV2') {
+      const lastAgent = agentNodes[agentNodes.length - 1];
+      const lastPos = agentPositions[lastAgent?.id] || baseAgentPos;
+      return { ...node, position: { x: lastPos.x + 360, y: lastPos.y } };
+    }
+
+    if (node.type === 'deterministicNode') {
+      return { ...node, position: { x: ax + 300, y: ay + 140 } };
+    }
+
+    return {
+      ...node,
+      position: (node.position && typeof node.position.x === 'number') ? node.position : { x: ax + 200, y: ay + 100 }
+    };
   });
 
   return { nodes: positionedNodes, edges: edges || [] };
@@ -389,31 +511,57 @@ export function buildDynamicWorkflowLocally({ prompt, existingNodes = [], existi
   });
   steps.push('Enforced Policy Guardrail: PII Redactor on policies-in socket');
 
-  // 6. Skill Node
-  const skillNodeId = `node-skill-${Date.now().toString().slice(-4)}`;
-  const skillName = isMeeting ? 'Executive Summarizer' : isSupport ? 'Action Extractor' : 'Code Audit Sentinel';
-  nodes.push({
-    id: skillNodeId,
-    type: 'pillar',
-    position: { x: 750, y: 450 },
-    data: {
-      pillarType: 'skills',
-      name: skillName,
-      description: 'Generates structured synthesis, highlights, and action points.',
+  // 6. Skill Nodes (dynamically match intent: Sentiment, Action Items, Summarizer, etc.)
+  const skillsToAttach = [];
+  if (fullText.includes('sentiment')) {
+    skillsToAttach.push({
+      id: `node-skill-sentiment-${Date.now().toString().slice(-4)}`,
+      name: 'Sentiment & Tone Analyzer',
+      description: 'Quantifies caller emotion, sentiment polarity, and customer dissatisfaction markers.',
+      config: { detectEmotion: true, trackEscalation: true }
+    });
+  }
+  if (fullText.includes('action') || isMeeting || isSupport) {
+    skillsToAttach.push({
+      id: `node-skill-action-${Date.now().toString().slice(-4)}`,
+      name: 'Action Items & Follow-up Extractor',
+      description: 'Extracts discrete action items with assignees, priorities, and Slack dispatch payloads.',
+      config: { includeOwners: true, includeDeadlines: true }
+    });
+  }
+  if (skillsToAttach.length === 0) {
+    skillsToAttach.push({
+      id: `node-skill-${Date.now().toString().slice(-4)}`,
+      name: isMeeting ? 'Executive Summarizer' : isCode ? 'Code Audit Sentinel' : 'Enterprise Intelligence Skill',
+      description: 'Generates structured synthesis, highlights, and operational insights.',
       config: { focus: 'executive' }
-    }
+    });
+  }
+
+  skillsToAttach.forEach((sk) => {
+    nodes.push({
+      id: sk.id,
+      type: 'pillar',
+      position: { x: 750, y: 450 },
+      data: {
+        pillarType: 'skills',
+        name: sk.name,
+        description: sk.description,
+        config: sk.config
+      }
+    });
+    edges.push({
+      id: `edge-${sk.id}-to-${agentId}`,
+      source: sk.id,
+      sourceHandle: 'out',
+      target: agentId,
+      targetHandle: 'skill-in',
+      type: 'deletable',
+      animated: true,
+      style: { stroke: '#009A44', strokeWidth: 2 }
+    });
+    steps.push(`Loaded Specialized Skill: ${sk.name} on skill-in socket`);
   });
-  edges.push({
-    id: `edge-${skillNodeId}-to-${agentId}`,
-    source: skillNodeId,
-    sourceHandle: 'out',
-    target: agentId,
-    targetHandle: 'skill-in',
-    type: 'deletable',
-    animated: true,
-    style: { stroke: '#009A44', strokeWidth: 2 }
-  });
-  steps.push(`Loaded Specialized Skill: ${skillName} on skill-in socket`);
 
   // 7. MCP Integrations (Slack / Jira / Outlook / GitHub)
   if (hasSlack || hasJira || hasOutlook || isSupport || isCode) {

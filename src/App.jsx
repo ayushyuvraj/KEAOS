@@ -1333,10 +1333,10 @@ export default function App() {
 
       let xPos = 1060;
       let yPos = 165;
-      if (gwNode) {
+      if (gwNode?.position?.x != null && gwNode?.position?.y != null) {
         xPos = gwNode.position.x + 280;
         yPos = gwNode.position.y;
-      } else if (agentNode) {
+      } else if (agentNode?.position?.x != null && agentNode?.position?.y != null) {
         xPos = agentNode.position.x + 280;
         yPos = agentNode.position.y - 120;
       }
@@ -1512,8 +1512,8 @@ export default function App() {
           ? nds.find(n => n.id === targetAgentId) 
           : nds.find(n => n.type === 'agentCore');
         const existingOuts = nds.filter(n => n.type === 'outputNode' || n.type === 'outputNodeV2');
-        const xPos = agentNode ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790;
-        const yPos = agentNode ? agentNode.position.y + 42 : 207;
+        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790;
+        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y + 42 : 207;
 
         const newNode = {
           id: newNodeId,
@@ -1570,8 +1570,8 @@ export default function App() {
           ? nds.find(n => n.id === targetAgentId) 
           : nds.find(n => n.type === 'agentCore');
         const existingOuts = nds.filter(n => n.type === 'outputNode');
-        const xPos = agentNode ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790;
-        const yPos = agentNode ? agentNode.position.y + 42 : 207;
+        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790;
+        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y + 42 : 207;
 
         const newNode = {
           id: newNodeId,
@@ -1630,8 +1630,8 @@ export default function App() {
           ? nds.find(n => n.id === targetAgentId) 
           : nds.find(n => n.type === 'agentCore');
         const existingIngests = nds.filter(n => n.type === 'ingestionNode');
-        const xPos = agentNode ? agentNode.position.x - 46 - (existingIngests.length * 30) : 474;
-        const yPos = agentNode ? agentNode.position.y - 110 : 55;
+        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 46 - (existingIngests.length * 30) : 474;
+        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y - 110 : 55;
 
         const newNode = {
           id: newNodeId,
@@ -1684,8 +1684,8 @@ export default function App() {
         const existing = nds.filter(n => n.type === 'deterministicNode');
         count = existing.length + 1;
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = agentNode ? agentNode.position.x + 280 : 480 + (existing.length * 40);
-        const yPos = agentNode ? agentNode.position.y + 120 + (existing.length * 60) : 300 + (existing.length * 40);
+        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 280 : 480 + (existing.length * 40);
+        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y + 120 + (existing.length * 60) : 300 + (existing.length * 40);
 
         const newNode = {
           id: newNodeId,
@@ -1737,8 +1737,8 @@ export default function App() {
         const existing = nds.filter(n => n.type === 'routerNode');
         count = existing.length + 1;
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = agentNode ? agentNode.position.x - 220 : 360;
-        const yPos = agentNode 
+        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 220 : 360;
+        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
           ? agentNode.position.y + 140 + (existing.length * 80)
           : 300 + (existing.length * 80);
 
@@ -1780,8 +1780,8 @@ export default function App() {
         const existing = nds.filter(n => n.type === 'approvalNode');
         count = existing.length + 1;
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = agentNode ? agentNode.position.x + 240 : 540;
-        const yPos = agentNode 
+        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 240 : 540;
+        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
           ? agentNode.position.y + 140 + (existing.length * 80)
           : 320 + (existing.length * 80);
 
@@ -1824,8 +1824,8 @@ export default function App() {
         count = existingSameType.length + 1;
         const existingAllTriggers = nds.filter(n => n.type === 'triggerNode');
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = agentNode ? agentNode.position.x - 320 : 180;
-        const yPos = agentNode 
+        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 320 : 180;
+        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
           ? agentNode.position.y + (existingAllTriggers.length * 90) 
           : 220 + (existingAllTriggers.length * 90);
 
@@ -1877,7 +1877,7 @@ export default function App() {
       let xPos = 400 + Math.random() * 200;
       let yPos = 150 + Math.random() * 250;
 
-      if (targetAgent) {
+      if (targetAgent?.position?.x != null && targetAgent?.position?.y != null) {
         if (pillarKey === 'model') {
           const modelCount = nds.filter(n => n.data?.pillarType === 'model').length;
           xPos = targetAgent.position.x + 44 + (modelCount * 30);
