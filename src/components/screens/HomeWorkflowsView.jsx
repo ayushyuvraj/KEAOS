@@ -30,7 +30,9 @@ import {
   updateWorkflowMetadata, 
   exportWorkflowAsJson, 
   importWorkflowFromJson,
-  getActiveWorkflowId
+  getActiveWorkflowId,
+  isWorkflowNameTaken,
+  getNextUniqueWorkflowName
 } from '../../utils/workflowStorage';
 import { FRAMEWORKS } from '../../constants/frameworks';
 
@@ -196,16 +198,17 @@ export default function HomeWorkflowsView({
 
   // Handle Create Blank Workflow
   const handleCreateNew = () => {
+    const uniqueName = getNextUniqueWorkflowName('Untitled Workflow', null, workflows);
     const newWf = createWorkflow({
-      name: 'Untitled Workflow',
-      description: 'Pristine blank canvas. Connect models, skills, tools, and gateways.',
+      name: uniqueName,
+      description: '',
       framework: FRAMEWORKS[0],
       isBlank: true,
       nodes: [],
       edges: []
     });
     reloadWorkflows();
-    showToast('Created new blank workflow');
+    showToast(`Created new blank workflow: "${uniqueName}"`);
     if (onCreateBlankWorkflow) {
       onCreateBlankWorkflow(newWf);
     } else if (onOpenWorkflow) {
@@ -960,101 +963,131 @@ export default function HomeWorkflowsView({
       </div>
 
       {/* RENAME / EDIT WORKFLOW MODAL */}
-      {editingWorkflow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
-          <div className={`w-full max-w-lg border shadow-2xl p-6 ${
-            isDarkMode ? 'bg-[#181921] border-[#2E313D] text-white' : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
-          }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <h3 className="text-sm font-bold">Edit Workflow Specifications</h3>
-              <button 
-                onClick={() => setEditingWorkflow(null)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {editingWorkflow && (() => {
+        const isEditDuplicate = isWorkflowNameTaken(editingWorkflow.name, editingWorkflow.id, workflows);
+        const isEditNameEmpty = !editingWorkflow.name?.trim();
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
-                  Workflow Name
-                </label>
-                <input
-                  type="text"
-                  value={editingWorkflow.name}
-                  onChange={(e) => setEditingWorkflow({ ...editingWorkflow, name: e.target.value })}
-                  className={`w-full px-3 py-1.5 text-xs border outline-none ${
-                    isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
-                  }`}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={editingWorkflow.description || ''}
-                  onChange={(e) => setEditingWorkflow({ ...editingWorkflow, description: e.target.value })}
-                  className={`w-full px-3 py-1.5 text-xs border outline-none ${
-                    isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
-                  }`}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
-                  Multi-Agent SDK
-                </label>
-                <select
-                  value={editingWorkflow.framework?.id || 'google-adk'}
-                  onChange={(e) => {
-                    const fw = FRAMEWORKS.find((f) => f.id === e.target.value) || FRAMEWORKS[0];
-                    setEditingWorkflow({ ...editingWorkflow, framework: fw });
-                  }}
-                  className={`w-full px-3 py-1.5 text-xs border outline-none ${
-                    isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
-                  }`}
-                >
-                  {FRAMEWORKS.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} — {f.subtitle}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
-                <button
-                  type="button"
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
+            <div className={`w-full max-w-lg border shadow-2xl p-6 ${
+              isDarkMode ? 'bg-[#181921] border-[#2E313D] text-white' : 'bg-white border-[#CBD5E1] text-[#0B0F19]'
+            }`}>
+              <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-[#0091DA]" />
+                  Edit Workflow Specifications
+                </h3>
+                <button 
                   onClick={() => setEditingWorkflow(null)}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="text-slate-400 hover:text-white"
                 >
-                  Cancel
+                  <X className="w-4 h-4" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateWorkflowMetadata(editingWorkflow.id, {
-                      name: editingWorkflow.name,
-                      description: editingWorkflow.description,
-                      framework: editingWorkflow.framework
-                    });
-                    reloadWorkflows();
-                    setEditingWorkflow(null);
-                    showToast('Workflow updated successfully');
-                  }}
-                  className="px-4 py-1.5 text-xs font-bold bg-[#00338D] hover:bg-[#005EB8] text-white border border-[#0091DA]/50 shadow-sm"
-                >
-                  Save Changes
-                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-mono font-medium text-slate-400">
+                      Workflow Name
+                    </label>
+                    {isEditDuplicate && (
+                      <span className="text-[10px] font-mono font-bold text-rose-500 uppercase tracking-wider">
+                        Name already taken
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={editingWorkflow.name}
+                    onChange={(e) => setEditingWorkflow({ ...editingWorkflow, name: e.target.value })}
+                    className={`w-full px-3 py-1.5 text-xs border outline-none transition-colors ${
+                      isEditDuplicate
+                        ? 'border-rose-500 bg-rose-500/10 text-rose-300 focus:border-rose-600'
+                        : isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
+                    }`}
+                  />
+                  {isEditDuplicate && (
+                    <p className="mt-1 text-[11px] font-mono text-rose-500 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3 shrink-0" />
+                      Another workflow already uses this name (case-insensitive).
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Describe what this workflow accomplishes..."
+                    value={editingWorkflow.description || ''}
+                    onChange={(e) => setEditingWorkflow({ ...editingWorkflow, description: e.target.value })}
+                    className={`w-full px-3 py-1.5 text-xs border outline-none ${
+                      isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
+                    Multi-Agent SDK
+                  </label>
+                  <select
+                    value={editingWorkflow.framework?.id || 'google-adk'}
+                    onChange={(e) => {
+                      const fw = FRAMEWORKS.find((f) => f.id === e.target.value) || FRAMEWORKS[0];
+                      setEditingWorkflow({ ...editingWorkflow, framework: fw });
+                    }}
+                    className={`w-full px-3 py-1.5 text-xs border outline-none ${
+                      isDarkMode ? 'bg-[#101117] border-[#2E313D] text-white' : 'bg-slate-50 border-[#CBD5E1] text-black'
+                    }`}
+                  >
+                    {FRAMEWORKS.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} — {f.subtitle}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setEditingWorkflow(null)}
+                    className="px-3.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isEditDuplicate || isEditNameEmpty}
+                    onClick={() => {
+                      if (isEditDuplicate || isEditNameEmpty) return;
+                      updateWorkflowMetadata(editingWorkflow.id, {
+                        name: editingWorkflow.name.trim(),
+                        description: editingWorkflow.description,
+                        framework: editingWorkflow.framework
+                      });
+                      reloadWorkflows();
+                      setEditingWorkflow(null);
+                      showToast('Workflow updated successfully');
+                    }}
+                    className={`px-4 py-1.5 text-xs font-bold text-white border shadow-sm transition-all ${
+                      isEditDuplicate || isEditNameEmpty
+                        ? 'bg-slate-700/50 border-slate-600/50 cursor-not-allowed opacity-50'
+                        : 'bg-[#00338D] hover:bg-[#005EB8] border-[#0091DA]/50'
+                    }`}
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* DELETE CONFIRMATION SAFEGUARD MODAL WITH STRICT LOCKED IMMUNITY */}
       {deleteConfirmId && (() => {

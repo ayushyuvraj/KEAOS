@@ -772,7 +772,8 @@ export default function App() {
     const fromCanvas = initialCanvas?.activeUseCase;
     const candidate = fromWf || fromCanvas;
     if (candidate && candidate.name && candidate.name !== 'Enterprise Autonomous Agent') {
-      return candidate;
+      const cleanDesc = (candidate.description === 'Pristine blank canvas. Connect models, skills, tools, and gateways.') ? '' : (candidate.description || '');
+      return { ...candidate, description: cleanDesc };
     }
     return {
       id: 'uc-meeting-intel',
@@ -2107,10 +2108,12 @@ export default function App() {
     if (!workflow) return;
     setActiveWorkflowId(workflow.id);
     setIsWorkflowLockedState(Boolean(workflow.isLocked ?? workflow.isWorkflowLocked ?? false));
-    setActiveUseCase(workflow.activeUseCase || {
+    const rawDesc = workflow.activeUseCase?.description ?? workflow.description ?? '';
+    const cleanDesc = (rawDesc === 'Pristine blank canvas. Connect models, skills, tools, and gateways.') ? '' : rawDesc;
+    setActiveUseCase(workflow.activeUseCase ? { ...workflow.activeUseCase, description: cleanDesc } : {
       id: `uc-${workflow.id}`,
       name: workflow.name,
-      description: workflow.description,
+      description: cleanDesc,
       framework: workflow.framework,
       agent: {
         prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',

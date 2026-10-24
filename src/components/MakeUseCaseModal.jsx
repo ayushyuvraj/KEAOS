@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Check, ArrowRight, Layers } from 'lucide-react';
+import { X, Sparkles, Check, ArrowRight, Layers, AlertTriangle } from 'lucide-react';
 import { FRAMEWORKS } from '../constants/frameworks';
+import { isWorkflowNameTaken, getNextUniqueWorkflowName } from '../utils/workflowStorage';
 
 export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
-  const [name, setName] = useState('Meeting Intelligence Agent');
-  const [description, setDescription] = useState('Multi-speaker transcript synthesis, action item extraction, and task dispatching.');
+  const [name, setName] = useState(() => getNextUniqueWorkflowName('Untitled Workflow'));
+  const [description, setDescription] = useState('');
   const [selectedFrameworkId, setSelectedFrameworkId] = useState('google-adk');
   const [template, setTemplate] = useState('meeting-pilot');
 
   if (!isOpen) return null;
 
+  const isDuplicate = isWorkflowNameTaken(name.trim());
+  const isNameEmpty = !name.trim();
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isDuplicate || isNameEmpty) return;
     const frameworkObj = FRAMEWORKS.find(f => f.id === selectedFrameworkId) || FRAMEWORKS[0];
     onCreateUseCase({
-      name,
+      name: name.trim(),
       description,
       framework: frameworkObj,
       template
@@ -49,17 +54,34 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-[#FFFFFF]">
           {/* Use Case Name */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] mb-1.5 font-mono">
-              Use Case Title
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono">
+                Use Case Title
+              </label>
+              {isDuplicate && (
+                <span className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-wider">
+                  Name already taken
+                </span>
+              )}
+            </div>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Meeting Intelligence Agent"
-              className="w-full px-3.5 py-2.5 bg-[#FFFFFF] border border-[#CBD5E1] text-[#0B0F19] text-xs focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none transition-colors"
+              className={`w-full px-3.5 py-2.5 bg-[#FFFFFF] border text-xs focus:outline-none rounded-none transition-colors ${
+                isDuplicate 
+                  ? 'border-rose-500 bg-rose-50 text-rose-900 focus:border-rose-600 focus:ring-1 focus:ring-rose-500'
+                  : 'border-[#CBD5E1] text-[#0B0F19] focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D]'
+              }`}
             />
+            {isDuplicate && (
+              <p className="mt-1 text-[11px] font-mono text-rose-600 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                Another workflow already uses this name (case-insensitive).
+              </p>
+            )}
           </div>
 
           {/* Framework Dropdown (Clean dropdown without pictures) */}
@@ -194,8 +216,8 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
                 type="button"
                 onClick={() => {
                   setTemplate('blank');
-                  setName('Autonomous Agent');
-                  setDescription('Custom enterprise agent graph built from scratch.');
+                  setName(getNextUniqueWorkflowName('Untitled Workflow'));
+                  setDescription('');
                 }}
                 className={`btn-tactile p-3 text-left border rounded-none transition-all ${
                   template === 'blank'
@@ -225,7 +247,12 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
             </button>
             <button
               type="submit"
-              className="btn-tactile flex items-center gap-2 px-5 py-2.5 text-xs font-bold bg-[#00338D] hover:bg-[#005EB8] text-white rounded-none transition-all shadow-sm border-b-2 border-[#001E50]"
+              disabled={isDuplicate || isNameEmpty}
+              className={`btn-tactile flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white rounded-none transition-all shadow-sm border-b-2 border-[#001E50] ${
+                isDuplicate || isNameEmpty
+                  ? 'bg-slate-400 cursor-not-allowed opacity-50'
+                  : 'bg-[#00338D] hover:bg-[#005EB8]'
+              }`}
             >
               <span>Initialize in {selectedFramework?.name}</span>
               <ArrowRight className="w-4 h-4" />

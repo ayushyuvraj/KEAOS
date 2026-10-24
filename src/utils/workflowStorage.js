@@ -849,8 +849,74 @@ function createInitialDefaultWorkflow() {
 }
 
 /**
+ * Normalizes a workflow name for case-insensitive, whitespace-trimmed comparison.
+ */
+export function normalizeWorkflowName(name) {
+  return (name || '').trim().toLowerCase();
+}
+
+/**
+ * Checks whether a given workflow name is already taken by any existing workflow (case-insensitively).
+ * @param {string} name - Prospective workflow name
+ * @param {string|null} excludeId - Workflow ID to exclude from check (e.g. current editing workflow)
+ * @param {Array|null} workflowsList - Optional preloaded workflows array, otherwise loads from registry
+ * @returns {boolean} True if taken, false if available
+ */
+export function isWorkflowNameTaken(name, excludeId = null, workflowsList = null) {
+  const normalized = normalizeWorkflowName(name);
+  if (!normalized) return false;
+  const list = Array.isArray(workflowsList) ? workflowsList : loadAllWorkflows();
+  return list.some((w) => {
+    if (excludeId && w.id === excludeId) return false;
+    return normalizeWorkflowName(w.name) === normalized;
+  });
+}
+
+/**
+ * Derives the next guaranteed unique workflow name by appending an incremented number if collisions exist.
+ * e.g., "Untitled Workflow" -> "Untitled Workflow 2" -> "Untitled Workflow 3"
+ * Case-insensitive comparison.
+ * @param {string} baseName - Desired base name
+ * @param {string|null} excludeId - Workflow ID to exclude
+ * @param {Array|null} workflowsList - Optional workflows array
+ * @returns {string} Unique workflow name
+ */
+export function getNextUniqueWorkflowName(baseName = 'Untitled Workflow', excludeId = null, workflowsList = null) {
+  const rawBase = (baseName || '').trim() || 'Untitled Workflow';
+  const list = Array.isArray(workflowsList) ? workflowsList : loadAllWorkflows();
+
+  const takenNames = new Set(
+    list
+      .filter((w) => !excludeId || w.id !== excludeId)
+      .map((w) => normalizeWorkflowName(w.name))
+  );
+
+  if (!takenNames.has(normalizeWorkflowName(rawBase))) {
+    return rawBase;
+  }
+
+  // Check if baseName already ends with a counter (e.g. "Untitled Workflow 2" or "Copy 2")
+  const match = rawBase.match(/^(.*?)(?:\s+(\d+))$/);
+  let prefix = rawBase;
+  let counter = 2;
+  if (match) {
+    prefix = match[1];
+    counter = parseInt(match[2], 10) + 1;
+  }
+
+  let candidate = `${prefix} ${counter}`;
+  while (takenNames.has(normalizeWorkflowName(candidate))) {
+    counter++;
+    candidate = `${prefix} ${counter}`;
+  }
+
+  return candidate;
+}
+
+/**
  * Loads all saved workflows from localStorage with safe fallback and seamless migration.
  * Preserves custom workflows (e.g. MIA2) without forced renaming.
+ * Cleans legacy placeholder descriptions to blank and enforces case-insensitive name uniqueness.
  */
 export function loadAllWorkflows() {
   try {
@@ -860,15 +926,47 @@ export function loadAllWorkflows() {
       if (Array.isArray(parsed) && parsed.length > 0) {
         let registryMutated = false;
 
-        // Ensure the official Outlook Stream Intelligence template workflow is available in registry
-        if (!parsed.some(w => w.id === 'wf-outlook-stream-intelligence')) {
+        // 1. Clean legacy placeholder descriptions to empty string
+        parsed.forEach((w) => {
+          if (
+            w.description === 'Pristine blank canvas. Connect models, skills, tools, and gateways.' ||
+            w.description === 'Autonomous enterprise agent workflow created in KEAOS Studio.'
+          ) {
+            w.description = '';
+            if (w.activeUseCase) {
+              w.activeUseCase.description = '';
+            }
+            registryMutated = true;
+          }
+        });
+
+        // 2. Enforce case-insensitive name uniqueness across existing registry
+        const seenNames = new Set();
+        parsed.forEach((w) => {
+          const norm = normalizeWorkflowName(w.name || 'Untitled Workflow');
+          if (seenNames.has(norm)) {
+            // Collision found! Disambiguate to next unique name
+            const uniqueName = getNextUniqueWorkflowName(w.name || 'Untitled Workflow', w.id, parsed);
+            w.name = uniqueName;
+            if (w.activeUseCase) {
+              w.activeUseCase.name = uniqueName;
+            }
+            seenNames.add(normalizeWorkflowName(uniqueName));
+            registryMutated = true;
+          } else {
+            seenNames.add(norm);
+          }
+        });
+
+        // 3. Ensure the official Outlook Stream Intelligence template workflow is available in registry
+        if (!parsed.some((w) => w.id === 'wf-outlook-stream-intelligence')) {
           const outlookWf = createOutlookStreamWorkflow();
           parsed.push(outlookWf);
           registryMutated = true;
         }
 
-        // Ensure the new Outlook Intelligence workflow is available in registry
-        if (!parsed.some(w => w.id === 'wf-outlook-intelligence')) {
+        // 4. Ensure the new Outlook Intelligence workflow is available in registry
+        if (!parsed.some((w) => w.id === 'wf-outlook-intelligence')) {
           const outlookIntelWf = createOutlookIntelligenceWorkflow();
           parsed.push(outlookIntelWf);
           registryMutated = true;
@@ -954,8 +1052,24 @@ export function saveWorkflow(workflow) {
   const all = loadAllWorkflows();
   const index = all.findIndex((w) => w.id === workflow.id);
   const isLocked = Boolean(workflow.isLocked ?? workflow.isWorkflowLocked ?? false);
+
+  // Guarantee uniqueness of name (case-insensitive) against other workflows
+  let targetName = (workflow.name || '').trim() || 'Untitled Workflow';
+  if (isWorkflowNameTaken(targetName, workflow.id, all)) {
+    targetName = getNextUniqueWorkflowName(targetName, workflow.id, all);
+  }
+
+  const cleanDescription = (workflow.description !== undefined ? workflow.description : (workflow.activeUseCase?.description || '')).trim();
+
   const updatedRecord = {
     ...workflow,
+    name: targetName,
+    description: cleanDescription,
+    activeUseCase: {
+      ...(workflow.activeUseCase || {}),
+      name: targetName,
+      description: cleanDescription
+    },
     isLocked,
     isWorkflowLocked: isLocked,
     updatedAt: Date.now(),
@@ -998,21 +1112,27 @@ export function setWorkflowLock(id, isLocked) {
 
 /**
  * Creates a brand new workflow. Defaults to a clean blank canvas.
+ * Enforces case-insensitive name uniqueness and blank description by default.
  */
 export function createWorkflow({
   name = 'Untitled Workflow',
-  description = 'Autonomous enterprise agent workflow created in KEAOS Studio.',
+  description = '',
   framework = FRAMEWORKS[0],
   isBlank = true,
   nodes = [],
   edges = [],
   tags = ['New']
 } = {}) {
+  const all = loadAllWorkflows();
+  // Ensure unique name across all workflows (case-insensitive)
+  const uniqueName = getNextUniqueWorkflowName(name, null, all);
+  const cleanDescription = (description || '').trim();
+
   const newId = `wf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const useCaseObj = {
     id: `uc-${newId}`,
-    name,
-    description,
+    name: uniqueName,
+    description: cleanDescription,
     framework,
     agent: {
       prompt: 'You are an autonomous enterprise AI agent configured to execute domain workflows.',
@@ -1023,8 +1143,8 @@ export function createWorkflow({
 
   const newWorkflow = {
     id: newId,
-    name,
-    description,
+    name: uniqueName,
+    description: cleanDescription,
     framework,
     activeUseCase: useCaseObj,
     nodes: isBlank ? [] : nodes,
@@ -1038,7 +1158,6 @@ export function createWorkflow({
     stats: computeWorkflowStats(isBlank ? [] : nodes)
   };
 
-  const all = loadAllWorkflows();
   const updatedList = [newWorkflow, ...all];
 
   try {
@@ -1056,6 +1175,7 @@ export function createWorkflow({
 
 /**
  * Duplicates / clones an existing workflow.
+ * Automatically derives a unique name (e.g. "Workflow (Copy 2)").
  */
 export function duplicateWorkflow(sourceId) {
   const all = loadAllWorkflows();
@@ -1063,16 +1183,19 @@ export function duplicateWorkflow(sourceId) {
   if (!source) return null;
 
   const newId = `wf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const desiredCopyName = `${source.name} (Copy)`;
+  const uniqueClonedName = getNextUniqueWorkflowName(desiredCopyName, null, all);
+
   const clonedUseCase = {
     ...source.activeUseCase,
     id: `uc-${newId}`,
-    name: `${source.name} (Copy)`
+    name: uniqueClonedName
   };
 
   const clonedWorkflow = {
     ...JSON.parse(JSON.stringify(source)),
     id: newId,
-    name: `${source.name} (Copy)`,
+    name: uniqueClonedName,
     activeUseCase: clonedUseCase,
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -1095,6 +1218,7 @@ export function duplicateWorkflow(sourceId) {
 
 /**
  * Updates workflow metadata (title, description, tags, star status).
+ * Enforces case-insensitive name uniqueness.
  */
 export function updateWorkflowMetadata(id, updates = {}) {
   const all = loadAllWorkflows();
@@ -1102,16 +1226,30 @@ export function updateWorkflowMetadata(id, updates = {}) {
   if (index === -1) return null;
 
   const existing = all[index];
+
+  // Enforce unique name if name is being changed
+  let newName = updates.name !== undefined ? (updates.name || '').trim() : existing.name;
+  if (!newName) {
+    newName = 'Untitled Workflow';
+  }
+  if (updates.name !== undefined && isWorkflowNameTaken(newName, id, all)) {
+    throw new Error(`A workflow named "${newName}" already exists (case-insensitive). Names must be unique.`);
+  }
+
+  const cleanDescription = updates.description !== undefined ? (updates.description || '').trim() : (existing.description || '');
+
   const updatedUseCase = {
     ...existing.activeUseCase,
-    name: updates.name !== undefined ? updates.name : existing.activeUseCase?.name,
-    description: updates.description !== undefined ? updates.description : existing.activeUseCase?.description,
+    name: newName,
+    description: cleanDescription,
     framework: updates.framework || existing.activeUseCase?.framework
   };
 
   const updated = {
     ...existing,
     ...updates,
+    name: newName,
+    description: cleanDescription,
     activeUseCase: updatedUseCase,
     updatedAt: Date.now()
   };
@@ -1203,11 +1341,22 @@ export function importWorkflowFromJson(rawString) {
       throw new Error('Invalid KEAOS workflow format.');
     }
 
+    const all = loadAllWorkflows();
+    const desiredName = sourceWf.name ? `${sourceWf.name} (Imported)` : 'Imported Workflow';
+    const uniqueImportedName = getNextUniqueWorkflowName(desiredName, null, all);
+    const cleanDescription = (sourceWf.description || '').trim();
+
     const newId = `wf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const importedWf = {
       ...sourceWf,
       id: newId,
-      name: sourceWf.name ? `${sourceWf.name} (Imported)` : 'Imported Workflow',
+      name: uniqueImportedName,
+      description: cleanDescription,
+      activeUseCase: {
+        ...(sourceWf.activeUseCase || {}),
+        name: uniqueImportedName,
+        description: cleanDescription
+      },
       createdAt: Date.now(),
       updatedAt: Date.now(),
       isStarred: false,
@@ -1216,7 +1365,6 @@ export function importWorkflowFromJson(rawString) {
       stats: computeWorkflowStats(sourceWf.nodes || [])
     };
 
-    const all = loadAllWorkflows();
     const updated = [importedWf, ...all];
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(updated));
     setActiveWorkflowId(newId);

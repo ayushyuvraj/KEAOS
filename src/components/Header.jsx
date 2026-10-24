@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   PanelLeft, 
   Sun, 
@@ -7,10 +7,12 @@ import {
   Layers,
   X,
   Lock,
-  Unlock
+  Unlock,
+  AlertCircle
 } from 'lucide-react';
 
 import { FRAMEWORKS } from '../constants/frameworks';
+import { isWorkflowNameTaken, getActiveWorkflowId } from '../utils/workflowStorage';
 
 export default function Header({
   viewMode,
@@ -31,6 +33,15 @@ export default function Header({
   const [editFwId, setEditFwId] = useState(activeUseCase?.framework?.id || 'google-adk');
   const editPopoverRef = useRef(null);
 
+  const activeWorkflowId = getActiveWorkflowId();
+
+  // Real-time case-insensitive duplicate name validation against other workflows
+  const isDuplicate = useMemo(() => {
+    const trimmed = editName.trim();
+    if (!trimmed) return false;
+    return isWorkflowNameTaken(trimmed, activeWorkflowId);
+  }, [editName, activeWorkflowId]);
+
   useEffect(() => {
     setEditName(activeUseCase?.name || '');
     setEditDesc(activeUseCase?.description || '');
@@ -50,10 +61,14 @@ export default function Header({
 
   const handleSaveDetails = (e) => {
     e?.preventDefault();
+    const cleanName = editName.trim() || 'Untitled Workflow';
+    if (isWorkflowNameTaken(cleanName, activeWorkflowId)) {
+      return;
+    }
     const chosenFw = FRAMEWORKS.find(f => f.id === editFwId) || activeUseCase?.framework;
     if (onUpdateUseCase) {
       onUpdateUseCase({
-        name: editName.trim() || 'Untitled Workflow',
+        name: cleanName,
         description: editDesc.trim(),
         framework: chosenFw
       });
@@ -196,12 +211,20 @@ export default function Header({
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
                             placeholder="e.g. Meeting Intelligence Agent"
-                            className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none font-semibold ${
-                              isDarkMode 
-                                ? 'bg-[#121317] border-[#2E313C] text-white focus:border-[#0091DA]' 
-                                : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
+                            className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none font-semibold transition-colors ${
+                              isDuplicate
+                                ? 'border-rose-500 bg-rose-500/10 text-rose-300 focus:border-rose-500'
+                                : isDarkMode 
+                                  ? 'bg-[#121317] border-[#2E313C] text-white focus:border-[#0091DA]' 
+                                  : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
                             }`}
                           />
+                          {isDuplicate && (
+                            <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-rose-500 font-mono font-medium animate-in fade-in duration-150">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span>A workflow with this name already exists.</span>
+                            </div>
+                          )}
                         </div>
 
                         <div>
@@ -246,13 +269,18 @@ export default function Header({
                           <button
                             type="button"
                             onClick={() => setIsEditingDetails(false)}
-                            className="px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors"
+                            className="px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className="px-3 py-1 text-xs font-bold bg-[#00338D] hover:bg-[#005EB8] text-white rounded-none border border-[#0091DA]/50 shadow-sm transition-colors"
+                            disabled={isDuplicate || !editName.trim()}
+                            className={`px-3 py-1 text-xs font-bold rounded-none border shadow-sm transition-all ${
+                              isDuplicate || !editName.trim()
+                                ? 'bg-slate-700/40 text-slate-500 border-transparent cursor-not-allowed'
+                                : 'bg-[#00338D] hover:bg-[#005EB8] text-white border-[#0091DA]/50 cursor-pointer'
+                            }`}
                           >
                             Save
                           </button>
