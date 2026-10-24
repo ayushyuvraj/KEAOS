@@ -129,6 +129,120 @@
             "width": 140,
             "height": 60
           }
+        },
+        {
+          "id": "node-skills-8564",
+          "type": "pillar",
+          "position": {
+            "x": 743.6077262111805,
+            "y": 443.6934978780741
+          },
+          "data": {
+            "pillarType": "skills",
+            "toolId": "skill-depth-maximizer",
+            "name": "Analytical Depth & Length Controller",
+            "description": "Maximizes output depth, exhaustive context analysis, and granular operational specifics.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "depth": "exhaustive",
+              "detailLevel": "high"
+            },
+            "tools": null,
+            "itemId": "skill-depth-maximizer"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-memory-5668",
+          "type": "pillar",
+          "position": {
+            "x": 654.6409792714036,
+            "y": 474.69108968476826
+          },
+          "data": {
+            "pillarType": "memory",
+            "toolId": "mem-episodic-sync",
+            "name": "Episodic Recurring Sync Memory",
+            "description": "Remembers past meeting action items to verify resolution across weeks.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "ttlDays": 90,
+              "storage": "sqlite-vector",
+              "sessionScoped": false
+            },
+            "tools": null,
+            "itemId": "mem-episodic-sync"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-policies-0137",
+          "type": "pillar",
+          "position": {
+            "x": 552.241942548726,
+            "y": 436.46072645651213
+          },
+          "data": {
+            "pillarType": "policies",
+            "toolId": "pol-pii-masker",
+            "name": "PII & Confidentiality Redactor",
+            "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "redactSalaries": true,
+              "maskEmails": true,
+              "regexRules": "strict"
+            },
+            "tools": null,
+            "itemId": "pol-pii-masker"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-policies-9119",
+          "type": "pillar",
+          "position": {
+            "x": 436.48193855020565,
+            "y": 473.65783662454504
+          },
+          "data": {
+            "pillarType": "policies",
+            "toolId": "pol-nda-guard",
+            "name": "Enterprise NDA & Trade Secret Guard",
+            "description": "Blocks leak of unreleased patent codes and financial guidance.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "enforceStrictTerms": true,
+              "alertLegalOnTrigger": true
+            },
+            "tools": null,
+            "itemId": "pol-nda-guard"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": false,
+          "dragging": false
         }
       ],
       "edges": [
@@ -159,10 +273,66 @@
             "strokeWidth": 1.8,
             "strokeDasharray": "4 4"
           }
+        },
+        {
+          "id": "edge-skills-8565",
+          "source": "node-skills-8564",
+          "sourceHandle": "out",
+          "target": "agent-core-4115",
+          "targetHandle": "skill-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#6D2077",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-memory-5669",
+          "source": "node-memory-5668",
+          "sourceHandle": "out",
+          "target": "agent-core-4115",
+          "targetHandle": "memory-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#483698",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-policies-0138",
+          "source": "node-policies-0137",
+          "sourceHandle": "out",
+          "target": "agent-core-4115",
+          "targetHandle": "policy-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#470A68",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "id": "edge-policies-9120",
+          "source": "node-policies-9119",
+          "sourceHandle": "out",
+          "target": "agent-core-4115",
+          "targetHandle": "policy-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#470A68",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
         }
       ],
       "createdAt": 1792831026760,
-      "updatedAt": 1792831730825,
+      "updatedAt": 1792831841852,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -170,13 +340,13 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 3,
+        "nodeCount": 7,
         "agentCount": 1,
         "mcpCount": 0,
         "modelCount": 1,
-        "skillCount": 0,
+        "skillCount": 1,
         "toolCount": 0,
-        "policyCount": 0,
+        "policyCount": 2,
         "hasAudit": false
       }
     },
@@ -5349,6 +5519,120 @@
           "width": 140,
           "height": 60
         }
+      },
+      {
+        "id": "node-skills-8564",
+        "type": "pillar",
+        "position": {
+          "x": 743.6077262111805,
+          "y": 443.6934978780741
+        },
+        "data": {
+          "pillarType": "skills",
+          "toolId": "skill-depth-maximizer",
+          "name": "Analytical Depth & Length Controller",
+          "description": "Maximizes output depth, exhaustive context analysis, and granular operational specifics.",
+          "customDirective": null,
+          "referenceDoc": null,
+          "config": {
+            "depth": "exhaustive",
+            "detailLevel": "high"
+          },
+          "tools": null,
+          "itemId": "skill-depth-maximizer"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-memory-5668",
+        "type": "pillar",
+        "position": {
+          "x": 654.6409792714036,
+          "y": 474.69108968476826
+        },
+        "data": {
+          "pillarType": "memory",
+          "toolId": "mem-episodic-sync",
+          "name": "Episodic Recurring Sync Memory",
+          "description": "Remembers past meeting action items to verify resolution across weeks.",
+          "customDirective": null,
+          "referenceDoc": null,
+          "config": {
+            "ttlDays": 90,
+            "storage": "sqlite-vector",
+            "sessionScoped": false
+          },
+          "tools": null,
+          "itemId": "mem-episodic-sync"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-policies-0137",
+        "type": "pillar",
+        "position": {
+          "x": 552.241942548726,
+          "y": 436.46072645651213
+        },
+        "data": {
+          "pillarType": "policies",
+          "toolId": "pol-pii-masker",
+          "name": "PII & Confidentiality Redactor",
+          "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+          "customDirective": null,
+          "referenceDoc": null,
+          "config": {
+            "redactSalaries": true,
+            "maskEmails": true,
+            "regexRules": "strict"
+          },
+          "tools": null,
+          "itemId": "pol-pii-masker"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-policies-9119",
+        "type": "pillar",
+        "position": {
+          "x": 436.48193855020565,
+          "y": 473.65783662454504
+        },
+        "data": {
+          "pillarType": "policies",
+          "toolId": "pol-nda-guard",
+          "name": "Enterprise NDA & Trade Secret Guard",
+          "description": "Blocks leak of unreleased patent codes and financial guidance.",
+          "customDirective": null,
+          "referenceDoc": null,
+          "config": {
+            "enforceStrictTerms": true,
+            "alertLegalOnTrigger": true
+          },
+          "tools": null,
+          "itemId": "pol-nda-guard"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
       }
     ],
     "edges": [
@@ -5376,6 +5660,62 @@
         "animated": false,
         "style": {
           "stroke": "#00A3A6",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-skills-8565",
+        "source": "node-skills-8564",
+        "sourceHandle": "out",
+        "target": "agent-core-4115",
+        "targetHandle": "skill-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#6D2077",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-memory-5669",
+        "source": "node-memory-5668",
+        "sourceHandle": "out",
+        "target": "agent-core-4115",
+        "targetHandle": "memory-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#483698",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-policies-0138",
+        "source": "node-policies-0137",
+        "sourceHandle": "out",
+        "target": "agent-core-4115",
+        "targetHandle": "policy-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#470A68",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "id": "edge-policies-9120",
+        "source": "node-policies-9119",
+        "sourceHandle": "out",
+        "target": "agent-core-4115",
+        "targetHandle": "policy-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#470A68",
           "strokeWidth": 1.8,
           "strokeDasharray": "4 4"
         }
@@ -10431,5 +10771,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1792831731635
+  "syncedAt": 1792831848633
 }
