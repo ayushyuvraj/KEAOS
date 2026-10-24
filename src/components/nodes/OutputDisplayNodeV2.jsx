@@ -663,6 +663,23 @@ export default function OutputDisplayNodeV2({ id, data, selected }) {
             }}
             title="Input: Connect Agent or Tool output stream"
           />
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="in"
+            style={{
+              top: '28px',
+              left: '-6px',
+              width: '10px',
+              height: '10px',
+              borderRadius: '2px',
+              backgroundColor: status === 'ready' || runsHistory.length > 0 ? '#10B981' : '#0091DA',
+              borderColor: isDarkMode ? '#0F1219' : '#FFFFFF',
+              borderWidth: '2px',
+              zIndex: 20
+            }}
+            title="Input: Connect Agent or Tool output stream"
+          />
 
           {/* Morphing Circular Button with Tactile Physics & Single-Line Cyber-Portal Icon */}
           <button
@@ -839,6 +856,22 @@ export default function OutputDisplayNodeV2({ id, data, selected }) {
         type="target"
         position={Position.Left}
         id="data-in"
+        style={{
+          top: '28px',
+          width: '10px',
+          height: '10px',
+          borderRadius: '2px',
+          backgroundColor: status === 'ready' || runsHistory.length > 0 ? '#10B981' : '#0091DA',
+          borderColor: isDarkMode ? '#0E121B' : '#FFFFFF',
+          borderWidth: '2px',
+          left: '-6px'
+        }}
+        title="Input: Connect Agent or Tool output stream"
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="in"
         style={{
           top: '28px',
           width: '10px',

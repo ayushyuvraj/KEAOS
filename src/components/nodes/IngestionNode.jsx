@@ -387,6 +387,42 @@ export default function IngestionNode({ id, data = {}, selected }) {
             }}
             title="Connect Ingested Data Stream to Agent"
           />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="tools-out"
+            style={{
+              left: '50%',
+              bottom: '-5px',
+              transform: 'translateX(-50%) rotate(45deg)',
+              width: '10px',
+              height: '10px',
+              borderRadius: '2px',
+              backgroundColor: '#0091DA',
+              borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+              borderWidth: '2px',
+              zIndex: 10
+            }}
+            title="Connect Ingested Data Stream to Agent"
+          />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="out"
+            style={{
+              left: '50%',
+              bottom: '-5px',
+              transform: 'translateX(-50%) rotate(45deg)',
+              width: '10px',
+              height: '10px',
+              borderRadius: '2px',
+              backgroundColor: '#0091DA',
+              borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+              borderWidth: '2px',
+              zIndex: 10
+            }}
+            title="Connect Ingested Data Stream to Agent"
+          />
 
           {/* Animated Concentric Radar Wave when Active */}
           {(isExecuting || isProcessing) && (

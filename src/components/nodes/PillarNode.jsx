@@ -64,6 +64,7 @@ export default function PillarNode({ id, data, selected }) {
     onRename
   } = data;
   const pillarDef = PILLARS[pillarType] || PILLARS.tools;
+  const displayName = name || data?.modelName || data?.skillName || data?.policyName || data?.title || (data?.config?.modelId ? String(data.config.modelId) : null) || (pillarType === 'model' ? 'GPT-4o' : pillarDef?.label);
   
   const [showGatewayFlyout, setShowGatewayFlyout] = useState(false);
   const [showMcpFlyout, setShowMcpFlyout] = useState(false);
@@ -243,7 +244,7 @@ export default function PillarNode({ id, data, selected }) {
             ? 'line-through text-slate-500'
             : isDarkMode ? 'text-white' : 'text-[#111827]'
         }`}>
-          {name}
+          {displayName}
         </span>
       </div>
       {isDeactivated && (
@@ -317,7 +318,7 @@ export default function PillarNode({ id, data, selected }) {
       {/* Floating Micro-Toolbar on Hover (Positioned dynamically outside the circle) */}
       <NodeActionToolbar
         nodeId={id}
-        nodeName={name}
+        nodeName={displayName}
         isDeactivated={isDeactivated}
         onExecute={onExecute}
         onToggleDeactivate={onToggleDeactivate}

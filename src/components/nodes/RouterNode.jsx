@@ -135,6 +135,23 @@ export default function RouterNode({ id, data, selected }) {
           }}
           title="Input: Connect upstream Agent, Deterministic Box, Ingestion, or Trigger"
         />
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="data-in"
+          style={{
+            top: '50%',
+            left: '-6px',
+            width: '10px',
+            height: '10px',
+            borderRadius: '9999px',
+            backgroundColor: '#0091DA',
+            borderColor: isDarkMode ? '#101422' : '#FFFFFF',
+            borderWidth: '2px',
+            zIndex: 20
+          }}
+          title="Input: Connect upstream Agent, Deterministic Box, Ingestion, or Trigger"
+        />
 
         {/* Subtle Icon Glyph */}
         <div className="w-8 h-8 rounded-full bg-[#0091DA]/15 text-[#0091DA] flex items-center justify-center shrink-0">

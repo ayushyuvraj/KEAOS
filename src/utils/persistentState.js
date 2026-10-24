@@ -195,3 +195,40 @@ export function saveCanvasViewport(viewport, workflowId) {
   }
 }
 
+const WORKFLOW_LOGS_PREFIX = 'keaos_workflow_logs_';
+const MAX_PERSISTED_LOGS = 200;
+
+/**
+ * Loads persisted Agent Logs for a specific workflow.
+ */
+export function loadWorkflowAgentLogs(workflowId) {
+  if (!workflowId) return [];
+  try {
+    const raw = localStorage.getItem(`${WORKFLOW_LOGS_PREFIX}${workflowId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to load workflow agent logs:', err);
+  }
+  return [];
+}
+
+/**
+ * Saves Agent Logs for a specific workflow (capped at MAX_PERSISTED_LOGS).
+ */
+export function saveWorkflowAgentLogs(workflowId, logs) {
+  if (!workflowId || !Array.isArray(logs)) return;
+  try {
+    // Keep the most recent MAX_PERSISTED_LOGS entries to ensure storage integrity
+    const trimmed = logs.slice(-MAX_PERSISTED_LOGS);
+    localStorage.setItem(`${WORKFLOW_LOGS_PREFIX}${workflowId}`, JSON.stringify(trimmed));
+  } catch (err) {
+    console.warn('Failed to save workflow agent logs:', err);
+  }
+}
+
+

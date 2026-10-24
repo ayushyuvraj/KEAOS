@@ -6,7 +6,7 @@
  */
 
 import { FRAMEWORKS } from '../constants/frameworks';
-import { loadCanvasState } from './persistentState';
+import { loadCanvasState, loadWorkflowAgentLogs, saveWorkflowAgentLogs } from './persistentState';
 import { OUTLOOK_OFFICIAL_ACTIONS } from '../constants/mcpOfficialCatalogs';
 
 export const WORKFLOWS_REGISTRY_KEY = 'keaos_workflows_registry';
@@ -1061,6 +1061,9 @@ export function getWorkflowById(id) {
       activeUseCase: canonical.activeUseCase
     };
   }
+  if (found && !found.agentLogs) {
+    found.agentLogs = loadWorkflowAgentLogs(found.id);
+  }
   return found;
 }
 
@@ -1111,6 +1114,10 @@ export function saveWorkflow(workflow) {
     updatedAt: Date.now(),
     stats: computeWorkflowStats(sanitizedNodes)
   };
+
+  if (Array.isArray(workflow.agentLogs)) {
+    saveWorkflowAgentLogs(workflow.id, workflow.agentLogs);
+  }
 
   let newList;
   if (index >= 0) {

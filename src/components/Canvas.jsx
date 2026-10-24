@@ -64,6 +64,7 @@ import ApprovalNode from './nodes/ApprovalNode';
 import { executeDeterministicTask } from '../services/deterministicRunner';
 import { fireTriggerEvent, disarmScheduleTrigger, disarmPollingWatcher } from '../services/triggerEngine';
 import { loadCanvasViewport, saveCanvasViewport } from '../utils/persistentState';
+import { getActiveWorkflowId } from '../utils/workflowStorage';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
@@ -2907,6 +2908,8 @@ function CanvasInner({
 
       {/* AI Canvas Architect Prompt Bar (Google Stitch Style) */}
       <CanvasPromptBar
+        activeWorkflowId={activeUseCase?.id || getActiveWorkflowId()}
+        activeWorkflowName={activeUseCase?.name}
         nodes={nodes}
         edges={edges}
         setNodes={setNodes}

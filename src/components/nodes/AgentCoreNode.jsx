@@ -165,6 +165,25 @@ export default function AgentCoreNode({ id, data, selected }) {
               }}
               title="Hands: Tools Ingestion"
             />
+            <Handle
+              type="target"
+              position={Position.Top}
+              id="tool-in"
+              onClick={(e) => handleSlotClick(e, 'tools-in', 'tools')}
+              style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '9999px',
+                top: 0,
+                left: 0,
+                transform: 'none',
+                opacity: 0,
+                cursor: 'crosshair',
+                border: 'none',
+                background: 'transparent'
+              }}
+              title="Hands: Tools Ingestion"
+            />
           </div>
           {/* Stem line down to chassis */}
           <div className={`w-[1.5px] h-1.5 transition-colors ${
@@ -254,6 +273,25 @@ export default function AgentCoreNode({ id, data, selected }) {
               type="target"
               position={Position.Top}
               id="mcp-in"
+              onClick={(e) => handleSlotClick(e, 'mcp-in', 'gateway')}
+              style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '9999px',
+                top: 0,
+                left: 0,
+                transform: 'none',
+                opacity: 0,
+                cursor: 'crosshair',
+                border: 'none',
+                background: 'transparent'
+              }}
+              title="Reach: MCP & Gateway Protocol"
+            />
+            <Handle
+              type="target"
+              position={Position.Top}
+              id="gateway-in"
               onClick={(e) => handleSlotClick(e, 'mcp-in', 'gateway')}
               style={{
                 width: '16px',
@@ -376,6 +414,23 @@ export default function AgentCoreNode({ id, data, selected }) {
             }}
             title="A2A Ingress: Connect upstream agent stream"
           />
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="input-in"
+            style={{
+              top: '50%',
+              transform: 'translateY(-50%) rotate(45deg)',
+              width: '8px',
+              height: '8px',
+              borderRadius: '2px',
+              backgroundColor: hasUpstreamA2A ? '#6366F1' : isDarkMode ? '#4B5563' : '#9CA3AF',
+              borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+              borderWidth: '2px',
+              left: '-4px'
+            }}
+            title="A2A Ingress: Connect upstream agent stream"
+          />
           <GitFork className="w-2.5 h-2.5 rotate-90" />
         </div>
 
@@ -395,6 +450,42 @@ export default function AgentCoreNode({ id, data, selected }) {
             type="source"
             position={Position.Right}
             id="out"
+            onClick={(e) => handleSlotClick(e, 'out', 'outputNode')}
+            style={{
+              top: '50%',
+              transform: 'translateY(-50%) rotate(45deg)',
+              width: '8px',
+              height: '8px',
+              borderRadius: '2px',
+              backgroundColor: '#0091DA',
+              borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+              borderWidth: '2px',
+              right: '-4px'
+            }}
+            title="Agent output & A2A dispatch stream (Click to open Output Components)"
+          />
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="output-out"
+            onClick={(e) => handleSlotClick(e, 'out', 'outputNode')}
+            style={{
+              top: '50%',
+              transform: 'translateY(-50%) rotate(45deg)',
+              width: '8px',
+              height: '8px',
+              borderRadius: '2px',
+              backgroundColor: '#0091DA',
+              borderColor: isDarkMode ? '#1D2028' : '#FFFFFF',
+              borderWidth: '2px',
+              right: '-4px'
+            }}
+            title="Agent output & A2A dispatch stream (Click to open Output Components)"
+          />
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="data-out"
             onClick={(e) => handleSlotClick(e, 'out', 'outputNode')}
             style={{
               top: '50%',
@@ -697,6 +788,25 @@ export default function AgentCoreNode({ id, data, selected }) {
               }}
               title="Guard: Policies & Compliance"
             />
+            <Handle
+              type="target"
+              position={Position.Bottom}
+              id="policies-in"
+              onClick={(e) => handleSlotClick(e, 'policy-in', 'policies')}
+              style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '9999px',
+                top: 0,
+                left: 0,
+                transform: 'none',
+                opacity: 0,
+                cursor: 'crosshair',
+                border: 'none',
+                background: 'transparent'
+              }}
+              title="Guard: Policies & Compliance"
+            />
           </div>
         </div>
 
@@ -762,6 +872,25 @@ export default function AgentCoreNode({ id, data, selected }) {
               type="target"
               position={Position.Bottom}
               id="skill-in"
+              onClick={(e) => handleSlotClick(e, 'skill-in', 'skills')}
+              style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '9999px',
+                top: 0,
+                left: 0,
+                transform: 'none',
+                opacity: 0,
+                cursor: 'crosshair',
+                border: 'none',
+                background: 'transparent'
+              }}
+              title="Specialized Skills"
+            />
+            <Handle
+              type="target"
+              position={Position.Bottom}
+              id="skills-in"
               onClick={(e) => handleSlotClick(e, 'skill-in', 'skills')}
               style={{
                 width: '16px',

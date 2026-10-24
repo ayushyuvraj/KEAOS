@@ -22,9 +22,12 @@ import {
 } from 'lucide-react';
 import { PROVIDERS, getProviderCredential, getCachedDiscoveredModels, getAllConfiguredProviders } from '../services/llmService';
 import { PROVIDER_LOGOS } from '../constants/providerLogos';
-import { synthesizeCanvasWorkflow, computeArchitectLayout } from '../services/aiCanvasArchitectService';
+import { synthesizeCanvasWorkflow, computeArchitectLayout, normalizeAndRepairWorkflow } from '../services/aiCanvasArchitectService';
+import { loadWorkflowAgentLogs, saveWorkflowAgentLogs } from '../utils/persistentState';
 
 export default function CanvasPromptBar({
+  activeWorkflowId,
+  activeWorkflowName,
   nodes = [],
   edges = [],
   setNodes,
@@ -40,7 +43,29 @@ export default function CanvasPromptBar({
   const [currentStepText, setCurrentStepText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isAgentLogOpen, setIsAgentLogOpen] = useState(false);
-  const [agentLogs, setAgentLogs] = useState([]);
+  
+  // Persistent Per-Workflow Agent Logs
+  const activeWorkflowIdRef = useRef(activeWorkflowId);
+  const [agentLogs, setAgentLogs] = useState(() => {
+    return loadWorkflowAgentLogs(activeWorkflowId) || [];
+  });
+
+  // Reload logs when active workflow changes
+  useEffect(() => {
+    if (activeWorkflowId && activeWorkflowId !== activeWorkflowIdRef.current) {
+      activeWorkflowIdRef.current = activeWorkflowId;
+      const loaded = loadWorkflowAgentLogs(activeWorkflowId);
+      setAgentLogs(loaded || []);
+    }
+  }, [activeWorkflowId]);
+
+  // Persist logs whenever they change for the active workflow
+  useEffect(() => {
+    if (activeWorkflowId && activeWorkflowIdRef.current === activeWorkflowId) {
+      saveWorkflowAgentLogs(activeWorkflowId, agentLogs);
+    }
+  }, [agentLogs, activeWorkflowId]);
+
   const [clarification, setClarification] = useState(null); // { question, options }
   const [safeCanvasPending, setSafeCanvasPending] = useState(null); // { result, prompt }
   const [isFocused, setIsFocused] = useState(false);
@@ -228,88 +253,244 @@ export default function CanvasPromptBar({
     }
   }, [isListening, promptText, onToast]);
 
-  // Append entry to Agent Log
+  // Append entry to Agent Log (returns entry id)
   const logStep = useCallback((text, status = 'done') => {
-    setAgentLogs((prev) => [
-      ...prev,
-      {
-        id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        text,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        status
-      }
-    ]);
+    const id = `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newEntry = {
+      id,
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      status
+    };
+    setAgentLogs((prev) => [...prev, newEntry]);
+    return id;
+  }, []);
+
+  // Update existing step in place
+  const updateStep = useCallback((id, updates) => {
+    if (!id) return;
+    setAgentLogs((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
+  }, []);
+
+  // Fail-safe cleanup: sweeps any leftover 'running' steps to 'done'
+  const finalizeRunningSteps = useCallback(() => {
+    setAgentLogs((prev) =>
+      prev.map((item) => (item.status === 'running' ? { ...item, status: 'done' } : item))
+    );
   }, []);
 
   // Sequential Live Animated Placement on Canvas
-  const executeSequentialBuild = useCallback(async (newNodes, newEdges, summaryText) => {
+  const executeSequentialBuild = useCallback(async (newNodes, newEdges, summaryText, options = {}) => {
     if (!Array.isArray(newNodes) || newNodes.length === 0) return;
 
     if (takeSnapshot) takeSnapshot();
     setIsBuilding(true);
     setIsAgentLogOpen(true);
 
-    // Initial log
-    logStep(`Initializing visual synthesis: ${newNodes.length} nodes, ${newEdges.length} connections`, 'running');
+    const isIncremental = Boolean(options?.isIncremental && nodes.length > 0);
+    const existingIds = new Set(nodes.map(n => n.id));
 
-    // 1. Clear or prepare canvas
-    setNodes([]);
-    setEdges([]);
-    await new Promise((r) => setTimeout(r, 120));
+    let nodesToNormalize = newNodes;
+    let edgesToNormalize = newEdges;
 
-    // 2. Sort nodes by logical layer for sequential drop
-    const orderScore = (n) => {
-      if (n.type === 'triggerNode') return 1;
-      if (n.type === 'ingestionNode') return 2;
-      if (n.type === 'agentCore') return 3;
-      if (n.type === 'pillar') {
-        const pt = n.data?.pillarType;
-        if (pt === 'model') return 4;
-        if (pt === 'tools') return 5;
-        if (pt === 'memory') return 6;
-        if (pt === 'policies') return 7;
-        if (pt === 'skills') return 8;
-        if (pt === 'mcp' || pt === 'gateway') return 9;
-        return 10;
+    if (isIncremental) {
+      // 1. Merge existing nodes with new nodes
+      const existingNodesMap = new Map(nodes.map(n => [n.id, n]));
+      (newNodes || []).forEach(newNode => {
+        if (existingNodesMap.has(newNode.id)) {
+          const old = existingNodesMap.get(newNode.id);
+          existingNodesMap.set(newNode.id, {
+            ...old,
+            ...newNode,
+            data: { ...old.data, ...newNode.data }
+          });
+        } else {
+          existingNodesMap.set(newNode.id, newNode);
+        }
+      });
+      nodesToNormalize = Array.from(existingNodesMap.values());
+
+      // 2. Identify single-connection sockets being claimed by new edges/nodes
+      const SINGLE_SOCKETS = new Set(['model-in', 'memory-in', 'gateway-in', 'audit-in', 'observability-in', 'cost-benefit-in']);
+      const claimedSingleSockets = new Set();
+      (newEdges || []).forEach(e => {
+        if (e.targetHandle && SINGLE_SOCKETS.has(e.targetHandle)) {
+          claimedSingleSockets.add(`${e.target}:${e.targetHandle}`);
+        }
+      });
+
+      // If a newNode has a pillarType for a single-connection socket, claim that socket on primaryAgent
+      const primaryAgent = nodesToNormalize.find(n => n.type === 'agentCore');
+      if (primaryAgent) {
+        (newNodes || []).forEach(n => {
+          if (n.type === 'pillar') {
+            const pt = n.data?.pillarType;
+            if (pt === 'model') claimedSingleSockets.add(`${primaryAgent.id}:model-in`);
+            else if (pt === 'memory') claimedSingleSockets.add(`${primaryAgent.id}:memory-in`);
+            else if (pt === 'gateway') claimedSingleSockets.add(`${primaryAgent.id}:gateway-in`);
+            else if (pt === 'audit') claimedSingleSockets.add(`${primaryAgent.id}:audit-in`);
+            else if (pt === 'observability') claimedSingleSockets.add(`${primaryAgent.id}:observability-in`);
+            else if (pt === 'cost-benefit' || pt === 'cost_benefit') claimedSingleSockets.add(`${primaryAgent.id}:cost-benefit-in`);
+          }
+        });
       }
-      if (n.type === 'routerNode' || n.type === 'approvalNode') return 11;
-      if (n.type === 'deterministicNode') return 12;
-      if (n.type === 'outputNode' || n.type === 'outputNodeV2') return 13;
-      return 14;
-    };
 
-    const sortedNodes = [...newNodes].sort((a, b) => orderScore(a) - orderScore(b));
+      // Filter existing edges: if a single socket is claimed by a new node/edge, supersede previous edge
+      const keptExistingEdges = (edges || []).filter(e => {
+        const socketKey = `${e.target}:${e.targetHandle}`;
+        if (claimedSingleSockets.has(socketKey)) {
+          const isFromNewNode = (newNodes || []).some(n => n.id === e.source);
+          return isFromNewNode;
+        }
+        return true;
+      });
 
-    // 3. Sequentially place nodes with glowing highlight
-    const placedNodes = [];
-    for (let i = 0; i < sortedNodes.length; i++) {
-      const node = sortedNodes[i];
-      const nodeName = node.data?.name || node.data?.title || node.data?.pillarType || node.type;
-      setCurrentStepText(`Placing ${nodeName}...`);
-      
-      const safePosition = (node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number' && !isNaN(node.position.x) && !isNaN(node.position.y))
-        ? node.position
-        : { x: 540 + (i * 40), y: 180 + (i * 20) };
-
-      const nodeWithGlow = {
-        ...node,
-        position: safePosition,
-        className: 'animate-in zoom-in-95 duration-200'
-      };
-      placedNodes.push(nodeWithGlow);
-      setNodes([...placedNodes]);
-      logStep(`Added node [${node.type}]: "${nodeName}"`, 'done');
-
-      // Subtle pause for sequential aesthetic
-      await new Promise((r) => setTimeout(r, 160));
+      // Merge kept existing edges + newEdges
+      const edgeKeySet = new Set();
+      const combinedEdgesList = [];
+      [...keptExistingEdges, ...(newEdges || [])].forEach(e => {
+        if (!e || !e.source || !e.target) return;
+        const key = `${e.source}->${e.target}:${e.targetHandle || ''}`;
+        if (!edgeKeySet.has(key)) {
+          edgeKeySet.add(key);
+          combinedEdgesList.push(e);
+        }
+      });
+      edgesToNormalize = combinedEdgesList;
     }
 
-    // 4. Sequentially attach edges
-    setCurrentStepText('Wiring strictly-typed socket connections...');
-    logStep(`Wiring ${newEdges.length} strictly-typed socket connections`, 'running');
-    await new Promise((r) => setTimeout(r, 140));
-    setEdges([...newEdges]);
-    logStep(`Connected all socket ports: Model, Ingest, Memory, Skills, Policies, Output`, 'done');
+    // Run graph normalization, handle repair, and auto-wire pass on full graph
+    // Note: If isIncremental is true, existingNodeIds guarantees that any node already on the canvas
+    // that the user intentionally disconnected will NOT be re-wired!
+    const normalizationOptions = {
+      existingNodeIds: isIncremental ? existingIds : undefined,
+      autoWireExisting: !isIncremental
+    };
+
+    const repaired = normalizeAndRepairWorkflow(nodesToNormalize, edgesToNormalize, normalizationOptions);
+    const layout = computeArchitectLayout(repaired.nodes, repaired.edges, normalizationOptions);
+    const finalNodes = layout.nodes;
+    const finalEdges = layout.edges;
+
+    // Initial log
+    const initStepId = logStep(
+      isIncremental
+        ? `Merging incremental components: ${finalNodes.length} nodes, ${finalEdges.length} connections`
+        : `Initializing visual synthesis: ${finalNodes.length} nodes, ${finalEdges.length} connections`,
+      'running'
+    );
+
+    if (!isIncremental) {
+      // 1. Clear or prepare canvas
+      setNodes([]);
+      setEdges([]);
+      await new Promise((r) => setTimeout(r, 120));
+      updateStep(initStepId, { status: 'done' });
+
+      // 2. Sort nodes by logical layer for sequential drop
+      const orderScore = (n) => {
+        if (n.type === 'triggerNode') return 1;
+        if (n.type === 'ingestionNode') return 2;
+        if (n.type === 'agentCore') return 3;
+        if (n.type === 'pillar') {
+          const pt = n.data?.pillarType;
+          if (pt === 'model') return 4;
+          if (pt === 'tools') return 5;
+          if (pt === 'memory') return 6;
+          if (pt === 'policies') return 7;
+          if (pt === 'skills') return 8;
+          if (pt === 'mcp' || pt === 'gateway') return 9;
+          return 10;
+        }
+        if (n.type === 'routerNode' || n.type === 'approvalNode') return 11;
+        if (n.type === 'deterministicNode') return 12;
+        if (n.type === 'outputNode' || n.type === 'outputNodeV2') return 13;
+        return 14;
+      };
+
+      const sortedNodes = [...finalNodes].sort((a, b) => orderScore(a) - orderScore(b));
+
+      // 3. Sequentially place nodes with glowing highlight
+      const placedNodes = [];
+      for (let i = 0; i < sortedNodes.length; i++) {
+        const node = sortedNodes[i];
+        const nodeName = node.data?.name || node.data?.title || node.data?.pillarType || node.type;
+        setCurrentStepText(`Placing ${nodeName}...`);
+        
+        const safePosition = (node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number' && !isNaN(node.position.x) && !isNaN(node.position.y))
+          ? node.position
+          : { x: 540 + (i * 40), y: 180 + (i * 20) };
+
+        const nodeWithGlow = {
+          ...node,
+          position: safePosition,
+          className: 'animate-in zoom-in-95 duration-200'
+        };
+        placedNodes.push(nodeWithGlow);
+        setNodes([...placedNodes]);
+        logStep(`Added node [${node.type}]: "${nodeName}"`, 'done');
+
+        // Subtle pause for sequential aesthetic
+        await new Promise((r) => setTimeout(r, 160));
+      }
+
+      // 4. Sequentially attach edges
+      setCurrentStepText('Wiring strictly-typed socket connections...');
+      const wiringStepId = logStep(`Wiring ${finalEdges.length} strictly-typed socket connections`, 'running');
+      await new Promise((r) => setTimeout(r, 140));
+      setEdges([...finalEdges]);
+      updateStep(wiringStepId, { status: 'done', text: `Connected all socket ports: Model, Ingest, Memory, Skills, Policies, Output` });
+    } else {
+      // Incremental Placement: keep existing nodes and merge in new/modified components
+      updateStep(initStepId, { status: 'done', text: `Synchronized workflow topology (${finalNodes.length} nodes)` });
+
+      const existingIds = new Set(nodes.map(n => n.id));
+      const newlyAddedNodes = finalNodes.filter(n => !existingIds.has(n.id));
+
+      // 1. Update existing nodes (e.g. agentCore attachedCounts or renamed/reconfigured nodes)
+      let currentNodes = nodes.map(existingNode => {
+        const updatedNode = finalNodes.find(fn => fn.id === existingNode.id);
+        if (updatedNode) {
+          return {
+            ...existingNode,
+            ...updatedNode,
+            data: { ...existingNode.data, ...updatedNode.data }
+          };
+        }
+        return existingNode;
+      });
+      setNodes([...currentNodes]);
+
+      // 2. Sequentially place new nodes with glowing highlight
+      for (let i = 0; i < newlyAddedNodes.length; i++) {
+        const node = newlyAddedNodes[i];
+        const nodeName = node.data?.name || node.data?.title || node.data?.pillarType || node.type;
+        setCurrentStepText(`Adding ${nodeName}...`);
+
+        const safePosition = (node.position && typeof node.position.x === 'number' && typeof node.position.y === 'number' && !isNaN(node.position.x) && !isNaN(node.position.y))
+          ? node.position
+          : { x: 540 + (i * 40), y: 180 + (i * 20) };
+
+        const nodeWithGlow = {
+          ...node,
+          position: safePosition,
+          className: 'animate-in zoom-in-95 duration-200'
+        };
+        currentNodes = [...currentNodes, nodeWithGlow];
+        setNodes([...currentNodes]);
+        logStep(`Added node [${node.type}]: "${nodeName}"`, 'done');
+        await new Promise((r) => setTimeout(r, 160));
+      }
+
+      // 3. Sequentially wire edges
+      setCurrentStepText('Wiring strictly-typed socket connections...');
+      const wiringStepId = logStep(`Updating socket connections...`, 'running');
+      await new Promise((r) => setTimeout(r, 140));
+      setEdges([...finalEdges]);
+      updateStep(wiringStepId, { status: 'done', text: `Connected all socket ports: Model, Ingest, Memory, Skills, Policies, Output` });
+    }
 
     // 5. Fit View so the new architecture is centered
     if (rfInstance?.fitView) {
@@ -318,14 +499,15 @@ export default function CanvasPromptBar({
       }, 100);
     }
 
+    finalizeRunningSteps();
     setIsBuilding(false);
     setCurrentStepText('');
     logStep(`✨ ${summaryText || 'Workflow successfully assembled.'}`, 'success');
 
     if (onToast) {
-      onToast(`✨ AI Architect built ${sortedNodes.length} nodes`);
+      onToast(`✨ AI Architect built ${finalNodes.length} nodes`);
     }
-  }, [setNodes, setEdges, takeSnapshot, rfInstance, logStep, onToast]);
+  }, [nodes, setNodes, setEdges, takeSnapshot, rfInstance, logStep, updateStep, finalizeRunningSteps, onToast]);
 
   // Main Prompt Submission Handler
   const handleBuildSubmit = useCallback(async (customPrompt, clarificationAnswer = null) => {
@@ -350,7 +532,13 @@ export default function CanvasPromptBar({
 
     const providerObj = PROVIDERS[selectedProvider];
     logStep(`User Directive: "${textToUse}"`, 'done');
-    logStep(`Reasoning with ${providerObj?.name || selectedProvider} (${selectedModelId})`, 'running');
+    const reasonStepId = logStep(`Reasoning with ${providerObj?.name || selectedProvider} (${selectedModelId})`, 'running');
+
+    // Check if the prompt is asking for an incremental change to existing canvas
+    const isIncrementalDirective = Boolean(
+      nodes.length > 0 &&
+      /\b(add|connect|attach|wire|link|append|also|now|replace|update|change|include)\b/i.test(textToUse)
+    );
 
     try {
       const res = await synthesizeCanvasWorkflow({
@@ -360,14 +548,15 @@ export default function CanvasPromptBar({
         clarificationAnswer,
         provider: selectedProvider,
         modelId: selectedModelId,
-        isEditMode: false
+        isEditMode: isIncrementalDirective
       });
 
       // 1. Clarification needed
       if (res.needsClarification) {
+        updateStep(reasonStepId, { status: 'done' });
         setIsBuilding(false);
         setCurrentStepText('');
-        logStep(`Clarification Required: "${res.clarificationQuestion}"`, 'running');
+        logStep(`Clarification Required: "${res.clarificationQuestion}"`, 'done');
         setClarification({
           question: res.clarificationQuestion,
           options: res.clarificationOptions || [],
@@ -376,11 +565,13 @@ export default function CanvasPromptBar({
         return;
       }
 
-      // 2. Safe Canvas Check: If canvas already has nodes and user requested a full new workflow
-      if (nodes.length > 0 && res.nodes?.length > 0 && res.action === 'create' && !clarificationAnswer) {
+      updateStep(reasonStepId, { status: 'done' });
+
+      // 2. Safe Canvas Check: If canvas already has nodes and user requested a full new workflow (not incremental)
+      if (nodes.length > 0 && res.nodes?.length > 0 && res.action === 'create' && !isIncrementalDirective && !clarificationAnswer) {
         setIsBuilding(false);
         setCurrentStepText('');
-        logStep(`Canvas has ${nodes.length} existing nodes. Awaiting user safety choice: Replace or Add alongside?`, 'running');
+        logStep(`Canvas has ${nodes.length} existing nodes. Awaiting user safety choice: Replace or Add alongside?`, 'done');
         setSafeCanvasPending({
           result: res,
           prompt: textToUse
@@ -388,18 +579,22 @@ export default function CanvasPromptBar({
         return;
       }
 
-      // 3. Ready to place on canvas
+      // 3. Ready to place on canvas (fresh or incremental append)
       setPromptText('');
       basePromptRef.current = '';
-      await executeSequentialBuild(res.nodes, res.edges, res.summary);
+      await executeSequentialBuild(res.nodes, res.edges, res.summary, {
+        isIncremental: isIncrementalDirective || res.action === 'append' || res.action === 'edit'
+      });
     } catch (err) {
       console.error('AI Canvas Architect error:', err);
+      updateStep(reasonStepId, { status: 'error' });
+      finalizeRunningSteps();
       logStep(`Error: ${err.message || 'Failed to synthesize workflow.'}`, 'error');
       setIsBuilding(false);
       setCurrentStepText('');
       if (onToast) onToast(`⚠️ ${err.message || 'Build failed.'}`);
     }
-  }, [promptText, selectedProvider, selectedModelId, nodes, edges, logStep, executeSequentialBuild, onToast]);
+  }, [promptText, selectedProvider, selectedModelId, nodes, edges, logStep, updateStep, finalizeRunningSteps, executeSequentialBuild, onToast]);
 
   // Handle Clarification Option Click
   const handleSelectClarification = (option) => {
@@ -416,29 +611,48 @@ export default function CanvasPromptBar({
     setSafeCanvasPending(null);
     setPromptText('');
     basePromptRef.current = '';
-    executeSequentialBuild(newNodes, newEdges, summary);
+    executeSequentialBuild(newNodes, newEdges, summary, { isIncremental: false });
   };
 
   const handleSafeCanvasAddAlongside = () => {
     if (!safeCanvasPending?.result) return;
-    const { nodes: newNodes, edges: newEdges, summary } = safeCanvasPending.result;
+    const { nodes: rawNodes, edges: rawEdges, summary } = safeCanvasPending.result;
     setSafeCanvasPending(null);
     setPromptText('');
     basePromptRef.current = '';
 
+    // Repair handles and compute layout first
+    const repaired = normalizeAndRepairWorkflow(rawNodes, rawEdges);
+    const layout = computeArchitectLayout(repaired.nodes, repaired.edges);
+    const finalNodes = layout.nodes;
+    const finalEdges = layout.edges;
+
     // Shift coordinates of new nodes to the right of existing nodes
     const maxX = Math.max(...nodes.map(n => n.position?.x || 0), 0);
-    const offsetX = maxX > 0 ? maxX + 600 : 600;
+    const offsetX = maxX > 0 ? maxX + 650 : 650;
+    const suffix = Date.now().toString().slice(-4);
 
-    const shiftedNodes = newNodes.map(n => ({
-      ...n,
-      id: `${n.id}-copy-${Date.now().toString().slice(-4)}`,
-      position: { x: (n.position?.x || 0) + offsetX, y: n.position?.y || 180 }
+    const idMap = new Map();
+    const shiftedNodes = finalNodes.map(n => {
+      const newId = `${n.id}-copy-${suffix}`;
+      idMap.set(n.id, newId);
+      return {
+        ...n,
+        id: newId,
+        position: { x: (n.position?.x || 0) + offsetX, y: n.position?.y || 180 }
+      };
+    });
+
+    const shiftedEdges = finalEdges.map(e => ({
+      ...e,
+      id: `${e.id || 'edge'}-copy-${suffix}`,
+      source: idMap.get(e.source) || e.source,
+      target: idMap.get(e.target) || e.target
     }));
 
     if (takeSnapshot) takeSnapshot();
     setNodes(prev => [...prev, ...shiftedNodes]);
-    setEdges(prev => [...prev, ...(newEdges || [])]);
+    setEdges(prev => [...prev, ...shiftedEdges]);
     logStep(`Added new workflow alongside existing canvas at X: +${offsetX}px`, 'done');
     if (rfInstance?.fitView) {
       setTimeout(() => rfInstance.fitView({ padding: 0.2, duration: 400 }), 100);
@@ -560,7 +774,7 @@ export default function CanvasPromptBar({
                 <div className="flex items-center gap-2">
                   <Rocket className="w-3.5 h-3.5 text-[#0091DA]" />
                   <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-300">
-                    Agent Log • AI Canvas Architect
+                    Agent Log • {activeWorkflowName || 'AI Canvas Architect'}
                   </span>
                   {isBuilding && (
                     <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#0091DA]/20 text-[#0091DA] text-[9px] font-mono font-bold animate-pulse">
@@ -571,7 +785,10 @@ export default function CanvasPromptBar({
                 </div>
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => setAgentLogs([])}
+                    onClick={() => {
+                      setAgentLogs([]);
+                      if (activeWorkflowId) saveWorkflowAgentLogs(activeWorkflowId, []);
+                    }}
                     className="text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-white/5 transition-colors font-mono"
                   >
                     Clear

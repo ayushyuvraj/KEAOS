@@ -211,6 +211,23 @@ export default function ApprovalNode({ id, data, selected }) {
           }}
           title="Input: Connect upstream Agent, Deterministic Box, or Router"
         />
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="data-in"
+          style={{
+            top: '50%',
+            left: '-6px',
+            width: '10px',
+            height: '10px',
+            borderRadius: '9999px',
+            backgroundColor: '#EAAA00',
+            borderColor: isDarkMode ? '#14120E' : '#FFFFFF',
+            borderWidth: '2px',
+            zIndex: 20
+          }}
+          title="Input: Connect upstream Agent, Deterministic Box, or Router"
+        />
 
         {/* Subtle Icon Glyph */}
         <div className="w-8 h-8 rounded-full bg-[#EAAA00]/15 text-[#EAAA00] flex items-center justify-center shrink-0">
