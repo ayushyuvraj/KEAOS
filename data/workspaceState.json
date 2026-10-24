@@ -1,7 +1,7 @@
 {
   "activeWorkflowId": "wf-1792835282026-xs4bl",
   "uiState": {
-    "isDarkMode": true,
+    "isDarkMode": false,
     "isSidebarCollapsed": true,
     "isSidebarClosed": false,
     "isDrawerExpanded": false,
@@ -61,7 +61,8 @@
             "content": "",
             "status": "idle",
             "fileType": "audio",
-            "isExpanded": false
+            "isExpanded": false,
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -87,7 +88,7 @@
               "exportExtension": ".py",
               "category": "SDK"
             },
-            "prompt": "Analyze multi-speaker transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+            "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
             "temperature": 0.2,
             "topP": 0.95,
             "attachedCounts": {
@@ -98,7 +99,8 @@
               "gateway": 0,
               "memory": 1,
               "policies": 1
-            }
+            },
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -122,7 +124,8 @@
               "modelId": "claude-3-5-sonnet-20241022",
               "temperature": 0.2,
               "topP": 0.95
-            }
+            },
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -144,7 +147,8 @@
             "config": {
               "ttlDays": 90,
               "store": "vector-sqlite"
-            }
+            },
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -166,7 +170,8 @@
             "config": {
               "redactSalaries": true,
               "maskEmails": true
-            }
+            },
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -188,7 +193,8 @@
             "config": {
               "detectEmotion": true,
               "trackEscalation": true
-            }
+            },
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -210,7 +216,8 @@
             "config": {
               "includeOwners": true,
               "includeDeadlines": true
-            }
+            },
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -228,10 +235,224 @@
           "data": {
             "pillarType": "mcp",
             "name": "Slack MCP Server",
-            "description": "Exposes live tools and automated notifications.",
+            "description": "Official Enterprise Slack MCP with 30 categorized tools.",
             "config": {
               "transport": "sse"
-            }
+            },
+            "serviceName": "Slack",
+            "tools": [
+              {
+                "name": "join_slack_channel",
+                "displayName": "Join a channel",
+                "category": "Channel Actions",
+                "type": "write",
+                "description": "Joins an existing public Slack channel so the agent can post and receive updates."
+              },
+              {
+                "name": "leave_slack_channel",
+                "displayName": "Leave a channel",
+                "category": "Channel Actions",
+                "type": "write",
+                "description": "Leaves a specified Slack channel when conversation completes."
+              },
+              {
+                "name": "list_slack_channels",
+                "displayName": "List channels",
+                "category": "Channel Actions",
+                "type": "read",
+                "description": "Lists all public and accessible private channels in the workspace."
+              },
+              {
+                "name": "get_channel_info",
+                "displayName": "Get channel details",
+                "category": "Channel Actions",
+                "type": "read",
+                "description": "Retrieves topic, purpose, member count, and creation timestamp."
+              },
+              {
+                "name": "create_slack_channel",
+                "displayName": "Create a channel",
+                "category": "Channel Actions",
+                "type": "write",
+                "description": "Creates a new public or private Slack channel."
+              },
+              {
+                "name": "archive_slack_channel",
+                "displayName": "Archive a channel",
+                "category": "Channel Actions",
+                "type": "destructive",
+                "description": "Archives an existing Slack channel."
+              },
+              {
+                "name": "invite_to_channel",
+                "displayName": "Invite user to channel",
+                "category": "Channel Actions",
+                "type": "write",
+                "description": "Adds workspace users to a specified channel."
+              },
+              {
+                "name": "get_channel_history",
+                "displayName": "Get conversation history",
+                "category": "Channel Actions",
+                "type": "read",
+                "description": "Fetches recent conversation messages from a channel."
+              },
+              {
+                "name": "set_channel_topic",
+                "displayName": "Set channel topic",
+                "category": "Channel Actions",
+                "type": "write",
+                "description": "Updates the topic of a channel (e.g. current status, meeting summary, sprint goal)."
+              },
+              {
+                "name": "set_channel_purpose",
+                "displayName": "Set channel purpose",
+                "category": "Channel Actions",
+                "type": "write",
+                "description": "Sets or updates the stated purpose/description of a Slack channel."
+              },
+              {
+                "name": "post_slack_message",
+                "displayName": "Post a message",
+                "category": "Message Actions",
+                "type": "write",
+                "description": "Sends a formatted markdown or block kit message to a Slack channel."
+              },
+              {
+                "name": "reply_to_thread",
+                "displayName": "Reply to thread",
+                "category": "Message Actions",
+                "type": "write",
+                "description": "Posts a response directly into an existing message thread without notifying the entire channel."
+              },
+              {
+                "name": "get_thread_replies",
+                "displayName": "Get thread replies",
+                "category": "Message Actions",
+                "type": "read",
+                "description": "Retrieves all conversation messages and replies from a specific thread."
+              },
+              {
+                "name": "update_slack_message",
+                "displayName": "Update a message",
+                "category": "Message Actions",
+                "type": "write",
+                "description": "Edits the text of an existing message in a Slack channel."
+              },
+              {
+                "name": "delete_slack_message",
+                "displayName": "Delete a message",
+                "category": "Message Actions",
+                "type": "destructive",
+                "description": "Permanently removes a message from a Slack channel."
+              },
+              {
+                "name": "get_slack_message_permalink",
+                "displayName": "Get message permalink",
+                "category": "Message Actions",
+                "type": "read",
+                "description": "Generates a permanent browser URL link to a specific message."
+              },
+              {
+                "name": "add_reaction",
+                "displayName": "Add emoji reaction",
+                "category": "Message Actions",
+                "type": "write",
+                "description": "Adds an emoji reaction to a message."
+              },
+              {
+                "name": "remove_reaction",
+                "displayName": "Remove emoji reaction",
+                "category": "Message Actions",
+                "type": "write",
+                "description": "Removes an emoji reaction from a message."
+              },
+              {
+                "name": "search_slack_messages",
+                "displayName": "Search messages",
+                "category": "Message Actions",
+                "type": "read",
+                "description": "Searches across channels and public history for messages matching a query."
+              },
+              {
+                "name": "open_direct_message",
+                "displayName": "Open direct message",
+                "category": "Direct Messages",
+                "type": "write",
+                "description": "Opens or retrieves a 1-on-1 or multi-person DM conversation with target user IDs."
+              },
+              {
+                "name": "send_direct_message",
+                "displayName": "Send direct message",
+                "category": "Direct Messages",
+                "type": "write",
+                "description": "Sends a private DM alert or action item notification directly to a user."
+              },
+              {
+                "name": "pin_slack_message",
+                "displayName": "Pin message to channel",
+                "category": "Pins & Reminders",
+                "type": "write",
+                "description": "Pins an important announcement or meeting decision to the channel."
+              },
+              {
+                "name": "unpin_slack_message",
+                "displayName": "Unpin message from channel",
+                "category": "Pins & Reminders",
+                "type": "write",
+                "description": "Unpins a message from a Slack channel."
+              },
+              {
+                "name": "list_pinned_messages",
+                "displayName": "List pinned messages",
+                "category": "Pins & Reminders",
+                "type": "read",
+                "description": "Retrieves all messages currently pinned in a Slack channel."
+              },
+              {
+                "name": "create_slack_reminder",
+                "displayName": "Create reminder",
+                "category": "Pins & Reminders",
+                "type": "write",
+                "description": "Schedules a Slack reminder for a user or channel regarding task deadlines."
+              },
+              {
+                "name": "list_slack_users",
+                "displayName": "List workspace users",
+                "category": "User Actions",
+                "type": "read",
+                "description": "Lists all active members and bots in the Slack workspace."
+              },
+              {
+                "name": "get_user_profile",
+                "displayName": "Get user profile",
+                "category": "User Actions",
+                "type": "read",
+                "description": "Retrieves user display name, email, avatar, and title."
+              },
+              {
+                "name": "set_user_status",
+                "displayName": "Set user status",
+                "category": "User Actions",
+                "type": "write",
+                "description": "Updates custom status emoji and text."
+              },
+              {
+                "name": "upload_slack_file",
+                "displayName": "Upload file / snippet",
+                "category": "File Actions",
+                "type": "write",
+                "description": "Uploads a document, image, or code snippet to a channel."
+              },
+              {
+                "name": "list_slack_files",
+                "displayName": "List uploaded files",
+                "category": "File Actions",
+                "type": "read",
+                "description": "Lists files shared in the workspace or specific channels."
+              }
+            ],
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -250,7 +471,9 @@
             "title": "Agent Intelligence Output",
             "outputContent": "",
             "status": "idle",
-            "runsHistory": []
+            "runsHistory": [],
+            "isExpanded": false,
+            "isDarkMode": true
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
@@ -366,7 +589,7 @@
         }
       ],
       "createdAt": 1792835282026,
-      "updatedAt": 1792835322889,
+      "updatedAt": 1792837123020,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -780,6 +1003,10 @@
               "policies": 1
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 228,
+            "height": 173
           }
         },
         {
@@ -800,6 +1027,10 @@
               "topP": 1
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -816,6 +1047,10 @@
             "fileType": "auto",
             "isExpanded": false,
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -835,6 +1070,10 @@
               "auditAllActions": true
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -853,6 +1092,10 @@
               "maskEmails": true
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -871,6 +1114,10 @@
               "store": "vector-sqlite"
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -889,6 +1136,10 @@
               "focus": "decisions"
             },
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
           }
         },
         {
@@ -903,8 +1154,12 @@
             "content": "",
             "status": "idle",
             "format": "markdown",
-            "isExpanded": false,
+            "isExpanded": true,
             "isDarkMode": true
+          },
+          "measured": {
+            "width": 560,
+            "height": 440
           }
         }
       ],
@@ -1009,7 +1264,7 @@
         }
       ],
       "createdAt": 1792832919657,
-      "updatedAt": 1792833616595,
+      "updatedAt": 1792837099654,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -1765,7 +2020,7 @@
               "memory": 1,
               "policies": 1
             },
-            "isDarkMode": true
+            "isDarkMode": false
           },
           "measured": {
             "width": 228,
@@ -1789,7 +2044,7 @@
               "temperature": 0.2,
               "topP": 1
             },
-            "isDarkMode": true
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
@@ -1809,19 +2064,20 @@
             "status": "idle",
             "fileType": "auto",
             "isExpanded": false,
-            "isDarkMode": true
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
             "height": 60
-          }
+          },
+          "selected": false
         },
         {
           "id": "node-mcp-gw-1",
           "type": "pillar",
           "position": {
-            "x": 780,
-            "y": -20
+            "x": 654.0808823399537,
+            "y": 49.6187429370448
           },
           "data": {
             "pillarType": "gateway",
@@ -1832,12 +2088,14 @@
               "gatewayType": "mcp-egress",
               "auditAllActions": true
             },
-            "isDarkMode": true
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
             "height": 60
-          }
+          },
+          "selected": false,
+          "dragging": false
         },
         {
           "id": "node-policy-1",
@@ -1854,7 +2112,7 @@
               "redactSalaries": true,
               "maskEmails": true
             },
-            "isDarkMode": true
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
@@ -1876,7 +2134,7 @@
               "ttlDays": 90,
               "store": "vector-sqlite"
             },
-            "isDarkMode": true
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
@@ -1887,8 +2145,8 @@
           "id": "node-skill-1",
           "type": "pillar",
           "position": {
-            "x": 750,
-            "y": 440
+            "x": 660.4037047418902,
+            "y": 390.3588093840202
           },
           "data": {
             "pillarType": "skills",
@@ -1898,12 +2156,14 @@
               "length": "concise",
               "focus": "decisions"
             },
-            "isDarkMode": true
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
             "height": 60
-          }
+          },
+          "selected": true,
+          "dragging": false
         },
         {
           "id": "node-output-1",
@@ -1918,7 +2178,7 @@
             "status": "idle",
             "format": "markdown",
             "isExpanded": false,
-            "isDarkMode": true
+            "isDarkMode": false
           },
           "measured": {
             "width": 56,
@@ -2027,7 +2287,7 @@
         }
       ],
       "createdAt": 1792826968738,
-      "updatedAt": 1792830820694,
+      "updatedAt": 1792837075793,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -3020,7 +3280,7 @@
             "width": 140,
             "height": 60
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
         }
       ],
@@ -3141,7 +3401,7 @@
         }
       ],
       "createdAt": 1729080000000,
-      "updatedAt": 1792671894830,
+      "updatedAt": 1792836058705,
       "isStarred": true,
       "tags": [
         "Meeting Intelligence",
@@ -6462,7 +6722,8 @@
           "content": "",
           "status": "idle",
           "fileType": "audio",
-          "isExpanded": false
+          "isExpanded": false,
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -6488,7 +6749,7 @@
             "exportExtension": ".py",
             "category": "SDK"
           },
-          "prompt": "Analyze multi-speaker transcripts, extract decisions, action items with owners, and draft follow-up communications.",
+          "prompt": "Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.",
           "temperature": 0.2,
           "topP": 0.95,
           "attachedCounts": {
@@ -6499,7 +6760,8 @@
             "gateway": 0,
             "memory": 1,
             "policies": 1
-          }
+          },
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -6523,7 +6785,8 @@
             "modelId": "claude-3-5-sonnet-20241022",
             "temperature": 0.2,
             "topP": 0.95
-          }
+          },
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -6545,7 +6808,8 @@
           "config": {
             "ttlDays": 90,
             "store": "vector-sqlite"
-          }
+          },
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -6567,7 +6831,8 @@
           "config": {
             "redactSalaries": true,
             "maskEmails": true
-          }
+          },
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -6589,7 +6854,8 @@
           "config": {
             "detectEmotion": true,
             "trackEscalation": true
-          }
+          },
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -6611,7 +6877,8 @@
           "config": {
             "includeOwners": true,
             "includeDeadlines": true
-          }
+          },
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -6629,10 +6896,224 @@
         "data": {
           "pillarType": "mcp",
           "name": "Slack MCP Server",
-          "description": "Exposes live tools and automated notifications.",
+          "description": "Official Enterprise Slack MCP with 30 categorized tools.",
           "config": {
             "transport": "sse"
-          }
+          },
+          "serviceName": "Slack",
+          "tools": [
+            {
+              "name": "join_slack_channel",
+              "displayName": "Join a channel",
+              "category": "Channel Actions",
+              "type": "write",
+              "description": "Joins an existing public Slack channel so the agent can post and receive updates."
+            },
+            {
+              "name": "leave_slack_channel",
+              "displayName": "Leave a channel",
+              "category": "Channel Actions",
+              "type": "write",
+              "description": "Leaves a specified Slack channel when conversation completes."
+            },
+            {
+              "name": "list_slack_channels",
+              "displayName": "List channels",
+              "category": "Channel Actions",
+              "type": "read",
+              "description": "Lists all public and accessible private channels in the workspace."
+            },
+            {
+              "name": "get_channel_info",
+              "displayName": "Get channel details",
+              "category": "Channel Actions",
+              "type": "read",
+              "description": "Retrieves topic, purpose, member count, and creation timestamp."
+            },
+            {
+              "name": "create_slack_channel",
+              "displayName": "Create a channel",
+              "category": "Channel Actions",
+              "type": "write",
+              "description": "Creates a new public or private Slack channel."
+            },
+            {
+              "name": "archive_slack_channel",
+              "displayName": "Archive a channel",
+              "category": "Channel Actions",
+              "type": "destructive",
+              "description": "Archives an existing Slack channel."
+            },
+            {
+              "name": "invite_to_channel",
+              "displayName": "Invite user to channel",
+              "category": "Channel Actions",
+              "type": "write",
+              "description": "Adds workspace users to a specified channel."
+            },
+            {
+              "name": "get_channel_history",
+              "displayName": "Get conversation history",
+              "category": "Channel Actions",
+              "type": "read",
+              "description": "Fetches recent conversation messages from a channel."
+            },
+            {
+              "name": "set_channel_topic",
+              "displayName": "Set channel topic",
+              "category": "Channel Actions",
+              "type": "write",
+              "description": "Updates the topic of a channel (e.g. current status, meeting summary, sprint goal)."
+            },
+            {
+              "name": "set_channel_purpose",
+              "displayName": "Set channel purpose",
+              "category": "Channel Actions",
+              "type": "write",
+              "description": "Sets or updates the stated purpose/description of a Slack channel."
+            },
+            {
+              "name": "post_slack_message",
+              "displayName": "Post a message",
+              "category": "Message Actions",
+              "type": "write",
+              "description": "Sends a formatted markdown or block kit message to a Slack channel."
+            },
+            {
+              "name": "reply_to_thread",
+              "displayName": "Reply to thread",
+              "category": "Message Actions",
+              "type": "write",
+              "description": "Posts a response directly into an existing message thread without notifying the entire channel."
+            },
+            {
+              "name": "get_thread_replies",
+              "displayName": "Get thread replies",
+              "category": "Message Actions",
+              "type": "read",
+              "description": "Retrieves all conversation messages and replies from a specific thread."
+            },
+            {
+              "name": "update_slack_message",
+              "displayName": "Update a message",
+              "category": "Message Actions",
+              "type": "write",
+              "description": "Edits the text of an existing message in a Slack channel."
+            },
+            {
+              "name": "delete_slack_message",
+              "displayName": "Delete a message",
+              "category": "Message Actions",
+              "type": "destructive",
+              "description": "Permanently removes a message from a Slack channel."
+            },
+            {
+              "name": "get_slack_message_permalink",
+              "displayName": "Get message permalink",
+              "category": "Message Actions",
+              "type": "read",
+              "description": "Generates a permanent browser URL link to a specific message."
+            },
+            {
+              "name": "add_reaction",
+              "displayName": "Add emoji reaction",
+              "category": "Message Actions",
+              "type": "write",
+              "description": "Adds an emoji reaction to a message."
+            },
+            {
+              "name": "remove_reaction",
+              "displayName": "Remove emoji reaction",
+              "category": "Message Actions",
+              "type": "write",
+              "description": "Removes an emoji reaction from a message."
+            },
+            {
+              "name": "search_slack_messages",
+              "displayName": "Search messages",
+              "category": "Message Actions",
+              "type": "read",
+              "description": "Searches across channels and public history for messages matching a query."
+            },
+            {
+              "name": "open_direct_message",
+              "displayName": "Open direct message",
+              "category": "Direct Messages",
+              "type": "write",
+              "description": "Opens or retrieves a 1-on-1 or multi-person DM conversation with target user IDs."
+            },
+            {
+              "name": "send_direct_message",
+              "displayName": "Send direct message",
+              "category": "Direct Messages",
+              "type": "write",
+              "description": "Sends a private DM alert or action item notification directly to a user."
+            },
+            {
+              "name": "pin_slack_message",
+              "displayName": "Pin message to channel",
+              "category": "Pins & Reminders",
+              "type": "write",
+              "description": "Pins an important announcement or meeting decision to the channel."
+            },
+            {
+              "name": "unpin_slack_message",
+              "displayName": "Unpin message from channel",
+              "category": "Pins & Reminders",
+              "type": "write",
+              "description": "Unpins a message from a Slack channel."
+            },
+            {
+              "name": "list_pinned_messages",
+              "displayName": "List pinned messages",
+              "category": "Pins & Reminders",
+              "type": "read",
+              "description": "Retrieves all messages currently pinned in a Slack channel."
+            },
+            {
+              "name": "create_slack_reminder",
+              "displayName": "Create reminder",
+              "category": "Pins & Reminders",
+              "type": "write",
+              "description": "Schedules a Slack reminder for a user or channel regarding task deadlines."
+            },
+            {
+              "name": "list_slack_users",
+              "displayName": "List workspace users",
+              "category": "User Actions",
+              "type": "read",
+              "description": "Lists all active members and bots in the Slack workspace."
+            },
+            {
+              "name": "get_user_profile",
+              "displayName": "Get user profile",
+              "category": "User Actions",
+              "type": "read",
+              "description": "Retrieves user display name, email, avatar, and title."
+            },
+            {
+              "name": "set_user_status",
+              "displayName": "Set user status",
+              "category": "User Actions",
+              "type": "write",
+              "description": "Updates custom status emoji and text."
+            },
+            {
+              "name": "upload_slack_file",
+              "displayName": "Upload file / snippet",
+              "category": "File Actions",
+              "type": "write",
+              "description": "Uploads a document, image, or code snippet to a channel."
+            },
+            {
+              "name": "list_slack_files",
+              "displayName": "List uploaded files",
+              "category": "File Actions",
+              "type": "read",
+              "description": "Lists files shared in the workspace or specific channels."
+            }
+          ],
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -6652,7 +7133,8 @@
           "outputContent": "",
           "status": "idle",
           "runsHistory": [],
-          "isExpanded": false
+          "isExpanded": false,
+          "isDarkMode": true
         },
         "className": "animate-in zoom-in-95 duration-200",
         "measured": {
@@ -12044,5 +12526,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1792835323703
+  "syncedAt": 1792837123831
 }

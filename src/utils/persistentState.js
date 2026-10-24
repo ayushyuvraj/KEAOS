@@ -65,7 +65,7 @@ export function loadCanvasState() {
       const parsed = JSON.parse(raw);
       if (parsed.version === CANVAS_VERSION && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {
         // Sanitize on startup: ensure no zombie executing or generating states persist across reloads
-        parsed.nodes = parsed.nodes.map(n => {
+        parsed.nodes = parsed.nodes.map((n, idx) => {
           let updatedData = { ...n.data };
           if (n.type === 'outputNode' || n.type === 'outputNodeV2' || n.type === 'ingestionNode') {
             if (updatedData.status === 'generating') {
@@ -77,8 +77,18 @@ export function loadCanvasState() {
           if (updatedData.isExecuting) {
             updatedData.isExecuting = false;
           }
+          let nodeType = n.type;
+          if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
+            nodeType = 'pillar';
+          }
+          const safePos = (n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y))
+            ? n.position
+            : { x: 500 + (idx * 40), y: 180 + (idx * 30) };
+
           return {
             ...n,
+            type: nodeType,
+            position: safePos,
             data: updatedData
           };
         });
@@ -103,6 +113,21 @@ export function loadCanvasState() {
  */
 export function saveCanvasState(data) {
   try {
+    if (data && Array.isArray(data.nodes)) {
+      data.nodes = data.nodes.map((n, idx) => {
+        let nodeType = n.type;
+        if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
+          nodeType = 'pillar';
+        }
+        return {
+          ...n,
+          type: nodeType,
+          position: (n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y))
+            ? n.position
+            : { x: 500 + (idx * 40), y: 180 + (idx * 30) }
+        };
+      });
+    }
     localStorage.setItem(CANVAS_STATE_KEY, JSON.stringify({ ...data, version: CANVAS_VERSION }));
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));

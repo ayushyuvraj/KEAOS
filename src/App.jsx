@@ -2127,11 +2127,19 @@ export default function App() {
       : isMeetingIntel
         ? initialNodes
         : (workflow.nodes || []);
-    const targetNodes = rawTargetNodes.map(n => {
-      if (n.type === 'ingestionNode' || n.type === 'outputNode') {
-        return { ...n, data: { ...n.data, isExpanded: false } };
+    const targetNodes = rawTargetNodes.map((n, idx) => {
+      let nodeType = n.type;
+      if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
+        nodeType = 'pillar';
       }
-      return n;
+      const safePos = (n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y))
+        ? n.position
+        : { x: 500 + (idx * 40), y: 180 + (idx * 30) };
+
+      if (nodeType === 'ingestionNode' || nodeType === 'outputNode' || nodeType === 'outputNodeV2') {
+        return { ...n, type: nodeType, position: safePos, data: { ...n.data, isExpanded: false } };
+      }
+      return { ...n, type: nodeType, position: safePos };
     });
     const targetEdges = (workflow.edges && workflow.edges.length > 0)
       ? workflow.edges

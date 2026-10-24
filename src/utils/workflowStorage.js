@@ -926,7 +926,7 @@ export function loadAllWorkflows() {
       if (Array.isArray(parsed) && parsed.length > 0) {
         let registryMutated = false;
 
-        // 1. Clean legacy placeholder descriptions to empty string
+        // 1. Clean legacy placeholder descriptions and sanitize node positions & types
         parsed.forEach((w) => {
           if (
             w.description === 'Pristine blank canvas. Connect models, skills, tools, and gateways.' ||
@@ -937,6 +937,26 @@ export function loadAllWorkflows() {
               w.activeUseCase.description = '';
             }
             registryMutated = true;
+          }
+
+          if (Array.isArray(w.nodes)) {
+            w.nodes = w.nodes.map((n, idx) => {
+              let nodeType = n.type;
+              if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
+                nodeType = 'pillar';
+                registryMutated = true;
+              }
+              const hasValidPos = n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y);
+              if (!hasValidPos) {
+                registryMutated = true;
+                return {
+                  ...n,
+                  type: nodeType,
+                  position: { x: 500 + (idx * 40), y: 180 + (idx * 30) }
+                };
+              }
+              return { ...n, type: nodeType };
+            });
           }
         });
 
@@ -1061,10 +1081,26 @@ export function saveWorkflow(workflow) {
 
   const cleanDescription = (workflow.description !== undefined ? workflow.description : (workflow.activeUseCase?.description || '')).trim();
 
+  const sanitizedNodes = (workflow.nodes || []).map((n, idx) => {
+    let nodeType = n.type;
+    if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
+      nodeType = 'pillar';
+    }
+    const safePos = (n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y))
+      ? n.position
+      : { x: 500 + (idx * 40), y: 180 + (idx * 30) };
+    return {
+      ...n,
+      type: nodeType,
+      position: safePos
+    };
+  });
+
   const updatedRecord = {
     ...workflow,
     name: targetName,
     description: cleanDescription,
+    nodes: sanitizedNodes,
     activeUseCase: {
       ...(workflow.activeUseCase || {}),
       name: targetName,
@@ -1073,7 +1109,7 @@ export function saveWorkflow(workflow) {
     isLocked,
     isWorkflowLocked: isLocked,
     updatedAt: Date.now(),
-    stats: computeWorkflowStats(workflow.nodes)
+    stats: computeWorkflowStats(sanitizedNodes)
   };
 
   let newList;

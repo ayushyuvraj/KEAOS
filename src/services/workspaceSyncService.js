@@ -30,8 +30,30 @@ export async function initWorkspaceSync() {
       const serverState = await res.json();
 
       if (serverState && Array.isArray(serverState.workflows) && serverState.workflows.length > 0) {
+        // Sanitize all workflow nodes to guarantee valid coordinates and valid pillar types
+        const sanitizedWorkflows = serverState.workflows.map(wf => {
+          if (!wf || !Array.isArray(wf.nodes)) return wf;
+          return {
+            ...wf,
+            nodes: wf.nodes.map((n, idx) => {
+              let nodeType = n.type;
+              if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
+                nodeType = 'pillar';
+              }
+              const safePos = (n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y))
+                ? n.position
+                : { x: 420 + (idx * 40), y: 160 + (idx * 30) };
+              return {
+                ...n,
+                type: nodeType,
+                position: safePos
+              };
+            })
+          };
+        });
+
         // Hydrate this browser instance from server disk file
-        localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(serverState.workflows));
+        localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(sanitizedWorkflows));
         if (serverState.activeWorkflowId) {
           localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, serverState.activeWorkflowId);
         }
@@ -39,7 +61,23 @@ export async function initWorkspaceSync() {
           localStorage.setItem('keaos_ui_state', JSON.stringify(serverState.uiState));
         }
         if (serverState.canvasState) {
-          localStorage.setItem('keaos_canvas_state', JSON.stringify(serverState.canvasState));
+          let sanitizedCanvas = { ...serverState.canvasState };
+          if (Array.isArray(sanitizedCanvas.nodes)) {
+            sanitizedCanvas.nodes = sanitizedCanvas.nodes.map((n, idx) => {
+              let nodeType = n.type;
+              if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
+                nodeType = 'pillar';
+              }
+              return {
+                ...n,
+                type: nodeType,
+                position: (n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y))
+                  ? n.position
+                  : { x: 420 + (idx * 40), y: 160 + (idx * 30) }
+              };
+            });
+          }
+          localStorage.setItem('keaos_canvas_state', JSON.stringify(sanitizedCanvas));
         }
         if (serverState.registeredMcps && Array.isArray(serverState.registeredMcps)) {
           localStorage.setItem('keaos_registered_mcps', JSON.stringify(serverState.registeredMcps));

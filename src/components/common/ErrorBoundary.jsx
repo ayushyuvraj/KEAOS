@@ -90,6 +90,19 @@ export default class ErrorBoundary extends React.Component {
               <div className="p-3 bg-[#0B0C12] border border-[#232736] font-mono text-xs text-red-400 overflow-x-auto max-h-36 whitespace-pre-wrap select-text">
                 {this.state.error?.toString() || 'Unknown runtime error occurred.'}
               </div>
+
+              {this.state.error?.stack && (
+                <div className="p-3 bg-[#0B0C12] border border-[#232736] font-mono text-[10px] text-slate-400 overflow-x-auto max-h-48 whitespace-pre-wrap select-text">
+                  <div className="text-amber-400 font-bold mb-1">Stack Trace:</div>
+                  {this.state.error.stack}
+                  {this.state.errorInfo?.componentStack && (
+                    <>
+                      <div className="text-amber-400 font-bold mt-2 mb-1">Component Stack:</div>
+                      {this.state.errorInfo.componentStack}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
