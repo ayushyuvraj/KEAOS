@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { compileDeterministicLogic, getOfflineFallbackCode } from '../services/deterministicCompiler';
 import { executeDeterministicTask, inferDataSchema } from '../services/deterministicRunner';
-import { PROVIDERS, getProviderCredential, getAllConfiguredProviders } from '../services/llmService';
+import { PROVIDERS, getProviderCredential, getAllConfiguredProviders, executeUniversalChat } from '../services/llmService';
 
 /**
  * Checks whether code is default starter/placeholder code.
@@ -79,7 +79,7 @@ export default function DeterministicWorkspaceModal({
   const [activeLeftTab, setActiveLeftTab] = useState('chat'); // 'chat' | 'spec' | 'schema'
   const [activeRightTab, setActiveRightTab] = useState('table'); // 'table' | 'json' | 'console'
 
-  // Conversational Chat State
+  // Conversational Chat State (Bilateral Discussion Protocol)
   const [chatMessages, setChatMessages] = useState(() => {
     if (Array.isArray(nodeData?.chatHistory) && nodeData.chatHistory.length > 0) {
       return nodeData.chatHistory;
@@ -88,14 +88,15 @@ export default function DeterministicWorkspaceModal({
       {
         id: 'msg-welcome',
         role: 'assistant',
-        content: `I am your Deterministic Co-Pilot. I have inspected your upstream inputs. Describe what you'd like to calculate, filter, join, or format, or pick a smart action below. I'll write zero-token browser code for you.`,
-        timestamp: new Date().toLocaleTimeString()
+        content: `I am your Deterministic Co-Pilot & Software Architect. Tell me what logic or calculation you need. We'll discuss and finalize the step-by-step plan together, and once you approve, I will formulate the exact deterministic code for you.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
   });
   const [chatInput, setChatInput] = useState('');
   const [isChatSending, setIsChatSending] = useState(false);
   const chatBottomRef = useRef(null);
+  const lastPlanPromptRef = useRef(nodeData?.prompt || '');
 
   // Operational Spec Bullets (The Frozen Contract)
   const [operationalBullets, setOperationalBullets] = useState(() => {
@@ -537,7 +538,7 @@ export default function DeterministicWorkspaceModal({
     }
   };
 
-  // Conversational Co-Pilot Chat Sender
+  // Conversational Co-Pilot Chat Sender (Bilateral Discussion Protocol)
   const handleSendChat = async (overrideText = null) => {
     const textToSend = (typeof overrideText === 'string' ? overrideText : chatInput).trim();
     if (!textToSend || isChatSending) return;
@@ -549,28 +550,150 @@ export default function DeterministicWorkspaceModal({
       id: `user-${Date.now()}`,
       role: 'user',
       content: textToSend,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    setChatMessages(prev => [...prev, userMsg]);
+    const nextChatMessages = [...chatMessages, userMsg];
+    setChatMessages(nextChatMessages);
+
+    // Track whether this message is a user approval / confirmation
+    const isConfirmationText = /^(yes|yeah|yep|proceed|confirm|deploy|looks good|sounds good|ok|okay|fine|do it|go ahead|formulate|generate|i am okay|i'm okay)/i.test(textToSend.toLowerCase()) || 
+      textToSend.toLowerCase().includes('plan is finalized') || 
+      textToSend.toLowerCase().includes('formulate the code') ||
+      textToSend.toLowerCase().includes('okay with');
+
+    if (!isConfirmationText) {
+      lastPlanPromptRef.current = textToSend;
+    }
 
     try {
-      const res = await compileDeterministicLogic({
-        prompt: textToSend,
-        language: language || 'javascript',
-        sampleInputs: currentActiveInput,
-        provider: connectedBrain?.provider || null,
-        modelId: connectedBrain?.modelId || null
-      });
+      // 1. Build upstream data schema context for the model
+      let inputContext = '';
+      if (upstreamInfo.sources && upstreamInfo.sources.length > 0) {
+        inputContext = `AVAILABLE UPSTREAM DATA STREAMS IN THIS DAG:\n` + upstreamInfo.sources.map(s => {
+          const streamName = s.name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+          const fields = s.schema?.fields ? Object.keys(s.schema.fields).join(', ') : 'dynamic keys';
+          return `- inputs.${streamName} (Source: "${s.name}", format: ${s.schema?.format || 'tabular'}, fields: [${fields}], rowCount: ${s.schema?.rowCount || 'unknown'})`;
+        }).join('\n');
+      } else {
+        inputContext = `INPUT SPECIFICATION:\n- inputs.data: dynamic payload passed at runtime.`;
+      }
 
-      if (res?.code) {
-        setCode(res.code);
-        setPrompt(textToSend);
-        if (res.language) setLanguage(res.language);
+      // 2. Strict Two-Phase Bilateral System Prompt
+      const systemPrompt = `You are the KEAOS Deterministic Logic Co-Pilot & Software Architect.
+You are helping the user design, plan, and deploy a 100% deterministic code module inside the KEAOS Deterministic Rule Box named "${nodeName || 'Rule Box'}".
+Once finalized and deployed, this box runs purely algorithmically in KEAOS with ZERO LLM calls and ZERO token consumption at runtime.
 
-        // Auto-distill operational bullets from this agreement
+${inputContext}
+
+CRITICAL MANDATE: YOU OPERATE STRICTLY IN A BILATERAL TWO-PHASE PROTOCOL.
+YOU MUST NEVER ENGAGE IN A ONE-SIDED MONOLOGUE OR GENERATE CODE IN ONE SHOT WITHOUT EXPLICIT USER CONFIRMATION.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1: BILATERAL DISCUSSION, CLARIFICATION & ARCHITECTURAL PLAN (Default Phase)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+When the user states what they want, gives a command, or asks for logic:
+1. DO NOT GENERATE CODE YET. ABSOLUTELY NEVER output markdown code fences (\`\`\`) with executable code in Phase 1.
+2. IF THE USER'S REQUEST IS AMBIGUOUS, UNDERSPECIFIED, OR MISSING KEY DETAILS:
+   - Actively question the user back and ask for clarification (e.g. key matching names, tolerance thresholds, null handling, or priority order).
+   - Wait for the user to clarify.
+3. PROVIDE A CRISP, STRUCTURED ARCHITECTURAL PROPOSAL / FINAL PLAN:
+   - **Input Structure**: Expected incoming fields/streams (e.g. \`inputs.data\`, \`inputs.gstr2b\`, \`inputs.pri\`, array of records).
+   - **Processing Logic**: Step-by-step algorithmic actions (e.g. hash map indexing, matching logic, amount comparisons, discrepancy flagging).
+   - **Output Specification**: Exact shape and format of the output (table rows, summary metrics, match status flags).
+4. CONCLUDE WITH THIS EXACT MANDATORY QUESTION:
+   "Yes this is what has been finalized. Are you okay with it or would you like to change something?"
+5. If the user suggests tweaks, answers questions, or refines details, iterate and update the architectural plan in the same crisp, structured style without code, repeating the question.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2: FINALIZATION & CODE FORMULATION (Only When User Approves)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks good", "finalize", "deploy", "confirm", "sound good", "I am okay with this", "go ahead", "formulate the code", "yes, this plan is finalized"):
+1. State the ultra-crisp functional rule summary on its own line:
+   RULE_SUMMARY: <Ultra-crisp summary of rule function, max 6-10 words>
+2. Confirm deployment in 1 crisp sentence:
+   "✓ Logic finalized and formulated into zero-token deterministic ${language || 'javascript'} code."
+3. Provide the COMPLETE, self-contained, working deterministic code inside a single standard markdown code block:
+   \`\`\`${language || 'javascript'}
+   // Self-contained browser-native process function
+   function process(inputs, state) {
+     ...
+     return result;
+   }
+   \`\`\`
+4. RUNTIME SPECIFICATION:
+   - The code executes directly in the KEAOS browser sandbox isolate.
+   - The function receives \`inputs\` and a persistent \`state\` object.
+   - Both sync and async functions (\`async function process(inputs, state)\`) are supported.
+   - For console debugging, \`console.log(...)\` is captured into DevTools.
+   - NEVER tell the user to install packages ('npm install'), open a terminal, or configure backend servers.`;
+
+      // Format conversation history for LLM
+      const messagesForLlm = nextChatMessages.slice(-6).map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+      }));
+
+      let responseText = '';
+      const provider = connectedBrain?.provider || 'openai';
+      const modelId = connectedBrain?.modelId || 'gpt-4o';
+
+      try {
+        const chatResponse = await executeUniversalChat({
+          provider,
+          modelId,
+          systemPrompt,
+          messages: messagesForLlm,
+          temperature: 0.2
+        });
+        responseText = typeof chatResponse === 'string'
+          ? chatResponse
+          : (chatResponse?.text || chatResponse?.responseText || chatResponse?.rawText || '');
+      } catch (llmErr) {
+        console.warn('Direct LLM chat failed, evaluating fallback bilateral response:', llmErr);
+        // Fallback bilateral handler for offline/unconfigured scenarios
+        if (isConfirmationText) {
+          const reqPrompt = lastPlanPromptRef.current || prompt || textToSend;
+          const fallbackCode = getOfflineFallbackCode(reqPrompt, language || 'javascript', currentActiveInput);
+          responseText = `RULE_SUMMARY: Executes deterministic ${language || 'javascript'} data transformation\n\n✓ Logic finalized and formulated into zero-token deterministic ${language || 'javascript'} code.\n\n\`\`\`${language || 'javascript'}\n${fallbackCode}\n\`\`\``;
+        } else {
+          // Propose architectural plan without code
+          responseText = `I have analyzed your requirement: **"${textToSend}"**.\n\n**Proposed Logic Architecture:**\n- **Input Structure:** Consumes ${upstreamInfo.sources.length > 0 ? upstreamInfo.sources.map(s => `\`inputs.${s.name.toLowerCase().replace(/[^a-z0-9_]/g, '_')}\``).join(' & ') : '`inputs.data`'}.\n- **Processing Logic:** Algorithmic transformation, matching, and validation for "${textToSend}".\n- **Output Specification:** Returns structured table records with status flags and summary counts.\n\nYes this is what has been finalized. Are you okay with it or would you like to change something?`;
+        }
+      }
+
+      // Check if code block was returned (Phase 2 completion)
+      const codeBlockRegex = /```([a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/;
+      const codeMatch = codeBlockRegex.exec(responseText);
+
+      if (codeMatch && codeMatch[2]) {
+        // Phase 2: User confirmed plan -> Code formulated!
+        const rawLang = (codeMatch[1] || language || 'javascript').toLowerCase();
+        const detectedLang = rawLang.includes('py') ? 'python' : rawLang.includes('sql') ? 'sql' : 'javascript';
+        const detectedCode = codeMatch[2].trim();
+
+        // Extract RULE_SUMMARY
+        const summaryRegex = /RULE_SUMMARY:\s*([^\n\r]+)/i;
+        const summaryMatch = summaryRegex.exec(responseText);
+        let detectedSummary = summaryMatch ? summaryMatch[1].trim() : null;
+
+        if (!detectedSummary && detectedCode) {
+          const commentMatch = /\/\/\s*([^\n\r]+)/.exec(detectedCode);
+          if (commentMatch && !commentMatch[1].toLowerCase().includes('self-contained')) {
+            detectedSummary = commentMatch[1].trim();
+          }
+        }
+        if (!detectedSummary) {
+          detectedSummary = lastPlanPromptRef.current || prompt || 'Executes custom deterministic logic';
+        }
+
+        // Apply immediately to the Studio Code Editor
+        setCode(detectedCode);
+        setLanguage(detectedLang);
+        setPrompt(detectedSummary);
+
         const bullets = [
           `Consumes ${upstreamInfo.sources.length > 0 ? upstreamInfo.sources.map(s => s.name).join(' & ') : 'inputs.data'}`,
-          `Executes deterministic logic: ${textToSend.slice(0, 70)}...`,
+          `Executes deterministic logic: ${detectedSummary}`,
           `Guarantees zero-token sub-millisecond execution contract`
         ];
         setOperationalBullets(bullets);
@@ -578,21 +701,42 @@ export default function DeterministicWorkspaceModal({
         const aiMsg = {
           id: `ai-${Date.now()}`,
           role: 'assistant',
-          content: `I have compiled your request into zero-token deterministic ${res.language || language} code. It is now active in your code editor. Click RUN to test it instantly!`,
-          code: res.code,
-          language: res.language || language,
-          timestamp: new Date().toLocaleTimeString()
+          content: responseText.replace(/```([a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/g, '').trim() || '✓ Logic finalized and formulated into zero-token deterministic code.',
+          code: detectedCode,
+          language: detectedLang,
+          isFinalized: true,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setChatMessages(prev => [...prev, aiMsg]);
+
+        window.dispatchEvent(new CustomEvent('keaos:toast', {
+          detail: { message: `✓ Logic finalized & loaded into Code Editor` }
+        }));
+
+        if (onUpdateNode && nodeId) {
+          onUpdateNode(nodeId, {
+            name: nodeName,
+            prompt: detectedSummary,
+            code: detectedCode,
+            language: detectedLang,
+            operationalBullets: bullets,
+            chatHistory: [...nextChatMessages, aiMsg]
+          });
+        }
+      } else {
+        // Phase 1: Architectural plan / bilateral clarification question
+        const aiMsg = {
+          id: `ai-${Date.now()}`,
+          role: 'assistant',
+          content: responseText,
+          isPlan: true,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setChatMessages(prev => [...prev, aiMsg]);
 
         if (onUpdateNode && nodeId) {
           onUpdateNode(nodeId, {
-            name: nodeName,
-            prompt: textToSend,
-            code: res.code,
-            language: res.language || language,
-            operationalBullets: bullets,
-            chatHistory: [...chatMessages, userMsg, aiMsg]
+            chatHistory: [...nextChatMessages, aiMsg]
           });
         }
       }
@@ -600,9 +744,9 @@ export default function DeterministicWorkspaceModal({
       const errMsg = {
         id: `err-${Date.now()}`,
         role: 'assistant',
-        content: `Error compiling logic: ${err.message || String(err)}`,
+        content: `Error in discussion: ${err.message || String(err)}`,
         isError: true,
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setChatMessages(prev => [...prev, errMsg]);
     } finally {
@@ -1032,17 +1176,50 @@ export default function DeterministicWorkspaceModal({
                               : isDarkMode ? 'bg-[#1D2028] border-[#2C3242] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
                         }`}>
                           <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                          {/* Phase 2: Finalized Code Badge & Reapply Button */}
                           {msg.code && (
-                            <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
-                              <span className="text-[10px] text-emerald-400 font-bold uppercase">Code generated ({msg.language})</span>
+                            <div className="mt-2.5 pt-2 border-t border-emerald-500/20 flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold uppercase">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Plan Finalized & Code Formulated ({msg.language || language})</span>
+                              </div>
                               <button
                                 onClick={() => {
                                   setCode(msg.code);
-                                  window.dispatchEvent(new CustomEvent('keaos:toast', { detail: { message: '✓ Applied code to editor' } }));
+                                  if (msg.language) setLanguage(msg.language);
+                                  window.dispatchEvent(new CustomEvent('keaos:toast', { detail: { message: '✓ Reapplied code to editor' } }));
                                 }}
-                                className="px-2 py-0.5 text-[10px] bg-emerald-500 text-white rounded font-bold hover:bg-emerald-600 transition-colors cursor-pointer"
+                                className="px-2.5 py-1 text-[10px] bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded font-bold hover:bg-emerald-500/30 transition-colors cursor-pointer"
                               >
-                                Apply to Editor
+                                Reapply to Editor
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Phase 1: Bilateral Plan Actions (Confirm or Request Changes) */}
+                          {msg.role === 'assistant' && !msg.code && !msg.isError && msg.id !== 'msg-welcome' && (
+                            <div className="mt-3 pt-2.5 border-t border-[#2C3242]/80 flex flex-wrap items-center gap-2">
+                              <button
+                                onClick={() => handleSendChat("Yes, this plan is finalized. Please formulate the code.")}
+                                disabled={isChatSending}
+                                className="px-3 py-1.5 text-[11px] font-bold rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>✓ Yes, Confirm Plan & Formulate Code</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setChatInput("I want to adjust: ");
+                                  setTimeout(() => {
+                                    const inputEl = document.querySelector('input[placeholder*="Describe what this rule"]');
+                                    if (inputEl) inputEl.focus();
+                                  }, 50);
+                                }}
+                                disabled={isChatSending}
+                                className="px-3 py-1.5 text-[11px] font-medium rounded-full bg-slate-700/60 hover:bg-slate-700 border border-slate-600 text-slate-200 flex items-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <span>✎ Request Changes</span>
                               </button>
                             </div>
                           )}
@@ -1051,9 +1228,9 @@ export default function DeterministicWorkspaceModal({
                       </div>
                     ))}
                     {isChatSending && (
-                      <div className="flex items-center gap-2 text-xs text-amber-400 p-2 font-mono">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Co-Pilot is compiling deterministic code...</span>
+                      <div className="flex items-center gap-2 text-xs text-slate-400 p-2 font-mono">
+                        <span className="w-2 h-2 rounded-full bg-[#0091DA] animate-ping" />
+                        <span className="opacity-80">Reasoning architecture...</span>
                       </div>
                     )}
                     <div ref={chatBottomRef} />
