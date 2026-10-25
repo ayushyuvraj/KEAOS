@@ -354,6 +354,22 @@ export function downloadSpreadsheetFile(rows, filename = 'output.csv') {
   return false;
 }
 
+/**
+ * Universal browser-native CSV parser that converts CSV text into record objects.
+ */
+export function parseCsv(text) {
+  if (!text || typeof text !== 'string') return [];
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (lines.length === 0) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
+  return lines.slice(1).map(l => {
+    const vals = l.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = vals[idx] !== undefined ? vals[idx] : ''; });
+    return row;
+  });
+}
+
 export async function executeDeterministicJS(code, inputData = {}, nodeId = 'default') {
   const startTime = performance.now();
   const normalized = normalizeInputs(inputData);
@@ -386,20 +402,6 @@ export async function executeDeterministicJS(code, inputData = {}, nodeId = 'def
       logs.push({ level: 'table', time: new Date().toLocaleTimeString(), message: `Table with ${Array.isArray(tableData) ? tableData.length : 1} records`, data: tableData });
       console.table(tableData);
     }
-  };
-
-  // CSV parsing utility helper injected into runtime
-  const parseCsv = (text) => {
-    if (!text || typeof text !== 'string') return [];
-    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-    if (lines.length === 0) return [];
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
-    return lines.slice(1).map(l => {
-      const vals = l.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
-      const row = {};
-      headers.forEach((h, idx) => { row[h] = vals[idx] !== undefined ? vals[idx] : ''; });
-      return row;
-    });
   };
 
   try {

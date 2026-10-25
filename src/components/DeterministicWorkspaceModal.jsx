@@ -32,7 +32,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { compileDeterministicLogic, getOfflineFallbackCode } from '../services/deterministicCompiler';
-import { executeDeterministicTask, inferDataSchema } from '../services/deterministicRunner';
+import { executeDeterministicTask, inferDataSchema, parseCsv } from '../services/deterministicRunner';
 import { 
   PROVIDERS, 
   getProviderCredential, 
@@ -128,6 +128,87 @@ export default function DeterministicWorkspaceModal({
   const [manualInputText, setManualInputText] = useState(nodeData?.manualInputText || '{\n  "testValue": 100\n}');
   const [uploadedData, setUploadedData] = useState(nodeData?.uploadedData || null);
   const [uploadedFileName, setUploadedFileName] = useState(nodeData?.uploadedFileName || '');
+  const fileUploadInputRef = useRef(null);
+
+  // Studio In-Memory Test File Uploader (Supports CSV, XLSX, JSON)
+  const handleStudioFileUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const parsedFiles = {};
+    let pending = files.length;
+
+    files.forEach(file => {
+      const fileName = file.name || 'file';
+      const isJson = fileName.toLowerCase().endsWith('.json');
+      const isXlsx = /\.(xlsx|xls)$/i.test(fileName);
+
+      const reader = new FileReader();
+      if (isXlsx && typeof window !== 'undefined' && window.XLSX) {
+        reader.onload = (ev) => {
+          try {
+            const data = new Uint8Array(ev.target.result);
+            const workbook = window.XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.SheetNames[0];
+            const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { defval: null });
+            assignFile(fileName, rows);
+          } catch (err) {
+            console.warn('XLSX parse error:', err);
+            assignFile(fileName, []);
+          }
+          checkComplete();
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.onload = (ev) => {
+          try {
+            const text = ev.target.result;
+            if (isJson) {
+              const parsed = JSON.parse(text);
+              assignFile(fileName, parsed);
+            } else {
+              const rows = parseCsv(text);
+              assignFile(fileName, rows);
+            }
+          } catch (err) {
+            console.warn('File read error:', err);
+            assignFile(fileName, []);
+          }
+          checkComplete();
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    function assignFile(name, data) {
+      const lower = name.toLowerCase();
+      if (/2b|gstr/i.test(lower)) {
+        parsedFiles['gstgr2b'] = data;
+        parsedFiles['gstr2b'] = data;
+      } else if (/pr|purchase/i.test(lower)) {
+        parsedFiles['pr'] = data;
+        parsedFiles['purchase_register'] = data;
+      } else {
+        const cleanKey = name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_');
+        parsedFiles[cleanKey] = data;
+      }
+    }
+
+    function checkComplete() {
+      pending--;
+      if (pending === 0) {
+        const keys = Object.keys(parsedFiles);
+        if (keys.length > 0 && !parsedFiles['data']) {
+          parsedFiles['data'] = parsedFiles['gstgr2b'] || parsedFiles[keys[0]];
+        }
+        setUploadedData(parsedFiles);
+        setUploadedFileName(files.map(f => f.name).join(', '));
+        window.dispatchEvent(new CustomEvent('keaos:toast', {
+          detail: { message: `✓ Ingested ${files.length} test file(s) into inputs` }
+        }));
+      }
+    }
+  };
 
   // UI & Execution states
   const [isCompiling, setIsCompiling] = useState(false);
@@ -369,11 +450,15 @@ export default function DeterministicWorkspaceModal({
 
   // Current active inputs
   const currentActiveInput = useMemo(() => {
+    if (uploadedData && typeof uploadedData === 'object') {
+      return {
+        ...upstreamInfo.payload,
+        ...uploadedData,
+        data: uploadedData.data !== undefined ? uploadedData.data : (uploadedData.gstgr2b || uploadedData.pr || upstreamInfo.payload.data)
+      };
+    }
     if (!showCustomDataInput) {
       return upstreamInfo.payload;
-    }
-    if (uploadedData) {
-      return uploadedData;
     }
     try {
       return JSON.parse(manualInputText);
@@ -386,6 +471,13 @@ export default function DeterministicWorkspaceModal({
   const availableInputKeys = useMemo(() => {
     const keys = new Set();
     keys.add('data');
+    if (uploadedData && typeof uploadedData === 'object') {
+      Object.keys(uploadedData).forEach(k => {
+        if (k !== '__schemaMap' && k !== 'sources' && k !== 'allOutputs') {
+          keys.add(k);
+        }
+      });
+    }
     if (upstreamInfo.sources.length === 1) {
       const singleOut = upstreamInfo.sources[0].output;
       if (singleOut && typeof singleOut === 'object' && !Array.isArray(singleOut)) {
@@ -400,7 +492,7 @@ export default function DeterministicWorkspaceModal({
       keys.add('allOutputs');
     }
     return Array.from(keys);
-  }, [upstreamInfo]);
+  }, [upstreamInfo, uploadedData]);
 
   // ---------------------------------------------------------------------------
   // 3. BRAIN SMART SUGGESTIONS (Based on Inferred Upstream Schemas)
@@ -658,11 +750,14 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
      return result;
    }
    \`\`\`
-4. RUNTIME SPECIFICATION:
+4. RUNTIME SPECIFICATION & STRICT NON-BLOCKING INVARIANT:
    - The code executes directly in the KEAOS browser sandbox isolate.
-   - The function receives \`inputs\` and a persistent \`state\` object.
-   - Both sync and async functions (\`async function process(inputs, state)\`) are supported.
-   - For console debugging, \`console.log(...)\` is captured into DevTools.
+   - The function receives 'inputs' (e.g. 'inputs.gstgr2b', 'inputs.pr', 'inputs.data') and a persistent 'state' object.
+   - CRITICAL: Deterministic functions in KEAOS MUST NEVER call window.showOpenFilePicker(), prompt(), or interactive browser dialogs that pause execution.
+   - Code MUST execute instantly in-memory on 'inputs' (in < 20ms).
+   - ALWAYS include clean fallback sample data if inputs are empty or unprovided so clicking RUN always works immediately with zero timeout.
+   - Both sync and async functions ('async function process(inputs, state)') are supported.
+   - For console debugging, 'console.log(...)' is captured into DevTools.
    - NEVER tell the user to install packages ('npm install'), open a terminal, or configure backend servers.`;
 
       // Format conversation history for LLM
@@ -1172,9 +1267,39 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
                   <div className={`p-2.5 border-b text-[11px] font-mono shrink-0 ${
                     isDarkMode ? 'bg-[#181920]/80 border-[#2C3242]' : 'bg-white border-slate-200'
                   }`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Available Input Streams:</span>
-                      <span className="text-[9px] text-[#0091DA]">Click to copy variable</span>
+                    <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Available Input Streams:</span>
+                        {uploadedFileName && (
+                          <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 max-w-[140px] truncate" title={uploadedFileName}>
+                            ✓ {uploadedFileName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => fileUploadInputRef.current?.click()}
+                          className={`px-2 py-0.5 text-[10px] font-mono rounded-full border flex items-center gap-1 transition-all cursor-pointer shadow-xs ${
+                            isDarkMode
+                              ? 'bg-[#00338D]/40 border-[#00338D] text-blue-200 hover:bg-[#00338D]/70'
+                              : 'bg-blue-50 border-blue-300 text-blue-800 hover:bg-blue-100'
+                          }`}
+                          title="Upload local CSV, Excel, or JSON test files directly into inputs"
+                        >
+                          <Upload className="w-2.5 h-2.5" />
+                          <span>+ Upload Test Files (CSV/Excel)</span>
+                        </button>
+                        <input
+                          ref={fileUploadInputRef}
+                          type="file"
+                          multiple
+                          accept=".csv,.xlsx,.xls,.json"
+                          onChange={handleStudioFileUpload}
+                          className="hidden"
+                        />
+                        <span className="text-[9px] text-[#0091DA] hidden xl:inline">Click pill to copy</span>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {availableInputKeys.map(k => (
