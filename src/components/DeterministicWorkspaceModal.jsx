@@ -33,7 +33,14 @@ import {
 } from 'lucide-react';
 import { compileDeterministicLogic, getOfflineFallbackCode } from '../services/deterministicCompiler';
 import { executeDeterministicTask, inferDataSchema } from '../services/deterministicRunner';
-import { PROVIDERS, getProviderCredential, getAllConfiguredProviders, executeUniversalChat } from '../services/llmService';
+import { 
+  PROVIDERS, 
+  getProviderCredential, 
+  getAllConfiguredProviders, 
+  executeUniversalChat,
+  getCachedDiscoveredModels,
+  fetchProviderModelsLive
+} from '../services/llmService';
 
 /**
  * Checks whether code is default starter/placeholder code.
@@ -72,8 +79,8 @@ export default function DeterministicWorkspaceModal({
   const [code, setCode] = useState(nodeData?.code || '');
   const [overrideProvider, setOverrideProvider] = useState(nodeData?.brainProvider || null);
   const [overrideModelId, setOverrideModelId] = useState(nodeData?.brainModelId || null);
-  const [isBrainMenuOpen, setIsBrainMenuOpen] = useState(false);
-  const brainMenuRef = useRef(null);
+  const [discoveredModels, setDiscoveredModels] = useState({});
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   // 3-Zone Studio Tab States
   const [activeLeftTab, setActiveLeftTab] = useState('chat'); // 'chat' | 'spec' | 'schema'
@@ -114,18 +121,7 @@ export default function DeterministicWorkspaceModal({
   const [isPipingToCanvas, setIsPipingToCanvas] = useState(false);
   const [pipedSuccess, setPipedSuccess] = useState(false);
 
-  // Close brain menu when clicking outside
-  useEffect(() => {
-    const handleOutsideClick = (e) => {
-      if (brainMenuRef.current && !brainMenuRef.current.contains(e.target)) {
-        setIsBrainMenuOpen(false);
-      }
-    };
-    if (isBrainMenuOpen) {
-      window.addEventListener('mousedown', handleOutsideClick);
-    }
-    return () => window.removeEventListener('mousedown', handleOutsideClick);
-  }, [isBrainMenuOpen]);
+
   
   // Custom test data modal toggle (default: false, automatically uses inherited stream)
   const [showCustomDataInput, setShowCustomDataInput] = useState(nodeData?.inputMode === 'manual' || nodeData?.inputMode === 'upload');
@@ -264,6 +260,48 @@ export default function DeterministicWorkspaceModal({
       displayName
     };
   }, [nodeId, nodes, edges, overrideProvider, overrideModelId]);
+
+  // Active Brain Provider and Compatible Models resolution
+  const activeBrainProvider = overrideProvider || connectedBrain?.provider || 'openai';
+
+  useEffect(() => {
+    if (!isOpen || !activeBrainProvider) return;
+    const cached = getCachedDiscoveredModels(activeBrainProvider);
+    if (cached && cached.length > 0) {
+      setDiscoveredModels(prev => ({ ...prev, [activeBrainProvider]: cached }));
+    } else {
+      const cred = getProviderCredential(activeBrainProvider);
+      if (cred || activeBrainProvider === 'ollama') {
+        setIsLoadingModels(true);
+        fetchProviderModelsLive(activeBrainProvider, cred)
+          .then(models => {
+            if (Array.isArray(models) && models.length > 0) {
+              setDiscoveredModels(prev => ({ ...prev, [activeBrainProvider]: models }));
+            }
+          })
+          .catch(err => {
+            console.warn('Model discovery failed in Deterministic Studio:', err);
+          })
+          .finally(() => {
+            setIsLoadingModels(false);
+          });
+      }
+    }
+  }, [activeBrainProvider, isOpen]);
+
+  const compatibleModelsList = useMemo(() => {
+    const pDef = PROVIDERS[activeBrainProvider] || PROVIDERS.openai;
+    const cached = discoveredModels[activeBrainProvider] || getCachedDiscoveredModels(activeBrainProvider) || [];
+    let list = cached.length > 0 
+      ? cached 
+      : (pDef.models || []).map(m => (typeof m === 'string' ? { id: m, name: m } : m));
+
+    const currentActiveModelId = overrideModelId || connectedBrain?.modelId || pDef.defaultModel;
+    if (currentActiveModelId && !list.some(m => m.id === currentActiveModelId)) {
+      list = [{ id: currentActiveModelId, name: currentActiveModelId }, ...list];
+    }
+    return list;
+  }, [activeBrainProvider, discoveredModels, overrideModelId, connectedBrain?.modelId]);
 
   // ---------------------------------------------------------------------------
   // 2. UPSTREAM DATA INGESTION & TYPED SCHEMA INTROSPECTION
@@ -901,11 +939,11 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
         {/* ========================================================================= */}
         {/* TOP BAR: IDENTICAL LOOK & FEEL TO THE DETERMINISTIC BOX                  */}
         {/* ========================================================================= */}
-        <div className={`px-5 py-3 flex items-center justify-between shrink-0 relative z-10 border-b transition-colors ${
+        <div className={`px-5 py-3 flex items-center justify-between shrink-0 relative z-30 border-b transition-colors ${
           isDarkMode ? 'bg-[#181920] border-[#2C3242]' : 'bg-[#FFFFFF] border-[#E2E8F0]'
         }`}>
-          {/* Left: Code2 Icon + Rule Title + Brain Badge */}
-          <div className="flex items-center gap-3 min-w-0">
+          {/* Left: Code2 Icon + Rule Title + Brain & Model Selectors */}
+          <div className="flex items-center gap-3 min-w-0 flex-wrap">
             <Code2 className={`w-4 h-4 shrink-0 transition-transform ${
               isExecuting || isCompiling ? 'text-amber-400 animate-spin' : executionResult?.success ? 'text-emerald-500' : 'text-[#EAAA00]'
             }`} />
@@ -915,102 +953,113 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
               value={nodeName}
               onChange={(e) => setNodeName(e.target.value)}
               onBlur={() => onUpdateNode && nodeId && onUpdateNode(nodeId, { name: nodeName })}
-              className="bg-transparent text-sm font-mono font-bold text-[#EAAA00] hover:underline decoration-dashed decoration-[#EAAA00]/60 focus:no-underline focus:border-b focus:border-[#EAAA00] focus:outline-none px-1 py-0.5 rounded-none tracking-tight transition-colors"
+              className="bg-transparent text-sm font-mono font-bold text-[#EAAA00] hover:underline decoration-dashed decoration-[#EAAA00]/60 focus:no-underline focus:border-b focus:border-[#EAAA00] focus:outline-none px-1 py-0.5 rounded-none tracking-tight transition-colors shrink-0 max-w-[130px] sm:max-w-[170px] truncate"
               placeholder="Rule Title"
               title="Click to rename rule"
             />
 
-            {/* Interactive Brain Picker Pill & Dropdown */}
-            <div className="relative" ref={brainMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsBrainMenuOpen(!isBrainMenuOpen)}
-                className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-mono transition-all cursor-pointer ${
-                  isBrainMenuOpen
-                    ? 'ring-2 ring-[#0091DA] border-[#0091DA]'
-                    : isDarkMode
-                      ? 'bg-[#141720] border-[#383C4A] text-slate-300 hover:border-[#0091DA]'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-[#0091DA]'
-                }`}
-                title="Click to switch compilation brain"
-              >
-                <span className={`w-2 h-2 rounded-full ${
-                  connectedBrain?.isOverridden ? 'bg-[#0091DA] shadow-[0_0_8px_rgba(0,145,218,0.7)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]'
-                }`} />
-                <span className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>Brain:</span>
-                <span className={`font-bold truncate max-w-[160px] ${isDarkMode ? 'text-white' : 'text-[#0B0F19]'}`}>
-                  {connectedBrain ? connectedBrain.displayName : 'Auto'}
-                </span>
-                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isBrainMenuOpen ? 'rotate-180 text-[#0091DA]' : ''}`} />
-              </button>
-
-              {/* Brain Dropdown Menu */}
-              {isBrainMenuOpen && (
-                <div className={`absolute top-full left-0 mt-2 w-72 rounded-[12px] border shadow-2xl z-50 p-2 font-mono text-xs transition-all ${
-                  isDarkMode
-                    ? 'bg-[#181920] border-[#383C4A] text-white shadow-black/80'
-                    : 'bg-white border-slate-200 text-[#0B0F19] shadow-xl'
-                }`}>
-                  <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700/40 mb-1 flex items-center justify-between">
-                    <span>Select Brain</span>
-                    <span className="text-[9px] text-emerald-400 font-normal">Active Models</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
+            {/* Dual Brain Dropdowns: Provider & Compatible Models */}
+            <div className="flex items-center gap-2 border-l border-slate-700/50 pl-3">
+              {/* Dropdown 1: Model Provider (Anthropic, OpenAI, etc.) */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">Brain:</span>
+                <select
+                  value={overrideProvider || 'auto'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'auto') {
                       setOverrideProvider(null);
                       setOverrideModelId(null);
-                      setIsBrainMenuOpen(false);
-                      if (onUpdateNode && nodeId) onUpdateNode(nodeId, { brainProvider: null, brainModelId: null });
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-[8px] flex items-center justify-between transition-colors cursor-pointer ${
-                      !overrideProvider
-                        ? isDarkMode ? 'bg-[#00338D]/30 text-blue-300 font-bold' : 'bg-blue-50 text-[#00338D] font-bold'
-                        : isDarkMode ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        <span>Auto-Inherit from Canvas</span>
-                      </div>
-                      <div className="text-[9px] text-slate-400 pl-3">Default active model</div>
-                    </div>
-                    {!overrideProvider && <Check className="w-3.5 h-3.5 text-blue-400" />}
-                  </button>
+                      if (onUpdateNode && nodeId) {
+                        onUpdateNode(nodeId, { brainProvider: null, brainModelId: null });
+                      }
+                      window.dispatchEvent(new CustomEvent('keaos:toast', {
+                        detail: { message: `✓ Inherited model from Canvas Agent` }
+                      }));
+                    } else {
+                      const pDef = PROVIDERS[val];
+                      const newModel = pDef?.defaultModel || 'default';
+                      setOverrideProvider(val);
+                      setOverrideModelId(newModel);
+                      if (onUpdateNode && nodeId) {
+                        onUpdateNode(nodeId, { brainProvider: val, brainModelId: newModel });
+                      }
+                      window.dispatchEvent(new CustomEvent('keaos:toast', {
+                        detail: { message: `✓ Switched provider to ${pDef?.name || val}` }
+                      }));
+                    }
+                  }}
+                  className={`px-2.5 py-1 text-xs font-mono rounded-[8px] border outline-none cursor-pointer transition-colors ${
+                    isDarkMode 
+                      ? 'bg-[#141720] border-[#383C4A] text-slate-200 focus:border-[#0091DA]' 
+                      : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-[#00338D]'
+                  }`}
+                  title="Select AI Brain Provider"
+                >
+                  <option value="auto">Auto (Inherit from Canvas)</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="google">Google GenAI</option>
+                  <option value="ollama">Ollama (Local Private)</option>
+                  <option value="openrouter">OpenRouter</option>
+                </select>
+              </div>
 
-                  <div className="my-1 border-t border-slate-700/40" />
+              {/* Dropdown 2: Compatible Model (Populated based on Provider & API Key) */}
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={overrideModelId || connectedBrain?.modelId || ''}
+                  onChange={(e) => {
+                    const selectedModel = e.target.value;
+                    const prov = overrideProvider || connectedBrain?.provider || 'openai';
+                    setOverrideProvider(prov);
+                    setOverrideModelId(selectedModel);
+                    if (onUpdateNode && nodeId) {
+                      onUpdateNode(nodeId, { brainProvider: prov, brainModelId: selectedModel });
+                    }
+                    window.dispatchEvent(new CustomEvent('keaos:toast', {
+                      detail: { message: `✓ Selected model: ${selectedModel}` }
+                    }));
+                  }}
+                  className={`px-2.5 py-1 text-xs font-mono rounded-[8px] border outline-none cursor-pointer transition-colors max-w-[170px] sm:max-w-[210px] truncate ${
+                    isDarkMode 
+                      ? 'bg-[#141720] border-[#383C4A] text-slate-200 focus:border-[#0091DA]' 
+                      : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-[#00338D]'
+                  }`}
+                  title="Select Compatible Model Architecture"
+                >
+                  {compatibleModelsList.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.name || m.id}
+                    </option>
+                  ))}
+                </select>
 
-                  {[
-                    { provider: 'anthropic', name: 'Claude 3.5 Sonnet', modelId: 'claude-3-5-sonnet-20241022' },
-                    { provider: 'google', name: 'Gemini 2.0 Flash', modelId: 'gemini-2.0-flash' },
-                    { provider: 'openai', name: 'OpenAI gpt-4o-mini', modelId: 'gpt-4o-mini' },
-                    { provider: 'openai', name: 'OpenAI gpt-4o', modelId: 'gpt-4o' },
-                    { provider: 'ollama', name: 'Ollama (Local Private)', modelId: 'llama3.3' }
-                  ].map(item => {
-                    const isSelected = overrideProvider === item.provider && overrideModelId === item.modelId;
-                    return (
-                      <button
-                        key={`${item.provider}-${item.modelId}`}
-                        type="button"
-                        onClick={() => {
-                          setOverrideProvider(item.provider);
-                          setOverrideModelId(item.modelId);
-                          setIsBrainMenuOpen(false);
-                          if (onUpdateNode && nodeId) onUpdateNode(nodeId, { brainProvider: item.provider, brainModelId: item.modelId });
-                        }}
-                        className={`w-full text-left px-2 py-1.5 rounded-[6px] flex items-center justify-between transition-colors cursor-pointer ${
-                          isSelected ? 'bg-blue-500/20 text-blue-300 font-bold' : 'hover:bg-white/5 text-slate-300'
-                        }`}
-                      >
-                        <span className="truncate">{item.name}</span>
-                        {isSelected && <Check className="w-3 h-3 text-blue-400" />}
-                      </button>
-                    );
-                  })}
+                {/* API Key Status Pill */}
+                <div 
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono select-none ${
+                    Boolean(getProviderCredential(activeBrainProvider)) || activeBrainProvider === 'ollama'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                      : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                  }`}
+                  title={
+                    Boolean(getProviderCredential(activeBrainProvider)) || activeBrainProvider === 'ollama'
+                      ? `${PROVIDERS[activeBrainProvider]?.name || activeBrainProvider} API Key Ready`
+                      : `${PROVIDERS[activeBrainProvider]?.name || activeBrainProvider} API Key Missing`
+                  }
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    Boolean(getProviderCredential(activeBrainProvider)) || activeBrainProvider === 'ollama'
+                      ? 'bg-emerald-400'
+                      : 'bg-amber-400 animate-pulse'
+                  }`} />
+                  <span className="hidden xl:inline">
+                    {Boolean(getProviderCredential(activeBrainProvider)) || activeBrainProvider === 'ollama'
+                      ? 'Key Ready'
+                      : 'Key Missing'}
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
           </div>
 

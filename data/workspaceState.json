@@ -173,7 +173,7 @@
             "lastOutput": null,
             "lastTableData": null,
             "lastError": null,
-            "lastLatencyMs": 2731.8,
+            "lastLatencyMs": 1135.6,
             "isDarkMode": true,
             "lastUpstreamReceived": {
               "summary": "GST Recon Complete",
@@ -252,7 +252,9 @@
               "Executes deterministic logic: Executes deterministic python data transformation",
               "Guarantees zero-token sub-millisecond execution contract"
             ],
-            "lastLogs": []
+            "lastLogs": [],
+            "brainProvider": "openai",
+            "brainModelId": "gpt-4o"
           },
           "measured": {
             "width": 228,
@@ -280,7 +282,7 @@
         }
       ],
       "createdAt": 1792914650109,
-      "updatedAt": 1792937379389,
+      "updatedAt": 1792938152485,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -7548,7 +7550,7 @@
           "lastOutput": null,
           "lastTableData": null,
           "lastError": null,
-          "lastLatencyMs": 2731.8,
+          "lastLatencyMs": 1135.6,
           "isDarkMode": true,
           "lastUpstreamReceived": {
             "summary": "GST Recon Complete",
@@ -7627,7 +7629,9 @@
             "Executes deterministic logic: Executes deterministic python data transformation",
             "Guarantees zero-token sub-millisecond execution contract"
           ],
-          "lastLogs": []
+          "lastLogs": [],
+          "brainProvider": "openai",
+          "brainModelId": "gpt-4o"
         },
         "measured": {
           "width": 228,
@@ -12931,5 +12935,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1792937380217
+  "syncedAt": 1792938160315
 }
