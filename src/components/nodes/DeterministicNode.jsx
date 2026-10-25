@@ -487,6 +487,32 @@ export default function DeterministicNode({ id, data, selected }) {
               </button>
             </div>
           </div>
+        ) : isFrozen && Array.isArray(data?.operationalBullets) && data.operationalBullets.length > 0 ? (
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenSandbox(e);
+            }}
+            className={`w-full h-full p-2 text-[9.5px] font-mono leading-snug rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${
+              isDarkMode 
+                ? 'bg-[#13151B]/90 border-emerald-500/30 text-emerald-200 hover:border-emerald-500/50' 
+                : 'bg-emerald-50/80 border-emerald-300 text-emerald-950 hover:border-emerald-400'
+            }`}
+            title="Operational Contract Frozen • Click to view in Studio"
+          >
+            <div className="space-y-1 overflow-hidden">
+              {data.operationalBullets.slice(0, 3).map((b, bIdx) => (
+                <div key={bIdx} className="flex items-start gap-1 truncate">
+                  <span className="text-[#0091DA] font-bold shrink-0">•</span>
+                  <span className="truncate">{b}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between text-[8px] pt-1 border-t border-emerald-500/20 text-slate-400">
+              <span className="text-emerald-400 font-bold">FROZEN SPEC</span>
+              <span>Click to open Studio</span>
+            </div>
+          </div>
         ) : (
           <textarea
             ref={textareaRef}

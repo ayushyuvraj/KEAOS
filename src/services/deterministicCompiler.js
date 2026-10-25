@@ -6,7 +6,7 @@
  * Strictly zero hardcoding: completely general-purpose.
  */
 
-import { PROVIDERS, getProviderCredential, getAllConfiguredProviders } from './llmService';
+import { PROVIDERS, getProviderCredential, getAllConfiguredProviders, getOllamaConfig } from './llmService';
 import { GoogleGenAI } from '@google/genai';
 
 /**
@@ -41,15 +41,15 @@ export function getOfflineFallbackCode(prompt, language, sampleInputs) {
     return `function process(inputs) {\n  // Swap first two variables in inputs\n  const keys = Object.keys(inputs).filter(k => k !== 'data');\n  if (keys.length >= 2) {\n    const temp = inputs[keys[0]];\n    inputs[keys[0]] = inputs[keys[1]];\n    inputs[keys[1]] = temp;\n  }\n  return inputs;\n}`;
   }
 
-  // 2. Table join / VLOOKUP
-  if (p.includes('join') || p.includes('vlookup') || p.includes('merge')) {
+  // 2. Table join / VLOOKUP / Reconciliation
+  if (p.includes('join') || p.includes('vlookup') || p.includes('merge') || p.includes('reconcil') || p.includes('match')) {
     if (lang === 'sql') {
       return `-- Deterministic SQL Join between Table A and Table B\nSELECT \n  a.*, \n  b.*\nFROM tableA a\nINNER JOIN tableB b\n  ON a.id = b.id;`;
     }
     if (lang === 'python') {
-      return `import pandas as pd\n\ndef process(inputs):\n    # Join tableA with tableB\n    df_a = pd.DataFrame(inputs.get('tableA', []))\n    df_b = pd.DataFrame(inputs.get('tableB', []))\n    merged = pd.merge(df_a, df_b, on='id', how='inner')\n    return merged.to_dict(orient='records')`;
+      return `import pandas as pd\n\ndef process(inputs):\n    # Join tableA with tableB\n    df_a = pd.DataFrame(inputs.get('tableA', inputs.get('data', [])))\n    df_b = pd.DataFrame(inputs.get('tableB', []))\n    merged = pd.merge(df_a, df_b, on='id', how='left')\n    return merged.to_dict(orient='records')`;
     }
-    return `function process(inputs) {\n  const tableA = inputs.tableA || [];\n  const tableB = inputs.tableB || [];\n  const lookup = new Map(tableB.map(b => [String(b.id), b]));\n  \n  return tableA.map(a => ({\n    ...a,\n    matched: lookup.get(String(a.id)) || null\n  }));\n}`;
+    return `function process(inputs) {\n  // In-memory high performance O(N) reconciliation/lookup\n  const tableA = inputs.tableA || inputs.data || [];\n  const tableB = inputs.tableB || [];\n  const lookup = new Map(tableB.map(b => [String(b.id || b.invoiceNo || b.gstin || ''), b]));\n  \n  return tableA.map(a => {\n    const matchKey = String(a.id || a.invoiceNo || a.gstin || '');\n    const match = lookup.get(matchKey);\n    return {\n      ...a,\n      matched: match || null,\n      status: match ? 'MATCHED' : 'MISSING'\n    };\n  });\n}`;
   }
 
   // 3. Filter / Find
@@ -71,7 +71,7 @@ export function getOfflineFallbackCode(prompt, language, sampleInputs) {
     const th = thresholdVal !== null ? thresholdVal : 4000;
     const isLessThan = p.includes('less') || p.includes('below') || p.includes('under') || p.includes('<');
     const labelTrue = isHighLow ? (isLessThan ? 'Low' : 'High') : isPassFail ? (isLessThan ? 'Pass' : 'Fail') : 'Flagged';
-    const labelFalse = isHighLow ? (isLessThan ? 'High' : 'Low') : isPassFail ? (isLessThan ? 'Fail' : 'Pass') : 'Normal';
+    const labelFalse = isHighLow ? (isLessThan ? 'High' : 'Low') : isPassFail ? (isLessThan ? 'Pass' : 'Fail') : 'Normal';
     
     // Identify target property to inspect
     let targetProp = 'tokens';
@@ -131,7 +131,7 @@ export async function compileDeterministicLogic({
   const credential = getProviderCredential(effectiveProvider);
 
   // If no credential configured, use resilient offline generator
-  if (!credential) {
+  if (!credential && effectiveProvider !== 'ollama') {
     return {
       success: true,
       language: effectiveLang,
@@ -141,9 +141,24 @@ export async function compileDeterministicLogic({
     };
   }
 
-  const sampleInputsSnippet = sampleInputs 
+  let lineageSnippet = '';
+  if (sampleInputs && typeof sampleInputs === 'object') {
+    const schemaMap = sampleInputs.__schemaMap || {};
+    const keys = Object.keys(sampleInputs).filter(k => k !== '__schemaMap' && k !== 'sources' && k !== 'allOutputs');
+    if (keys.length > 0) {
+      lineageSnippet = '\n\nEXACT UPSTREAM DATA CONTRACT & SCHEMA (USE THESE EXACT KEYS & COLUMNS):\n' + keys.map(k => {
+        const val = sampleInputs[k];
+        const s = schemaMap[k] || {};
+        const colList = s.fields ? Object.keys(s.fields).map(f => `${f} (${s.fields[f].type})`).join(', ') : '';
+        const sampleStr = s.sampleRecord ? JSON.stringify(s.sampleRecord).slice(0, 300) : (val ? JSON.stringify(val).slice(0, 200) : 'null');
+        return `• inputs.${k} [Format: ${s.format || (Array.isArray(val) ? 'tabular' : typeof val)}, Rows/Items: ${s.rowCount !== undefined ? s.rowCount : (Array.isArray(val) ? val.length : 1)}]:\n  Available Fields: [${colList || 'scalar'}]\n  Sample Record: ${sampleStr}`;
+      }).join('\n');
+    }
+  }
+
+  const sampleInputsSnippet = (lineageSnippet || (sampleInputs 
     ? `\nAvailable Inputs Structure (JSON):\n${JSON.stringify(sampleInputs, null, 2).slice(0, 1500)}`
-    : '\nInputs will be passed dynamically as an object `inputs`.';
+    : '\nInputs will be passed dynamically as an object `inputs`.'));
 
   const systemInstruction = `You are an institutional deterministic code generator in KEAOS.
 The user will provide a programming or data task in crude, everyday language.
@@ -152,10 +167,19 @@ Your job is to generate ONLY the exact, bug-free, deterministic code in the requ
 CRITICAL RULES:
 1. Return ONLY the code inside a single markdown code block: \`\`\`${effectiveLang} ... \`\`\`
 2. NO conversational text, NO greetings, NO markdown explanations before or after.
-3. For JavaScript: Export or define a \`function process(inputs)\` that accepts the inputs object and returns the final transformed value.
-4. For Python: Define a \`def process(inputs):\` function that accepts the inputs dict and returns the result. Use standard libraries (pandas, math, re, json, datetime) if helpful.
-5. For SQL: Write a single clean SQL query. Assume tables are named after the keys in inputs (e.g. data, tableA, tableB).
-6. Implement exactly what the user asked for. Zero hardcoded business assumptions.`;
+3. For JavaScript: Export or define a \`function process(inputs)\` or \`async function process(inputs)\` that accepts the inputs object and returns the final transformed value.
+4. BROWSER ISOLATE ENVIRONMENT (STRICT MANDATE):
+   - JavaScript executes in a client-side browser isolate via \`new Function('inputs', ...)\`. Full \`async/await\`, \`crypto\`, and Web APIs are supported.
+   - NEVER use \`require(...)\`, \`import ...\`, or Node.js server modules (\`fs\`, \`path\`, \`stream\`, \`fast-csv\`, etc.). \`require\` is NOT defined in browsers and will fail immediately!
+   - ALL user data and files are ALREADY loaded into memory and available on the \`inputs\` argument (e.g. \`inputs.data\`, \`inputs.tableA\`, \`inputs.tableB\`, \`inputs.file1\`, \`inputs.file2\`, etc.).
+   - Do NOT try to read file paths or open streams from disk. Operate directly on the in-memory arrays or objects inside \`inputs\`.
+   - MULTI-SOURCE FAN-IN & JOIN CONTRACT:
+     - When inputs contains multiple named streams (e.g. inputs.tableA, inputs.tableB, inputs.erp_ledger), access them by their EXACT keys as listed in the schema contract.
+     - When joining or reconciling two streams, use high-performance O(N) Hash Maps (\`new Map(inputs.sourceB.map(b => [String(b.key), b]))\`) instead of slow O(N^2) nested finds.
+     - Never invent imaginary column names; strictly use the columns defined in the schema contract.
+5. For Python: Define a \`def process(inputs):\` function that accepts the inputs dict and returns the result. Use standard libraries (pandas, math, re, json, datetime) if helpful.
+6. For SQL: Write a single clean SQL query. Assume tables are named after the keys in inputs (e.g. data, tableA, tableB).
+7. Implement exactly what the user asked for. Zero hardcoded business assumptions.`;
 
   const userPrompt = `Task Description:\n"${prompt}"\n${sampleInputsSnippet}\n\nWrite the deterministic ${effectiveLang} code now.`;
 
@@ -218,9 +242,59 @@ CRITICAL RULES:
       const json = await res.json();
       rawOutput = json.content[0]?.text || '';
     }
-    // 4. Ollama or OpenRouter fallback
+    // 4. Ollama (Local & Remote)
+    else if (effectiveProvider === 'ollama') {
+      const ollamaConf = getOllamaConfig();
+      let baseUrl = (ollamaConf.baseUrl || 'http://localhost:11434').replace(/\/$/, '');
+      let apiKey = ollamaConf.apiKey || '';
+      if (credential) {
+        if (credential.startsWith('http://') || credential.startsWith('https://')) baseUrl = credential.replace(/\/$/, '');
+        else apiKey = credential;
+      }
+      const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+        },
+        body: JSON.stringify({
+          model: modelId || 'llama3.3',
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.1
+        })
+      });
+      if (!res.ok) throw new Error(`Ollama HTTP ${res.status} at ${baseUrl}`);
+      const json = await res.json();
+      rawOutput = json.choices[0]?.message?.content || '';
+    }
+    // 5. OpenRouter
+    else if (effectiveProvider === 'openrouter') {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${credential}`,
+          'HTTP-Referer': 'http://127.0.0.1:5173',
+          'X-Title': 'KEAOS Studio'
+        },
+        body: JSON.stringify({
+          model: modelId || 'anthropic/claude-3.5-sonnet',
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.1
+        })
+      });
+      if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
+      const json = await res.json();
+      rawOutput = json.choices[0]?.message?.content || '';
+    }
+    // 6. Resilient Fallback
     else {
-      // Return clean fallback
       rawOutput = getOfflineFallbackCode(prompt, effectiveLang, sampleInputs);
     }
 

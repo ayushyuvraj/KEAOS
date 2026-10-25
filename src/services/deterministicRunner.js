@@ -9,18 +9,138 @@
 import { compileDeterministicLogic } from './deterministicCompiler';
 
 /**
+ * Infers rich data schema from any JavaScript value or dataset.
+ * Extracts format, column types, row counts, and primary key candidates.
+ */
+export function inferDataSchema(data) {
+  if (data === null || data === undefined) {
+    return { format: 'empty', type: 'null', rowCount: 0, fields: {}, sample: null };
+  }
+  
+  // Tabular array of objects
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      return { format: 'tabular', type: 'array', rowCount: 0, fields: {}, sample: null };
+    }
+    const sample = data[0];
+    if (typeof sample === 'object' && sample !== null) {
+      const fields = {};
+      const sampledRows = data.slice(0, 50);
+      const allKeys = Array.from(new Set(sampledRows.flatMap(r => (r && typeof r === 'object') ? Object.keys(r) : [])));
+      
+      let primaryKeyCandidate = null;
+
+      for (const k of allKeys) {
+        const valObj = sampledRows.find(r => r && r[k] !== undefined && r[k] !== null);
+        const val = valObj ? valObj[k] : sample[k];
+        let type = typeof val;
+        if (val instanceof Date || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))) {
+          type = 'date';
+        } else if (Array.isArray(val)) {
+          type = 'array';
+        } else if (typeof val === 'number') {
+          type = 'number';
+        }
+        
+        const lowerK = k.toLowerCase();
+        if (!primaryKeyCandidate && (
+          lowerK === 'id' || lowerK.endsWith('id') || lowerK.includes('invoiceno') || 
+          lowerK.includes('inv_no') || lowerK.includes('refno') || lowerK.includes('code') || 
+          lowerK.includes('gstin') || lowerK.includes('key')
+        )) {
+          primaryKeyCandidate = k;
+        }
+
+        fields[k] = {
+          type,
+          sample: val !== undefined ? val : ''
+        };
+      }
+
+      return {
+        format: 'tabular',
+        type: 'array_of_objects',
+        rowCount: data.length,
+        columnCount: allKeys.length,
+        fields,
+        primaryKeyCandidate: primaryKeyCandidate || allKeys[0] || null,
+        sampleRecord: sample
+      };
+    }
+    return {
+      format: 'list',
+      type: 'array_of_primitives',
+      rowCount: data.length,
+      sample: sample
+    };
+  }
+
+  // Nested structured wrapper { table: [...], stats: {...} } or { rows: [...] }
+  if (typeof data === 'object') {
+    const tableKey = Object.keys(data).find(k => Array.isArray(data[k]) && data[k].length > 0 && typeof data[k][0] === 'object');
+    if (tableKey) {
+      const innerSchema = inferDataSchema(data[tableKey]);
+      return {
+        format: 'structured_result',
+        wrapperKey: tableKey,
+        innerTable: innerSchema,
+        fields: Object.fromEntries(Object.keys(data).map(k => [k, { type: typeof data[k], sample: data[k] }])),
+        sample: data
+      };
+    }
+
+    const fields = {};
+    for (const [k, v] of Object.entries(data)) {
+      fields[k] = {
+        type: typeof v,
+        sample: v
+      };
+    }
+    return {
+      format: 'record',
+      type: 'object',
+      fields,
+      sample: data
+    };
+  }
+
+  return {
+    format: 'primitive',
+    type: typeof data,
+    sample: data
+  };
+}
+
+/**
  * Normalizes input data for execution.
  * If input is a single table or primitive, aliases it.
- * If input contains multiple upstream sources, provides them as named keys.
+ * If input contains multiple upstream sources, provides them as named keys and attaches __schemaMap.
  */
-function normalizeInputs(inputData) {
+export function normalizeInputs(inputData) {
   if (inputData === undefined || inputData === null) {
-    return { data: null };
+    return { data: null, __schemaMap: {} };
   }
-  if (typeof inputData === 'object') {
-    return { ...inputData, data: inputData };
+  
+  const normalized = (typeof inputData === 'object' && !Array.isArray(inputData))
+    ? { ...inputData }
+    : { data: inputData };
+
+  // Always alias primary data
+  if (normalized.data === undefined) {
+    const firstTable = Object.values(normalized).find(Array.isArray);
+    normalized.data = firstTable !== undefined ? firstTable : inputData;
   }
-  return { value: inputData, data: inputData };
+
+  // Build __schemaMap for all input sources
+  const schemaMap = {};
+  for (const [k, v] of Object.entries(normalized)) {
+    if (k !== '__schemaMap' && k !== 'sources' && k !== 'allOutputs') {
+      schemaMap[k] = inferDataSchema(v);
+    }
+  }
+  normalized.__schemaMap = schemaMap;
+
+  return normalized;
 }
 
 /**
@@ -234,60 +354,130 @@ export function downloadSpreadsheetFile(rows, filename = 'output.csv') {
   return false;
 }
 
-/**
- * Executes JavaScript / TypeScript deterministic logic with stateful memory and export tools.
- */
 export async function executeDeterministicJS(code, inputData = {}, nodeId = 'default') {
   const startTime = performance.now();
   const normalized = normalizeInputs(inputData);
   const state = getDeterministicState(nodeId);
+  const logs = [];
+
+  // Sandboxed Console Interceptor
+  const sandboxedConsole = {
+    log: (...args) => {
+      const msg = args.map(a => typeof a === 'object' ? (Array.isArray(a) ? `Array(${a.length}) ${JSON.stringify(a.slice(0, 3))}` : JSON.stringify(a)) : String(a)).join(' ');
+      logs.push({ level: 'log', time: new Date().toLocaleTimeString(), message: msg });
+      console.log('[Runner Log]', ...args);
+    },
+    info: (...args) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      logs.push({ level: 'info', time: new Date().toLocaleTimeString(), message: msg });
+      console.info('[Runner Info]', ...args);
+    },
+    warn: (...args) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      logs.push({ level: 'warn', time: new Date().toLocaleTimeString(), message: msg });
+      console.warn('[Runner Warn]', ...args);
+    },
+    error: (...args) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      logs.push({ level: 'error', time: new Date().toLocaleTimeString(), message: msg });
+      console.error('[Runner Error]', ...args);
+    },
+    table: (tableData) => {
+      logs.push({ level: 'table', time: new Date().toLocaleTimeString(), message: `Table with ${Array.isArray(tableData) ? tableData.length : 1} records`, data: tableData });
+      console.table(tableData);
+    }
+  };
+
+  // CSV parsing utility helper injected into runtime
+  const parseCsv = (text) => {
+    if (!text || typeof text !== 'string') return [];
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length === 0) return [];
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
+    return lines.slice(1).map(l => {
+      const vals = l.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = vals[idx] !== undefined ? vals[idx] : ''; });
+      return row;
+    });
+  };
 
   try {
-    // Check if code contains process(...) or transform(...) function declaration
-    let runnerScript = code;
+    // Wrap script in an async executor to cleanly support both sync and async/await functions
+    let runnerScript = '';
     if (code.includes('function process') || code.includes('const process =') || code.includes('let process =')) {
       runnerScript = `
-        ${code}
-        if (typeof process === 'function') {
-          return process(inputs, state);
-        }
-        return typeof result !== 'undefined' ? result : inputs;
+        return (async () => {
+          ${code}
+          if (typeof process === 'function') {
+            return await process(inputs, state);
+          }
+          return typeof result !== 'undefined' ? result : inputs;
+        })();
       `;
     } else if (code.includes('return ')) {
-      runnerScript = code;
-    } else {
-      // Expression or sequence of statements
       runnerScript = `
-        ${code}
-        return typeof result !== 'undefined' ? result : inputs;
+        return (async () => {
+          ${code}
+        })();
+      `;
+    } else {
+      runnerScript = `
+        return (async () => {
+          ${code}
+          return typeof result !== 'undefined' ? result : inputs;
+        })();
       `;
     }
 
     const exportExcel = (rows, fname = 'output.csv') => downloadSpreadsheetFile(rows || state.rows, fname);
     const exportCsv = exportExcel;
+    const cryptoApi = (typeof window !== 'undefined' && window.crypto) ? window.crypto : null;
 
     // Isolate execution via Function constructor
-    // Expose helpers: inputs, state, exportExcel, exportCsv
-    const fn = new Function('inputs', 'input', 'data', 'state', 'exportExcel', 'exportCsv', runnerScript);
-    const result = fn(normalized, normalized, normalized.data, state, exportExcel, exportCsv);
+    // Expose helpers: inputs, input, data, state, exportExcel, exportCsv, console, crypto, parseCsv
+    const fn = new Function('inputs', 'input', 'data', 'state', 'exportExcel', 'exportCsv', 'console', 'crypto', 'parseCsv', runnerScript);
+    const rawResultPromise = fn(normalized, normalized, normalized.data, state, exportExcel, exportCsv, sandboxedConsole, cryptoApi, parseCsv);
+
+    // Timeout guard (6 seconds max to guard against runaway while(true) loops)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Execution Timeout: Code took longer than 6,000ms. Please check loop conditions or async delays.')), 6000);
+    });
+
+    const result = await Promise.race([
+      Promise.resolve(rawResultPromise),
+      timeoutPromise
+    ]);
 
     const latencyMs = Number((performance.now() - startTime).toFixed(2));
-    const tableData = (result && result.table) || (state && state.rows && state.rows.length > 0 ? state.rows : null);
+    const tableData = (result && result.table) || (Array.isArray(result) && result.length > 0 && typeof result[0] === 'object' ? result : null) || (state && state.rows && state.rows.length > 0 ? state.rows : null);
+    const outputSchema = inferDataSchema(result);
 
     return {
       success: true,
       language: 'javascript',
       output: result,
       tableData,
+      logs,
+      outputSchema,
       latencyMs,
       timestamp: new Date().toISOString()
     };
   } catch (err) {
     const latencyMs = Number((performance.now() - startTime).toFixed(2));
+    let errMessage = err.message || String(err);
+    if (errMessage.includes('require is not defined')) {
+      errMessage = "Execution Error: 'require' is not defined in browser isolates.\n\n" +
+        "• Deterministic Box runs in client-side browser JavaScript with zero token cost.\n" +
+        "• Node.js server modules ('fs', 'path', 'fast-csv') cannot run inside the browser.\n" +
+        "• All input data is passed in-memory via 'inputs' (e.g., inputs.tableA, inputs.data).\n" +
+        "• To ingest files: Connect Ingestion Nodes from the canvas or use '+ Custom Test Data' on the left, then write logic that operates on 'inputs' directly.";
+    }
     return {
       success: false,
       language: 'javascript',
-      error: err.message || String(err),
+      error: errMessage,
+      logs,
       latencyMs,
       timestamp: new Date().toISOString()
     };
