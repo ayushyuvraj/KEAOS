@@ -95,7 +95,7 @@ export default function DeterministicWorkspaceModal({
       {
         id: 'msg-welcome',
         role: 'assistant',
-        content: `I am your Deterministic Co-Pilot & Software Architect. Tell me what logic or calculation you need. We'll discuss and finalize the step-by-step plan together, and once you approve, I will formulate the exact deterministic code for you.`,
+        content: `I am your Deterministic Co-Pilot. Tell me what logic, calculations, or transformations you need. I will write the code immediately, explain it, and configure it for your rule box. You can ask for in-memory transforms, interactive file pickers (e.g. window.showOpenFilePicker), regex parsing, Excel reconciliations, and more.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
@@ -319,7 +319,12 @@ export default function DeterministicWorkspaceModal({
       : 'openai';
 
     const rawProvider = modelPillar?.data?.config?.provider || modelPillar?.data?.provider || targetAgent?.data?.provider || defaultProvider || 'openai';
-    const provider = (typeof rawProvider === 'string' && rawProvider.trim()) ? rawProvider.trim() : 'openai';
+    let provider = (typeof rawProvider === 'string' && rawProvider.trim()) ? rawProvider.trim() : defaultProvider;
+
+    // Prioritize an active configured provider if the inferred provider has no credentials
+    if (!getProviderCredential(provider) && provider !== 'ollama' && defaultProvider && (getProviderCredential(defaultProvider) || defaultProvider === 'ollama')) {
+      provider = defaultProvider;
+    }
 
     const rawModelId = modelPillar?.data?.config?.modelId || modelPillar?.data?.modelId || targetAgent?.data?.modelId || targetAgent?.data?.model;
     const defaultModel = provider === 'openai' 
@@ -668,7 +673,7 @@ export default function DeterministicWorkspaceModal({
     }
   };
 
-  // Conversational Co-Pilot Chat Sender (Bilateral Discussion Protocol)
+  // Conversational Co-Pilot Chat Sender (Uninhibited Modern AI Pair Programmer)
   const handleSendChat = async (overrideText = null) => {
     const textToSend = (typeof overrideText === 'string' ? overrideText : chatInput).trim();
     if (!textToSend || isChatSending) return;
@@ -684,16 +689,7 @@ export default function DeterministicWorkspaceModal({
     };
     const nextChatMessages = [...chatMessages, userMsg];
     setChatMessages(nextChatMessages);
-
-    // Track whether this message is a user approval / confirmation
-    const isConfirmationText = /^(yes|yeah|yep|proceed|confirm|deploy|looks good|sounds good|ok|okay|fine|do it|go ahead|formulate|generate|i am okay|i'm okay)/i.test(textToSend.toLowerCase()) || 
-      textToSend.toLowerCase().includes('plan is finalized') || 
-      textToSend.toLowerCase().includes('formulate the code') ||
-      textToSend.toLowerCase().includes('okay with');
-
-    if (!isConfirmationText) {
-      lastPlanPromptRef.current = textToSend;
-    }
+    lastPlanPromptRef.current = textToSend;
 
     try {
       // 1. Build upstream data schema context for the model
@@ -708,60 +704,47 @@ export default function DeterministicWorkspaceModal({
         inputContext = `INPUT SPECIFICATION:\n- inputs.data: dynamic payload passed at runtime.`;
       }
 
-      // 2. Strict Two-Phase Bilateral System Prompt
-      const systemPrompt = `You are the KEAOS Deterministic Logic Co-Pilot & Software Architect.
-You are helping the user design, plan, and deploy a 100% deterministic code module inside the KEAOS Deterministic Rule Box named "${nodeName || 'Rule Box'}".
-Once finalized and deployed, this box runs purely algorithmically in KEAOS with ZERO LLM calls and ZERO token consumption at runtime.
+      // 2. Modern Intelligent AI Pair-Programmer System Prompt
+      const systemPrompt = `You are the KEAOS Deterministic Logic Co-Pilot & Senior Software Architect.
+You help the user design, write, explain, and optimize deterministic code (JavaScript, Python, or SQL) for the KEAOS Deterministic Rule Box "${nodeName || 'Rule Box'}".
 
 ${inputContext}
 
-CRITICAL MANDATE: YOU OPERATE STRICTLY IN A BILATERAL TWO-PHASE PROTOCOL.
-YOU MUST NEVER ENGAGE IN A ONE-SIDED MONOLOGUE OR GENERATE CODE IN ONE SHOT WITHOUT EXPLICIT USER CONFIRMATION.
+CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
+1. WRITE COMPLETE, PRODUCTION-READY CODE IMMEDIATELY:
+   - When the user asks to write logic, perform calculations, extract data, process files, or implement algorithms, WRITE THE COMPLETE WORKING CODE RIGHT AWAY.
+   - Do NOT gatekeep code or delay behind rigid confirmation phases. Answer naturally, clearly, and empoweringly.
+   - Accompany your code with a concise, helpful explanation of how it works and any relevant options.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 1: BILATERAL DISCUSSION, CLARIFICATION & ARCHITECTURAL PLAN (Default Phase)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-When the user states what they want, gives a command, or asks for logic:
-1. DO NOT GENERATE CODE YET. ABSOLUTELY NEVER output markdown code fences (\`\`\`) with executable code in Phase 1.
-2. IF THE USER'S REQUEST IS AMBIGUOUS, UNDERSPECIFIED, OR MISSING KEY DETAILS:
-   - Actively question the user back and ask for clarification (e.g. key matching names, tolerance thresholds, null handling, or priority order).
-   - Wait for the user to clarify.
-3. PROVIDE A CRISP, STRUCTURED ARCHITECTURAL PROPOSAL / FINAL PLAN:
-   - **Input Structure**: Expected incoming fields/streams (e.g. \`inputs.data\`, \`inputs.gstr2b\`, \`inputs.pri\`, array of records).
-   - **Processing Logic**: Step-by-step algorithmic actions (e.g. hash map indexing, matching logic, amount comparisons, discrepancy flagging).
-   - **Output Specification**: Exact shape and format of the output (table rows, summary metrics, match status flags).
-4. CONCLUDE WITH THIS EXACT MANDATORY QUESTION:
-   "Yes this is what has been finalized. Are you okay with it or would you like to change something?"
-5. If the user suggests tweaks, answers questions, or refines details, iterate and update the architectural plan in the same crisp, structured style without code, repeating the question.
+2. RUNTIME & PLATFORM CONTRACT:
+   - The code executes directly in the KEAOS Deterministic Box with 0 LLM token cost at runtime.
+   - For JavaScript: define a \`function process(inputs, state)\` or \`async function process(inputs, state)\`.
+     - In-Memory Data Streams: The function receives \`inputs\` (e.g., \`inputs.data\`, \`inputs.tableA\`, \`inputs.pr\`, etc.) and a persistent \`state\` object.
+     - Interactive File Selection & Ingestion: If the user requests file processing (e.g., reading Excel files like GSTR2B and Purchase Register PR, CSVs, or JSON), write complete, self-contained JavaScript code utilizing modern Web APIs (\`window.showOpenFilePicker()\` or dynamic file inputs) and the built-in SheetJS \`XLSX\` library (e.g., \`const workbook = XLSX.read(data, { type: 'array' })\`, \`XLSX.utils.sheet_to_json(sheet)\`). SheetJS in JS delivers in-memory DataFrame-grade performance directly inside the browser isolate.
+     - Standard Web APIs (fetch, crypto, Blob, URL, RegExp, Math, Date) and \`console.log(...)\` are fully supported.
+     - Always provide fallback sample data when \`inputs\` is empty so clicking RUN immediately succeeds without errors.
+   - For Python: define \`def process(inputs):\` returning transformed records or dicts. Standard libraries (pandas, math, re, json, datetime) are supported.
+   - For SQL: provide clean SQL (SELECT ... FROM ...).
+   - If the user asks for languages that require external compilation toolchains (e.g. Rust, C++), provide the code, but ALSO provide the equivalent browser-native JavaScript isolate code using SheetJS/Web APIs so they can execute it immediately inside this browser box without external compilers.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 2: FINALIZATION & CODE FORMULATION (Only When User Approves)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks good", "finalize", "deploy", "confirm", "sound good", "I am okay with this", "go ahead", "formulate the code", "yes, this plan is finalized"):
-1. State the ultra-crisp functional rule summary on its own line:
-   RULE_SUMMARY: <Ultra-crisp summary of rule function, max 6-10 words>
-2. Confirm deployment in 1 crisp sentence:
-   "✓ Logic finalized and formulated into zero-token deterministic ${language || 'javascript'} code."
-3. Provide the COMPLETE, self-contained, working deterministic code inside a single standard markdown code block:
-   \`\`\`${language || 'javascript'}
-   // Self-contained browser-native process function
-   function process(inputs, state) {
-     ...
-     return result;
-   }
-   \`\`\`
-4. RUNTIME SPECIFICATION & STRICT NON-BLOCKING INVARIANT:
-   - The code executes directly in the KEAOS browser sandbox isolate.
-   - The function receives 'inputs' (e.g. 'inputs.gstgr2b', 'inputs.pr', 'inputs.data') and a persistent 'state' object.
-   - CRITICAL: Deterministic functions in KEAOS MUST NEVER call window.showOpenFilePicker(), prompt(), or interactive browser dialogs that pause execution.
-   - Code MUST execute instantly in-memory on 'inputs' (in < 20ms).
-   - ALWAYS include clean fallback sample data if inputs are empty or unprovided so clicking RUN always works immediately with zero timeout.
-   - Both sync and async functions ('async function process(inputs, state)') are supported.
-   - For console debugging, 'console.log(...)' is captured into DevTools.
-   - NEVER tell the user to install packages ('npm install'), open a terminal, or configure backend servers.`;
+3. ADVISORY NOTES (NOT RESTRICTIONS):
+   - If an approach has an operational tradeoff (e.g. using window.showOpenFilePicker requires an interactive user click, whereas for unattended automated pipelines they can also use an Ingestion Node), mention it briefly as a helpful tip, but ALWAYS fulfill what the user asked for.
+
+4. FORMATTING:
+   - Put the PRIMARY, EXECUTABLE APPLICATION CODE in the main markdown code block:
+     \`\`\`${language || 'javascript'}
+     // Complete, working process function
+     async function process(inputs, state) {
+       ...
+       return result;
+     }
+     \`\`\`
+   - If auxiliary configuration files or dependencies are needed (such as Cargo.toml or package.json), describe them in text or place them AFTER the primary code block, so the studio editor immediately receives the executable logic.
+   - State a crisp functional summary at the beginning or end:
+     RULE_SUMMARY: <Crisp summary of rule function, max 6-10 words>`;
 
       // Format conversation history for LLM
-      const messagesForLlm = nextChatMessages.slice(-6).map(m => ({
+      const messagesForLlm = nextChatMessages.slice(-8).map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
       }));
@@ -782,27 +765,70 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
           ? chatResponse
           : (chatResponse?.text || chatResponse?.responseText || chatResponse?.rawText || '');
       } catch (llmErr) {
-        console.warn('Direct LLM chat failed, evaluating fallback bilateral response:', llmErr);
-        // Fallback bilateral handler for offline/unconfigured scenarios
-        if (isConfirmationText) {
-          const reqPrompt = lastPlanPromptRef.current || prompt || textToSend;
-          const fallbackCode = getOfflineFallbackCode(reqPrompt, language || 'javascript', currentActiveInput);
-          responseText = `RULE_SUMMARY: Executes deterministic ${language || 'javascript'} data transformation\n\n✓ Logic finalized and formulated into zero-token deterministic ${language || 'javascript'} code.\n\n\`\`\`${language || 'javascript'}\n${fallbackCode}\n\`\`\``;
+        console.warn('Direct LLM chat failed:', llmErr);
+        const errMsg = llmErr.message || String(llmErr);
+        const isKeyMissing = errMsg.toLowerCase().includes('no api key') ||
+                             errMsg.toLowerCase().includes('credential') ||
+                             errMsg.toLowerCase().includes('unauthorized') ||
+                             errMsg.toLowerCase().includes('401');
+
+        if (isKeyMissing) {
+          const providerName = PROVIDERS[provider]?.name || provider;
+          responseText = `**API Key Missing for ${providerName}**\n\nTo chat with the Co-Pilot and generate code automatically, please select an active provider or enter your API key using the model dropdown at the top of this modal.\n\n*In the meantime, you can write or edit code directly in the center Code Editor, or select an alternate provider with an active key.*`;
         } else {
-          // Propose architectural plan without code
-          responseText = `I have analyzed your requirement: **"${textToSend}"**.\n\n**Proposed Logic Architecture:**\n- **Input Structure:** Consumes ${upstreamInfo.sources.length > 0 ? upstreamInfo.sources.map(s => `\`inputs.${s.name.toLowerCase().replace(/[^a-z0-9_]/g, '_')}\``).join(' & ') : '`inputs.data`'}.\n- **Processing Logic:** Algorithmic transformation, matching, and validation for "${textToSend}".\n- **Output Specification:** Returns structured table records with status flags and summary counts.\n\nYes this is what has been finalized. Are you okay with it or would you like to change something?`;
+          responseText = `**Inference Notice (${PROVIDERS[provider]?.name || provider}):** ${errMsg}\n\nPlease check your API key or network connection, or switch to an alternate model architecture at the top.`;
         }
       }
 
-      // Check if code block was returned (Phase 2 completion)
-      const codeBlockRegex = /```([a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/;
-      const codeMatch = codeBlockRegex.exec(responseText);
+      // Smart Multi-Code-Block Extraction & Prioritization
+      const allCodeBlocks = [];
+      const globalBlockRegex = /```([a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/g;
+      let blockMatch;
+      while ((blockMatch = globalBlockRegex.exec(responseText)) !== null) {
+        const rawTag = (blockMatch[1] || '').trim().toLowerCase();
+        const blockContent = blockMatch[2].trim();
+        if (blockContent.length > 0) {
+          allCodeBlocks.push({
+            id: `blk-${allCodeBlocks.length}`,
+            lang: rawTag || language || 'javascript',
+            code: blockContent,
+            linesCount: blockContent.split('\n').length
+          });
+        }
+      }
 
-      if (codeMatch && codeMatch[2]) {
-        // Phase 2: User confirmed plan -> Code formulated!
-        const rawLang = (codeMatch[1] || language || 'javascript').toLowerCase();
-        const detectedLang = rawLang.includes('py') ? 'python' : rawLang.includes('sql') ? 'sql' : 'javascript';
-        const detectedCode = codeMatch[2].trim();
+      // Configuration / auxiliary language tags that should not take priority over actual implementations
+      const CONFIG_LANGS = new Set([
+        'toml', 'yaml', 'yml', 'json', 'bash', 'sh', 'shell', 'dockerfile',
+        'txt', 'text', 'env', 'ini', 'requirements', 'markdown', 'md'
+      ]);
+
+      let primaryBlock = null;
+      if (allCodeBlocks.length > 0) {
+        // 1. First, search for non-config executable code blocks
+        const implementationBlocks = allCodeBlocks.filter(b => !CONFIG_LANGS.has(b.lang));
+
+        if (implementationBlocks.length > 0) {
+          // Find block with function signatures or pick the longest implementation
+          primaryBlock = implementationBlocks.find(b => 
+            /\b(function|async\s+function|def|fn|const\s+process|let\s+process|var\s+process|SELECT)\b/i.test(b.code)
+          ) || implementationBlocks.reduce((prev, curr) => (curr.code.length > prev.code.length ? curr : prev), implementationBlocks[0]);
+        } else {
+          // If all blocks are config blocks, take the largest one
+          primaryBlock = allCodeBlocks.reduce((prev, curr) => (curr.code.length > prev.code.length ? curr : prev), allCodeBlocks[0]);
+        }
+      }
+
+      if (primaryBlock && primaryBlock.code) {
+        const rawLang = primaryBlock.lang.toLowerCase();
+        let detectedLang = 'javascript';
+        if (rawLang.includes('py')) detectedLang = 'python';
+        else if (rawLang.includes('sql')) detectedLang = 'sql';
+        else if (rawLang.includes('rust') || rawLang === 'rs') detectedLang = 'rust';
+        else if (rawLang.includes('toml')) detectedLang = 'toml';
+        else detectedLang = 'javascript';
+
+        const detectedCode = primaryBlock.code;
 
         // Extract RULE_SUMMARY
         const summaryRegex = /RULE_SUMMARY:\s*([^\n\r]+)/i;
@@ -831,19 +857,24 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
         ];
         setOperationalBullets(bullets);
 
+        // Keep clean explanation
+        const cleanContent = responseText.replace(/RULE_SUMMARY:\s*[^\n\r]+/i, '').trim();
+
         const aiMsg = {
           id: `ai-${Date.now()}`,
           role: 'assistant',
-          content: responseText.replace(/```([a-zA-Z0-9_\-]+)?\s*([\s\S]*?)```/g, '').trim() || '✓ Logic finalized and formulated into zero-token deterministic code.',
+          content: cleanContent,
           code: detectedCode,
           language: detectedLang,
+          codeBlocks: allCodeBlocks,
+          selectedBlockId: primaryBlock.id,
           isFinalized: true,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setChatMessages(prev => [...prev, aiMsg]);
 
         window.dispatchEvent(new CustomEvent('keaos:toast', {
-          detail: { message: `✓ Logic finalized & loaded into Code Editor` }
+          detail: { message: `✓ Logic formulated & loaded into Code Editor` }
         }));
 
         if (onUpdateNode && nodeId) {
@@ -857,12 +888,12 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
           });
         }
       } else {
-        // Phase 1: Architectural plan / bilateral clarification question
+        // Conversational / explanation response without code block
+        const cleanContent = responseText.replace(/RULE_SUMMARY:\s*[^\n\r]+/i, '').trim();
         const aiMsg = {
           id: `ai-${Date.now()}`,
           role: 'assistant',
-          content: responseText,
-          isPlan: true,
+          content: cleanContent,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setChatMessages(prev => [...prev, aiMsg]);
@@ -1351,12 +1382,65 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
                         }`}>
                           <p className="whitespace-pre-wrap">{msg.content}</p>
 
-                          {/* Phase 2: Finalized Code Badge & Reapply Button */}
-                          {msg.code && (
+                          {/* Multi-Code-Block Selector or Single Code Badge */}
+                          {msg.codeBlocks && msg.codeBlocks.length > 1 ? (
+                            <div className="mt-3 pt-2.5 border-t border-[#2C3242] space-y-2">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                                <span>Generated Blocks ({msg.codeBlocks.length})</span>
+                                <span className="text-[9px] text-slate-500 font-mono">1-Click to Switch Editor</span>
+                              </div>
+                              <div className="space-y-1.5">
+                                {msg.codeBlocks.map((blk, idx) => {
+                                  const isCurrentlyInEditor = code === blk.code;
+                                  return (
+                                    <div
+                                      key={blk.id || idx}
+                                      className={`p-2 rounded border flex items-center justify-between gap-2 transition-all ${
+                                        isCurrentlyInEditor
+                                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                                          : 'bg-black/30 border-slate-700/60 text-slate-300 hover:border-slate-500'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-[9px] font-mono uppercase font-bold px-1.5 py-0.5 rounded bg-black/40 border border-slate-700 text-[#0091DA]">
+                                          {blk.lang || 'code'}
+                                        </span>
+                                        <span className="text-[11px] font-mono truncate text-slate-300">
+                                          {blk.linesCount} lines {isCurrentlyInEditor ? '• Active' : ''}
+                                        </span>
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          setCode(blk.code);
+                                          const rawLang = (blk.lang || '').toLowerCase();
+                                          if (rawLang.includes('py')) setLanguage('python');
+                                          else if (rawLang.includes('sql')) setLanguage('sql');
+                                          else if (rawLang.includes('rust') || rawLang === 'rs') setLanguage('rust');
+                                          else if (rawLang.includes('toml')) setLanguage('toml');
+                                          else setLanguage('javascript');
+
+                                          window.dispatchEvent(new CustomEvent('keaos:toast', {
+                                            detail: { message: `✓ Loaded ${blk.lang.toUpperCase()} into Code Editor` }
+                                          }));
+                                        }}
+                                        className={`px-2 py-0.5 text-[10px] rounded font-bold transition-all cursor-pointer ${
+                                          isCurrentlyInEditor
+                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                            : 'bg-[#0091DA]/20 hover:bg-[#0091DA]/40 text-[#0091DA] border border-[#0091DA]/40'
+                                        }`}
+                                      >
+                                        {isCurrentlyInEditor ? '✓ Active in Editor' : 'Load into Editor'}
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : msg.code ? (
                             <div className="mt-2.5 pt-2 border-t border-emerald-500/20 flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold uppercase">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Plan Finalized & Code Formulated ({msg.language || language})</span>
+                                <span>Code Loaded in Editor ({msg.language || language})</span>
                               </div>
                               <button
                                 onClick={() => {
@@ -1369,31 +1453,18 @@ WHEN AND ONLY WHEN the user confirms the plan (e.g. "yes", "proceed", "looks goo
                                 Reapply to Editor
                               </button>
                             </div>
-                          )}
+                          ) : null}
 
-                          {/* Phase 1: Bilateral Plan Actions (Confirm or Request Changes) */}
+                          {/* Quick Action Chip for non-code messages */}
                           {msg.role === 'assistant' && !msg.code && !msg.isError && msg.id !== 'msg-welcome' && (
-                            <div className="mt-3 pt-2.5 border-t border-[#2C3242]/80 flex flex-wrap items-center gap-2">
+                            <div className="mt-2 pt-2 border-t border-[#2C3242]/60 flex items-center gap-2">
                               <button
-                                onClick={() => handleSendChat("Yes, this plan is finalized. Please formulate the code.")}
+                                onClick={() => handleSendChat("Write the complete working code for this now.")}
                                 disabled={isChatSending}
-                                className="px-3 py-1.5 text-[11px] font-bold rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                                className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-[#0091DA]/20 hover:bg-[#0091DA]/30 border border-[#0091DA]/40 text-[#0091DA] flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
                               >
-                                <Check className="w-3.5 h-3.5" />
-                                <span>✓ Yes, Confirm Plan & Formulate Code</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setChatInput("I want to adjust: ");
-                                  setTimeout(() => {
-                                    const inputEl = document.querySelector('input[placeholder*="Describe what this rule"]');
-                                    if (inputEl) inputEl.focus();
-                                  }, 50);
-                                }}
-                                disabled={isChatSending}
-                                className="px-3 py-1.5 text-[11px] font-medium rounded-full bg-slate-700/60 hover:bg-slate-700 border border-slate-600 text-slate-200 flex items-center gap-1.5 transition-all cursor-pointer"
-                              >
-                                <span>✎ Request Changes</span>
+                                <Code2 className="w-3 h-3" />
+                                <span>Write Complete Code</span>
                               </button>
                             </div>
                           )}

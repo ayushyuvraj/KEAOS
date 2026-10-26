@@ -405,6 +405,32 @@ export async function executeDeterministicJS(code, inputData = {}, nodeId = 'def
   };
 
   try {
+    const trimmed = (code || '').trim();
+
+    // Guard against non-executable configuration files pasted into JS isolate (e.g. Cargo.toml, package.json)
+    if (trimmed.startsWith('[dependencies]') || trimmed.startsWith('[package]') || /^\s*\[[a-zA-Z0-9_\-]+\]\s*\n/.test(trimmed)) {
+      return {
+        success: false,
+        error: `Syntax Notice: The editor currently contains a TOML / Cargo configuration snippet ([dependencies]), not executable code. In the Co-Pilot Chat, click "Load into Editor" on the implementation code block or ask Co-Pilot to write the JavaScript/SheetJS logic.`,
+        executionTimeMs: 0,
+        logs: [{ level: 'error', time: new Date().toLocaleTimeString(), message: 'Detected TOML dependency file instead of executable JavaScript logic.' }],
+        result: null,
+        data: null
+      };
+    }
+
+    // Guard against Rust code executed directly in client-side JS isolate
+    if (/^\s*(use\s+[a-zA-Z0-9_:]+|fn\s+main|pub\s+fn|extern\s+crate)/.test(trimmed)) {
+      return {
+        success: false,
+        error: `Runtime Notice: This code is written in Rust. The active browser isolate runs JavaScript with SheetJS (XLSX). Rust requires an external Cargo/WASM toolchain. Ask the Co-Pilot to generate the equivalent high-speed JavaScript code using the built-in SheetJS library to run directly in this box!`,
+        executionTimeMs: 0,
+        logs: [{ level: 'error', time: new Date().toLocaleTimeString(), message: 'Rust code detected in browser JavaScript isolate. Use JavaScript + SheetJS for client-side execution.' }],
+        result: null,
+        data: null
+      };
+    }
+
     // Wrap script in an async executor to cleanly support both sync and async/await functions
     let runnerScript = '';
     if (code.includes('function process') || code.includes('const process =') || code.includes('let process =')) {
@@ -435,15 +461,25 @@ export async function executeDeterministicJS(code, inputData = {}, nodeId = 'def
     const exportExcel = (rows, fname = 'output.csv') => downloadSpreadsheetFile(rows || state.rows, fname);
     const exportCsv = exportExcel;
     const cryptoApi = (typeof window !== 'undefined' && window.crypto) ? window.crypto : null;
+    const xlsxApi = (typeof window !== 'undefined' && window.XLSX) ? window.XLSX : null;
 
     // Isolate execution via Function constructor
-    // Expose helpers: inputs, input, data, state, exportExcel, exportCsv, console, crypto, parseCsv
-    const fn = new Function('inputs', 'input', 'data', 'state', 'exportExcel', 'exportCsv', 'console', 'crypto', 'parseCsv', runnerScript);
-    const rawResultPromise = fn(normalized, normalized, normalized.data, state, exportExcel, exportCsv, sandboxedConsole, cryptoApi, parseCsv);
+    // Expose helpers: inputs, input, data, state, exportExcel, exportCsv, console, crypto, parseCsv, XLSX
+    const fn = new Function('inputs', 'input', 'data', 'state', 'exportExcel', 'exportCsv', 'console', 'crypto', 'parseCsv', 'XLSX', runnerScript);
+    const rawResultPromise = fn(normalized, normalized, normalized.data, state, exportExcel, exportCsv, sandboxedConsole, cryptoApi, parseCsv, xlsxApi);
 
-    // Timeout guard (6 seconds max to guard against runaway while(true) loops)
+    // Adaptive Timeout guard:
+    // If code invokes interactive browser dialogs (showOpenFilePicker, prompt, confirm) or external fetches,
+    // grant an extended 120-second window so users can browse and select their files without arbitrary aborts.
+    const isInteractive = code.includes('showOpenFilePicker') ||
+                          code.includes('prompt(') ||
+                          code.includes('confirm(') ||
+                          code.includes('FileReader') ||
+                          code.includes('fetch(');
+    const timeoutDuration = isInteractive ? 120000 : 30000;
+
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Execution Timeout: Code took longer than 6,000ms. Please check loop conditions or async delays.')), 6000);
+      setTimeout(() => reject(new Error(`Execution Timeout: Code took longer than ${timeoutDuration / 1000}s. Please check loop conditions or interactive dialogs.`)), timeoutDuration);
     });
 
     const result = await Promise.race([

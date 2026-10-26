@@ -255,6 +255,7 @@ function keaosWorkspaceStoragePlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
+  envPrefix: ['VITE_', 'OPENAI_', 'ANTHROPIC_', 'GEMINI_', 'GOOGLE_'],
   server: {
     watch: {
       ignored: ['**/data/**', '**/.keaos-data/**', '**/src/data/**']

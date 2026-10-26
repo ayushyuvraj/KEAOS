@@ -137,9 +137,20 @@ export function getProviderCredential(providerId) {
     return '';
   }
 
-  // 1. Check Vite Environment Variable
-  const envVal = import.meta.env[provider.envKey];
-  if (envVal && envVal.trim().length > 0) return envVal.trim();
+  // 1. Check Vite Environment Variable (both VITE_ prefixed and direct provider keys)
+  const envKeyAlternatives = [
+    provider.envKey,
+    `${providerId.toUpperCase()}_API_KEY`,
+    `VITE_${providerId.toUpperCase()}_API_KEY`
+  ];
+  if (providerId === 'google') {
+    envKeyAlternatives.push('GEMINI_API_KEY', 'GOOGLE_API_KEY', 'VITE_GOOGLE_API_KEY');
+  }
+  for (const k of envKeyAlternatives) {
+    if (k && import.meta.env[k] && typeof import.meta.env[k] === 'string' && import.meta.env[k].trim().length > 0) {
+      return import.meta.env[k].trim();
+    }
+  }
 
   // 2. Check Browser Local Storage
   const localVal = localStorage.getItem(provider.storageKey);

@@ -171,8 +171,8 @@ CRITICAL RULES:
 4. BROWSER ISOLATE ENVIRONMENT (STRICT MANDATE):
    - JavaScript executes in a client-side browser isolate via \`new Function('inputs', ...)\`. Full \`async/await\`, \`crypto\`, and Web APIs are supported.
    - NEVER use \`require(...)\`, \`import ...\`, or Node.js server modules (\`fs\`, \`path\`, \`stream\`, \`fast-csv\`, etc.). \`require\` is NOT defined in browsers and will fail immediately!
-   - ALL user data and files are ALREADY loaded into memory and available on the \`inputs\` argument (e.g. \`inputs.data\`, \`inputs.tableA\`, \`inputs.tableB\`, \`inputs.file1\`, \`inputs.file2\`, etc.).
-   - Do NOT try to read file paths or open streams from disk. Operate directly on the in-memory arrays or objects inside \`inputs\`.
+   - User data is typically provided in-memory via 'inputs' (e.g. inputs.data, inputs.tableA, inputs.file1), but interactive browser Web APIs like window.showOpenFilePicker(), FileReader, SheetJS (XLSX.read), fetch, and Web Crypto are fully supported when requested.
+   - Do NOT use Node.js server modules ('fs', 'path') because code runs in client browsers; use browser Web APIs instead.
    - MULTI-SOURCE FAN-IN & JOIN CONTRACT:
      - When inputs contains multiple named streams (e.g. inputs.tableA, inputs.tableB, inputs.erp_ledger), access them by their EXACT keys as listed in the schema contract.
      - When joining or reconciling two streams, use high-performance O(N) Hash Maps (\`new Map(inputs.sourceB.map(b => [String(b.key), b]))\`) instead of slow O(N^2) nested finds.
