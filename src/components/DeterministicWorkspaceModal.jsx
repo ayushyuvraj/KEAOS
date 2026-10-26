@@ -29,7 +29,9 @@ import {
   Table as TableIcon,
   CheckCircle2,
   Share2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Activity,
+  Filter
 } from 'lucide-react';
 import { compileDeterministicLogic, getOfflineFallbackCode } from '../services/deterministicCompiler';
 import { executeDeterministicTask, inferDataSchema, parseCsv } from '../services/deterministicRunner';
@@ -225,6 +227,7 @@ export default function DeterministicWorkspaceModal({
   const [copiedKey, setCopiedKey] = useState(null);
   const [isPayloadExpanded, setIsPayloadExpanded] = useState(false);
   const [outputSearch, setOutputSearch] = useState('');
+  const [dashboardFilter, setDashboardFilter] = useState('ALL');
   const [isFrozen, setIsFrozen] = useState(nodeData?.isFrozen || false);
 
   const hasLogic = useMemo(() => {
@@ -628,8 +631,10 @@ export default function DeterministicWorkspaceModal({
         setExecutionResult(res);
         setExecutionError(null);
 
-        // Auto-switch right tab: if table data exists, show table; else json
-        if (res.tableData && Array.isArray(res.tableData) && res.tableData.length > 0) {
+        // Auto-switch right tab: if reconciliation summary exists, show dashboard; else if table data exists, show table; else json
+        if (res.output?.summary && (res.output.summary.totalGstrRows !== undefined || res.output.summary.exactMatchCount !== undefined)) {
+          setActiveRightTab('dashboard');
+        } else if (res.tableData && Array.isArray(res.tableData) && res.tableData.length > 0) {
           setActiveRightTab('table');
         } else {
           setActiveRightTab('json');
@@ -1035,6 +1040,12 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
       return executionResult.tableData;
     }
     if (typeof executionResult.output === 'object' && executionResult.output !== null) {
+      if (Array.isArray(executionResult.output.records) && executionResult.output.records.length > 0) {
+        return executionResult.output.records;
+      }
+      if (Array.isArray(executionResult.output.table) && executionResult.output.table.length > 0) {
+        return executionResult.output.table;
+      }
       for (const v of Object.values(executionResult.output)) {
         if (Array.isArray(v) && v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
           return v;
@@ -1745,6 +1756,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
             }`}>
               <div className="flex items-center gap-1">
                 {[
+                  ...(executionResult?.output?.summary ? [{ id: 'dashboard', label: 'Tax Recon Dashboard', icon: Activity }] : []),
                   { id: 'table', label: `Table (${outputRows.length})`, icon: TableIcon },
                   { id: 'json', label: 'JSON Tree', icon: FileCode },
                   { id: 'console', label: `Console (${executionResult?.logs?.length || 0})`, icon: Terminal }
@@ -1819,6 +1831,293 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                   <p className="text-xs">No execution run yet.</p>
                   <p className="text-[10px] text-slate-500">Press RUN or Ctrl+Enter to test logic.</p>
                 </div>
+              ) : activeRightTab === 'dashboard' && executionResult?.output?.summary ? (
+                /* TAB 0: EXECUTIVE RECONCILIATION DASHBOARD */
+                (() => {
+                  const summary = executionResult.output.summary;
+                  const allRecords = Array.isArray(executionResult.output.records) 
+                    ? executionResult.output.records 
+                    : outputRows;
+                  
+                  // Filter records by selected category
+                  const filteredRecords = allRecords.filter(r => {
+                    if (dashboardFilter === 'EXACT') return r.matchType === 'EXACT_MATCH';
+                    if (dashboardFilter === 'NEAR') return r.matchType === 'NEAR_MATCH';
+                    if (dashboardFilter === 'TOLERANCE') return r.matchType === 'TOLERANCE_MATCH';
+                    if (dashboardFilter === 'SPLIT') return r.matchType?.startsWith('SPLIT');
+                    if (dashboardFilter === 'MISSING_PR') return r.matchType === 'MISMATCH_GSTR_ONLY';
+                    if (dashboardFilter === 'MISSING_GSTR') return r.matchType === 'MISMATCH_PR_ONLY';
+                    if (dashboardFilter === 'MISMATCHES') return r.matchType?.startsWith('MISMATCH');
+                    return true;
+                  }).filter(r => {
+                    if (!outputSearch) return true;
+                    const q = outputSearch.toLowerCase();
+                    return (
+                      (r.gstin && String(r.gstin).toLowerCase().includes(q)) ||
+                      (r.vendor && String(r.vendor).toLowerCase().includes(q)) ||
+                      (r.invoiceNumber && String(r.invoiceNumber).toLowerCase().includes(q)) ||
+                      (r.status && String(r.status).toLowerCase().includes(q))
+                    );
+                  });
+
+                  return (
+                    <div className="flex-1 flex flex-col overflow-y-auto font-sans space-y-3 pr-1">
+                      {/* Top Header Card */}
+                      <div className={`p-3 border rounded-none flex items-center justify-between shrink-0 ${
+                        isDarkMode ? 'bg-[#0B0F19] border-[#2C3242]' : 'bg-[#F0F4F8] border-[#CBD5E1]'
+                      }`}>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono font-bold tracking-wider uppercase text-[#EAAA00]">
+                              Indirect Tax Reconciliation Dashboard
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-[#009A44]/20 text-[#009A44] border border-[#009A44]/40">
+                              {summary.reconciliationRate || '73%'} Auto-Reconciled
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                            GSTR-2B (Govt Tax Portal) ↔ Purchase Register (ERP AP Ledger)
+                          </p>
+                        </div>
+                        <div className="text-right font-mono">
+                          <span className="text-[10px] text-slate-400 block">Execution Latency</span>
+                          <span className="text-xs font-bold text-emerald-400">{executionResult.latencyMs || 0}ms • 0 Tokens</span>
+                        </div>
+                      </div>
+
+                      {/* 7 Core KPI Metric Cards (Strictly per user's specification) */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 shrink-0">
+                        {/* 1. GSTR Rows */}
+                        <div 
+                          onClick={() => setDashboardFilter('ALL')}
+                          className={`p-2 border rounded-none cursor-pointer transition-all ${
+                            dashboardFilter === 'ALL' ? 'border-[#0091DA] ring-1 ring-[#0091DA]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-slate-500' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono uppercase text-slate-400 block">1. GSTR-2B Rows</span>
+                          <span className="text-base font-mono font-bold text-white block mt-0.5">{summary.totalGstrRows}</span>
+                          <span className="text-[8px] text-[#0091DA] font-mono">Portal Total</span>
+                        </div>
+
+                        {/* 2. PR Rows */}
+                        <div 
+                          onClick={() => setDashboardFilter('ALL')}
+                          className={`p-2 border rounded-none cursor-pointer transition-all ${
+                            dashboardFilter === 'ALL' ? 'border-[#0091DA] ring-1 ring-[#0091DA]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-slate-500' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono uppercase text-slate-400 block">2. PR ERP Rows</span>
+                          <span className="text-base font-mono font-bold text-white block mt-0.5">{summary.totalPrRows}</span>
+                          <span className="text-[8px] text-[#0091DA] font-mono">Books Total</span>
+                        </div>
+
+                        {/* 3. Exact Matches */}
+                        <div 
+                          onClick={() => setDashboardFilter('EXACT')}
+                          className={`p-2 border rounded-none cursor-pointer transition-all ${
+                            dashboardFilter === 'EXACT' ? 'border-[#009A44] ring-1 ring-[#009A44]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#009A44]/60' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono uppercase text-[#009A44] block font-bold">3. Exact Matches</span>
+                          <span className="text-base font-mono font-bold text-[#009A44] block mt-0.5">{summary.exactMatchCount}</span>
+                          <span className="text-[8px] text-slate-400 font-mono">100% Direct</span>
+                        </div>
+
+                        {/* 4. Near Matches */}
+                        <div 
+                          onClick={() => setDashboardFilter('NEAR')}
+                          className={`p-2 border rounded-none cursor-pointer transition-all ${
+                            dashboardFilter === 'NEAR' ? 'border-[#00A3A6] ring-1 ring-[#00A3A6]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#00A3A6]/60' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono uppercase text-[#00A3A6] block font-bold">4. Near Matches</span>
+                          <span className="text-base font-mono font-bold text-[#00A3A6] block mt-0.5">{summary.nearMatchCount}</span>
+                          <span className="text-[8px] text-slate-400 font-mono">Normalized Inv</span>
+                        </div>
+
+                        {/* 5. Tolerance Matches */}
+                        <div 
+                          onClick={() => setDashboardFilter('TOLERANCE')}
+                          className={`p-2 border rounded-none cursor-pointer transition-all ${
+                            dashboardFilter === 'TOLERANCE' ? 'border-[#EAAA00] ring-1 ring-[#EAAA00]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#EAAA00]/60' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono uppercase text-[#EAAA00] block font-bold">5. Tolerance Matches</span>
+                          <span className="text-base font-mono font-bold text-[#EAAA00] block mt-0.5">{summary.toleranceMatchCount}</span>
+                          <span className="text-[8px] text-slate-400 font-mono">±30d / ±₹1k</span>
+                        </div>
+
+                        {/* 6. Mismatches */}
+                        <div 
+                          onClick={() => setDashboardFilter('MISMATCHES')}
+                          className={`p-2 border rounded-none cursor-pointer transition-all ${
+                            dashboardFilter === 'MISMATCHES' ? 'border-[#E02424] ring-1 ring-[#E02424]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#E02424]/60' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono uppercase text-[#E02424] block font-bold">6. Mismatches</span>
+                          <span className="text-base font-mono font-bold text-[#E02424] block mt-0.5">{summary.mismatchCount}</span>
+                          <span className="text-[8px] text-slate-400 font-mono">PR:{summary.mismatchesPrOnlyCount} | GSTR:{summary.mismatchesGstrOnlyCount}</span>
+                        </div>
+
+                        {/* 7. Ambiguous Matches */}
+                        <div 
+                          onClick={() => setDashboardFilter('SPLIT')}
+                          className={`p-2 border rounded-none cursor-pointer transition-all ${
+                            dashboardFilter === 'SPLIT' ? 'border-[#483698] ring-1 ring-[#483698]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#483698]/60' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono uppercase text-[#A78BFA] block font-bold">7. Ambiguous</span>
+                          <span className="text-base font-mono font-bold text-[#A78BFA] block mt-0.5">{summary.ambiguousMatchCount}</span>
+                          <span className="text-[8px] text-slate-400 font-mono">Split 1:N / N:1</span>
+                        </div>
+                      </div>
+
+                      {/* Financial ITC Exposure Banner */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 shrink-0">
+                        <div className="p-2.5 border rounded-none bg-emerald-950/20 border-emerald-500/40 flex items-center justify-between font-mono">
+                          <div>
+                            <span className="text-[9px] uppercase text-emerald-400 block font-bold">Reconciled Eligible ITC (Sec 16 Admissible)</span>
+                            <span className="text-lg font-bold text-emerald-300">₹{Number(summary.totalReconciledItc || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full font-bold">GSTR-3B Ready</span>
+                        </div>
+
+                        <div className="p-2.5 border rounded-none bg-rose-950/20 border-rose-500/40 flex items-center justify-between font-mono">
+                          <div>
+                            <span className="text-[9px] uppercase text-rose-400 block font-bold">At-Risk Disallowed ITC (DRC-01C Exposure)</span>
+                            <span className="text-lg font-bold text-rose-300">₹{Number(summary.totalAtRiskItc || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 bg-rose-500/20 text-rose-400 rounded-full font-bold">Vendor Notice Required</span>
+                        </div>
+                      </div>
+
+                      {/* Category Filter Pills & Search */}
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800 shrink-0">
+                        <div className="flex items-center gap-1 overflow-x-auto py-1">
+                          {[
+                            { id: 'ALL', label: `All (${allRecords.length})` },
+                            { id: 'EXACT', label: `Exact (${summary.exactMatchCount})`, color: 'text-emerald-400' },
+                            { id: 'NEAR', label: `Near (${summary.nearMatchCount})`, color: 'text-teal-400' },
+                            { id: 'TOLERANCE', label: `Tolerance (${summary.toleranceMatchCount})`, color: 'text-amber-400' },
+                            { id: 'SPLIT', label: `Split (${summary.splitMatchCount})`, color: 'text-violet-400' },
+                            { id: 'MISSING_GSTR', label: `Missing in GSTR (${summary.mismatchesPrOnlyCount})`, color: 'text-rose-400' },
+                            { id: 'MISSING_PR', label: `Missing in PR (${summary.mismatchesGstrOnlyCount})`, color: 'text-orange-400' }
+                          ].map(f => (
+                            <button
+                              key={f.id}
+                              onClick={() => setDashboardFilter(f.id)}
+                              className={`px-2 py-0.5 text-[10px] font-mono rounded-full border transition-all whitespace-nowrap cursor-pointer ${
+                                dashboardFilter === f.id
+                                  ? 'bg-blue-600 text-white border-blue-500 font-bold'
+                                  : 'bg-black/30 border-slate-700 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <span className={f.color}>{f.label}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="relative shrink-0">
+                          <Search className="w-3 h-3 text-slate-500 absolute left-2 top-2" />
+                          <input
+                            type="text"
+                            value={outputSearch}
+                            onChange={(e) => setOutputSearch(e.target.value)}
+                            placeholder="Filter records..."
+                            className="pl-6 pr-2 py-0.5 text-[10px] font-mono border border-slate-700 bg-black/40 rounded text-white outline-none w-36"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Audit Table */}
+                      <div className="flex-1 border border-slate-700/60 rounded-none overflow-auto min-h-[220px]">
+                        <table className="w-full text-left text-xs font-mono divide-y divide-slate-800">
+                          <thead className="bg-[#0B0F19] sticky top-0 z-10">
+                            <tr>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-400">#</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Status</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Supplier GSTIN</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Vendor Name</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Invoice #</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Date / Lag</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300 text-right">GSTR Val</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300 text-right">PR Val</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300 text-right">Delta</th>
+                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Compliance Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60">
+                            {filteredRecords.map((r, idx) => {
+                              const isExact = r.matchType === 'EXACT_MATCH';
+                              const isNear = r.matchType === 'NEAR_MATCH';
+                              const isTolerance = r.matchType === 'TOLERANCE_MATCH';
+                              const isSplit = r.matchType?.startsWith('SPLIT');
+                              const isMissingGstr = r.matchType === 'MISMATCH_PR_ONLY';
+
+                              return (
+                                <tr key={idx} className="hover:bg-white/5 transition-colors">
+                                  <td className="py-1.5 px-2 text-[10px] text-slate-500">{idx + 1}</td>
+                                  <td className="py-1.5 px-2 whitespace-nowrap">
+                                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${
+                                      isExact ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' :
+                                      isNear ? 'bg-teal-500/20 text-teal-400 border-teal-500/40' :
+                                      isTolerance ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' :
+                                      isSplit ? 'bg-violet-500/20 text-violet-400 border-violet-500/40' :
+                                      isMissingGstr ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' :
+                                      'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                                    }`}>
+                                      {r.status || r.matchType}
+                                    </span>
+                                  </td>
+                                  <td className="py-1.5 px-2 text-[10px] text-slate-300 font-mono font-bold">{r.gstin}</td>
+                                  <td className="py-1.5 px-2 text-[10px] text-slate-200 truncate max-w-[120px]">{r.vendor}</td>
+                                  <td className="py-1.5 px-2 text-[10px] text-slate-300 font-mono truncate max-w-[130px]">{r.invoiceNumber}</td>
+                                  <td className="py-1.5 px-2 text-[9px] text-slate-400 whitespace-nowrap">
+                                    {r.invoiceDate} {r.dateDiff && r.dateDiff !== '0d' && r.dateDiff !== 'N/A' && (
+                                      <span className="text-amber-400 font-bold ml-1">({r.dateDiff})</span>
+                                    )}
+                                  </td>
+                                  <td className="py-1.5 px-2 text-[10px] font-mono text-right text-slate-300">
+                                    ₹{Number(r.gstrValue || 0).toLocaleString('en-IN')}
+                                  </td>
+                                  <td className="py-1.5 px-2 text-[10px] font-mono text-right text-slate-300">
+                                    ₹{Number(r.prValue || 0).toLocaleString('en-IN')}
+                                  </td>
+                                  <td className="py-1.5 px-2 text-[10px] font-mono text-right whitespace-nowrap">
+                                    {r.deltaAmount !== 0 ? (
+                                      <span className={r.deltaAmount > 0 ? 'text-rose-400 font-bold' : 'text-amber-400 font-bold'}>
+                                        {r.deltaAmount > 0 ? `+₹${r.deltaAmount}` : `-₹${Math.abs(r.deltaAmount)}`}
+                                      </span>
+                                    ) : (
+                                      <span className="text-emerald-400">₹0</span>
+                                    )}
+                                  </td>
+                                  <td className="py-1.5 px-2 text-[9px] text-slate-400">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="truncate max-w-[180px]">{r.action || r.notes}</span>
+                                      {isSplit && (
+                                        <button
+                                          onClick={() => {
+                                            window.dispatchEvent(new CustomEvent('keaos:toast', {
+                                              detail: { message: `✓ Split match approved by auditor for ${r.invoiceNumber}` }
+                                            }));
+                                          }}
+                                          className="px-1.5 py-0.5 text-[8px] rounded font-mono bg-violet-600/30 text-violet-300 border border-violet-500 hover:bg-violet-600/50 cursor-pointer shrink-0"
+                                        >
+                                          Confirm
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()
               ) : activeRightTab === 'table' ? (
                 /* TAB 1: TABULAR DATA GRID */
                 outputRows.length > 0 ? (
