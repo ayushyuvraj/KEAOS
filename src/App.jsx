@@ -2165,7 +2165,7 @@ export default function App() {
   }, [setViewMode, setNodes, setEdges, setSelectedNode]);
 
   return (
-    <div className={`w-screen h-screen flex ${isDarkMode ? 'bg-[#0D111A] text-white' : 'bg-[#F5F6F8] text-[#0B0F19]'} overflow-hidden select-none transition-colors duration-200`}>
+    <div className={`w-full h-full min-h-0 min-w-0 flex ${isDarkMode ? 'bg-[#0D111A] text-white' : 'bg-[#F5F6F8] text-[#0B0F19]'} overflow-hidden select-none transition-colors duration-200`}>
       {/* Unified Left Collapsible Sidebar */}
       <Sidebar
         activeUseCase={activeUseCase}
@@ -2189,7 +2189,7 @@ export default function App() {
       />
 
       {/* Main Right Area: Top Header + View Workspace */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative">
         <Header
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -2214,11 +2214,11 @@ export default function App() {
           onToggleWorkflowLock={() => setIsWorkflowLocked((prev) => !prev)}
         />
 
-        <main className="flex-1 flex overflow-hidden relative">
+        <main className="flex-1 flex min-h-0 overflow-hidden relative">
           {viewMode === 'canvas' && (
             <>
               {/* Center Canvas with Strict Socket Connections & Floating Toolbars */}
-              <div className="flex-1 h-full relative">
+              <div className="flex-1 h-full min-h-0 relative">
                 <Canvas
                   activeUseCase={activeUseCase}
                   nodes={nodes}

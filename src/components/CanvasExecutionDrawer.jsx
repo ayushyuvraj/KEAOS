@@ -2026,7 +2026,7 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
         <div className={`${
           isFullScreen 
             ? 'flex-1 min-h-0' 
-            : 'h-[420px]'
+            : 'h-[min(420px,50vh)] min-h-[220px]'
         } flex flex-col border-t transition-colors ${
           isDarkMode ? 'bg-[#121316] border-[#2E313B]' : 'bg-[#F9FAFB] border-[#E5E7EB]'
         }`}>

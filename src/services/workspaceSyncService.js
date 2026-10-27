@@ -7,7 +7,7 @@
  * and browser reloads while preserving all user work.
  */
 
-import { loadAllWorkflows, getActiveWorkflowId, WORKFLOWS_REGISTRY_KEY, ACTIVE_WORKFLOW_ID_KEY } from '../utils/workflowStorage';
+import { loadAllWorkflows, getActiveWorkflowId, WORKFLOWS_REGISTRY_KEY, ACTIVE_WORKFLOW_ID_KEY, createAmlSurveillanceWorkflow, createClinicalBiomarkerWorkflow, createSupplyChainRebalancerWorkflow } from '../utils/workflowStorage';
 import { loadUIState, loadCanvasState } from '../utils/persistentState';
 import { getRegisteredMcpServers } from './mcpClientService';
 
@@ -51,6 +51,18 @@ export async function initWorkspaceSync() {
             })
           };
         });
+
+        // Ensure all 3 complex agentic workflows are present in workspace
+        try {
+          const amlWf = createAmlSurveillanceWorkflow();
+          const clinWf = createClinicalBiomarkerWorkflow();
+          const scWf = createSupplyChainRebalancerWorkflow();
+          if (!sanitizedWorkflows.some(w => w.id === amlWf.id)) sanitizedWorkflows.push(amlWf);
+          if (!sanitizedWorkflows.some(w => w.id === clinWf.id)) sanitizedWorkflows.push(clinWf);
+          if (!sanitizedWorkflows.some(w => w.id === scWf.id)) sanitizedWorkflows.push(scWf);
+        } catch (e) {
+          console.warn('[Sync] Error ensuring agentic workflows:', e);
+        }
 
         // Hydrate this browser instance from server disk file
         localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(sanitizedWorkflows));

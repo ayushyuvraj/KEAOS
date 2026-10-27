@@ -8,6 +8,7 @@
 
 import { PROVIDERS, getProviderCredential, getAllConfiguredProviders, getOllamaConfig } from './llmService';
 import { GoogleGenAI } from '@google/genai';
+import { TAX_RECON_PROCESS_CODE } from '../constants/sampleTaxReconData';
 
 /**
  * Cleanly extracts code from LLM response markdown blocks.
@@ -39,6 +40,13 @@ export function getOfflineFallbackCode(prompt, language, sampleInputs) {
       return `def process(inputs):\n    # Swap variables dynamically\n    keys = [k for k in inputs.keys() if k != 'data']\n    if len(keys) >= 2:\n        k1, k2 = keys[0], keys[1]\n        inputs[k1], inputs[k2] = inputs[k2], inputs[k1]\n    return inputs`;
     }
     return `function process(inputs) {\n  // Swap first two variables in inputs\n  const keys = Object.keys(inputs).filter(k => k !== 'data');\n  if (keys.length >= 2) {\n    const temp = inputs[keys[0]];\n    inputs[keys[0]] = inputs[keys[1]];\n    inputs[keys[1]] = temp;\n  }\n  return inputs;\n}`;
+  }
+
+  // 1.5 Indirect Tax & GSTR-2B vs Purchase Register 5-Tier Reconciliation Engine
+  if (p.includes('gstr') || p.includes('2b') || p.includes('purchase register') || (p.includes('tax') && p.includes('recon')) || p.includes('indirect tax') || p.includes('gst recon')) {
+    if (lang === 'javascript') {
+      return TAX_RECON_PROCESS_CODE;
+    }
   }
 
   // 2. Table join / VLOOKUP / Reconciliation

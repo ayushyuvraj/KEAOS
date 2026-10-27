@@ -31,7 +31,13 @@ import {
   Share2,
   FileSpreadsheet,
   Activity,
-  Filter
+  Filter,
+  Maximize2,
+  Minimize2,
+  Globe,
+  LayoutDashboard,
+  Bug,
+  Wrench
 } from 'lucide-react';
 import { compileDeterministicLogic, getOfflineFallbackCode } from '../services/deterministicCompiler';
 import { executeDeterministicTask, inferDataSchema, parseCsv } from '../services/deterministicRunner';
@@ -86,7 +92,8 @@ export default function DeterministicWorkspaceModal({
 
   // 3-Zone Studio Tab States
   const [activeLeftTab, setActiveLeftTab] = useState('chat'); // 'chat' | 'spec' | 'schema'
-  const [activeRightTab, setActiveRightTab] = useState('table'); // 'table' | 'json' | 'console'
+  const [activeRightTab, setActiveRightTab] = useState('table'); // 'browser' | 'dashboard' | 'table' | 'json' | 'console'
+  const [isZone3Maximized, setIsZone3Maximized] = useState(false);
 
   // Conversational Chat State (Bilateral Discussion Protocol)
   const [chatMessages, setChatMessages] = useState(() => {
@@ -257,6 +264,20 @@ export default function DeterministicWorkspaceModal({
       setExecutionError(null);
     }
   }, [nodeId, isOpen]);
+
+  // Keyboard listener for Escape (exit maximized full page view)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isZone3Maximized) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsZone3Maximized(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [isOpen, isZone3Maximized]);
 
   // ---------------------------------------------------------------------------
   // 1. BRAIN RESOLVER: Inherit connected Agent's model or user-selected override
@@ -631,9 +652,12 @@ export default function DeterministicWorkspaceModal({
         setExecutionResult(res);
         setExecutionError(null);
 
-        // Auto-switch right tab: if reconciliation summary exists, show dashboard; else if table data exists, show table; else json
-        if (res.output?.summary && (res.output.summary.totalGstrRows !== undefined || res.output.summary.exactMatchCount !== undefined)) {
-          setActiveRightTab('dashboard');
+        // Auto-switch right tab: if HTML or summary exists, show live browser; else if table data exists, show table; else json
+        const hasHtml = Boolean(res.output?.html || (typeof res.output === 'string' && (res.output.trim().startsWith('<') || res.output.trim().startsWith('<!DOCTYPE'))));
+        const hasSummary = Boolean(res.output?.summary || (res.output && typeof res.output === 'object' && !Array.isArray(res.output) && Object.keys(res.output).some(k => typeof res.output[k] === 'number')));
+
+        if (hasHtml || hasSummary) {
+          setActiveRightTab('browser');
         } else if (res.tableData && Array.isArray(res.tableData) && res.tableData.length > 0) {
           setActiveRightTab('table');
         } else {
@@ -709,11 +733,25 @@ export default function DeterministicWorkspaceModal({
         inputContext = `INPUT SPECIFICATION:\n- inputs.data: dynamic payload passed at runtime.`;
       }
 
-      // 2. Modern Intelligent AI Pair-Programmer System Prompt
+      // 2. Closed-Loop Context: Current Code in Editor
+      const codeContext = `\n\nCURRENT CODE IN ZONE 2 EDITOR:\n\`\`\`${language || 'javascript'}\n${code || '// No code written yet'}\n\`\`\``;
+
+      // 3. Closed-Loop Error Awareness: Active Runtime Failure in Zone 3 Isolate
+      const errorContext = executionError ? `\n\n⚠️ ACTIVE RUNTIME ERROR IN ZONE 3 EXECUTION ISOLATE:
+- Error Message: ${executionError}
+- Failing Language: ${language || 'javascript'}
+- Recent Console Logs: ${JSON.stringify(executionResult?.logs?.slice(-5) || [])}
+- Available Upstream Input Keys: [${Object.keys(currentActiveInput || {}).join(', ')}]
+DIAGNOSTIC & SELF-HEALING MANDATE:
+The code failed with the runtime error above. You MUST analyze the root cause in the current code, explain why it broke, and generate the complete corrected replacement code in your markdown code block so that the user's editor is automatically updated and can run without errors.` : '';
+
+      // 4. Modern Intelligent AI Pair-Programmer System Prompt
       const systemPrompt = `You are the KEAOS Deterministic Logic Co-Pilot & Senior Software Architect.
 You help the user design, write, explain, and optimize deterministic code (JavaScript, Python, or SQL) for the KEAOS Deterministic Rule Box "${nodeName || 'Rule Box'}".
 
 ${inputContext}
+${codeContext}
+${errorContext}
 
 CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
 1. WRITE COMPLETE, PRODUCTION-READY CODE IMMEDIATELY:
@@ -925,6 +963,58 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
           chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
         }
       }, 100);
+    }
+  };
+
+  // 1-Click Closed-Loop Auto-Fix Handler
+  const handleAutoFixError = () => {
+    if (!executionError) return;
+    setActiveLeftTab('chat');
+    const fixPrompt = `The execution failed with runtime error: "${executionError}". Please inspect the current code in the editor, diagnose the root cause, fix the issue, and provide the complete corrected replacement code.`;
+    handleSendChat(fixPrompt);
+  };
+
+  // Popout Live Browser to Standalone Window
+  const handlePopoutBrowser = () => {
+    if (!executionResult?.output) return;
+    const newWin = window.open('', '_blank');
+    if (!newWin) {
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: 'Popout blocked: Please allow popups for this site.' }
+      }));
+      return;
+    }
+    const htmlContent = executionResult.output.html 
+      || (typeof executionResult.output === 'string' && (executionResult.output.trim().startsWith('<') || executionResult.output.trim().startsWith('<!DOCTYPE')) ? executionResult.output : null);
+    
+    if (htmlContent) {
+      newWin.document.write(htmlContent);
+      newWin.document.close();
+    } else {
+      const title = executionResult.output?.summary?.title || executionResult.output?.title || nodeName || 'KEAOS Studio Preview';
+      const jsonStr = JSON.stringify(executionResult.output, null, 2);
+      newWin.document.write(`<!DOCTYPE html>
+<html>
+  <head>
+    <title>${title} — KEAOS Preview</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-[#0B0F19] text-slate-100 p-6 font-mono">
+    <div class="max-w-7xl mx-auto space-y-4">
+      <div class="border-b border-[#2C3242] pb-4 flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-[#EAAA00] uppercase tracking-wider">${title}</h1>
+          <p class="text-xs text-slate-400">KEAOS Universal Deterministic Browser Isolate • 0 Tokens • ${executionResult.latencyMs || 0}ms</p>
+        </div>
+        <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold border border-emerald-500/40">● Live Preview</span>
+      </div>
+      <pre class="bg-[#141720] border border-[#2C3242] p-4 rounded text-xs text-emerald-400 overflow-auto max-h-[80vh]">${jsonStr}</pre>
+    </div>
+  </body>
+</html>`);
+      newWin.document.close();
     }
   };
 
@@ -1262,6 +1352,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
           {/* ----------------------------------------------------------------------- */}
           {/* ZONE 1 (LEFT - 4 COLS): Co-Pilot Chat, Spec Bullets & Schema Lineage   */}
           {/* ----------------------------------------------------------------------- */}
+          {!isZone3Maximized && (
           <div className={`lg:col-span-4 flex flex-col h-full overflow-hidden transition-colors ${
             isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
           }`}>
@@ -1492,6 +1583,25 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                     <div ref={chatBottomRef} />
                   </div>
 
+                  {/* Proactive Closed-Loop Error Remediation Chip */}
+                  {executionError && (
+                    <div className="px-3 py-1.5 bg-red-500/10 border-t border-red-500/20 flex items-center justify-between text-[10px] font-mono shrink-0">
+                      <div className="flex items-center gap-1.5 text-red-300 truncate max-w-[70%]">
+                        <AlertCircle className="w-3 h-3 text-red-400 shrink-0" />
+                        <span className="truncate">Active Error: {executionError}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAutoFixError}
+                        disabled={isChatSending}
+                        className="text-[#EAAA00] hover:underline font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                      >
+                        <Sparkles className="w-2.5 h-2.5" />
+                        <span>Auto-Fix</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Chat Input Bar */}
                   <form
                     onSubmit={(e) => { e.preventDefault(); handleSendChat(); }}
@@ -1682,10 +1792,12 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
 
             </div>
           </div>
+          )}
 
           {/* ----------------------------------------------------------------------- */}
           {/* ZONE 2 (CENTER - 4 COLS): Pure Deterministic Code Isolate               */}
           {/* ----------------------------------------------------------------------- */}
+          {!isZone3Maximized && (
           <div className={`lg:col-span-4 flex flex-col h-full overflow-hidden transition-colors ${
             isDarkMode ? 'bg-[#0B0F19]' : 'bg-[#FFFFFF]'
           }`}>
@@ -1743,11 +1855,12 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
               <span>Async/Await Enabled</span>
             </div>
           </div>
+          )}
 
           {/* ----------------------------------------------------------------------- */}
-          {/* ZONE 3 (RIGHT - 4 COLS): Interactive Preview & DevTools Console         */}
+          {/* ZONE 3 (RIGHT): Live Browser, Interactive Preview & DevTools Console    */}
           {/* ----------------------------------------------------------------------- */}
-          <div className={`lg:col-span-4 flex flex-col h-full overflow-hidden transition-colors ${
+          <div className={`${isZone3Maximized ? 'lg:col-span-12' : 'lg:col-span-4'} flex flex-col h-full overflow-hidden transition-all duration-200 ${
             isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
           }`}>
             {/* Zone 3 Tabs & Action Bar */}
@@ -1755,32 +1868,44 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
               isDarkMode ? 'bg-[#181920] border-[#2C3242]' : 'bg-slate-100 border-slate-200'
             }`}>
               <div className="flex items-center gap-1">
-                {[
-                  ...(executionResult?.output?.summary ? [{ id: 'dashboard', label: 'Tax Recon Dashboard', icon: Activity }] : []),
-                  { id: 'table', label: `Table (${outputRows.length})`, icon: TableIcon },
-                  { id: 'json', label: 'JSON Tree', icon: FileCode },
-                  { id: 'console', label: `Console (${executionResult?.logs?.length || 0})`, icon: Terminal }
-                ].map(tab => {
-                  const Icon = tab.icon;
-                  const isActive = activeRightTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveRightTab(tab.id)}
-                      className={`px-2.5 py-1 text-[11px] font-mono flex items-center gap-1.5 rounded-[8px] transition-colors cursor-pointer ${
-                        isActive
-                          ? isDarkMode ? 'bg-[#009A44]/20 text-emerald-400 font-bold border border-emerald-500/40' : 'bg-white text-emerald-700 font-bold shadow-xs'
-                          : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-black'
-                      }`}
-                    >
-                      <Icon className="w-3 h-3" />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
+                {(() => {
+                  const hasTaxReconSummary = Boolean(executionResult?.output?.summary && (executionResult.output.summary.totalGstrRows !== undefined || executionResult.output.summary.exactMatchCount !== undefined));
+                  const hasHtmlOutput = Boolean(executionResult?.output?.html || (typeof executionResult?.output === 'string' && (executionResult.output.trim().startsWith('<') || executionResult.output.trim().startsWith('<!DOCTYPE'))));
+                  const browserTabLabel = hasTaxReconSummary 
+                    ? 'Tax Recon Dashboard' 
+                    : hasHtmlOutput 
+                      ? 'Live Web View' 
+                      : (executionResult?.output?.summary?.title || executionResult?.output?.title || 'Live Browser');
+
+                  const zone3Tabs = [
+                    ...(executionResult?.output ? [{ id: 'browser', label: browserTabLabel, icon: hasHtmlOutput ? Globe : LayoutDashboard }] : []),
+                    { id: 'table', label: `Table (${outputRows.length})`, icon: TableIcon },
+                    { id: 'json', label: 'JSON Tree', icon: FileCode },
+                    { id: 'console', label: `Console (${executionResult?.logs?.length || 0})`, icon: Terminal }
+                  ];
+
+                  return zone3Tabs.map(tab => {
+                    const Icon = tab.icon;
+                    const isActive = activeRightTab === tab.id || (tab.id === 'browser' && activeRightTab === 'dashboard');
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveRightTab(tab.id)}
+                        className={`px-2.5 py-1 text-[11px] font-mono flex items-center gap-1.5 rounded-[8px] transition-colors cursor-pointer ${
+                          isActive
+                            ? isDarkMode ? 'bg-[#009A44]/20 text-emerald-400 font-bold border border-emerald-500/40' : 'bg-white text-emerald-700 font-bold shadow-xs'
+                            : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-black'
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  });
+                })()}
               </div>
 
-              {/* Pipe to Canvas & Export Buttons */}
+              {/* Pipe to Canvas & Export & Full Page Actions */}
               <div className="flex items-center gap-1">
                 {executionResult?.output && (
                   <>
@@ -1805,22 +1930,59 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                     >
                       CSV
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={handlePopoutBrowser}
+                      className="px-1.5 py-1 text-[10px] font-mono border border-slate-700 rounded text-slate-300 hover:text-white flex items-center gap-1"
+                      title="Open Live Preview in Standalone Browser Window"
+                    >
+                      <ExternalLink className="w-2.5 h-2.5" />
+                      <span className="hidden xl:inline">Popout</span>
+                    </button>
                   </>
                 )}
+
+                {/* Full-Page Maximize / Restore Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setIsZone3Maximized(prev => !prev)}
+                  className={`px-2 py-1 text-[10px] font-mono rounded-[6px] border flex items-center gap-1 transition-all cursor-pointer ${
+                    isZone3Maximized
+                      ? 'bg-[#EAAA00]/20 text-[#EAAA00] border-[#EAAA00]/40 font-bold'
+                      : isDarkMode ? 'bg-[#181920] border-slate-700 text-slate-300 hover:text-white hover:border-slate-500' : 'bg-white border-slate-300 text-slate-700'
+                  }`}
+                  title={isZone3Maximized ? 'Restore 3-Zone View (Esc)' : 'Extend Live Browser to Full Page'}
+                >
+                  {isZone3Maximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+                  <span>{isZone3Maximized ? 'Restore' : 'Maximize'}</span>
+                </button>
               </div>
             </div>
 
             {/* Zone 3 Body */}
             <div className="flex-1 overflow-hidden p-3 flex flex-col">
               
-              {/* Execution Error Banner */}
+              {/* Execution Error Banner with 1-Click AI Auto-Fix */}
               {executionError && (
-                <div className="mb-3 p-3 rounded-[10px] border border-red-500/30 bg-red-500/10 text-red-300 font-mono text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-red-400">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>Execution Error:</span>
+                <div className="mb-3 p-3 rounded-[10px] border border-red-500/30 bg-red-500/10 text-red-300 font-mono text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-red-400">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>Execution Error:</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAutoFixError}
+                      disabled={isChatSending}
+                      className="px-2.5 py-1 text-[10px] font-mono font-bold rounded-[6px] bg-[#00338D] hover:bg-[#005EB8] text-white flex items-center gap-1.5 transition-all shadow-xs cursor-pointer border border-[#0091DA]/50"
+                      title="Send error and failing code directly to Co-Pilot to automatically diagnose and fix"
+                    >
+                      {isChatSending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-[#EAAA00]" />}
+                      <span>Auto-Fix with AI Co-Pilot</span>
+                    </button>
                   </div>
-                  <pre className="whitespace-pre-wrap text-[11px]">{executionError}</pre>
+                  <pre className="whitespace-pre-wrap text-[11px] p-2 rounded bg-black/40 border border-red-500/20 text-red-200 overflow-x-auto">{executionError}</pre>
                 </div>
               )}
 
@@ -1831,13 +1993,68 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                   <p className="text-xs">No execution run yet.</p>
                   <p className="text-[10px] text-slate-500">Press RUN or Ctrl+Enter to test logic.</p>
                 </div>
-              ) : activeRightTab === 'dashboard' && executionResult?.output?.summary ? (
-                /* TAB 0: EXECUTIVE RECONCILIATION DASHBOARD */
+              ) : (activeRightTab === 'browser' || activeRightTab === 'dashboard') && executionResult?.output ? (
+                /* TAB 0: UNIVERSAL LIVE BROWSER & EXECUTIVE DASHBOARD STUDIO */
                 (() => {
-                  const summary = executionResult.output.summary;
-                  const allRecords = Array.isArray(executionResult.output.records) 
-                    ? executionResult.output.records 
-                    : outputRows;
+                  const rawOut = executionResult.output;
+                  const summary = rawOut?.summary || (typeof rawOut === 'object' && !Array.isArray(rawOut) ? rawOut : null);
+                  const htmlContent = rawOut?.html || (typeof rawOut === 'string' && (rawOut.trim().startsWith('<') || rawOut.trim().startsWith('<!DOCTYPE')) ? rawOut : null);
+                  
+                  // Check if this is the specialized Indirect Tax Reconciliation workflow
+                  const isTaxRecon = summary && (summary.totalGstrRows !== undefined || summary.exactMatchCount !== undefined);
+
+                  if (htmlContent) {
+                    // Mode 1: HTML Sandboxed Webview Mode
+                    return (
+                      <div className="flex-1 flex flex-col overflow-hidden font-mono space-y-2">
+                        {/* Mini Browser Chrome Toolbar */}
+                        <div className={`p-2 border rounded-none flex items-center justify-between shrink-0 text-xs ${
+                          isDarkMode ? 'bg-[#0B0F19] border-[#2C3242]' : 'bg-[#F0F4F8] border-[#CBD5E1]'
+                        }`}>
+                          <div className="flex items-center gap-2 flex-1 mr-2 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+                            <div className="flex-1 bg-black/40 border border-slate-700/60 rounded px-2.5 py-1 text-[10px] text-slate-300 truncate">
+                              <span className="text-emerald-400 font-bold">http://127.0.0.1:5173/isolate/web-preview</span>
+                              <span className="text-slate-500 ml-2">({executionResult.latencyMs || 0}ms • 0 Tokens)</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={handleExecute}
+                              className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+                              title="Reload Preview (Ctrl+Enter)"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handlePopoutBrowser}
+                              className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+                              title="Open in new window"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Sandboxed Iframe */}
+                        <div className="flex-1 border border-slate-700/60 rounded overflow-hidden bg-white">
+                          <iframe
+                            title="KEAOS Studio Webview"
+                            srcDoc={htmlContent}
+                            className="w-full h-full border-0"
+                            sandbox="allow-scripts allow-popups"
+                          />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (isTaxRecon) {
+                    const allRecords = Array.isArray(rawOut?.records) 
+                      ? rawOut.records 
+                      : outputRows;
                   
                   // Filter records by selected category
                   const filteredRecords = allRecords.filter(r => {
@@ -2117,8 +2334,308 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                       </div>
                     </div>
                   );
-                })()
-              ) : activeRightTab === 'table' ? (
+                }
+
+                // Mode 3: Adaptive Universal Executive Dashboard (For ANY future workflow!)
+                const allRecords = Array.isArray(rawOut?.records)
+                  ? rawOut.records
+                  : Array.isArray(rawOut?.items)
+                  ? rawOut.items
+                  : Array.isArray(rawOut?.data)
+                  ? rawOut.data
+                  : Array.isArray(rawOut?.transactions)
+                  ? rawOut.transactions
+                  : Array.isArray(rawOut?.cohort)
+                  ? rawOut.cohort
+                  : Array.isArray(rawOut?.patients)
+                  ? rawOut.patients
+                  : Array.isArray(rawOut?.orders)
+                  ? rawOut.orders
+                  : outputRows;
+
+                // Extract or compute KPIs dynamically
+                const detectedSummary = rawOut?.summary || rawOut?.kpis || rawOut?.metrics || rawOut?.stats || {};
+                const dynamicKpis = [];
+
+                const explicitKeys = Object.keys(detectedSummary).filter(k => typeof detectedSummary[k] !== 'object' && detectedSummary[k] !== null);
+                if (explicitKeys.length > 0) {
+                  explicitKeys.slice(0, 7).forEach(key => {
+                    const val = detectedSummary[key];
+                    const label = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').toUpperCase();
+                    let displayVal = String(val);
+                    if (typeof val === 'number') {
+                      if (key.toLowerCase().includes('rate') || key.toLowerCase().includes('percent') || key.toLowerCase().includes('pct')) {
+                        displayVal = `${val.toFixed(1)}%`;
+                      } else if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('value') || key.toLowerCase().includes('cost') || key.toLowerCase().includes('saving') || key.toLowerCase().includes('balance')) {
+                        displayVal = `₹${val.toLocaleString('en-IN')}`;
+                      } else {
+                        displayVal = val.toLocaleString();
+                      }
+                    }
+                    dynamicKpis.push({ key, label, val: displayVal, sub: 'Workflow KPI' });
+                  });
+                }
+
+                // If dynamicKpis is small, compute auto-metrics from allRecords
+                if (dynamicKpis.length < 3 && allRecords.length > 0) {
+                  dynamicKpis.push({
+                    key: 'total_records',
+                    label: 'TOTAL PROCESSED',
+                    val: allRecords.length.toLocaleString(),
+                    sub: 'Dataset Records'
+                  });
+
+                  const statusCounts = {};
+                  const numericSums = {};
+                  allRecords.forEach(r => {
+                    const st = r.status || r.state || r.category || r.riskLevel || r.matchType || r.tier;
+                    if (st) statusCounts[st] = (statusCounts[st] || 0) + 1;
+                    Object.keys(r).forEach(k => {
+                      if (typeof r[k] === 'number') {
+                        numericSums[k] = (numericSums[k] || 0) + r[k];
+                      }
+                    });
+                  });
+
+                  const topStatuses = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
+                  if (topStatuses.length > 0) {
+                    dynamicKpis.push({
+                      key: 'primary_status',
+                      label: String(topStatuses[0][0]).toUpperCase(),
+                      val: topStatuses[0][1].toLocaleString(),
+                      sub: `${Math.round((topStatuses[0][1] / allRecords.length) * 100)}% of total`
+                    });
+                  }
+
+                  const numEntries = Object.entries(numericSums);
+                  if (numEntries.length > 0) {
+                    const [numKey, numSum] = numEntries[0];
+                    const label = numKey.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').toUpperCase();
+                    const isCurrency = numKey.toLowerCase().includes('amount') || numKey.toLowerCase().includes('cost') || numKey.toLowerCase().includes('price') || numKey.toLowerCase().includes('val');
+                    dynamicKpis.push({
+                      key: numKey,
+                      label: `TOTAL ${label}`,
+                      val: isCurrency ? `₹${Math.round(numSum).toLocaleString('en-IN')}` : Math.round(numSum).toLocaleString(),
+                      sub: `Avg: ${(numSum / allRecords.length).toFixed(1)}`
+                    });
+                  }
+                }
+
+                if (dynamicKpis.length === 0) {
+                  dynamicKpis.push({
+                    key: 'status',
+                    label: 'EXECUTION STATUS',
+                    val: executionResult.success ? 'SUCCESS' : 'FAILED',
+                    sub: `${executionResult.latencyMs || 0}ms latency`
+                  });
+                }
+
+                // Status distribution
+                const statusMap = {};
+                allRecords.forEach(r => {
+                  const st = r.status || r.state || r.category || r.riskLevel || r.matchType || r.action || 'PROCESSED';
+                  statusMap[st] = (statusMap[st] || 0) + 1;
+                });
+                const statusEntries = Object.entries(statusMap);
+                const uniqueStatuses = ['ALL', ...Object.keys(statusMap)];
+
+                // Filter records
+                const filteredUniversalRecords = allRecords.filter(r => {
+                  if (dashboardFilter && dashboardFilter !== 'ALL') {
+                    const st = r.status || r.state || r.category || r.riskLevel || r.matchType || r.action;
+                    if (st !== dashboardFilter) return false;
+                  }
+                  if (!outputSearch) return true;
+                  const q = outputSearch.toLowerCase();
+                  return Object.values(r).some(v => String(v).toLowerCase().includes(q));
+                });
+
+                // Infer table columns
+                const inferredColumns = allRecords.length > 0
+                  ? Object.keys(allRecords[0]).filter(k => typeof allRecords[0][k] !== 'object' || allRecords[0][k] === null).slice(0, 8)
+                  : [];
+
+                const palette = ['#009A44', '#0091DA', '#EAAA00', '#6D2077', '#00338D', '#E02424'];
+
+                return (
+                  <div className="flex-1 flex flex-col overflow-y-auto font-sans space-y-3 pr-1">
+                    {/* Top Header Card */}
+                    <div className={`p-3 border rounded-none flex items-center justify-between shrink-0 ${
+                      isDarkMode ? 'bg-[#0B0F19] border-[#2C3242]' : 'bg-[#F0F4F8] border-[#CBD5E1]'
+                    }`}>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold tracking-wider uppercase text-[#0091DA] flex items-center gap-1.5">
+                            <LayoutDashboard className="w-3.5 h-3.5" />
+                            {selectedNode?.data?.label || node?.data?.label || 'Universal Executive Dashboard'}
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-[#009A44]/20 text-[#009A44] border border-[#009A44]/40">
+                            {executionResult.success ? '✓ 100% Deterministic' : 'Failed'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          {selectedLanguage?.toUpperCase()} Isolate • Real-Time Algorithmic Execution Output
+                        </p>
+                      </div>
+                      <div className="text-right font-mono">
+                        <span className="text-[10px] text-slate-400 block">Execution Latency</span>
+                        <span className="text-xs font-bold text-emerald-400">{executionResult.latencyMs || 0}ms • 0 Tokens</span>
+                      </div>
+                    </div>
+
+                    {/* Dynamic KPI Cards Grid */}
+                    <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-${Math.min(dynamicKpis.length, 6)} gap-1.5 shrink-0`}>
+                      {dynamicKpis.map((kpi, idx) => (
+                        <div
+                          key={kpi.key || idx}
+                          onClick={() => setDashboardFilter('ALL')}
+                          className={`p-2 border rounded-none cursor-pointer transition-all ${
+                            isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-slate-500' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono uppercase text-slate-400 block truncate">{kpi.label}</span>
+                          <span className="text-base font-mono font-bold text-white block mt-0.5 truncate">{kpi.val}</span>
+                          <span className="text-[8px] text-[#0091DA] font-mono truncate block">{kpi.sub}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Status Distribution Bar */}
+                    {statusEntries.length > 1 && (
+                      <div className={`p-2.5 border rounded-none shrink-0 ${
+                        isDarkMode ? 'bg-[#0E131F] border-[#2C3242]' : 'bg-white border-slate-200'
+                      }`}>
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1.5">
+                          <span>Status Classification Breakdown</span>
+                          <span>{allRecords.length} records evaluated</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-800 rounded-none overflow-hidden flex">
+                          {statusEntries.map(([st, count], i) => {
+                            const pct = Math.round((count / allRecords.length) * 100);
+                            const color = palette[i % palette.length];
+                            return (
+                              <div
+                                key={st}
+                                style={{ width: `${pct}%`, backgroundColor: color }}
+                                title={`${st}: ${count} (${pct}%)`}
+                                className="h-full transition-all duration-300"
+                              />
+                            );
+                          })}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 mt-2 text-[9px] font-mono">
+                          {statusEntries.map(([st, count], i) => {
+                            const pct = Math.round((count / allRecords.length) * 100);
+                            const color = palette[i % palette.length];
+                            return (
+                              <div key={st} className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                                <span className="text-slate-300 uppercase">{st}:</span>
+                                <span className="text-white font-bold">{count} ({pct}%)</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Filter Pills & Search */}
+                    <div className="flex items-center justify-between gap-2 shrink-0">
+                      <div className="flex items-center gap-1 overflow-x-auto pb-1 max-w-[65%]">
+                        {uniqueStatuses.slice(0, 6).map(st => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => setDashboardFilter(st)}
+                            className={`px-2 py-0.5 text-[9px] font-mono rounded-none uppercase transition-all whitespace-nowrap cursor-pointer ${
+                              dashboardFilter === st
+                                ? 'bg-[#00338D] text-white font-bold border border-[#005EB8]'
+                                : isDarkMode
+                                ? 'bg-[#0E131F] text-slate-400 border border-[#2C3242] hover:text-white'
+                                : 'bg-slate-100 text-slate-600 border border-slate-300'
+                            }`}
+                          >
+                            {st}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="relative flex-1 max-w-[200px]">
+                        <Search className="w-3 h-3 text-slate-500 absolute left-2 top-2" />
+                        <input
+                          type="text"
+                          value={outputSearch}
+                          onChange={(e) => setOutputSearch(e.target.value)}
+                          placeholder="Search records..."
+                          className={`w-full pl-7 pr-2 py-1 text-[10px] font-mono border rounded-none outline-none ${
+                            isDarkMode ? 'bg-[#0E131F] border-[#2C3242] text-slate-200' : 'bg-white border-slate-300 text-slate-800'
+                          }`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Table Data View */}
+                    {allRecords.length > 0 && inferredColumns.length > 0 ? (
+                      <div className={`flex-1 border rounded-none overflow-auto min-h-[220px] ${
+                        isDarkMode ? 'bg-[#0B0F19] border-[#2C3242]' : 'bg-white border-slate-200'
+                      }`}>
+                        <table className="w-full border-collapse text-left">
+                          <thead className={`sticky top-0 text-[9px] font-mono uppercase tracking-wider ${
+                            isDarkMode ? 'bg-[#0E131F] text-slate-400 border-b border-[#2C3242]' : 'bg-slate-100 text-slate-600 border-b border-slate-300'
+                          }`}>
+                            <tr>
+                              <th className="py-2 px-2.5">#</th>
+                              {inferredColumns.map(col => (
+                                <th key={col} className="py-2 px-2.5 truncate max-w-[150px]">
+                                  {col.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#1F2430]">
+                            {filteredUniversalRecords.slice(0, 100).map((row, idx) => (
+                              <tr key={row.id || idx} className="hover:bg-white/[0.03] transition-colors">
+                                <td className="py-1.5 px-2.5 text-[9px] font-mono text-slate-500">{idx + 1}</td>
+                                {inferredColumns.map(col => {
+                                  const cellVal = row[col];
+                                  const isStatusCol = col.toLowerCase().includes('status') || col.toLowerCase().includes('risk') || col.toLowerCase().includes('state');
+                                  const isNumeric = typeof cellVal === 'number';
+                                  const isCurrency = isNumeric && (col.toLowerCase().includes('amount') || col.toLowerCase().includes('price') || col.toLowerCase().includes('cost') || col.toLowerCase().includes('val'));
+
+                                  return (
+                                    <td key={col} className="py-1.5 px-2.5 text-[10px] font-mono text-slate-300 truncate max-w-[180px]">
+                                      {isStatusCol ? (
+                                        <span className="px-1.5 py-0.5 rounded-full text-[8px] font-mono font-bold uppercase bg-[#0091DA]/20 text-[#0091DA] border border-[#0091DA]/40">
+                                          {String(cellVal || 'N/A')}
+                                        </span>
+                                      ) : isCurrency ? (
+                                        <span className="font-bold text-emerald-400">
+                                          ₹{cellVal.toLocaleString('en-IN')}
+                                        </span>
+                                      ) : (
+                                        String(cellVal ?? '-')
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center border border-dashed border-slate-700">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-2" />
+                        <h4 className="text-xs font-mono font-bold text-white uppercase">Algorithmic Execution Complete</h4>
+                        <p className="text-[10px] text-slate-400 mt-1 max-w-sm font-mono">
+                          Isolate executed successfully in {executionResult.latencyMs || 0}ms with 0 LLM tokens consumed.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            ) : activeRightTab === 'table' ? (
                 /* TAB 1: TABULAR DATA GRID */
                 outputRows.length > 0 ? (
                   <div className="flex-1 flex flex-col overflow-hidden font-mono space-y-2">

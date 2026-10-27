@@ -2685,7 +2685,7 @@ function CanvasInner({
 
   return (
     <div 
-      className={`relative w-full h-full overflow-hidden select-none transition-colors duration-200 ${
+      className={`relative w-full h-full min-h-0 overflow-hidden select-none transition-colors duration-200 ${
         isDarkMode ? 'bg-[#202124] text-white' : 'bg-[#F8F9FA] text-[#111827]'
       }`}
       style={{
@@ -2823,7 +2823,7 @@ function CanvasInner({
       </div>
 
       {/* Bottom-Left Minimal Capsule Controls (Google Stitch Style Floating Capsule) */}
-      <div className="absolute bottom-14 left-6 z-20 flex items-center gap-2">
+      <div className="absolute bottom-12 left-6 z-20 flex items-center gap-2">
         <div className={`flex items-center border rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md divide-x ${
           isDarkMode 
             ? 'bg-[#1C1E24]/90 border-white/10 divide-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]' 

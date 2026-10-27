@@ -684,7 +684,7 @@ export default function CanvasPromptBar({
     <div 
       id="canvas-prompt-bar-container" 
       className={`absolute ${
-        isDrawerExpanded ? 'bottom-[445px]' : 'bottom-16'
+        isDrawerExpanded ? 'bottom-[min(440px,calc(50vh+20px))]' : 'bottom-12'
       } left-1/2 -translate-x-1/2 z-30 w-full max-w-2xl px-4 pointer-events-none select-none transition-all duration-300`}
     >
       <div className="relative pointer-events-auto flex flex-col items-center">
