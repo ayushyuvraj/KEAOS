@@ -9,6 +9,7 @@
 import { PROVIDERS, getProviderCredential, getAllConfiguredProviders, getOllamaConfig } from './llmService';
 import { GoogleGenAI } from '@google/genai';
 import { TAX_RECON_PROCESS_CODE } from '../constants/sampleTaxReconData';
+import { CASH_FLOW_PROCESS_CODE } from '../constants/sampleCashFlowData';
 
 /**
  * Cleanly extracts code from LLM response markdown blocks.
@@ -40,6 +41,13 @@ export function getOfflineFallbackCode(prompt, language, sampleInputs) {
       return `def process(inputs):\n    # Swap variables dynamically\n    keys = [k for k in inputs.keys() if k != 'data']\n    if len(keys) >= 2:\n        k1, k2 = keys[0], keys[1]\n        inputs[k1], inputs[k2] = inputs[k2], inputs[k1]\n    return inputs`;
     }
     return `function process(inputs) {\n  // Swap first two variables in inputs\n  const keys = Object.keys(inputs).filter(k => k !== 'data');\n  if (keys.length >= 2) {\n    const temp = inputs[keys[0]];\n    inputs[keys[0]] = inputs[keys[1]];\n    inputs[keys[1]] = temp;\n  }\n  return inputs;\n}`;
+  }
+
+  // 1.4 Cash Flow Engine, Financial Dashboard & Runway Simulation
+  if (p.includes('cash flow') || p.includes('cashflow') || p.includes('runway') || (p.includes('financial') && (p.includes('dashboard') || p.includes('simulator') || p.includes('engine')))) {
+    if (lang === 'javascript') {
+      return CASH_FLOW_PROCESS_CODE;
+    }
   }
 
   // 1.5 Indirect Tax & GSTR-2B vs Purchase Register 5-Tier Reconciliation Engine
@@ -175,7 +183,12 @@ Your job is to generate ONLY the exact, bug-free, deterministic code in the requ
 CRITICAL RULES:
 1. Return ONLY the code inside a single markdown code block: \`\`\`${effectiveLang} ... \`\`\`
 2. NO conversational text, NO greetings, NO markdown explanations before or after.
-3. For JavaScript: Export or define a \`function process(inputs)\` or \`async function process(inputs)\` that accepts the inputs object and returns the final transformed value.
+3. For JavaScript: Export or define a \`function process(inputs, state)\` or \`async function process(inputs, state)\` that accepts the inputs object and returns the final transformed value.
+   - UNIFIED HYBRID CONTRACT FOR INTERACTIVE WEB APPS & DASHBOARDS:
+     - If the user asks for a dashboard, UI, visual tool, simulator, or cash flow engine, return an object containing:
+       \`return { summary: {...}, records: [...], html: "<!DOCTYPE html>..." };\`
+     - The \`html\` property must be a self-contained, high-performance HTML5 + Tailwind CSS web app that runs directly inside the Live Browser iframe with working buttons, sliders, file pickers, telemetry, and animations.
+     - \`records\` must contain the row items for the Data Table tab, and \`summary\` must contain high-level KPIs.
 4. BROWSER ISOLATE ENVIRONMENT (STRICT MANDATE):
    - JavaScript executes in a client-side browser isolate via \`new Function('inputs', ...)\`. Full \`async/await\`, \`crypto\`, and Web APIs are supported.
    - NEVER use \`require(...)\`, \`import ...\`, or Node.js server modules (\`fs\`, \`path\`, \`stream\`, \`fast-csv\`, etc.). \`require\` is NOT defined in browsers and will fail immediately!

@@ -37,10 +37,15 @@ import {
   Globe,
   LayoutDashboard,
   Bug,
-  Wrench
+  Wrench,
+  Sliders,
+  DollarSign,
+  TrendingUp
 } from 'lucide-react';
 import { compileDeterministicLogic, getOfflineFallbackCode } from '../services/deterministicCompiler';
 import { executeDeterministicTask, inferDataSchema, parseCsv } from '../services/deterministicRunner';
+import { TAX_RECON_PROCESS_CODE } from '../constants/sampleTaxReconData';
+import { CASH_FLOW_PROCESS_CODE } from '../constants/sampleCashFlowData';
 import { 
   PROVIDERS, 
   getProviderCredential, 
@@ -90,10 +95,48 @@ export default function DeterministicWorkspaceModal({
   const [discoveredModels, setDiscoveredModels] = useState({});
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-  // 3-Zone Studio Tab States
-  const [activeLeftTab, setActiveLeftTab] = useState('chat'); // 'chat' | 'spec' | 'schema'
-  const [activeRightTab, setActiveRightTab] = useState('table'); // 'browser' | 'dashboard' | 'table' | 'json' | 'console'
+  // Dual-Panel Workspace States: Left Panel (Chat ⟷ Code Editor) & Right Panel (Live Browser)
+  const [leftView, setLeftView] = useState('chat'); // 'chat' (PRIMARY) | 'code'
+  const [leftWidthPercent, setLeftWidthPercent] = useState(50);
+  const containerRef = useRef(null);
+  const isDraggingRef = useRef(false);
+
+  const [activeRightTab, setActiveRightTab] = useState('browser'); // 'browser' (PRIMARY) | 'table' | 'console' | 'json'
   const [isZone3Maximized, setIsZone3Maximized] = useState(false);
+
+  // Drag-to-Resize mouse event listeners for central divider
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDraggingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newPercent = Math.min(Math.max(((e.clientX - rect.left) / rect.width) * 100, 25), 75);
+      setLeftWidthPercent(newPercent);
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   // Conversational Chat State (Bilateral Discussion Protocol)
   const [chatMessages, setChatMessages] = useState(() => {
@@ -589,8 +632,9 @@ export default function DeterministicWorkspaceModal({
     // Default universal fallbacks
     if (suggestions.length === 0) {
       suggestions.push(
-        { label: 'Parse & Transform Inputs', prompt: 'Transform incoming inputs and extract structured key-value summary.' },
-        { label: 'Filter & Format Table', prompt: 'Filter active items from inputs.data and format into clean records.' }
+        { label: 'Cash Flow & Runway Engine', prompt: 'Create an interactive cash flow engine with monthly revenue and expense sliders, calculate button, and 12-month trajectory table.' },
+        { label: 'Indirect Tax Reconciliation', prompt: 'Reconcile GSTR-2B tax portal data with ERP Purchase Register using 5-tier cascading matching.' },
+        { label: 'Parse & Transform Inputs', prompt: 'Transform incoming inputs and extract structured key-value summary.' }
       );
     }
 
@@ -614,12 +658,15 @@ export default function DeterministicWorkspaceModal({
   // ---------------------------------------------------------------------------
 
   // Execute Code in the Async Isolate (Zero Tokens, Zero Cost)
-  const handleExecute = async () => {
+  const handleExecute = async (overrideCode = null) => {
     setIsExecuting(true);
     setExecutionError(null);
 
     try {
-      let codeToRun = code;
+      let codeToRun = (typeof overrideCode === 'string') ? overrideCode : code;
+      if (typeof overrideCode === 'string') {
+        setCode(overrideCode);
+      }
       const isStarter = isStarterCode(codeToRun);
 
       // Auto-compile if prompt exists but code is empty/starter
@@ -969,7 +1016,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
   // 1-Click Closed-Loop Auto-Fix Handler
   const handleAutoFixError = () => {
     if (!executionError) return;
-    setActiveLeftTab('chat');
+    setLeftView('chat');
     const fixPrompt = `The execution failed with runtime error: "${executionError}". Please inspect the current code in the editor, diagnose the root cause, fix the issue, and provide the complete corrected replacement code.`;
     handleSendChat(fixPrompt);
   };
@@ -1345,56 +1392,90 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
         </div>
 
         {/* ========================================================================= */}
-        {/* UNIFIED 3-ZONE STUDIO LAYOUT                                              */}
+        {/* DUAL-PANEL RESIZABLE WORKSPACE (CHAT ⟷ CODE EDITOR | LIVE BROWSER)       */}
         {/* ========================================================================= */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-transparent relative z-10 divide-y lg:divide-y-0 lg:divide-x divide-[#2C3242]">
+        <div 
+          ref={containerRef}
+          className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-transparent relative z-10"
+        >
           
           {/* ----------------------------------------------------------------------- */}
-          {/* ZONE 1 (LEFT - 4 COLS): Co-Pilot Chat, Spec Bullets & Schema Lineage   */}
+          {/* LEFT PANEL: 2-WAY TOGGLE [💬 CHAT (PRIMARY)] ⟷ [💻 CODE EDITOR]        */}
           {/* ----------------------------------------------------------------------- */}
           {!isZone3Maximized && (
-          <div className={`lg:col-span-4 flex flex-col h-full overflow-hidden transition-colors ${
-            isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
-          }`}>
-            {/* Zone 1 Tabs */}
-            <div className={`px-3 py-2 border-b flex items-center justify-between shrink-0 ${
-              isDarkMode ? 'bg-[#181920] border-[#2C3242]' : 'bg-slate-100 border-slate-200'
-            }`}>
-              <div className="flex items-center gap-1">
-                {[
-                  { id: 'chat', label: 'Co-Pilot Chat', icon: MessageSquare },
-                  { id: 'spec', label: 'Operational Spec', icon: Sparkles },
-                  { id: 'schema', label: 'Data Lineage', icon: Database }
-                ].map(tab => {
-                  const Icon = tab.icon;
-                  const isActive = activeLeftTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveLeftTab(tab.id)}
-                      className={`px-2.5 py-1 text-[11px] font-mono flex items-center gap-1.5 rounded-[8px] transition-colors cursor-pointer ${
-                        isActive
-                          ? isDarkMode ? 'bg-[#0091DA]/20 text-[#0091DA] font-bold border border-[#0091DA]/40' : 'bg-white text-[#00338D] font-bold shadow-xs'
-                          : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-black'
-                      }`}
-                    >
-                      <Icon className="w-3 h-3" />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
+            <div 
+              style={{ width: `${leftWidthPercent}%` }}
+              className={`flex flex-col h-full overflow-hidden transition-none border-r border-[#2C3242] shrink-0 ${
+                isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
+              }`}
+            >
+              {/* Left Panel Header: 2-Way Segmented Toggle */}
+              <div className={`px-4 py-2 border-b flex items-center justify-between shrink-0 ${
+                isDarkMode ? 'bg-[#181920] border-[#2C3242]' : 'bg-slate-100 border-slate-200'
+              }`}>
+                {/* 2-Way Segmented Button */}
+                <div className="flex items-center p-0.5 rounded-[8px] bg-black/40 border border-slate-700/60 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setLeftView('chat')}
+                    className={`px-3 py-1 text-xs font-mono flex items-center gap-1.5 rounded-[6px] transition-all cursor-pointer ${
+                      leftView === 'chat'
+                        ? isDarkMode ? 'bg-[#00338D] text-white font-bold shadow-xs' : 'bg-[#00338D] text-white font-bold shadow-xs'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Chat</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLeftView('code')}
+                    className={`px-3 py-1 text-xs font-mono flex items-center gap-1.5 rounded-[6px] transition-all cursor-pointer ${
+                      leftView === 'code'
+                        ? isDarkMode ? 'bg-[#00338D] text-white font-bold shadow-xs' : 'bg-[#00338D] text-white font-bold shadow-xs'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <FileCode className="w-3.5 h-3.5" />
+                    <span>Code Editor</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/50 text-emerald-400 font-normal">
+                      {codeLineCount}L
+                    </span>
+                  </button>
+                </div>
+
+                {/* Left Header Right Actions: Upload Test Files & Stream Count */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileUploadInputRef.current?.click()}
+                    className={`px-2 py-1 text-[10px] font-mono rounded-[6px] border flex items-center gap-1 transition-all cursor-pointer shadow-xs ${
+                      isDarkMode
+                        ? 'bg-[#001E50] border-[#00338D] text-blue-300 hover:bg-[#00338D]'
+                        : 'bg-blue-50 border-blue-300 text-blue-800 hover:bg-blue-100'
+                    }`}
+                    title="Upload local CSV, Excel, or JSON test files directly into inputs"
+                  >
+                    <Upload className="w-2.5 h-2.5" />
+                    <span className="hidden sm:inline">+ Upload File</span>
+                  </button>
+                  <input
+                    ref={fileUploadInputRef}
+                    type="file"
+                    multiple
+                    accept=".csv,.xlsx,.xls,.json"
+                    onChange={handleStudioFileUpload}
+                    className="hidden"
+                  />
+                  <span className="text-[10px] font-mono text-slate-500">
+                    {upstreamInfo.sources.length} Stream{upstreamInfo.sources.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
 
-              <span className="text-[10px] font-mono text-slate-500">
-                {upstreamInfo.sources.length} Stream{upstreamInfo.sources.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {/* Zone 1 Body: Dynamic Tab View */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-              
-              {/* TAB 1: CONVERSATIONAL CO-PILOT CHAT */}
-              {activeLeftTab === 'chat' && (
+              {/* View 1: Conversational Chat (PRIMARY on Open) */}
+              {leftView === 'chat' && (
                 <div className="flex-1 flex flex-col h-full overflow-hidden">
                   {/* Upstream Stream Banner & Quick Key Access */}
                   <div className={`p-2.5 border-b text-[11px] font-mono shrink-0 ${
@@ -1409,30 +1490,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => fileUploadInputRef.current?.click()}
-                          className={`px-2 py-0.5 text-[10px] font-mono rounded-full border flex items-center gap-1 transition-all cursor-pointer shadow-xs ${
-                            isDarkMode
-                              ? 'bg-[#00338D]/40 border-[#00338D] text-blue-200 hover:bg-[#00338D]/70'
-                              : 'bg-blue-50 border-blue-300 text-blue-800 hover:bg-blue-100'
-                          }`}
-                          title="Upload local CSV, Excel, or JSON test files directly into inputs"
-                        >
-                          <Upload className="w-2.5 h-2.5" />
-                          <span>+ Upload Test Files (CSV/Excel)</span>
-                        </button>
-                        <input
-                          ref={fileUploadInputRef}
-                          type="file"
-                          multiple
-                          accept=".csv,.xlsx,.xls,.json"
-                          onChange={handleStudioFileUpload}
-                          className="hidden"
-                        />
-                        <span className="text-[9px] text-[#0091DA] hidden xl:inline">Click pill to copy</span>
-                      </div>
+                      <span className="text-[9px] text-[#0091DA] hidden xl:inline">Click pill to copy</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {availableInputKeys.map(k => (
@@ -1469,7 +1527,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                   </div>
 
                   {/* Chat Message Scroll Area */}
-                  <div className="flex-1 overflow-y-auto p-3 space-y-3 font-mono text-xs">
+                  <div className="flex-1 overflow-y-auto p-3.5 space-y-3 font-mono text-xs">
                     {chatMessages.map(msg => (
                       <div
                         key={msg.id}
@@ -1539,21 +1597,30 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                               </div>
                             </div>
                           ) : msg.code ? (
-                            <div className="mt-2.5 pt-2 border-t border-emerald-500/20 flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold uppercase">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Code Loaded in Editor ({msg.language || language})</span>
+                            <div className="mt-2.5 p-2 rounded-[8px] bg-black/40 border border-emerald-500/30 flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                <span className="text-[10px] text-emerald-300 font-bold uppercase truncate">
+                                  {msg.language || language} Implementation Active ({msg.code.split('\n').length} lines)
+                                </span>
                               </div>
-                              <button
-                                onClick={() => {
-                                  setCode(msg.code);
-                                  if (msg.language) setLanguage(msg.language);
-                                  window.dispatchEvent(new CustomEvent('keaos:toast', { detail: { message: '✓ Reapplied code to editor' } }));
-                                }}
-                                className="px-2.5 py-1 text-[10px] bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded font-bold hover:bg-emerald-500/30 transition-colors cursor-pointer"
-                              >
-                                Reapply to Editor
-                              </button>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setLeftView('code')}
+                                  className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-[#00338D] hover:bg-[#005EB8] text-white transition-all cursor-pointer"
+                                >
+                                  View in Code
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleExecute}
+                                  className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Play className="w-2.5 h-2.5 fill-current" />
+                                  <span>Run Now</span>
+                                </button>
+                              </div>
                             </div>
                           ) : null}
 
@@ -1575,9 +1642,10 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                       </div>
                     ))}
                     {isChatSending && (
-                      <div className="flex items-center gap-2 text-xs text-slate-400 p-2 font-mono">
-                        <span className="w-2 h-2 rounded-full bg-[#0091DA] animate-ping" />
-                        <span className="opacity-80">Reasoning architecture...</span>
+                      <div className="flex items-center gap-1.5 px-3 py-2 text-slate-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA] animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA] animate-pulse delay-75" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA] animate-pulse delay-150" />
                       </div>
                     )}
                     <div ref={chatBottomRef} />
@@ -1613,7 +1681,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                       type="text"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Describe what this rule should do... (Enter to send)"
+                      placeholder="Ask Co-Pilot to write code, cash flow engine, tax reconciler... (Enter to send)"
                       className={`flex-1 px-3 py-2 text-xs font-mono rounded-[10px] border outline-none transition-colors ${
                         isDarkMode ? 'bg-[#0B0F19] border-[#2C3242] text-white focus:border-[#0091DA]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#00338D]'
                       }`}
@@ -1630,239 +1698,108 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                 </div>
               )}
 
-              {/* TAB 2: OPERATIONAL SPEC CONTRACT (FROZEN BULLETS) */}
-              {activeLeftTab === 'spec' && (
-                <div className="flex-1 p-4 overflow-y-auto space-y-4 font-mono">
-                  <div className={`p-4 rounded-[14px] border space-y-3 ${
-                    isDarkMode ? 'bg-[#181920] border-[#2C3242]' : 'bg-white border-slate-200 shadow-xs'
+              {/* View 2: Full-Height Code Editor */}
+              {leftView === 'code' && (
+                <div className={`flex-1 flex flex-col h-full overflow-hidden transition-colors ${
+                  isDarkMode ? 'bg-[#0B0F19]' : 'bg-[#FFFFFF]'
+                }`}>
+                  {/* Editor Sub-Header */}
+                  <div className={`px-4 py-2 border-b flex items-center justify-between shrink-0 ${
+                    isDarkMode ? 'bg-[#141720] border-[#2C3242]' : 'bg-slate-100 border-slate-200'
                   }`}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase text-[#EAAA00] flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Operational Contract
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        isFrozen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                      }`}>
-                        {isFrozen ? 'FROZEN & VERIFIED' : 'DRAFT'}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
-                      These bullet points define the functional guarantees of this deterministic rule. Freezing locks the contract and displays it on the canvas.
-                    </p>
-
-                    <div className="space-y-2 pt-1">
-                      {operationalBullets.map((bullet, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-xs">
-                          <span className="w-5 h-5 rounded bg-[#0091DA]/20 text-[#0091DA] font-bold flex items-center justify-center shrink-0 text-[10px]">
-                            {String.fromCharCode(65 + idx)}
-                          </span>
-                          <span className="text-slate-300 leading-snug">{bullet}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="pt-3 border-t border-[#2C3242] flex items-center gap-2">
-                      <button
-                        onClick={handleFreezeLogic}
-                        className={`flex-1 py-2 px-3 text-xs font-bold rounded-[10px] border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          isFrozen
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : 'bg-[#EAAA00] hover:bg-[#D49800] text-[#001E50] border-amber-400 shadow-sm'
+                    <div className="flex items-center gap-2">
+                      <FileCode className="w-3.5 h-3.5 text-[#EAAA00]" />
+                      <span className="text-xs font-mono font-bold">Deterministic Code</span>
+                      <select
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value)}
+                        className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border outline-none cursor-pointer ${
+                          isDarkMode ? 'bg-[#0091DA]/20 text-[#0091DA] border-[#0091DA]/40' : 'bg-blue-50 text-blue-800 border-blue-200'
                         }`}
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>{isFrozen ? 'CONTRACT FROZEN' : 'FREEZE OPERATIONAL CONTRACT'}</span>
+                        <option value="javascript">JavaScript (Browser Native)</option>
+                        <option value="python">Python</option>
+                        <option value="sql">SQL</option>
+                      </select>
+                      <span className="text-[10px] text-slate-500 font-mono">{codeLineCount} lines</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={handleCopyCode}
+                        className="px-2 py-1 text-[11px] font-mono border border-slate-700 hover:border-slate-500 text-slate-300 rounded-[6px] flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Copy code"
+                      >
+                        {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedCode ? 'Copied' : 'Copy'}</span>
+                      </button>
+
+                      <button
+                        onClick={handleExecute}
+                        disabled={isExecuting || isCompiling}
+                        className="px-2.5 py-1 text-[11px] font-mono font-bold bg-[#00338D] hover:bg-[#005EB8] text-white rounded-[6px] flex items-center gap-1 transition-all cursor-pointer"
+                        title="Run code (Ctrl+Enter)"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Run</span>
                       </button>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* TAB 3: UPSTREAM DATA LINEAGE & SCHEMA INSPECTOR */}
-              {activeLeftTab === 'schema' && (
-                <div className="flex-1 p-4 overflow-y-auto space-y-3 font-mono text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-slate-300">Connected Upstream Schemas:</span>
-                    <button
-                      onClick={() => setShowCustomDataInput(!showCustomDataInput)}
-                      className="text-[10px] text-[#0091DA] hover:underline cursor-pointer"
-                    >
-                      {showCustomDataInput ? 'Use Inherited Stream' : '+ Custom Test Input'}
-                    </button>
+                  {/* Code Textarea Editor */}
+                  <div className="flex-1 flex overflow-hidden bg-[#0B0F19]">
+                    <div className="w-10 py-3 select-none text-right pr-2 text-slate-600 font-mono text-xs border-r border-slate-800 bg-[#070A10]">
+                      {Array.from({ length: Math.max(codeLineCount, 15) }, (_, i) => (
+                        <div key={i + 1} className="leading-relaxed">{i + 1}</div>
+                      ))}
+                    </div>
+                    <textarea
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      spellCheck={false}
+                      className="flex-1 p-3 text-xs font-mono bg-transparent text-emerald-300 outline-none resize-none leading-relaxed overflow-auto selection:bg-[#00338D]"
+                      placeholder="async function process(inputs, state) { ... }"
+                    />
                   </div>
 
-                  {!showCustomDataInput ? (
-                    upstreamInfo.sources.length === 0 ? (
-                      <div className="p-4 border rounded-[12px] text-center text-slate-500 space-y-1">
-                        <Database className="w-6 h-6 mx-auto opacity-50 text-amber-400" />
-                        <p>Standalone Node</p>
-                        <p className="text-[10px]">Connect an Ingestion Node or Rule to pipe streams.</p>
-                      </div>
-                    ) : (
-                      upstreamInfo.sources.map(src => {
-                        const s = src.schema;
-                        return (
-                          <div key={src.id} className={`p-3 rounded-[12px] border space-y-2 ${
-                            isDarkMode ? 'bg-[#181920] border-[#2C3242]' : 'bg-white border-slate-200'
-                          }`}>
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-white text-xs">{src.name}</span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0091DA]/20 text-[#0091DA] font-bold uppercase">
-                                {s.format} ({s.rowCount || 0} rows)
-                              </span>
-                            </div>
-
-                            {s.fields && Object.keys(s.fields).length > 0 && (
-                              <div className="space-y-1">
-                                <span className="text-[9px] uppercase tracking-wider text-slate-400">Columns & Inferred Types:</span>
-                                <div className="flex flex-wrap gap-1">
-                                  {Object.keys(s.fields).map(f => (
-                                    <span key={f} className="px-2 py-0.5 rounded text-[10px] bg-black/40 border border-slate-700 text-slate-300">
-                                      {f} <span className="text-amber-400">({s.fields[f].type})</span>
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {s.sampleRecord && (
-                              <div className="pt-1">
-                                <span className="text-[9px] uppercase tracking-wider text-slate-400">Sample Row:</span>
-                                <pre className="p-2 mt-1 rounded bg-black/50 text-[10px] text-emerald-400 overflow-x-auto">
-                                  {JSON.stringify(s.sampleRecord, null, 2)}
-                                </pre>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    )
-                  ) : (
-                    <div className="p-3 border rounded-[12px] space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-amber-400">Custom Test Input</span>
-                        <label className="text-[10px] text-[#0091DA] hover:underline cursor-pointer">
-                          {uploadedFileName || 'Upload CSV / JSON'}
-                          <input
-                            type="file"
-                            accept=".csv,.json"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              setUploadedFileName(file.name);
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                try {
-                                  if (file.name.endsWith('.json')) {
-                                    setUploadedData(JSON.parse(ev.target.result));
-                                  } else {
-                                    // Parse CSV directly
-                                    const lines = ev.target.result.split('\n').filter(Boolean);
-                                    const headers = lines[0].split(',').map(h => h.trim());
-                                    const rows = lines.slice(1).map(l => {
-                                      const v = l.split(',');
-                                      const obj = {};
-                                      headers.forEach((h, i) => obj[h] = v[i]?.trim() || '');
-                                      return obj;
-                                    });
-                                    setUploadedData(rows);
-                                  }
-                                } catch (err) {
-                                  alert('Could not parse file: ' + err.message);
-                                }
-                              };
-                              reader.readAsText(file);
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                      <textarea
-                        rows={6}
-                        value={manualInputText}
-                        onChange={(e) => setManualInputText(e.target.value)}
-                        className="w-full p-2 text-xs font-mono bg-black/50 border border-slate-700 text-emerald-300 rounded outline-none resize-none"
-                      />
+                  {/* Editor Footer Status Bar */}
+                  <div className={`px-4 py-1.5 border-t flex items-center justify-between text-[10px] font-mono ${
+                    isDarkMode ? 'bg-[#070A10] border-[#2C3242] text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span className="font-bold text-emerald-400">0 TOKENS • $0.00 COST</span>
+                      <span className="text-slate-600">|</span>
+                      <span>Sub-millisecond Browser Native</span>
                     </div>
-                  )}
+                    <span>Async/Await Enabled</span>
+                  </div>
                 </div>
               )}
-
             </div>
-          </div>
           )}
 
-          {/* ----------------------------------------------------------------------- */}
-          {/* ZONE 2 (CENTER - 4 COLS): Pure Deterministic Code Isolate               */}
-          {/* ----------------------------------------------------------------------- */}
+          {/* ========================================================================= */}
+          {/* DRAGGABLE DIVIDER RESIZER HANDLE (col-resize)                             */}
+          {/* ========================================================================= */}
           {!isZone3Maximized && (
-          <div className={`lg:col-span-4 flex flex-col h-full overflow-hidden transition-colors ${
-            isDarkMode ? 'bg-[#0B0F19]' : 'bg-[#FFFFFF]'
-          }`}>
-            {/* Editor Sub-Header */}
-            <div className={`px-4 py-2 border-b flex items-center justify-between shrink-0 ${
-              isDarkMode ? 'bg-[#141720] border-[#2C3242]' : 'bg-slate-100 border-slate-200'
-            }`}>
-              <div className="flex items-center gap-2">
-                <FileCode className="w-3.5 h-3.5 text-[#EAAA00]" />
-                <span className="text-xs font-mono font-bold">Deterministic Code</span>
-                <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-[#0091DA]/20 text-[#0091DA] border border-[#0091DA]/40">
-                  {language} (Isolate)
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">{codeLineCount} lines</span>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleCopyCode}
-                  className="px-2 py-1 text-[11px] font-mono border border-slate-700 hover:border-slate-500 text-slate-300 rounded-[6px] flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Copy code"
-                >
-                  {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                  <span>{copiedCode ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
+            <div
+              onMouseDown={handleMouseDown}
+              className="w-2 hover:w-2.5 bg-[#2C3242] hover:bg-[#0091DA] active:bg-[#0091DA] cursor-col-resize transition-all duration-150 flex items-center justify-center shrink-0 group relative z-20 select-none"
+              title="Drag horizontally to resize panels"
+            >
+              <div className="w-0.5 h-10 bg-slate-500 group-hover:bg-white group-active:bg-white rounded-full transition-colors" />
             </div>
-
-            {/* Code Textarea Editor */}
-            <div className="flex-1 flex overflow-hidden bg-[#0B0F19]">
-              <div className="w-10 py-3 select-none text-right pr-2 text-slate-600 font-mono text-xs border-r border-slate-800 bg-[#070A10]">
-                {Array.from({ length: Math.max(codeLineCount, 15) }, (_, i) => (
-                  <div key={i + 1} className="leading-relaxed">{i + 1}</div>
-                ))}
-              </div>
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                spellCheck={false}
-                className="flex-1 p-3 text-xs font-mono bg-transparent text-emerald-300 outline-none resize-none leading-relaxed overflow-auto selection:bg-[#00338D]"
-                placeholder="async function process(inputs, state) { ... }"
-              />
-            </div>
-
-            {/* Editor Footer Status Bar */}
-            <div className={`px-4 py-1.5 border-t flex items-center justify-between text-[10px] font-mono ${
-              isDarkMode ? 'bg-[#070A10] border-[#2C3242] text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
-            }`}>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="font-bold text-emerald-400">0 TOKENS • $0.00 COST</span>
-                <span className="text-slate-600">|</span>
-                <span>Sub-millisecond Browser Native</span>
-              </div>
-              <span>Async/Await Enabled</span>
-            </div>
-          </div>
           )}
 
-          {/* ----------------------------------------------------------------------- */}
-          {/* ZONE 3 (RIGHT): Live Browser, Interactive Preview & DevTools Console    */}
-          {/* ----------------------------------------------------------------------- */}
-          <div className={`${isZone3Maximized ? 'lg:col-span-12' : 'lg:col-span-4'} flex flex-col h-full overflow-hidden transition-all duration-200 ${
-            isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
-          }`}>
+          {/* ========================================================================= */}
+          {/* RIGHT PANEL: LIVE BROWSER SANDBOX & DEVTOOLS                              */}
+          {/* ========================================================================= */}
+          <div 
+            style={{ width: isZone3Maximized ? '100%' : `${100 - leftWidthPercent}%` }}
+            className={`flex flex-col h-full overflow-hidden transition-none ${
+              isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
+            }`}>
             {/* Zone 3 Tabs & Action Bar */}
             <div className={`px-3 py-2 border-b flex items-center justify-between shrink-0 ${
               isDarkMode ? 'bg-[#181920] border-[#2C3242]' : 'bg-slate-100 border-slate-200'
@@ -1878,7 +1815,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                       : (executionResult?.output?.summary?.title || executionResult?.output?.title || 'Live Browser');
 
                   const zone3Tabs = [
-                    ...(executionResult?.output ? [{ id: 'browser', label: browserTabLabel, icon: hasHtmlOutput ? Globe : LayoutDashboard }] : []),
+                    { id: 'browser', label: browserTabLabel, icon: hasHtmlOutput ? Globe : LayoutDashboard },
                     { id: 'table', label: `Table (${outputRows.length})`, icon: TableIcon },
                     { id: 'json', label: 'JSON Tree', icon: FileCode },
                     { id: 'console', label: `Console (${executionResult?.logs?.length || 0})`, icon: Terminal }
@@ -1986,14 +1923,9 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                 </div>
               )}
 
-              {/* No Execution Yet Empty State */}
-              {!executionResult && !executionError ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 font-mono space-y-2">
-                  <Play className="w-8 h-8 text-[#EAAA00] opacity-40" />
-                  <p className="text-xs">No execution run yet.</p>
-                  <p className="text-[10px] text-slate-500">Press RUN or Ctrl+Enter to test logic.</p>
-                </div>
-              ) : (activeRightTab === 'browser' || activeRightTab === 'dashboard') && executionResult?.output ? (
+              {(activeRightTab === 'browser' || activeRightTab === 'dashboard') ? (
+                /* TAB 0: UNIVERSAL LIVE BROWSER & EXECUTIVE DASHBOARD STUDIO */
+                executionResult?.output ? (
                 /* TAB 0: UNIVERSAL LIVE BROWSER & EXECUTIVE DASHBOARD STUDIO */
                 (() => {
                   const rawOut = executionResult.output;
@@ -2635,7 +2567,133 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                   </div>
                 );
               })()
-            ) : activeRightTab === 'table' ? (
+            ) : (
+              /* LIVE BROWSER GENESIS CANVAS (Before Execution or Initial State) */
+              <div className="flex-1 flex flex-col overflow-hidden font-mono space-y-3">
+                {/* Mini Browser Chrome Toolbar */}
+                <div className={`p-2 border rounded-none flex items-center justify-between shrink-0 text-xs ${
+                  isDarkMode ? 'bg-[#0B0F19] border-[#2C3242]' : 'bg-[#F0F4F8] border-[#CBD5E1]'
+                }`}>
+                  <div className="flex items-center gap-2 flex-1 mr-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+                    <div className="flex-1 bg-black/40 border border-slate-700/60 rounded px-2.5 py-1 text-[10px] text-slate-300 truncate flex items-center justify-between">
+                      <span className="text-emerald-400 font-bold truncate">http://127.0.0.1:5173/sandbox/live</span>
+                      <span className="text-slate-500 hidden sm:inline ml-2">(Client V8 Isolate • 0 Tokens • Ready)</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleExecute()}
+                    disabled={isExecuting}
+                    className="px-2.5 py-1 text-[10px] font-mono font-bold bg-[#00338D] hover:bg-[#005EB8] text-white rounded-none border border-[#0091DA]/50 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0"
+                  >
+                    {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current text-[#EAAA00]" />}
+                    <span>RUN NOW</span>
+                  </button>
+                </div>
+
+                {/* Genesis Canvas Hero & Quick-Launch Environments */}
+                <div className={`flex-1 border rounded-none p-5 flex flex-col justify-between overflow-y-auto ${
+                  isDarkMode ? 'bg-[#0B0F19]/60 border-[#2C3242]' : 'bg-white border-slate-200'
+                }`}>
+                  <div className="space-y-4">
+                    {/* Hero Header */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider rounded-full bg-[#00338D]/20 text-[#0091DA] border border-[#00338D]/40">
+                          Universal Webview Sandbox
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Zero-Token Deterministic Runtime
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-bold text-white tracking-wide uppercase font-sans">
+                        Live Browser & Interactive Dashboard Canvas
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
+                        Ask Co-Pilot in the left Chat to build any dashboard, simulator, or workflow tool. Generated code mounts directly into this live sandboxed iframe with working sliders, real-time calculations, and full DOM interactivity.
+                      </p>
+                    </div>
+
+                    {/* 3 Quick-Launch Interactive Cards */}
+                    <div className="grid grid-cols-1 gap-2.5 pt-2">
+                      {/* 1. Cash Flow Simulator */}
+                      <div className={`p-3.5 border transition-all ${
+                        isDarkMode ? 'bg-[#141720] border-[#2C3242] hover:border-[#EAAA00]/60' : 'bg-slate-50 border-slate-200'
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-none bg-[#EAAA00]/20 text-[#EAAA00] flex items-center justify-center shrink-0">
+                                <DollarSign className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="text-xs font-bold text-white tracking-wide">
+                                Cash Flow & Runway Simulator
+                              </span>
+                              <span className="px-1.5 py-0.2 text-[8px] font-mono rounded-full bg-[#EAAA00]/10 text-[#EAAA00] border border-[#EAAA00]/30">
+                                Financial Dashboard
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 leading-normal pl-8">
+                              Real-time SaaS cash engine with revenue & payroll sliders, net burn calculations, runway alerts, and a 12-month trajectory projection table.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleExecute(CASH_FLOW_PROCESS_CODE)}
+                            disabled={isExecuting}
+                            className="px-3 py-1.5 text-[11px] font-mono font-bold bg-[#EAAA00] hover:bg-[#D99B00] text-black rounded-none flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
+                          >
+                            {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
+                            <span>Launch Simulator</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 2. Indirect Tax Reconciliation */}
+                      <div className={`p-3.5 border transition-all ${
+                        isDarkMode ? 'bg-[#141720] border-[#2C3242] hover:border-[#009A44]/60' : 'bg-slate-50 border-slate-200'
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-none bg-[#009A44]/20 text-[#009A44] flex items-center justify-center shrink-0">
+                                <TrendingUp className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="text-xs font-bold text-white tracking-wide">
+                                Indirect Tax Reconciliation Engine
+                              </span>
+                              <span className="px-1.5 py-0.2 text-[8px] font-mono rounded-full bg-[#009A44]/10 text-[#009A44] border border-[#009A44]/30">
+                                Enterprise Audit
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 leading-normal pl-8">
+                              Multi-criteria matching engine (Exact, Fuzzy Vendor, Date Drift, Split-Invoices) reconciling GSTR-2B against ERP Purchase Register.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleExecute(TAX_RECON_PROCESS_CODE)}
+                            disabled={isExecuting}
+                            className="px-3 py-1.5 text-[11px] font-mono font-bold bg-[#009A44] hover:bg-[#008139] text-white rounded-none flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
+                          >
+                            {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
+                            <span>Launch Engine</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Tip */}
+                  <div className="pt-4 border-t border-slate-800 text-[10px] text-slate-500 flex items-center justify-between">
+                    <span>💡 Tip: Type in the left Chat to build custom dashboards, or switch to Code Editor to inspect raw code.</span>
+                    <span>0ms Server Latency</span>
+                  </div>
+                </div>
+              </div>
+            )
+          ) : activeRightTab === 'table' ? (
                 /* TAB 1: TABULAR DATA GRID */
                 outputRows.length > 0 ? (
                   <div className="flex-1 flex flex-col overflow-hidden font-mono space-y-2">
@@ -2691,19 +2749,31 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                     <span className="block text-[10px] text-slate-400 mt-2">Latency: {executionResult?.latencyMs}ms • 0 Tokens</span>
                   </div>
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 font-mono space-y-1">
-                    <TableIcon className="w-6 h-6 opacity-40" />
-                    <p className="text-xs">Output is an object or primitive.</p>
-                    <button onClick={() => setActiveRightTab('json')} className="text-[10px] text-[#0091DA] hover:underline">
-                      View in JSON Tree
-                    </button>
+                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 font-mono space-y-2">
+                    <TableIcon className="w-7 h-7 opacity-40 text-[#0091DA]" />
+                    <p className="text-xs">{executionResult ? 'Output is an object or primitive.' : 'No tabular records generated yet.'}</p>
+                    {executionResult ? (
+                      <button onClick={() => setActiveRightTab('json')} className="text-[10px] text-[#0091DA] hover:underline cursor-pointer">
+                        View in JSON Tree
+                      </button>
+                    ) : (
+                      <p className="text-[10px] text-slate-500">Run code or launch a template to inspect tabular outputs.</p>
+                    )}
                   </div>
                 )
               ) : activeRightTab === 'json' ? (
                 /* TAB 2: JSON TREE */
-                <pre className="flex-1 p-3 rounded-[10px] border border-slate-700/60 bg-[#0B0F19] text-emerald-400 font-mono text-xs overflow-auto leading-relaxed">
-                  {JSON.stringify(executionResult?.output, null, 2)}
-                </pre>
+                executionResult?.output !== undefined ? (
+                  <pre className="flex-1 p-3 rounded-[10px] border border-slate-700/60 bg-[#0B0F19] text-emerald-400 font-mono text-xs overflow-auto leading-relaxed">
+                    {JSON.stringify(executionResult.output, null, 2)}
+                  </pre>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 font-mono space-y-2">
+                    <FileCode className="w-7 h-7 opacity-40 text-emerald-400" />
+                    <p className="text-xs">No JSON output available yet.</p>
+                    <p className="text-[10px] text-slate-500">Run code or launch a template to inspect return payloads.</p>
+                  </div>
+                )
               ) : (
                 /* TAB 3: DEVTOOLS CONSOLE LOGS */
                 <div className="flex-1 flex flex-col overflow-hidden font-mono text-xs space-y-2">
