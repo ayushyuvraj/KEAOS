@@ -384,3 +384,23 @@ All agents, subagents, and developers operating in KEAOS MUST strictly abide by 
    - **MANDATE**: Any workflow that is locked (`isLocked: true` or `isWorkflowLocked: true`) MUST NOT be deletable by any UI action, agent action, API call, or keyboard shortcut.
    - `workflowStorage.js` (`deleteWorkflow`) must programmatically reject the deletion of any locked workflow.
    - The UI (`HomeWorkflowsView.jsx`, Canvas, Inspector) must render a padlock badge, disable the delete action, and reject any deletion attempt with an institutional notification.
+
+---
+
+## 16. Strict Clarification & Extreme Clarity Mandate (Zero-Assumption & Zero-Premature-Action Invariant)
+
+All agents, subagents, and developers working on KEAOS MUST strictly enforce this absolute communication and execution protocol:
+
+1. **Mandatory Clarification on Any Ambiguity (Never Assume, Always Question)**:
+   - If there is even the **slightest confusion, ambiguity, doubt, or underspecification** in a user's instruction, requirement, or feedback, the agent is **STRICTLY FORBIDDEN** from making assumptions, guessing intent, or over-correcting.
+   - The agent MUST proactively stop, ask clarifying questions, and continue questioning until there is **100% extreme clarity** on the user's exact goal, scope, and boundaries.
+
+2. **Zero-Premature Action & Zero-Premature Planning Invariant**:
+   - **MANDATE**: ONLY when the agent possesses **extreme, unambiguous clarity** is it permitted to start formulating an implementation plan or touch/modify any code.
+   - Under no circumstances should an agent begin modifying files, deleting existing components, refactoring directories, or rewriting logic based on an unverified interpretation of the user's prompt.
+
+3. **No Over-Correction & No Unsolicited Deletions**:
+   - Negative constraints or directives (e.g. *"have no relation to X"*, *"start fresh"*, *"do not copy Y"*) mean **build the new capability independently and cleanly without copying or coupling to X**.
+   - It is **STRICTLY FORBIDDEN** to interpret such instructions as a mandate to purge, delete, rename, or destroy existing components, features, or catalog entries unless the user explicitly and unmistakably says: *"Delete X from the system"*.
+   - When in doubt about whether an existing component should remain or be removed: **ASK FOR CLARIFICATION BEFORE TOUCHING A SINGLE FILE.** This failure mode must never repeat.
+
