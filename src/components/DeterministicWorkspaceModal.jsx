@@ -2399,14 +2399,14 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono font-bold tracking-wider uppercase text-[#0091DA] flex items-center gap-1.5">
                             <LayoutDashboard className="w-3.5 h-3.5" />
-                            {selectedNode?.data?.label || node?.data?.label || 'Universal Executive Dashboard'}
+                            {nodeName || nodeData?.label || 'Universal Executive Dashboard'}
                           </span>
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-[#009A44]/20 text-[#009A44] border border-[#009A44]/40">
                             {executionResult.success ? '✓ 100% Deterministic' : 'Failed'}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                          {selectedLanguage?.toUpperCase()} Isolate • Real-Time Algorithmic Execution Output
+                          {(language || 'JavaScript').toUpperCase()} Isolate • Real-Time Algorithmic Execution Output
                         </p>
                       </div>
                       <div className="text-right font-mono">
