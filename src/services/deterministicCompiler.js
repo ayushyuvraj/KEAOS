@@ -184,7 +184,11 @@ CRITICAL RULES:
 4. BROWSER ISOLATE ENVIRONMENT (STRICT MANDATE):
    - JavaScript executes in a client-side browser isolate via \`new Function('inputs', ...)\`. Full \`async/await\`, \`crypto\`, and Web APIs are supported.
    - NEVER use \`require(...)\`, \`import ...\`, or Node.js server modules (\`fs\`, \`path\`, \`stream\`, \`fast-csv\`, etc.). \`require\` is NOT defined in browsers and will fail immediately!
-   - User data is typically provided in-memory via 'inputs' (e.g. inputs.data, inputs.tableA, inputs.file1), but interactive browser Web APIs like window.showOpenFilePicker(), FileReader, SheetJS (XLSX.read), fetch, and Web Crypto are fully supported when requested.
+    - In-Memory Data Streams (Strict Zero-Interaction Contract):
+      * Datasets are pre-ingested into 'inputs' (e.g. inputs.slotA, inputs.slotB, inputs.data, inputs.tableA).
+      * NEVER write interactive file dialogs (window.showOpenFilePicker, dynamic <input type="file">, prompt, confirm). In browser isolates, unprompted file dialogs are blocked by security and will fail immediately.
+      * Pure Function Contract: Write a pure algorithmic processor: 'process(inputs, state)'.
+      * Global utilities available in isolate: SheetJS (XLSX), crypto, Math, Date, RegExp, and console.
    - Do NOT use Node.js server modules ('fs', 'path') because code runs in client browsers; use browser Web APIs instead.
    - MULTI-SOURCE FAN-IN & JOIN CONTRACT:
      - When inputs contains multiple named streams (e.g. inputs.tableA, inputs.tableB, inputs.erp_ledger), access them by their EXACT keys as listed in the schema contract.

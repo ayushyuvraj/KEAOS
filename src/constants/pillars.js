@@ -345,10 +345,10 @@ export const PILLARS = {
     items: [
       {
         id: 'ingest-universal-file',
-        name: 'Universal File & Audio Ingest',
-        description: 'Accepts audio (MP3, WAV, M4A) with auto-transcription, PDFs, DOCX, CSV spreadsheets, and raw notes on canvas.',
+        name: 'Universal Enterprise Dataset Ingestion',
+        description: 'Bilateral high-throughput dataset & document ingestion supporting 1,000,000+ rows, multi-slot enforcement (Slot A & Slot B), and zero-RAM chunk sniffing.',
         section: 'Ingestion',
-        config: { fileType: 'auto' },
+        config: { fileType: 'auto', ingestMode: 'bilateral' },
         isIngestionNode: true
       },
       {

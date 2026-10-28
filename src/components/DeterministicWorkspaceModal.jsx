@@ -655,7 +655,8 @@ export default function DeterministicWorkspaceModal({
         name: srcNode?.data?.name || srcNode?.data?.title || e.source,
         type: srcNode?.type || 'node',
         output: srcOutput,
-        schema
+        schema,
+        srcNodeData: srcNode?.data
       };
     });
 
@@ -684,6 +685,20 @@ export default function DeterministicWorkspaceModal({
         schemaMap['data'] = firstSrc.schema;
       }
     }
+
+    // Explicitly unpack Ingestion Node bilateral slots
+    sources.forEach(s => {
+      if (s.type === 'ingestionNode' && s.srcNodeData) {
+        if (s.srcNodeData.slotA) {
+          payload['slotA'] = s.srcNodeData.slotA.sample || s.srcNodeData.slotA.columns || [];
+          schemaMap['slotA'] = inferDataSchema(payload['slotA']);
+        }
+        if (s.srcNodeData.slotB) {
+          payload['slotB'] = s.srcNodeData.slotB.sample || s.srcNodeData.slotB.columns || [];
+          schemaMap['slotB'] = inferDataSchema(payload['slotB']);
+        }
+      }
+    });
 
     payload['sources'] = sources;
     payload['allOutputs'] = sources.map(s => s.output);
@@ -734,7 +749,15 @@ export default function DeterministicWorkspaceModal({
       });
     }
 
-    // 3. Only expose generic 'data' if an actual stream or file exists
+    // 3. Explicitly expose bilateral slots from connected Ingestion Nodes
+    upstreamInfo.sources.forEach(s => {
+      if (s.type === 'ingestionNode') {
+        if (s.srcNodeData?.slotA) keys.add('slotA');
+        if (s.srcNodeData?.slotB) keys.add('slotB');
+      }
+    });
+
+    // 4. Only expose generic 'data' if an actual stream or file exists
     if (uploadedFileList.length > 0 || upstreamInfo.sources.length > 0) {
       keys.add('data');
     }
@@ -922,18 +945,23 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
    - Accompany your code with a concise, helpful explanation of how it works and any relevant options.
 
 2. RUNTIME & PLATFORM CONTRACT:
-   - The code executes directly in the KEAOS Deterministic Box with 0 LLM token cost at runtime.
-   - For JavaScript: define a \`function process(inputs, state)\` or \`async function process(inputs, state)\`.
-     - In-Memory Data Streams: The function receives \`inputs\` (e.g., \`inputs.data\`, \`inputs.tableA\`, \`inputs.pr\`, etc.) and a persistent \`state\` object.
-     - Interactive File Selection & Ingestion: If the user requests file processing (e.g., reading Excel spreadsheets, CSVs, or JSON), write complete, self-contained JavaScript code utilizing modern Web APIs (\`window.showOpenFilePicker()\` or dynamic file inputs) and the built-in SheetJS \`XLSX\` library (e.g., \`const workbook = XLSX.read(data, { type: 'array' })\`, \`XLSX.utils.sheet_to_json(sheet)\`). SheetJS in JS delivers in-memory DataFrame-grade performance directly inside the browser isolate.
-     - Standard Web APIs (fetch, crypto, Blob, URL, RegExp, Math, Date) and \`console.log(...)\` are fully supported.
-     - ZERO-MOCK HONESTY (ABSOLUTE MANDATE): Never hallucinate, fabricate, or hardcode fake fallback data (e.g. dummy invoices like INV001, INV002). Use strictly the real data provided in 'inputs'. If an input stream or file is missing, write the code that references the expected 'inputs.<key>' directly and explain to the user in prose that they need to load or pipe that dataset.
-   - For Python: define \`def process(inputs):\` returning transformed records or dicts. Standard libraries (pandas, math, re, json, datetime) are supported.
-   - For SQL: provide clean SQL (SELECT ... FROM ...).
-   - If the user asks for languages that require external compilation toolchains (e.g. Rust, C++), provide the code, but ALSO provide the equivalent browser-native JavaScript isolate code using SheetJS/Web APIs so they can execute it immediately inside this browser box without external compilers.
+    - The code executes directly in the KEAOS Deterministic Box with 0 LLM token cost at runtime.
+    - For JavaScript: define a \`function process(inputs, state)\` or \`async function process(inputs, state)\`.
+      - In-Memory Data Streams & Pre-Ingested Datasets (STRICT ZERO-INTERACTION CONTRACT):
+        * All datasets are PRE-LOADED into \`inputs\` by the platform\'s Ingestion Node or the "+ Upload File" button in the header.
+        * NEVER write interactive file dialogs (\`window.showOpenFilePicker()\`, dynamic \`<input type="file">\`, \`prompt()\`, \`confirm()\`). Browser security sandboxes block unprompted file picker calls and will crash the execution immediately!
+        * Pure Function Contract: The function MUST be a pure deterministic processor: \`process(inputs, state)\`.
+        * If reconciling or comparing two datasets (e.g., Purchase Register & GSTR-2B, or Primary & Counterparty), access them via \`inputs.slotA\` and \`inputs.slotB\` (or \`inputs.pr\`, \`inputs.gstr2b\`, or find the two streams in \`inputs\`).
+        * If \`inputs\` is empty during drafting, reference \`inputs.slotA || inputs.data || []\` and inform the user that datasets can be attached via the Ingestion Node on canvas.
+      - Standard In-Memory Web APIs (SheetJS XLSX, crypto, Blob, URL, RegExp, Math, Date) and \`console.log(...)\` are fully supported.
+      - ZERO-MOCK HONESTY (ABSOLUTE MANDATE): Never hallucinate, fabricate, or hardcode fake fallback data (e.g. dummy invoices like INV001, INV002). Use strictly the real data provided in \'inputs\'. If an input stream or file is missing, write the code that references the expected \'inputs.<key>\' directly and explain to the user in prose that they need to load or pipe that dataset.
+    - For Python: define \`def process(inputs):\` returning transformed records or dicts. Standard libraries (pandas, math, re, json, datetime) are supported.
+    - For SQL: provide clean SQL (SELECT ... FROM ...).
+    - If the user asks for languages that require external compilation toolchains (e.g. Rust, C++), provide the code, but ALSO provide the equivalent browser-native JavaScript isolate code using SheetJS/Web APIs so they can execute it immediately inside this browser box without external compilers.
 
-3. ADVISORY NOTES (NOT RESTRICTIONS):
-   - If an approach has an operational tradeoff (e.g. using window.showOpenFilePicker requires an interactive user click, whereas for unattended automated pipelines they can also use an Ingestion Node), mention it briefly as a helpful tip, but ALWAYS fulfill what the user asked for.
+3. ADVISORY NOTES & BEST PRACTICES:
+    - For high-volume multi-thousand/million row reconciliations, use O(N) Hash Maps (\`new Map(...)\`) for instant sub-millisecond joins instead of slow nested O(N^2) loops.
+    - Always return clean structured outputs: \`{ summary: {...}, records: [...], ... }\` or an array of records.
 
 4. FORMATTING:
    - Put the PRIMARY, EXECUTABLE APPLICATION CODE in the main markdown code block matching \`\`\`${(language || 'javascript').toLowerCase()}:

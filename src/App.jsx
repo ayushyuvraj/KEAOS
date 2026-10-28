@@ -1638,12 +1638,15 @@ export default function App() {
           type: 'ingestionNode',
           position: { x: xPos, y: yPos },
           data: {
-            title: item.name || 'Data & Audio Ingestion',
+            title: item.name || 'Universal Enterprise Dataset Ingestion',
             fileName: '',
             fileSize: '',
             fileType,
             content: '',
-            status: 'idle',
+            status: 'empty',
+            ingestMode: item?.config?.ingestMode || (fileType === 'audio' ? 'audio' : fileType === 'text' ? 'text' : 'bilateral'),
+            slotA: null,
+            slotB: null,
             isExpanded: false
           }
         };

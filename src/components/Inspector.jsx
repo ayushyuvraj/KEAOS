@@ -40,7 +40,11 @@ import {
   Copy,
   Calendar,
   Play,
-  Radio
+  Radio,
+  Database,
+  FileSpreadsheet,
+  Maximize2,
+  FileCheck2
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import TriggerInspectorPanel from './TriggerInspectorPanel';
@@ -726,72 +730,294 @@ export default function Inspector({
             </div>
           </div>
         ) : isIngest ? (
-          /* Specialized Ingestion Port Inspector */
+          /* Universal Enterprise Dataset Ingestion Port Inspector */
           <div className="space-y-4">
-            <div className={`p-4 ${t.card} rounded-2xl space-y-3`}>
+            {/* Top: Status & Mode Selector */}
+            <div className={`p-4 ${t.card} space-y-3`}>
               <div className="flex items-center justify-between">
-                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
-                  Ingestion Payload Status
-                </span>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
-                  nodeData.status === 'ready' 
-                    ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                    : nodeData.status === 'transcribing'
-                      ? 'bg-blue-500/15 text-blue-500 border border-blue-500/30 animate-pulse'
-                      : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                }`}>
-                  {nodeData.status || (nodeData.content ? 'Ready' : 'Empty')}
-                </span>
-              </div>
-              <p className={`text-xs ${t.subText}`}>
-                Upload audio (MP3, WAV), documents (PDF, DOCX), spreadsheets (CSV), or raw text directly into this canvas node. Feeds directly into the agent pipeline.
-              </p>
-
-              <div>
-                <label className={`text-[10px] font-mono ${t.subText} block mb-1`}>
-                  Source Name
-                </label>
-                <input
-                  type="text"
-                  value={nodeData.fileName || nodeData.title || 'Data Ingestion'}
-                  onChange={(e) => onUpdateNodeData(selectedNode.id, { fileName: e.target.value })}
-                  className={`w-full px-3 py-2 text-xs font-sans rounded-lg transition-all ${t.input}`}
-                />
-              </div>
-
-              {nodeData.fileSize && (
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className={t.subText}>Payload Size:</span>
-                  <span className="font-mono font-bold text-[#0091DA]">{nodeData.fileSize}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-[#0091DA]/15 text-[#0091DA] flex items-center justify-center font-bold">
+                    <Database className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block font-bold">
+                      Enterprise Ingestion Port
+                    </span>
+                    <h5 className={`text-xs font-bold ${t.title}`}>
+                      {nodeData.title || 'Universal Ingestion Engine'}
+                    </h5>
+                  </div>
                 </div>
-              )}
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
+                  nodeData.status === 'ready' || (nodeData.slotA && nodeData.slotB)
+                    ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                    : nodeData.status === 'incomplete' || nodeData.slotA || nodeData.slotB
+                      ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                      : 'bg-blue-500/15 text-[#0091DA] border border-[#0091DA]/30'
+                }`}>
+                  {nodeData.slotA && nodeData.slotB ? '2/2 READY' : (nodeData.slotA || nodeData.slotB) ? '1/2 INCOMPLETE' : (nodeData.status || '0/2 EMPTY')}
+                </span>
+              </div>
+
+              {/* Mode Selector Tabs */}
+              <div>
+                <label className={`text-[10px] font-mono ${t.subText} block mb-1.5 uppercase tracking-wider`}>
+                  Ingestion Mode
+                </label>
+                <div className="grid grid-cols-2 gap-1 p-1 bg-black/20 border border-slate-700/30">
+                  {[
+                    { id: 'bilateral', label: 'Bilateral (2 Files)' },
+                    { id: 'single', label: 'Single Stream' },
+                    { id: 'audio', label: 'Audio Meeting' },
+                    { id: 'text', label: 'Raw Direct Text' }
+                  ].map(m => {
+                    const active = (nodeData.ingestMode || 'bilateral') === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => onUpdateNodeData(selectedNode.id, { ingestMode: m.id })}
+                        className={`py-1 px-2 text-[10px] font-mono font-medium transition-all cursor-pointer text-center ${
+                          active
+                            ? 'bg-[#0091DA] text-white shadow-xs font-bold'
+                            : `${t.subText} hover:text-white hover:bg-white/5`
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Launch Full Surface Button */}
+              <button
+                type="button"
+                onClick={() => onUpdateNodeData(selectedNode.id, { isExpanded: true })}
+                className="w-full py-2 px-3 bg-[#0091DA]/10 hover:bg-[#0091DA]/20 text-[#0091DA] border border-[#0091DA]/30 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span>Open Full Ingestion Studio</span>
+              </button>
             </div>
 
-            {nodeData.content && (
-              <div className={`p-4 ${t.card} rounded-2xl space-y-2`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider text-slate-400 block font-mono`}>
-                    Extracted Payload Preview
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                    {nodeData.content.length} chars
-                  </span>
+            {/* Bilateral Mode Details */}
+            {(nodeData.ingestMode || 'bilateral') === 'bilateral' && (
+              <div className="space-y-3">
+                {/* Slot A Card */}
+                <div className={`p-3.5 ${t.card} space-y-2 border-l-2 ${nodeData.slotA ? 'border-l-emerald-500' : 'border-l-slate-600'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#0091DA]/15 text-[#0091DA] font-bold">
+                        SLOT A
+                      </span>
+                      <span className="text-xs font-bold">Primary Target</span>
+                    </div>
+                    {nodeData.slotA ? (
+                      <button
+                        type="button"
+                        onClick={() => onUpdateNodeData(selectedNode.id, { slotA: null, status: nodeData.slotB ? 'incomplete' : 'empty' })}
+                        className="text-[10px] text-red-400 hover:text-red-300 font-mono hover:underline cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-mono text-slate-500">Unloaded</span>
+                    )}
+                  </div>
+
+                  {nodeData.slotA ? (
+                    <div className="space-y-1.5 text-xs">
+                      <div className="font-mono font-semibold truncate text-[#0091DA]">
+                        {nodeData.slotA.name}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                        <span>{nodeData.slotA.sizeFormatted || `${Math.round((nodeData.slotA.size || 0) / 1024)} KB`}</span>
+                        <span>•</span>
+                        <span>{nodeData.slotA.rowCount?.toLocaleString()} rows</span>
+                        <span>•</span>
+                        <span>{nodeData.slotA.columnCount} cols</span>
+                      </div>
+                      {nodeData.slotA.isSniffed && (
+                        <div className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Zero-RAM Chunk Sniffed (1M+ row scale ready)</span>
+                        </div>
+                      )}
+                      {nodeData.slotA.columns && nodeData.slotA.columns.length > 0 && (
+                        <div className="pt-1">
+                          <span className="text-[9px] font-mono text-slate-500 block mb-1">
+                            Discovered Schema ({nodeData.slotA.columns.length} columns):
+                          </span>
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                            {nodeData.slotA.columns.slice(0, 10).map((col, idx) => (
+                              <span key={idx} className="text-[9px] font-mono px-1.5 py-0.5 bg-black/40 text-slate-300 border border-slate-700/50">
+                                {typeof col === 'string' ? col : col.name}
+                              </span>
+                            ))}
+                            {nodeData.slotA.columns.length > 10 && (
+                              <span className="text-[9px] font-mono text-slate-500 px-1 py-0.5">
+                                +{nodeData.slotA.columns.length - 10} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className={`text-[11px] ${t.subText}`}>
+                      Drop first dataset (.csv, .xlsx) onto canvas node to populate Slot A.
+                    </p>
+                  )}
                 </div>
-                <div className={`p-2.5 rounded-lg max-h-40 overflow-y-auto text-[11px] font-mono leading-relaxed select-text ${
-                  isDarkMode ? 'bg-black/40 text-slate-300' : 'bg-slate-100 text-slate-800'
-                }`}>
-                  {nodeData.content.slice(0, 500)}
-                  {nodeData.content.length > 500 ? '...' : ''}
+
+                {/* Slot B Card */}
+                <div className={`p-3.5 ${t.card} space-y-2 border-l-2 ${nodeData.slotB ? 'border-l-emerald-500' : 'border-l-slate-600'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#6D2077]/15 text-[#6D2077] font-bold">
+                        SLOT B
+                      </span>
+                      <span className="text-xs font-bold">Counterparty Comparison</span>
+                    </div>
+                    {nodeData.slotB ? (
+                      <button
+                        type="button"
+                        onClick={() => onUpdateNodeData(selectedNode.id, { slotB: null, status: nodeData.slotA ? 'incomplete' : 'empty' })}
+                        className="text-[10px] text-red-400 hover:text-red-300 font-mono hover:underline cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-mono text-slate-500">Unloaded</span>
+                    )}
+                  </div>
+
+                  {nodeData.slotB ? (
+                    <div className="space-y-1.5 text-xs">
+                      <div className="font-mono font-semibold truncate text-[#6D2077]">
+                        {nodeData.slotB.name}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                        <span>{nodeData.slotB.sizeFormatted || `${Math.round((nodeData.slotB.size || 0) / 1024)} KB`}</span>
+                        <span>•</span>
+                        <span>{nodeData.slotB.rowCount?.toLocaleString()} rows</span>
+                        <span>•</span>
+                        <span>{nodeData.slotB.columnCount} cols</span>
+                      </div>
+                      {nodeData.slotB.isSniffed && (
+                        <div className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Zero-RAM Chunk Sniffed (1M+ row scale ready)</span>
+                        </div>
+                      )}
+                      {nodeData.slotB.columns && nodeData.slotB.columns.length > 0 && (
+                        <div className="pt-1">
+                          <span className="text-[9px] font-mono text-slate-500 block mb-1">
+                            Discovered Schema ({nodeData.slotB.columns.length} columns):
+                          </span>
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                            {nodeData.slotB.columns.slice(0, 10).map((col, idx) => (
+                              <span key={idx} className="text-[9px] font-mono px-1.5 py-0.5 bg-black/40 text-slate-300 border border-slate-700/50">
+                                {typeof col === 'string' ? col : col.name}
+                              </span>
+                            ))}
+                            {nodeData.slotB.columns.length > 10 && (
+                              <span className="text-[9px] font-mono text-slate-500 px-1 py-0.5">
+                                +{nodeData.slotB.columns.length - 10} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className={`text-[11px] ${t.subText}`}>
+                      Drop second dataset (.csv, .xlsx) onto canvas node to populate Slot B.
+                    </p>
+                  )}
+                </div>
+
+                {/* Bilateral Intake Guarantee Note */}
+                <div className="p-3 bg-blue-500/5 border border-blue-500/20 text-[10px] font-mono text-slate-400 space-y-1">
+                  <div className="text-[#0091DA] font-bold flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    <span>Bilateral Pipeline Contract Active</span>
+                  </div>
+                  <p>
+                    Reconciliation requires exactly 2 files. Over-intake (&gt;2 files) is rejected with an instant alert. Downstream deterministic scripts receive <code className="text-white">inputs.slotA</code> and <code className="text-white">inputs.slotB</code>.
+                  </p>
                 </div>
               </div>
             )}
 
-            <div className={`p-4 ${t.card} rounded-2xl flex items-center justify-between`}>
+            {/* Single Stream Mode Details */}
+            {nodeData.ingestMode === 'single' && (
+              <div className={`p-4 ${t.card} space-y-3`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
+                  Single Stream Configuration
+                </span>
+                <div>
+                  <label className={`text-[10px] font-mono ${t.subText} block mb-1`}>Source Name</label>
+                  <input
+                    type="text"
+                    value={nodeData.fileName || nodeData.title || 'Dataset Stream'}
+                    onChange={(e) => onUpdateNodeData(selectedNode.id, { fileName: e.target.value })}
+                    className={`w-full px-3 py-2 text-xs font-sans transition-all ${t.input}`}
+                  />
+                </div>
+                {nodeData.slotA && (
+                  <div className="text-xs space-y-1">
+                    <span className={t.subText}>Active File:</span>
+                    <div className="font-mono text-emerald-400 font-semibold">{nodeData.slotA.name}</div>
+                    <div className="text-[10px] font-mono text-slate-400">
+                      {nodeData.slotA.rowCount?.toLocaleString()} rows • {nodeData.slotA.columnCount} cols
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Audio Mode Details */}
+            {nodeData.ingestMode === 'audio' && (
+              <div className={`p-4 ${t.card} space-y-3`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
+                  Meeting Audio Stream
+                </span>
+                <p className={`text-xs ${t.subText}`}>
+                  Direct audio intake for recorded executive meetings, earnings calls, and interviews.
+                </p>
+                {nodeData.audioFile && (
+                  <div className="text-xs font-mono text-[#0091DA] bg-black/30 p-2 border border-slate-700/50">
+                    {nodeData.audioFile.name} ({(nodeData.audioFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Raw Text Mode Details */}
+            {nodeData.ingestMode === 'text' && (
+              <div className={`p-4 ${t.card} space-y-2`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
+                  Raw Text Input
+                </span>
+                <textarea
+                  value={nodeData.content || ''}
+                  onChange={(e) => onUpdateNodeData(selectedNode.id, { content: e.target.value, status: e.target.value ? 'ready' : 'empty' })}
+                  rows={6}
+                  placeholder="Paste raw instructions, rules, or dataset lines..."
+                  className={`w-full px-3 py-2 text-xs font-mono transition-all resize-y ${t.input}`}
+                />
+              </div>
+            )}
+
+            {/* Remove Node Button */}
+            <div className={`p-4 ${t.card} flex items-center justify-between`}>
               <span className={`text-xs ${t.subText}`}>Remove from Canvas</span>
               <button
                 type="button"
                 onClick={() => onDeleteNode(selectedNode.id)}
-                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Remove Ingestion Node</span>
