@@ -34,6 +34,8 @@ import {
   Filter,
   Maximize2,
   Minimize2,
+  Minus,
+  Columns2,
   Globe,
   LayoutDashboard,
   Bug,
@@ -44,8 +46,11 @@ import {
 } from 'lucide-react';
 import { compileDeterministicLogic, getOfflineFallbackCode } from '../services/deterministicCompiler';
 import { executeDeterministicTask, inferDataSchema, parseCsv } from '../services/deterministicRunner';
-import { TAX_RECON_PROCESS_CODE } from '../constants/sampleTaxReconData';
-import { CASH_FLOW_PROCESS_CODE } from '../constants/sampleCashFlowData';
+import { 
+  STREAM_TRANSFORMER_PROCESS_CODE, 
+  KEY_JOINER_PROCESS_CODE, 
+  REACTIVE_UI_PROCESS_CODE 
+} from '../constants/universalBlueprints';
 import { 
   PROVIDERS, 
   getProviderCredential, 
@@ -102,7 +107,8 @@ export default function DeterministicWorkspaceModal({
   const isDraggingRef = useRef(false);
 
   const [activeRightTab, setActiveRightTab] = useState('browser'); // 'browser' (PRIMARY) | 'table' | 'console' | 'json'
-  const [isZone3Maximized, setIsZone3Maximized] = useState(false);
+  const [sandboxLayoutMode, setSandboxLayoutMode] = useState('split'); // 'minimized' | 'split' | 'maximized'
+  const isZone3Maximized = sandboxLayoutMode === 'maximized';
 
   // Drag-to-Resize mouse event listeners for central divider
   const handleMouseDown = (e) => {
@@ -183,22 +189,95 @@ export default function DeterministicWorkspaceModal({
   // Custom test data modal toggle (default: false, automatically uses inherited stream)
   const [showCustomDataInput, setShowCustomDataInput] = useState(nodeData?.inputMode === 'manual' || nodeData?.inputMode === 'upload');
   const [manualInputText, setManualInputText] = useState(nodeData?.manualInputText || '{\n  "testValue": 100\n}');
-  const [uploadedData, setUploadedData] = useState(nodeData?.uploadedData || null);
-  const [uploadedFileName, setUploadedFileName] = useState(nodeData?.uploadedFileName || '');
+  // Manage list of uploaded files: [{ id, name, key, rowCount, data }]
+  const [uploadedFileList, setUploadedFileList] = useState(() => {
+    if (Array.isArray(nodeData?.uploadedFileList)) {
+      return nodeData.uploadedFileList;
+    }
+    // Backward compatibility with legacy uploadedData object
+    if (nodeData?.uploadedData && typeof nodeData.uploadedData === 'object') {
+      const keys = Object.keys(nodeData.uploadedData).filter(
+        k => k !== '__schemaMap' && k !== 'sources' && k !== 'allOutputs' && k !== 'data'
+      );
+      if (keys.length > 0) {
+        return keys.map((k, idx) => ({
+          id: `file-legacy-${idx}-${k}`,
+          name: `${k}.json`,
+          key: k,
+          rowCount: Array.isArray(nodeData.uploadedData[k]) ? nodeData.uploadedData[k].length : 1,
+          data: nodeData.uploadedData[k]
+        }));
+      }
+    }
+    return [];
+  });
+
+  // Map uploaded files to inputs dictionary
+  const uploadedData = useMemo(() => {
+    if (!uploadedFileList.length) return null;
+    const map = {};
+    uploadedFileList.forEach((f, idx) => {
+      map[f.key] = f.data;
+      if (idx === 0) {
+        map['data'] = f.data; // First file also mirrored as inputs.data
+      }
+    });
+    return map;
+  }, [uploadedFileList]);
+
+  const uploadedFileName = useMemo(() => {
+    return uploadedFileList.map(f => f.name).join(', ');
+  }, [uploadedFileList]);
+
   const fileUploadInputRef = useRef(null);
 
-  // Studio In-Memory Test File Uploader (Supports CSV, XLSX, JSON)
+  // Helper to generate a clean, safe JS identifier variable key from a filename
+  const sanitizeKey = (name, existingKeys = []) => {
+    let key = name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+    if (!key || /^[0-9]/.test(key)) {
+      key = 'file_' + (key || 'data');
+    }
+    let uniqueKey = key;
+    let counter = 2;
+    while (existingKeys.includes(uniqueKey)) {
+      uniqueKey = `${key}_${counter}`;
+      counter++;
+    }
+    return uniqueKey;
+  };
+
+  // Studio In-Memory Test File Uploader (Supports appending multiple CSV, XLSX, JSON files)
   const handleStudioFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    const parsedFiles = {};
+    const newEntries = [];
     let pending = files.length;
+    const existingKeys = uploadedFileList.map(f => f.key);
 
     files.forEach(file => {
       const fileName = file.name || 'file';
       const isJson = fileName.toLowerCase().endsWith('.json');
       const isXlsx = /\.(xlsx|xls)$/i.test(fileName);
+      const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+      const key = sanitizeKey(fileName, [...existingKeys, ...newEntries.map(entry => entry.key)]);
+
+      const onDataParsed = (parsedData) => {
+        const rowCount = Array.isArray(parsedData)
+          ? parsedData.length
+          : (parsedData && typeof parsedData === 'object')
+            ? Object.keys(parsedData).length
+            : 1;
+
+        newEntries.push({
+          id: fileId,
+          name: fileName,
+          key,
+          rowCount,
+          data: parsedData
+        });
+        checkComplete();
+      };
 
       const reader = new FileReader();
       if (isXlsx && typeof window !== 'undefined' && window.XLSX) {
@@ -208,12 +287,11 @@ export default function DeterministicWorkspaceModal({
             const workbook = window.XLSX.read(data, { type: 'array' });
             const firstSheet = workbook.SheetNames[0];
             const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { defval: null });
-            assignFile(fileName, rows);
+            onDataParsed(rows);
           } catch (err) {
             console.warn('XLSX parse error:', err);
-            assignFile(fileName, []);
+            onDataParsed([]);
           }
-          checkComplete();
         };
         reader.readAsArrayBuffer(file);
       } else {
@@ -222,49 +300,65 @@ export default function DeterministicWorkspaceModal({
             const text = ev.target.result;
             if (isJson) {
               const parsed = JSON.parse(text);
-              assignFile(fileName, parsed);
+              onDataParsed(parsed);
             } else {
               const rows = parseCsv(text);
-              assignFile(fileName, rows);
+              onDataParsed(rows);
             }
           } catch (err) {
             console.warn('File read error:', err);
-            assignFile(fileName, []);
+            onDataParsed([]);
           }
-          checkComplete();
         };
         reader.readAsText(file);
       }
     });
 
-    function assignFile(name, data) {
-      const lower = name.toLowerCase();
-      if (/2b|gstr/i.test(lower)) {
-        parsedFiles['gstgr2b'] = data;
-        parsedFiles['gstr2b'] = data;
-      } else if (/pr|purchase/i.test(lower)) {
-        parsedFiles['pr'] = data;
-        parsedFiles['purchase_register'] = data;
-      } else {
-        const cleanKey = name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_');
-        parsedFiles[cleanKey] = data;
-      }
-    }
-
     function checkComplete() {
       pending--;
       if (pending === 0) {
-        const keys = Object.keys(parsedFiles);
-        if (keys.length > 0 && !parsedFiles['data']) {
-          parsedFiles['data'] = parsedFiles['gstgr2b'] || parsedFiles[keys[0]];
-        }
-        setUploadedData(parsedFiles);
-        setUploadedFileName(files.map(f => f.name).join(', '));
+        setUploadedFileList(prev => {
+          const combined = [...prev, ...newEntries];
+          if (onUpdateNode && nodeId) {
+            onUpdateNode(nodeId, { uploadedFileList: combined });
+          }
+          return combined;
+        });
+
         window.dispatchEvent(new CustomEvent('keaos:toast', {
-          detail: { message: `✓ Ingested ${files.length} test file(s) into inputs` }
+          detail: { message: `✓ Added ${newEntries.length} file(s) to input streams` }
         }));
+
+        if (e.target) {
+          e.target.value = '';
+        }
       }
     }
+  };
+
+  // Remove a single uploaded file
+  const handleRemoveFile = (fileId) => {
+    setUploadedFileList(prev => {
+      const updated = prev.filter(f => f.id !== fileId);
+      if (onUpdateNode && nodeId) {
+        onUpdateNode(nodeId, { uploadedFileList: updated });
+      }
+      return updated;
+    });
+    window.dispatchEvent(new CustomEvent('keaos:toast', {
+      detail: { message: 'File removed from input streams' }
+    }));
+  };
+
+  // Clear all uploaded files
+  const handleClearAllFiles = () => {
+    setUploadedFileList([]);
+    if (onUpdateNode && nodeId) {
+      onUpdateNode(nodeId, { uploadedFileList: [] });
+    }
+    window.dispatchEvent(new CustomEvent('keaos:toast', {
+      detail: { message: 'All uploaded files cleared' }
+    }));
   };
 
   // UI & Execution states
@@ -310,22 +404,48 @@ export default function DeterministicWorkspaceModal({
         latencyMs: nodeData.lastLatencyMs || 0
       } : null);
       setExecutionError(null);
+      if (Array.isArray(nodeData?.uploadedFileList)) {
+        setUploadedFileList(nodeData.uploadedFileList);
+      }
     }
   }, [nodeId, isOpen]);
 
-  // Keyboard listener for Escape (exit maximized full page view)
+  // Auto-sync code and language changes to node data with debouncing
+  useEffect(() => {
+    if (!isOpen || !nodeId || !onUpdateNode) return;
+    const timer = setTimeout(() => {
+      onUpdateNode(nodeId, { code, language });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [code, language, isOpen, nodeId, onUpdateNode]);
+
+  // Safe close handler that flushes active state to node
+  const handleCloseModal = () => {
+    if (onUpdateNode && nodeId) {
+      onUpdateNode(nodeId, {
+        name: nodeName,
+        code,
+        language,
+        prompt,
+        operationalBullets
+      });
+    }
+    onClose();
+  };
+
+  // Keyboard listener for Escape (exit maximized or minimized view back to split)
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isZone3Maximized) {
+      if (e.key === 'Escape' && sandboxLayoutMode !== 'split') {
         e.preventDefault();
         e.stopPropagation();
-        setIsZone3Maximized(false);
+        setSandboxLayoutMode('split');
       }
     };
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isOpen, isZone3Maximized]);
+  }, [isOpen, sandboxLayoutMode]);
 
   // ---------------------------------------------------------------------------
   // 1. BRAIN RESOLVER: Inherit connected Agent's model or user-selected override
@@ -531,7 +651,7 @@ export default function DeterministicWorkspaceModal({
       return {
         ...upstreamInfo.payload,
         ...uploadedData,
-        data: uploadedData.data !== undefined ? uploadedData.data : (uploadedData.gstgr2b || uploadedData.pr || upstreamInfo.payload.data)
+        data: uploadedData.data !== undefined ? uploadedData.data : upstreamInfo.payload.data
       };
     }
     if (!showCustomDataInput) {
@@ -544,17 +664,16 @@ export default function DeterministicWorkspaceModal({
     }
   }, [showCustomDataInput, upstreamInfo.payload, uploadedData, manualInputText]);
 
-  // Inspect incoming variable keys for 1-click copying
+  // Inspect incoming variable keys for 1-click copying (Zero hardcoding: only exposed if stream or file exists)
   const availableInputKeys = useMemo(() => {
     const keys = new Set();
-    keys.add('data');
-    if (uploadedData && typeof uploadedData === 'object') {
-      Object.keys(uploadedData).forEach(k => {
-        if (k !== '__schemaMap' && k !== 'sources' && k !== 'allOutputs') {
-          keys.add(k);
-        }
-      });
-    }
+
+    // 1. Keys from uploaded files
+    uploadedFileList.forEach(f => {
+      keys.add(f.key);
+    });
+
+    // 2. Keys from upstream connected nodes
     if (upstreamInfo.sources.length === 1) {
       const singleOut = upstreamInfo.sources[0].output;
       if (singleOut && typeof singleOut === 'object' && !Array.isArray(singleOut)) {
@@ -566,10 +685,15 @@ export default function DeterministicWorkspaceModal({
       upstreamInfo.sources.forEach(s => {
         keys.add(s.name.replace(/[^a-zA-Z0-9_]/g, '_'));
       });
-      keys.add('allOutputs');
     }
+
+    // 3. Only expose generic 'data' if an actual stream or file exists
+    if (uploadedFileList.length > 0 || upstreamInfo.sources.length > 0) {
+      keys.add('data');
+    }
+
     return Array.from(keys);
-  }, [upstreamInfo, uploadedData]);
+  }, [upstreamInfo, uploadedFileList]);
 
   // Auto-init starter code if blank
   useEffect(() => {
@@ -740,7 +864,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
    - The code executes directly in the KEAOS Deterministic Box with 0 LLM token cost at runtime.
    - For JavaScript: define a \`function process(inputs, state)\` or \`async function process(inputs, state)\`.
      - In-Memory Data Streams: The function receives \`inputs\` (e.g., \`inputs.data\`, \`inputs.tableA\`, \`inputs.pr\`, etc.) and a persistent \`state\` object.
-     - Interactive File Selection & Ingestion: If the user requests file processing (e.g., reading Excel files like GSTR2B and Purchase Register PR, CSVs, or JSON), write complete, self-contained JavaScript code utilizing modern Web APIs (\`window.showOpenFilePicker()\` or dynamic file inputs) and the built-in SheetJS \`XLSX\` library (e.g., \`const workbook = XLSX.read(data, { type: 'array' })\`, \`XLSX.utils.sheet_to_json(sheet)\`). SheetJS in JS delivers in-memory DataFrame-grade performance directly inside the browser isolate.
+     - Interactive File Selection & Ingestion: If the user requests file processing (e.g., reading Excel spreadsheets, CSVs, or JSON), write complete, self-contained JavaScript code utilizing modern Web APIs (\`window.showOpenFilePicker()\` or dynamic file inputs) and the built-in SheetJS \`XLSX\` library (e.g., \`const workbook = XLSX.read(data, { type: 'array' })\`, \`XLSX.utils.sheet_to_json(sheet)\`). SheetJS in JS delivers in-memory DataFrame-grade performance directly inside the browser isolate.
      - Standard Web APIs (fetch, crypto, Blob, URL, RegExp, Math, Date) and \`console.log(...)\` are fully supported.
      - Always provide fallback sample data when \`inputs\` is empty so clicking RUN immediately succeeds without errors.
    - For Python: define \`def process(inputs):\` returning transformed records or dicts. Standard libraries (pandas, math, re, json, datetime) are supported.
@@ -1043,7 +1167,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
         e.preventDefault();
         handleExecute();
       } else if (e.key === 'Escape') {
-        onClose();
+        handleCloseModal();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -1127,6 +1251,55 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
     (typeof executionResult.output === 'string' || typeof executionResult.output === 'number' || typeof executionResult.output === 'boolean');
 
   const codeLineCount = useMemo(() => (code || '').split('\n').length, [code]);
+
+  // 3-Button Layout Control: Minimize | Split View | Maximize (Icon-only, no text)
+  const renderLayoutControls = () => (
+    <div className={`flex items-center p-0.5 rounded-[6px] border ${
+      isDarkMode ? 'bg-black/40 border-slate-700/60' : 'bg-slate-200/80 border-slate-300'
+    }`}>
+      {/* 1. Minimize (Chat takes over entire sandbox) */}
+      <button
+        type="button"
+        onClick={() => setSandboxLayoutMode('minimized')}
+        className={`p-1 rounded-[4px] transition-all cursor-pointer flex items-center justify-center ${
+          sandboxLayoutMode === 'minimized'
+            ? isDarkMode ? 'bg-[#00338D] text-white shadow-xs' : 'bg-[#00338D] text-white shadow-xs'
+            : isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-300/60'
+        }`}
+        title="Minimize Sandbox (Chat takes over full width)"
+      >
+        <Minus className="w-3.5 h-3.5" />
+      </button>
+
+      {/* 2. Split View (Dual-panel side by side) */}
+      <button
+        type="button"
+        onClick={() => setSandboxLayoutMode('split')}
+        className={`p-1 rounded-[4px] transition-all cursor-pointer flex items-center justify-center ${
+          sandboxLayoutMode === 'split'
+            ? isDarkMode ? 'bg-[#00338D] text-white shadow-xs' : 'bg-[#00338D] text-white shadow-xs'
+            : isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-300/60'
+        }`}
+        title="Split View (Chat & Sandbox)"
+      >
+        <Columns2 className="w-3.5 h-3.5" />
+      </button>
+
+      {/* 3. Maximize (Sandbox takes over full page) */}
+      <button
+        type="button"
+        onClick={() => setSandboxLayoutMode('maximized')}
+        className={`p-1 rounded-[4px] transition-all cursor-pointer flex items-center justify-center ${
+          sandboxLayoutMode === 'maximized'
+            ? isDarkMode ? 'bg-[#00338D] text-white shadow-xs' : 'bg-[#00338D] text-white shadow-xs'
+            : isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-300/60'
+        }`}
+        title="Maximize Sandbox (Full width)"
+      >
+        <Maximize2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md transition-all duration-300 ${
@@ -1312,7 +1485,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
             </button>
 
             <button
-              onClick={onClose}
+              onClick={handleCloseModal}
               className="p-1 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
               title="Close Workspace (Esc)"
             >
@@ -1332,10 +1505,10 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
           {/* ----------------------------------------------------------------------- */}
           {/* LEFT PANEL: 2-WAY TOGGLE [💬 CHAT (PRIMARY)] ⟷ [💻 CODE EDITOR]        */}
           {/* ----------------------------------------------------------------------- */}
-          {!isZone3Maximized && (
+          {sandboxLayoutMode !== 'maximized' && (
             <div 
-              style={{ width: `${leftWidthPercent}%` }}
-              className={`flex flex-col h-full overflow-hidden transition-none border-r border-[#2C3242] shrink-0 ${
+              style={{ width: sandboxLayoutMode === 'minimized' ? '100%' : `${leftWidthPercent}%` }}
+              className={`flex flex-col h-full overflow-hidden transition-none shrink-0 ${
                 isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
               }`}
             >
@@ -1399,8 +1572,9 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                     className="hidden"
                   />
                   <span className="text-[10px] font-mono text-slate-500">
-                    {upstreamInfo.sources.length} Stream{upstreamInfo.sources.length !== 1 ? 's' : ''}
+                    {upstreamInfo.sources.length + uploadedFileList.length} Stream{(upstreamInfo.sources.length + uploadedFileList.length) !== 1 ? 's' : ''}
                   </span>
+                  {sandboxLayoutMode === 'minimized' && renderLayoutControls()}
                 </div>
               </div>
 
@@ -1411,31 +1585,109 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                   <div className={`p-2.5 border-b text-[11px] font-mono shrink-0 ${
                     isDarkMode ? 'bg-[#181920]/80 border-[#2C3242]' : 'bg-white border-slate-200'
                   }`}>
+                    {/* Header Row: Label & Actions */}
                     <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1.5">
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Available Input Streams:</span>
-                        {uploadedFileName && (
-                          <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 max-w-[140px] truncate" title={uploadedFileName}>
-                            ✓ {uploadedFileName}
+                        {uploadedFileList.length > 0 && (
+                          <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
+                            {uploadedFileList.length} file{uploadedFileList.length !== 1 ? 's' : ''} uploaded
                           </span>
                         )}
                       </div>
-                      <span className="text-[9px] text-[#0091DA] hidden xl:inline">Click pill to copy</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {availableInputKeys.map(k => (
+
+                      <div className="flex items-center gap-1.5">
+                        {/* + Add More Files Button */}
                         <button
-                          key={k}
-                          onClick={() => handleCopyVar(k)}
-                          className={`px-2 py-0.5 text-[10px] font-mono rounded-full border flex items-center gap-1 transition-colors cursor-pointer ${
-                            isDarkMode ? 'bg-[#141720] border-[#383C4A] text-slate-300 hover:border-[#0091DA]' : 'bg-slate-50 border-slate-300 text-slate-700'
+                          type="button"
+                          onClick={() => fileUploadInputRef.current?.click()}
+                          className={`px-2 py-0.5 text-[9px] font-mono rounded border flex items-center gap-1 transition-all cursor-pointer ${
+                            isDarkMode
+                              ? 'bg-[#00338D]/20 border-[#0091DA]/40 text-[#0091DA] hover:bg-[#00338D]/40 hover:text-white'
+                              : 'bg-blue-50 border-blue-300 text-[#00338D] hover:bg-blue-100'
                           }`}
+                          title="Add more CSV, Excel, or JSON files to inputs"
                         >
-                          <span>inputs.{k}</span>
-                          {copiedKey === k ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-50" />}
+                          <Upload className="w-2.5 h-2.5" />
+                          <span>+ Add Files</span>
                         </button>
-                      ))}
+
+                        {/* Clear All Files Button if > 1 file */}
+                        {uploadedFileList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={handleClearAllFiles}
+                            className="px-1.5 py-0.5 text-[9px] font-mono text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded border border-red-500/20 cursor-pointer transition-all"
+                            title="Remove all uploaded files"
+                          >
+                            Clear All
+                          </button>
+                        )}
+
+                        <span className="text-[9px] text-slate-500 hidden xl:inline">Click pill to copy</span>
+                      </div>
                     </div>
+
+                    {/* Uploaded Files Chips with Remove (X) Button */}
+                    {uploadedFileList.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2 pb-1.5 border-b border-[#2C3242]/40">
+                        {uploadedFileList.map(f => (
+                          <div
+                            key={f.id}
+                            className={`px-2 py-0.5 text-[10px] font-mono rounded-[6px] border flex items-center gap-1.5 ${
+                              isDarkMode ? 'bg-[#0B0F19] border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                            }`}
+                          >
+                            <FileSpreadsheet className="w-3 h-3 text-emerald-400 shrink-0" />
+                            <span className="font-semibold truncate max-w-[130px]" title={f.name}>{f.name}</span>
+                            <span className="text-[9px] opacity-60">({f.rowCount} rows)</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyVar(f.key)}
+                              className="px-1 py-0.2 text-[9px] rounded bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 cursor-pointer flex items-center gap-0.5"
+                              title={`Copy inputs.${f.key}`}
+                            >
+                              <span>inputs.{f.key}</span>
+                              {copiedKey === f.key ? <Check className="w-2 h-2 text-emerald-300" /> : <Copy className="w-2 h-2 opacity-50" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFile(f.id);
+                              }}
+                              className="p-0.5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded cursor-pointer transition-colors"
+                              title={`Remove ${f.name}`}
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Variable Pills (or No Streams message if empty) */}
+                    {availableInputKeys.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-[9px] text-slate-500 mr-1">Variable Pills:</span>
+                        {availableInputKeys.map(k => (
+                          <button
+                            key={k}
+                            onClick={() => handleCopyVar(k)}
+                            className={`px-2 py-0.5 text-[10px] font-mono rounded-full border flex items-center gap-1 transition-colors cursor-pointer ${
+                              isDarkMode ? 'bg-[#141720] border-[#383C4A] text-slate-300 hover:border-[#0091DA]' : 'bg-slate-50 border-slate-300 text-slate-700'
+                            }`}
+                          >
+                            <span>inputs.{k}</span>
+                            {copiedKey === k ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-50" />}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between text-xs text-slate-500 py-0.5">
+                        <span className="text-[10px] text-slate-400 italic">No input streams connected. Connect an upstream node on canvas or click "+ Add Files" above to load data.</span>
+                      </div>
+                    )}
                   </div>
 
 
@@ -1594,7 +1846,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                       type="text"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Ask Co-Pilot to write code, cash flow engine, tax reconciler... (Enter to send)"
+                      placeholder="Ask Co-Pilot to write code, transform data, build UI widgets... (Enter to send)"
                       className={`flex-1 px-3 py-2 text-xs font-mono rounded-[10px] border outline-none transition-colors ${
                         isDarkMode ? 'bg-[#0B0F19] border-[#2C3242] text-white focus:border-[#0091DA]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#00338D]'
                       }`}
@@ -1669,6 +1921,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                     <textarea
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
+                      onBlur={() => onUpdateNode && nodeId && onUpdateNode(nodeId, { code, language })}
                       spellCheck={false}
                       className="flex-1 p-3 text-xs font-mono bg-transparent text-emerald-300 outline-none resize-none leading-relaxed overflow-auto selection:bg-[#00338D]"
                       placeholder="async function process(inputs, state) { ... }"
@@ -1693,39 +1946,41 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
           )}
 
           {/* ========================================================================= */}
-          {/* DRAGGABLE DIVIDER RESIZER HANDLE (col-resize)                             */}
+          {/* SLEEK DRAGGABLE DIVIDER RESIZER HANDLE (col-resize)                       */}
           {/* ========================================================================= */}
-          {!isZone3Maximized && (
+          {sandboxLayoutMode === 'split' && (
             <div
               onMouseDown={handleMouseDown}
-              className="w-2 hover:w-2.5 bg-[#2C3242] hover:bg-[#0091DA] active:bg-[#0091DA] cursor-col-resize transition-all duration-150 flex items-center justify-center shrink-0 group relative z-20 select-none"
+              className="w-2 -mx-1 cursor-col-resize flex items-center justify-center shrink-0 group relative z-30 select-none"
               title="Drag horizontally to resize panels"
             >
-              <div className="w-0.5 h-10 bg-slate-500 group-hover:bg-white group-active:bg-white rounded-full transition-colors" />
+              <div className={`w-px group-hover:w-[2px] group-active:w-[2px] h-full transition-all duration-150 ${
+                isDarkMode 
+                  ? 'bg-[#2C3242] group-hover:bg-[#0091DA] group-active:bg-[#0091DA]' 
+                  : 'bg-slate-300 group-hover:bg-[#0091DA] group-active:bg-[#0091DA]'
+              }`} />
             </div>
           )}
 
           {/* ========================================================================= */}
           {/* RIGHT PANEL: LIVE BROWSER SANDBOX & DEVTOOLS                              */}
           {/* ========================================================================= */}
-          <div 
-            style={{ width: isZone3Maximized ? '100%' : `${100 - leftWidthPercent}%` }}
-            className={`flex flex-col h-full overflow-hidden transition-none ${
-              isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
-            }`}>
+          {sandboxLayoutMode !== 'minimized' && (
+            <div 
+              style={{ width: sandboxLayoutMode === 'maximized' ? '100%' : `${100 - leftWidthPercent}%` }}
+              className={`flex flex-col h-full overflow-hidden transition-none ${
+                isDarkMode ? 'bg-[#141720]' : 'bg-[#F8FAFC]'
+              }`}>
             {/* Zone 3 Tabs & Action Bar */}
             <div className={`px-3 py-2 border-b flex items-center justify-between shrink-0 ${
               isDarkMode ? 'bg-[#181920] border-[#2C3242]' : 'bg-slate-100 border-slate-200'
             }`}>
               <div className="flex items-center gap-1">
                 {(() => {
-                  const hasTaxReconSummary = Boolean(executionResult?.output?.summary && (executionResult.output.summary.totalGstrRows !== undefined || executionResult.output.summary.exactMatchCount !== undefined));
                   const hasHtmlOutput = Boolean(executionResult?.output?.html || (typeof executionResult?.output === 'string' && (executionResult.output.trim().startsWith('<') || executionResult.output.trim().startsWith('<!DOCTYPE'))));
-                  const browserTabLabel = hasTaxReconSummary 
-                    ? 'Tax Recon Dashboard' 
-                    : hasHtmlOutput 
-                      ? 'Live Web View' 
-                      : (executionResult?.output?.summary?.title || executionResult?.output?.title || 'Live Browser');
+                  const browserTabLabel = hasHtmlOutput 
+                    ? 'Live Web View' 
+                    : (executionResult?.output?.summary?.title || executionResult?.output?.title || nodeName || 'Live Dashboard');
 
                   const zone3Tabs = [
                     { id: 'browser', label: browserTabLabel, icon: hasHtmlOutput ? Globe : LayoutDashboard },
@@ -1793,20 +2048,8 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                   </>
                 )}
 
-                {/* Full-Page Maximize / Restore Toggle */}
-                <button
-                  type="button"
-                  onClick={() => setIsZone3Maximized(prev => !prev)}
-                  className={`px-2 py-1 text-[10px] font-mono rounded-[6px] border flex items-center gap-1 transition-all cursor-pointer ${
-                    isZone3Maximized
-                      ? 'bg-[#EAAA00]/20 text-[#EAAA00] border-[#EAAA00]/40 font-bold'
-                      : isDarkMode ? 'bg-[#181920] border-slate-700 text-slate-300 hover:text-white hover:border-slate-500' : 'bg-white border-slate-300 text-slate-700'
-                  }`}
-                  title={isZone3Maximized ? 'Restore 3-Zone View (Esc)' : 'Extend Live Browser to Full Page'}
-                >
-                  {isZone3Maximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-                  <span>{isZone3Maximized ? 'Restore' : 'Maximize'}</span>
-                </button>
+                {/* 3-Button Layout Control: Minimize | Split View | Maximize (Icon-only) */}
+                {renderLayoutControls()}
               </div>
             </div>
 
@@ -1844,9 +2087,6 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                   const rawOut = executionResult.output;
                   const summary = rawOut?.summary || (typeof rawOut === 'object' && !Array.isArray(rawOut) ? rawOut : null);
                   const htmlContent = rawOut?.html || (typeof rawOut === 'string' && (rawOut.trim().startsWith('<') || rawOut.trim().startsWith('<!DOCTYPE')) ? rawOut : null);
-                  
-                  // Check if this is the specialized Indirect Tax Reconciliation workflow
-                  const isTaxRecon = summary && (summary.totalGstrRows !== undefined || summary.exactMatchCount !== undefined);
 
                   if (htmlContent) {
                     // Mode 1: HTML Sandboxed Webview Mode
@@ -1895,291 +2135,6 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                       </div>
                     );
                   }
-
-                  if (isTaxRecon) {
-                    const allRecords = Array.isArray(rawOut?.records) 
-                      ? rawOut.records 
-                      : outputRows;
-                  
-                  // Filter records by selected category
-                  const filteredRecords = allRecords.filter(r => {
-                    if (dashboardFilter === 'EXACT') return r.matchType === 'EXACT_MATCH';
-                    if (dashboardFilter === 'NEAR') return r.matchType === 'NEAR_MATCH';
-                    if (dashboardFilter === 'TOLERANCE') return r.matchType === 'TOLERANCE_MATCH';
-                    if (dashboardFilter === 'SPLIT') return r.matchType?.startsWith('SPLIT');
-                    if (dashboardFilter === 'MISSING_PR') return r.matchType === 'MISMATCH_GSTR_ONLY';
-                    if (dashboardFilter === 'MISSING_GSTR') return r.matchType === 'MISMATCH_PR_ONLY';
-                    if (dashboardFilter === 'MISMATCHES') return r.matchType?.startsWith('MISMATCH');
-                    return true;
-                  }).filter(r => {
-                    if (!outputSearch) return true;
-                    const q = outputSearch.toLowerCase();
-                    return (
-                      (r.gstin && String(r.gstin).toLowerCase().includes(q)) ||
-                      (r.vendor && String(r.vendor).toLowerCase().includes(q)) ||
-                      (r.invoiceNumber && String(r.invoiceNumber).toLowerCase().includes(q)) ||
-                      (r.status && String(r.status).toLowerCase().includes(q))
-                    );
-                  });
-
-                  return (
-                    <div className="flex-1 flex flex-col overflow-y-auto font-sans space-y-3 pr-1">
-                      {/* Top Header Card */}
-                      <div className={`p-3 border rounded-none flex items-center justify-between shrink-0 ${
-                        isDarkMode ? 'bg-[#0B0F19] border-[#2C3242]' : 'bg-[#F0F4F8] border-[#CBD5E1]'
-                      }`}>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold tracking-wider uppercase text-[#EAAA00]">
-                              Indirect Tax Reconciliation Dashboard
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-[#009A44]/20 text-[#009A44] border border-[#009A44]/40">
-                              {summary.reconciliationRate || '73%'} Auto-Reconciled
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                            GSTR-2B (Govt Tax Portal) ↔ Purchase Register (ERP AP Ledger)
-                          </p>
-                        </div>
-                        <div className="text-right font-mono">
-                          <span className="text-[10px] text-slate-400 block">Execution Latency</span>
-                          <span className="text-xs font-bold text-emerald-400">{executionResult.latencyMs || 0}ms • 0 Tokens</span>
-                        </div>
-                      </div>
-
-                      {/* 7 Core KPI Metric Cards (Strictly per user's specification) */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 shrink-0">
-                        {/* 1. GSTR Rows */}
-                        <div 
-                          onClick={() => setDashboardFilter('ALL')}
-                          className={`p-2 border rounded-none cursor-pointer transition-all ${
-                            dashboardFilter === 'ALL' ? 'border-[#0091DA] ring-1 ring-[#0091DA]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-slate-500' : 'bg-white border-slate-200'
-                          }`}
-                        >
-                          <span className="text-[8px] font-mono uppercase text-slate-400 block">1. GSTR-2B Rows</span>
-                          <span className="text-base font-mono font-bold text-white block mt-0.5">{summary.totalGstrRows}</span>
-                          <span className="text-[8px] text-[#0091DA] font-mono">Portal Total</span>
-                        </div>
-
-                        {/* 2. PR Rows */}
-                        <div 
-                          onClick={() => setDashboardFilter('ALL')}
-                          className={`p-2 border rounded-none cursor-pointer transition-all ${
-                            dashboardFilter === 'ALL' ? 'border-[#0091DA] ring-1 ring-[#0091DA]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-slate-500' : 'bg-white border-slate-200'
-                          }`}
-                        >
-                          <span className="text-[8px] font-mono uppercase text-slate-400 block">2. PR ERP Rows</span>
-                          <span className="text-base font-mono font-bold text-white block mt-0.5">{summary.totalPrRows}</span>
-                          <span className="text-[8px] text-[#0091DA] font-mono">Books Total</span>
-                        </div>
-
-                        {/* 3. Exact Matches */}
-                        <div 
-                          onClick={() => setDashboardFilter('EXACT')}
-                          className={`p-2 border rounded-none cursor-pointer transition-all ${
-                            dashboardFilter === 'EXACT' ? 'border-[#009A44] ring-1 ring-[#009A44]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#009A44]/60' : 'bg-white border-slate-200'
-                          }`}
-                        >
-                          <span className="text-[8px] font-mono uppercase text-[#009A44] block font-bold">3. Exact Matches</span>
-                          <span className="text-base font-mono font-bold text-[#009A44] block mt-0.5">{summary.exactMatchCount}</span>
-                          <span className="text-[8px] text-slate-400 font-mono">100% Direct</span>
-                        </div>
-
-                        {/* 4. Near Matches */}
-                        <div 
-                          onClick={() => setDashboardFilter('NEAR')}
-                          className={`p-2 border rounded-none cursor-pointer transition-all ${
-                            dashboardFilter === 'NEAR' ? 'border-[#00A3A6] ring-1 ring-[#00A3A6]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#00A3A6]/60' : 'bg-white border-slate-200'
-                          }`}
-                        >
-                          <span className="text-[8px] font-mono uppercase text-[#00A3A6] block font-bold">4. Near Matches</span>
-                          <span className="text-base font-mono font-bold text-[#00A3A6] block mt-0.5">{summary.nearMatchCount}</span>
-                          <span className="text-[8px] text-slate-400 font-mono">Normalized Inv</span>
-                        </div>
-
-                        {/* 5. Tolerance Matches */}
-                        <div 
-                          onClick={() => setDashboardFilter('TOLERANCE')}
-                          className={`p-2 border rounded-none cursor-pointer transition-all ${
-                            dashboardFilter === 'TOLERANCE' ? 'border-[#EAAA00] ring-1 ring-[#EAAA00]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#EAAA00]/60' : 'bg-white border-slate-200'
-                          }`}
-                        >
-                          <span className="text-[8px] font-mono uppercase text-[#EAAA00] block font-bold">5. Tolerance Matches</span>
-                          <span className="text-base font-mono font-bold text-[#EAAA00] block mt-0.5">{summary.toleranceMatchCount}</span>
-                          <span className="text-[8px] text-slate-400 font-mono">±30d / ±₹1k</span>
-                        </div>
-
-                        {/* 6. Mismatches */}
-                        <div 
-                          onClick={() => setDashboardFilter('MISMATCHES')}
-                          className={`p-2 border rounded-none cursor-pointer transition-all ${
-                            dashboardFilter === 'MISMATCHES' ? 'border-[#E02424] ring-1 ring-[#E02424]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#E02424]/60' : 'bg-white border-slate-200'
-                          }`}
-                        >
-                          <span className="text-[8px] font-mono uppercase text-[#E02424] block font-bold">6. Mismatches</span>
-                          <span className="text-base font-mono font-bold text-[#E02424] block mt-0.5">{summary.mismatchCount}</span>
-                          <span className="text-[8px] text-slate-400 font-mono">PR:{summary.mismatchesPrOnlyCount} | GSTR:{summary.mismatchesGstrOnlyCount}</span>
-                        </div>
-
-                        {/* 7. Ambiguous Matches */}
-                        <div 
-                          onClick={() => setDashboardFilter('SPLIT')}
-                          className={`p-2 border rounded-none cursor-pointer transition-all ${
-                            dashboardFilter === 'SPLIT' ? 'border-[#483698] ring-1 ring-[#483698]' : isDarkMode ? 'bg-[#0E131F] border-[#2C3242] hover:border-[#483698]/60' : 'bg-white border-slate-200'
-                          }`}
-                        >
-                          <span className="text-[8px] font-mono uppercase text-[#A78BFA] block font-bold">7. Ambiguous</span>
-                          <span className="text-base font-mono font-bold text-[#A78BFA] block mt-0.5">{summary.ambiguousMatchCount}</span>
-                          <span className="text-[8px] text-slate-400 font-mono">Split 1:N / N:1</span>
-                        </div>
-                      </div>
-
-                      {/* Financial ITC Exposure Banner */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 shrink-0">
-                        <div className="p-2.5 border rounded-none bg-emerald-950/20 border-emerald-500/40 flex items-center justify-between font-mono">
-                          <div>
-                            <span className="text-[9px] uppercase text-emerald-400 block font-bold">Reconciled Eligible ITC (Sec 16 Admissible)</span>
-                            <span className="text-lg font-bold text-emerald-300">₹{Number(summary.totalReconciledItc || 0).toLocaleString('en-IN')}</span>
-                          </div>
-                          <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full font-bold">GSTR-3B Ready</span>
-                        </div>
-
-                        <div className="p-2.5 border rounded-none bg-rose-950/20 border-rose-500/40 flex items-center justify-between font-mono">
-                          <div>
-                            <span className="text-[9px] uppercase text-rose-400 block font-bold">At-Risk Disallowed ITC (DRC-01C Exposure)</span>
-                            <span className="text-lg font-bold text-rose-300">₹{Number(summary.totalAtRiskItc || 0).toLocaleString('en-IN')}</span>
-                          </div>
-                          <span className="text-[10px] px-2 py-0.5 bg-rose-500/20 text-rose-400 rounded-full font-bold">Vendor Notice Required</span>
-                        </div>
-                      </div>
-
-                      {/* Category Filter Pills & Search */}
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800 shrink-0">
-                        <div className="flex items-center gap-1 overflow-x-auto py-1">
-                          {[
-                            { id: 'ALL', label: `All (${allRecords.length})` },
-                            { id: 'EXACT', label: `Exact (${summary.exactMatchCount})`, color: 'text-emerald-400' },
-                            { id: 'NEAR', label: `Near (${summary.nearMatchCount})`, color: 'text-teal-400' },
-                            { id: 'TOLERANCE', label: `Tolerance (${summary.toleranceMatchCount})`, color: 'text-amber-400' },
-                            { id: 'SPLIT', label: `Split (${summary.splitMatchCount})`, color: 'text-violet-400' },
-                            { id: 'MISSING_GSTR', label: `Missing in GSTR (${summary.mismatchesPrOnlyCount})`, color: 'text-rose-400' },
-                            { id: 'MISSING_PR', label: `Missing in PR (${summary.mismatchesGstrOnlyCount})`, color: 'text-orange-400' }
-                          ].map(f => (
-                            <button
-                              key={f.id}
-                              onClick={() => setDashboardFilter(f.id)}
-                              className={`px-2 py-0.5 text-[10px] font-mono rounded-full border transition-all whitespace-nowrap cursor-pointer ${
-                                dashboardFilter === f.id
-                                  ? 'bg-blue-600 text-white border-blue-500 font-bold'
-                                  : 'bg-black/30 border-slate-700 text-slate-400 hover:text-white'
-                              }`}
-                            >
-                              <span className={f.color}>{f.label}</span>
-                            </button>
-                          ))}
-                        </div>
-
-                        <div className="relative shrink-0">
-                          <Search className="w-3 h-3 text-slate-500 absolute left-2 top-2" />
-                          <input
-                            type="text"
-                            value={outputSearch}
-                            onChange={(e) => setOutputSearch(e.target.value)}
-                            placeholder="Filter records..."
-                            className="pl-6 pr-2 py-0.5 text-[10px] font-mono border border-slate-700 bg-black/40 rounded text-white outline-none w-36"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Audit Table */}
-                      <div className="flex-1 border border-slate-700/60 rounded-none overflow-auto min-h-[220px]">
-                        <table className="w-full text-left text-xs font-mono divide-y divide-slate-800">
-                          <thead className="bg-[#0B0F19] sticky top-0 z-10">
-                            <tr>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-400">#</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Status</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Supplier GSTIN</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Vendor Name</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Invoice #</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Date / Lag</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300 text-right">GSTR Val</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300 text-right">PR Val</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300 text-right">Delta</th>
-                              <th className="py-2 px-2 text-[9px] font-bold uppercase text-slate-300">Compliance Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/60">
-                            {filteredRecords.map((r, idx) => {
-                              const isExact = r.matchType === 'EXACT_MATCH';
-                              const isNear = r.matchType === 'NEAR_MATCH';
-                              const isTolerance = r.matchType === 'TOLERANCE_MATCH';
-                              const isSplit = r.matchType?.startsWith('SPLIT');
-                              const isMissingGstr = r.matchType === 'MISMATCH_PR_ONLY';
-
-                              return (
-                                <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                  <td className="py-1.5 px-2 text-[10px] text-slate-500">{idx + 1}</td>
-                                  <td className="py-1.5 px-2 whitespace-nowrap">
-                                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${
-                                      isExact ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' :
-                                      isNear ? 'bg-teal-500/20 text-teal-400 border-teal-500/40' :
-                                      isTolerance ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' :
-                                      isSplit ? 'bg-violet-500/20 text-violet-400 border-violet-500/40' :
-                                      isMissingGstr ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' :
-                                      'bg-orange-500/20 text-orange-400 border-orange-500/40'
-                                    }`}>
-                                      {r.status || r.matchType}
-                                    </span>
-                                  </td>
-                                  <td className="py-1.5 px-2 text-[10px] text-slate-300 font-mono font-bold">{r.gstin}</td>
-                                  <td className="py-1.5 px-2 text-[10px] text-slate-200 truncate max-w-[120px]">{r.vendor}</td>
-                                  <td className="py-1.5 px-2 text-[10px] text-slate-300 font-mono truncate max-w-[130px]">{r.invoiceNumber}</td>
-                                  <td className="py-1.5 px-2 text-[9px] text-slate-400 whitespace-nowrap">
-                                    {r.invoiceDate} {r.dateDiff && r.dateDiff !== '0d' && r.dateDiff !== 'N/A' && (
-                                      <span className="text-amber-400 font-bold ml-1">({r.dateDiff})</span>
-                                    )}
-                                  </td>
-                                  <td className="py-1.5 px-2 text-[10px] font-mono text-right text-slate-300">
-                                    ₹{Number(r.gstrValue || 0).toLocaleString('en-IN')}
-                                  </td>
-                                  <td className="py-1.5 px-2 text-[10px] font-mono text-right text-slate-300">
-                                    ₹{Number(r.prValue || 0).toLocaleString('en-IN')}
-                                  </td>
-                                  <td className="py-1.5 px-2 text-[10px] font-mono text-right whitespace-nowrap">
-                                    {r.deltaAmount !== 0 ? (
-                                      <span className={r.deltaAmount > 0 ? 'text-rose-400 font-bold' : 'text-amber-400 font-bold'}>
-                                        {r.deltaAmount > 0 ? `+₹${r.deltaAmount}` : `-₹${Math.abs(r.deltaAmount)}`}
-                                      </span>
-                                    ) : (
-                                      <span className="text-emerald-400">₹0</span>
-                                    )}
-                                  </td>
-                                  <td className="py-1.5 px-2 text-[9px] text-slate-400">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="truncate max-w-[180px]">{r.action || r.notes}</span>
-                                      {isSplit && (
-                                        <button
-                                          onClick={() => {
-                                            window.dispatchEvent(new CustomEvent('keaos:toast', {
-                                              detail: { message: `✓ Split match approved by auditor for ${r.invoiceNumber}` }
-                                            }));
-                                          }}
-                                          className="px-1.5 py-0.5 text-[8px] rounded font-mono bg-violet-600/30 text-violet-300 border border-violet-500 hover:bg-violet-600/50 cursor-pointer shrink-0"
-                                        >
-                                          Confirm
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                }
 
                 // Mode 3: Adaptive Universal Executive Dashboard (For ANY future workflow!)
                 const allRecords = Array.isArray(rawOut?.records)
@@ -2528,9 +2483,42 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                       </p>
                     </div>
 
-                    {/* 3 Quick-Launch Interactive Cards */}
+                    {/* 3 Universal Computer Science Blueprints */}
                     <div className="grid grid-cols-1 gap-2.5 pt-2">
-                      {/* 1. Cash Flow Simulator */}
+                      {/* Blueprint 1: Stream Transformer & Schema Normalizer */}
+                      <div className={`p-3.5 border transition-all ${
+                        isDarkMode ? 'bg-[#141720] border-[#2C3242] hover:border-[#0091DA]/60' : 'bg-slate-50 border-slate-200'
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-none bg-[#0091DA]/20 text-[#0091DA] flex items-center justify-center shrink-0">
+                                <Database className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="text-xs font-bold text-white tracking-wide">
+                                Stream Transformer & Schema Normalizer
+                              </span>
+                              <span className="px-1.5 py-0.2 text-[8px] font-mono rounded-full bg-[#0091DA]/10 text-[#0091DA] border border-[#0091DA]/30">
+                                Data Pipeline
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 leading-normal pl-8">
+                              Ingests raw records, normalizes property keys, sanitizes data types, computes volume aggregations, and emits clean tabular data.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleExecute(STREAM_TRANSFORMER_PROCESS_CODE)}
+                            disabled={isExecuting}
+                            className="px-3 py-1.5 text-[11px] font-mono font-bold bg-[#0091DA] hover:bg-[#007BB8] text-white rounded-none flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
+                          >
+                            {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
+                            <span>Launch Pipeline</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Blueprint 2: High-Speed Multi-Key Dataset Joiner */}
                       <div className={`p-3.5 border transition-all ${
                         isDarkMode ? 'bg-[#141720] border-[#2C3242] hover:border-[#EAAA00]/60' : 'bg-slate-50 border-slate-200'
                       }`}>
@@ -2538,32 +2526,32 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                           <div className="space-y-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <div className="w-6 h-6 rounded-none bg-[#EAAA00]/20 text-[#EAAA00] flex items-center justify-center shrink-0">
-                                <DollarSign className="w-3.5 h-3.5" />
+                                <Layers className="w-3.5 h-3.5" />
                               </div>
                               <span className="text-xs font-bold text-white tracking-wide">
-                                Cash Flow & Runway Simulator
+                                High-Speed Dataset Joiner & Reconciler
                               </span>
                               <span className="px-1.5 py-0.2 text-[8px] font-mono rounded-full bg-[#EAAA00]/10 text-[#EAAA00] border border-[#EAAA00]/30">
-                                Financial Dashboard
+                                O(N) Hash Join
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-400 leading-normal pl-8">
-                              Real-time SaaS cash engine with revenue & payroll sliders, net burn calculations, runway alerts, and a 12-month trajectory projection table.
+                              Performs high-performance in-memory hash join between Table A and Table B on common keys, calculating deltas and orphan buckets.
                             </p>
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleExecute(CASH_FLOW_PROCESS_CODE)}
+                            onClick={() => handleExecute(KEY_JOINER_PROCESS_CODE)}
                             disabled={isExecuting}
                             className="px-3 py-1.5 text-[11px] font-mono font-bold bg-[#EAAA00] hover:bg-[#D99B00] text-black rounded-none flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
                           >
                             {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
-                            <span>Launch Simulator</span>
+                            <span>Launch Joiner</span>
                           </button>
                         </div>
                       </div>
 
-                      {/* 2. Indirect Tax Reconciliation */}
+                      {/* Blueprint 3: Interactive Reactive UI & Canvas Applet */}
                       <div className={`p-3.5 border transition-all ${
                         isDarkMode ? 'bg-[#141720] border-[#2C3242] hover:border-[#009A44]/60' : 'bg-slate-50 border-slate-200'
                       }`}>
@@ -2574,24 +2562,24 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                                 <TrendingUp className="w-3.5 h-3.5" />
                               </div>
                               <span className="text-xs font-bold text-white tracking-wide">
-                                Indirect Tax Reconciliation Engine
+                                Interactive Reactive UI & Canvas Applet
                               </span>
                               <span className="px-1.5 py-0.2 text-[8px] font-mono rounded-full bg-[#009A44]/10 text-[#009A44] border border-[#009A44]/30">
-                                Enterprise Audit
+                                Generative UI
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-400 leading-normal pl-8">
-                              Multi-criteria matching engine (Exact, Fuzzy Vendor, Date Drift, Split-Invoices) reconciling GSTR-2B against ERP Purchase Register.
+                              Generates a rich, interactive HTML5 / Canvas widget rendered directly in the sandboxed browser preview iframe with live DOM controls.
                             </p>
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleExecute(TAX_RECON_PROCESS_CODE)}
+                            onClick={() => handleExecute(REACTIVE_UI_PROCESS_CODE)}
                             disabled={isExecuting}
                             className="px-3 py-1.5 text-[11px] font-mono font-bold bg-[#009A44] hover:bg-[#008139] text-white rounded-none flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
                           >
                             {isExecuting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
-                            <span>Launch Engine</span>
+                            <span>Launch Applet</span>
                           </button>
                         </div>
                       </div>
@@ -2722,6 +2710,7 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
 
             </div>
           </div>
+          )}
 
         </div>
 

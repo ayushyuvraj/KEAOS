@@ -8,7 +8,6 @@
 
 import { PROVIDERS, getProviderCredential, getAllConfiguredProviders, getOllamaConfig } from './llmService';
 import { GoogleGenAI } from '@google/genai';
-import { TAX_RECON_PROCESS_CODE } from '../constants/sampleTaxReconData';
 import { CASH_FLOW_PROCESS_CODE } from '../constants/sampleCashFlowData';
 
 /**
@@ -47,13 +46,6 @@ export function getOfflineFallbackCode(prompt, language, sampleInputs) {
   if (p.includes('cash flow') || p.includes('cashflow') || p.includes('runway') || (p.includes('financial') && (p.includes('dashboard') || p.includes('simulator') || p.includes('engine')))) {
     if (lang === 'javascript') {
       return CASH_FLOW_PROCESS_CODE;
-    }
-  }
-
-  // 1.5 Indirect Tax & GSTR-2B vs Purchase Register 5-Tier Reconciliation Engine
-  if (p.includes('gstr') || p.includes('2b') || p.includes('purchase register') || (p.includes('tax') && p.includes('recon')) || p.includes('indirect tax') || p.includes('gst recon')) {
-    if (lang === 'javascript') {
-      return TAX_RECON_PROCESS_CODE;
     }
   }
 
