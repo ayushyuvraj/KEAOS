@@ -53,8 +53,8 @@
           "id": "node-deterministic-6823",
           "type": "deterministicNode",
           "position": {
-            "x": 662.8692699490663,
-            "y": 139.11714770797965
+            "x": 927.3000961549822,
+            "y": 56.97480595039727
           },
           "data": {
             "name": "Range 2",
@@ -461,6 +461,32 @@
           },
           "selected": false,
           "dragging": false
+        },
+        {
+          "id": "node-ingest-6666",
+          "type": "ingestionNode",
+          "position": {
+            "x": 776.2647855178851,
+            "y": 86.18139259559679
+          },
+          "data": {
+            "title": "Universal Enterprise Dataset Ingestion",
+            "fileName": "",
+            "fileSize": "",
+            "fileType": "auto",
+            "content": "",
+            "status": "empty",
+            "ingestMode": "bilateral",
+            "slotA": null,
+            "slotB": null,
+            "isExpanded": false
+          },
+          "measured": {
+            "width": 560,
+            "height": 420
+          },
+          "selected": true,
+          "dragging": false
         }
       ],
       "edges": [
@@ -481,10 +507,24 @@
             "strokeDasharray": "6 4"
           },
           "id": "xy-edge__agent-core-8175tools-out-node-deterministic-6823in"
+        },
+        {
+          "id": "edge-ingest-6667",
+          "source": "node-ingest-6666",
+          "sourceHandle": "data-out",
+          "target": "agent-core-8175",
+          "targetHandle": "tools-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#0091DA",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
         }
       ],
       "createdAt": 1793175155405,
-      "updatedAt": 1793201760368,
+      "updatedAt": 1793202707590,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -492,7 +532,7 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 2,
+        "nodeCount": 3,
         "agentCount": 1,
         "mcpCount": 0,
         "modelCount": 0,
@@ -9090,8 +9130,8 @@
         "id": "node-deterministic-6823",
         "type": "deterministicNode",
         "position": {
-          "x": 662.8692699490663,
-          "y": 139.11714770797965
+          "x": 927.3000961549822,
+          "y": 56.97480595039727
         },
         "data": {
           "name": "Range 2",
@@ -9498,6 +9538,32 @@
         },
         "selected": false,
         "dragging": false
+      },
+      {
+        "id": "node-ingest-6666",
+        "type": "ingestionNode",
+        "position": {
+          "x": 776.2647855178851,
+          "y": 86.18139259559679
+        },
+        "data": {
+          "title": "Universal Enterprise Dataset Ingestion",
+          "fileName": "",
+          "fileSize": "",
+          "fileType": "auto",
+          "content": "",
+          "status": "empty",
+          "ingestMode": "bilateral",
+          "slotA": null,
+          "slotB": null,
+          "isExpanded": false
+        },
+        "measured": {
+          "width": 560,
+          "height": 420
+        },
+        "selected": true,
+        "dragging": false
       }
     ],
     "edges": [
@@ -9518,6 +9584,20 @@
           "strokeDasharray": "6 4"
         },
         "id": "xy-edge__agent-core-8175tools-out-node-deterministic-6823in"
+      },
+      {
+        "id": "edge-ingest-6667",
+        "source": "node-ingest-6666",
+        "sourceHandle": "data-out",
+        "target": "agent-core-8175",
+        "targetHandle": "tools-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#0091DA",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
       }
     ],
     "activeUseCase": {
@@ -14797,5 +14877,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793201761187
+  "syncedAt": 1793202717216
 }
