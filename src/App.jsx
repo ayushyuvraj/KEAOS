@@ -1684,8 +1684,21 @@ export default function App() {
         const existing = nds.filter(n => n.type === 'deterministicNode');
         count = existing.length + 1;
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 280 : 480 + (existing.length * 40);
-        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y + 120 + (existing.length * 60) : 300 + (existing.length * 40);
+        const isToolsSlot = targetSlot?.slotId === 'tools-in' || targetSlot?.slotId === 'tools-out' || targetSlot?.categoryId === 'tools';
+        
+        let xPos, yPos;
+        if (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) {
+          if (isToolsSlot) {
+            xPos = agentNode.position.x - 260 - (existing.length * 25);
+            yPos = agentNode.position.y - 40 + (existing.length * 45);
+          } else {
+            xPos = agentNode.position.x + 280;
+            yPos = agentNode.position.y + 120 + (existing.length * 60);
+          }
+        } else {
+          xPos = 480 + (existing.length * 40);
+          yPos = 300 + (existing.length * 40);
+        }
 
         const newNode = {
           id: newNodeId,
@@ -1707,17 +1720,23 @@ export default function App() {
       });
 
       if (targetAgentId) {
+        const isToolsSlot = targetSlot?.slotId === 'tools-in' || targetSlot?.slotId === 'tools-out' || targetSlot?.categoryId === 'tools';
         setEdges((eds) => [
           ...eds,
           {
             id: `edge-${targetAgentId}-to-${newNodeId}`,
             source: targetAgentId,
-            sourceHandle: 'out',
+            sourceHandle: isToolsSlot ? 'tools-out' : 'out',
             target: newNodeId,
             targetHandle: 'in',
             type: 'deletable',
-            animated: false,
-            style: { stroke: '#EAAA00', strokeWidth: 2.0, strokeDasharray: '4 4' }
+            animated: true,
+            style: { 
+              stroke: isToolsSlot ? '#0091DA' : '#EAAA00', 
+              strokeWidth: 2.4, 
+              strokeDasharray: isToolsSlot ? '6 4' : '4 4' 
+            },
+            data: { isToolBinding: isToolsSlot, isBidirectional: isToolsSlot }
           }
         ]);
       }

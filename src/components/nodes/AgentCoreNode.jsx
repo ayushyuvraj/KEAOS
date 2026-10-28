@@ -184,6 +184,25 @@ export default function AgentCoreNode({ id, data, selected }) {
               }}
               title="Hands: Tools Ingestion"
             />
+            <Handle
+              type="source"
+              position={Position.Top}
+              id="tools-out"
+              onClick={(e) => handleSlotClick(e, 'tools-in', 'tools')}
+              style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '9999px',
+                top: 0,
+                left: 0,
+                transform: 'none',
+                opacity: 0,
+                cursor: 'crosshair',
+                border: 'none',
+                background: 'transparent'
+              }}
+              title="Hands: Tools Connection & Invocation"
+            />
           </div>
           {/* Stem line down to chassis */}
           <div className={`w-[1.5px] h-1.5 transition-colors ${

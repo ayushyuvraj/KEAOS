@@ -201,6 +201,21 @@ ${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.refe
     await logStep('Skills Processing', `No skill pillars connected on canvas. Using standard agent directives.`, 100, 'skills');
   }
 
+  // Step 6b: Compile Attached Deterministic Tools (0 Tokens)
+  const deterministicPillars = attachedPillars.filter(p => p.isDeterministic || p.nodeData?.isDeterministicNode || p.config?.isDeterministic);
+  let deterministicToolsDirective = '';
+  if (deterministicPillars.length > 0) {
+    deterministicToolsDirective = `\n[CONNECTED DETERMINISTIC LOGIC TOOLS (0 TOKENS COMPUTE)]:\nThe following zero-token deterministic execution tools are available to this agent:\n${deterministicPillars.map((dp, idx) => {
+      const dTools = dp.tools || [];
+      const primaryTool = dTools[0] || {
+        name: (dp.name || 'deterministic_tool').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
+        description: dp.config?.ruleSummary || dp.config?.prompt || dp.name
+      };
+      return `• Tool ${idx + 1}: \`${primaryTool.name}\` — ${primaryTool.description || dp.config?.ruleSummary || dp.name || 'Deterministic logic execution'}`;
+    }).join('\n')}\n`;
+    await logStep('Deterministic Tools Bound', `Active Zero-Token Engines: Bound ${deterministicPillars.length} deterministic tools (${deterministicPillars.map(d => d.name).join(', ')}).`, 140, 'tools');
+  }
+
   // Step 7: Framework Runtime Harness & Orchestration Protocol
   const frameworkName = {
     'google-adk': 'Google ADK (Agent Development Kit)',
@@ -215,7 +230,7 @@ ${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.refe
   await logStep(`Framework Harness (${frameworkName})`, `Binding agent execution graph to ${frameworkName} runtime specifications, tool contracts, and schema validators.`, 120, 'gateway');
 
   const frameworkDirective = `\n[TARGET ARCHITECTURAL FRAMEWORK: ${frameworkName.toUpperCase()}]:\nThis agent is compiled under the ${frameworkName} orchestration pattern. Enforce the execution contracts, tool definitions, and schema conventions of this framework.\n`;
-  const fullSystemPrompt = `${agentConfig.prompt || 'You are an institutional executive meeting intelligence assistant.'}\n${frameworkDirective}${policiesDirectiveText}${skillsDirectiveText}`;
+  const fullSystemPrompt = `${agentConfig.prompt || 'You are an institutional executive meeting intelligence assistant.'}\n${frameworkDirective}${policiesDirectiveText}${skillsDirectiveText}${deterministicToolsDirective}`;
 
   await logStep(`Core Model (${PROVIDERS[provider]?.name || provider})`, `Executing live API request to ${modelDisplayName}...`, 240, 'model');
 

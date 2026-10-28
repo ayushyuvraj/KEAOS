@@ -14,6 +14,7 @@ import {
   JIRA_OFFICIAL_ACTIONS,
   NEO4J_OFFICIAL_ACTIONS
 } from '../constants/mcpOfficialCatalogs';
+import { executeDeterministicTask } from '../services/deterministicRunner';
 
 /**
  * Universal Tool Call Parser: extracts tool calls from LLM response.
@@ -245,6 +246,29 @@ export async function executeUniversalAgentChat({
   }
   const allSavedMcps = getRegisteredMcpServers();
   const availableToolsMap = new Map();
+
+  // Register all attached Deterministic Logic Boxes as zero-token execution tools
+  const deterministicPillars = attachedPillars.filter(p => p.isDeterministic || p.nodeData?.isDeterministicNode || p.config?.isDeterministic);
+  if (deterministicPillars.length > 0) {
+    for (const dp of deterministicPillars) {
+      const dTools = dp.tools || [];
+      const primaryTool = dTools[0] || {
+        name: (dp.name || 'deterministic_tool').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
+        description: dp.config?.ruleSummary || dp.config?.prompt || dp.name
+      };
+      const cleanToolName = primaryTool.name.toLowerCase().replace(/[-]/g, '_');
+      availableToolsMap.set(cleanToolName, {
+        tool: primaryTool,
+        toolName: cleanToolName,
+        isDeterministic: true,
+        deterministicNode: dp,
+        nodeData: dp.nodeData || dp.config || {},
+        isBlocked: false,
+        isServerDeactivated: false
+      });
+    }
+    logStep('Deterministic Tools', `Bound ${deterministicPillars.length} deterministic execution tools (${deterministicPillars.map(d => d.name).join(', ')}).`, 'tools', deterministicPillars[0]?.id, 70);
+  }
 
   if (mcpNodes.length > 0) {
     // Ensure every MCP node has valid transport, tools, and credentials merged from registry
@@ -520,6 +544,31 @@ When calling an authorized tool with all required arguments:
 - Once the tool executes, summarize the verified outcome with actual links, IDs, and details.`
     : '';
 
+  let deterministicToolsInstruction = '';
+  if (deterministicPillars.length > 0) {
+    deterministicToolsInstruction = `\n[CONNECTED DETERMINISTIC LOGIC TOOLS (0 TOKENS COMPUTE)]:
+The following zero-token deterministic tools are connected to your Tools port. You can invoke them whenever you need mathematical calculation, tabular transformation, deterministic filtering, or task execution:
+${deterministicPillars.map((dp, idx) => {
+  const dTools = dp.tools || [];
+  const primaryTool = dTools[0] || {
+    name: (dp.name || 'deterministic_tool').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
+    description: dp.config?.ruleSummary || dp.config?.prompt || dp.name
+  };
+  return `• Tool ${idx + 1}: \`${primaryTool.name}\` — ${primaryTool.description || dp.config?.ruleSummary || dp.name || 'Deterministic logic execution'}`;
+}).join('\n')}
+
+When you need to execute one of these deterministic tasks, output a tool call using the standard tool call format:
+<<<TOOL_CALL>>>
+{
+  "tool": "<tool_name>",
+  "arguments": {
+    "inputs": "<data or parameters to process>"
+  }
+}
+<<<END_TOOL_CALL>>>
+When the tool completes, its verified result will be provided back to you so you can conclude your task.`;
+  }
+
   const toolsInstruction = toolNodes.length > 0
     ? `\n[CLIENT EXECUTION TOOLS]:\n${toolNodes.map(t => `- ${t.name}: Execution tool accessible.`).join('\n')}`
     : '';
@@ -538,7 +587,7 @@ ${p.customDirective ? `- Custom Directive: ${p.customDirective}\n` : ''}${p.refe
 OPERATIONAL INTEGRITY NOTE: Enterprise policies govern data redaction (PII, SSN, secret masking) in text outputs and DO NOT restrict tool execution rights. All connected MCP tools are fully permitted and authorized for autonomous execution.`
     : '';
 
-  const fullSystemPrompt = `${baseInstruction}${frameworkContext}${policyInstruction}${skillsInstruction}${mcpInstruction}${toolsInstruction}${memoryInstruction}
+  const fullSystemPrompt = `${baseInstruction}${frameworkContext}${policyInstruction}${skillsInstruction}${mcpInstruction}${toolsInstruction}${deterministicToolsInstruction}${memoryInstruction}
 
 Respond clearly, concisely, and authoritatively. If formatting structured outputs or recommendations, use GitHub-flavored markdown with clean lists, tables, and bold headers.`;
 
@@ -615,22 +664,89 @@ Respond clearly, concisely, and authoritatively. If formatting structured output
         break;
       }
 
-      // 7.2 Tool Call Detected: Execute Real MCP Action
+      // 7.2 Tool Call Detected: Execute Real Action
       const { toolName, args } = toolCall;
       const toolEntry = findToolInCatalog(toolName, availableToolsMap);
 
       if (!toolEntry) {
         logStep(
           'Tool Lookup Failed',
-          `Tool "${toolName}" was not found across connected MCP servers.`,
-          'mcp',
+          `Tool "${toolName}" was not found across connected tools or MCP servers.`,
+          'tools',
           null,
           50
         );
         currentMessages.push({ role: 'assistant', content: rawResponseText });
         currentMessages.push({
           role: 'user',
-          content: `[TOOL EXECUTION ERROR]: Tool "${toolName}" is not registered on any connected MCP server. Available tools: ${Array.from(availableToolsMap.keys()).join(', ')}. Please use an available tool or explain the limitation to the user.`
+          content: `[TOOL EXECUTION ERROR]: Tool "${toolName}" is not registered on any connected tool or MCP server. Available tools: ${Array.from(availableToolsMap.keys()).join(', ')}. Please use an available tool or explain the limitation to the user.`
+        });
+        continue;
+      }
+
+      // Check if this is a zero-token Deterministic Logic Tool!
+      if (toolEntry.isDeterministic) {
+        const detNode = toolEntry.deterministicNode;
+        const detNodeData = detNode?.nodeData || detNode?.data || toolEntry.nodeData || {};
+        const detName = detNodeData?.name || detNode?.name || toolName;
+        const detNodeId = detNode?.id || detNode?.nodeId;
+
+        logStep(
+          'Deterministic Tool Invocation',
+          `Executing deterministic logic "${detName}" with 0 tokens...`,
+          'tools',
+          detNodeId,
+          150
+        );
+
+        if (typeof window !== 'undefined' && detNodeId) {
+          window.dispatchEvent(new CustomEvent('keaos:deterministic-executing', { 
+            detail: { nodeId: detNodeId } 
+          }));
+        }
+
+        let detResult = null;
+        try {
+          detResult = await executeDeterministicTask({
+            language: detNodeData.language || 'python',
+            code: detNodeData.code || '',
+            prompt: detNodeData.prompt || detNodeData.ruleSummary || '',
+            ruleSummary: detNodeData.ruleSummary || detNodeData.prompt || '',
+            inputData: args || {},
+            inputs: args || {},
+            nodeId: detNodeId || 'tool'
+          });
+        } catch (err) {
+          detResult = { success: false, error: err.message, output: null, latencyMs: 5 };
+        }
+
+        if (typeof window !== 'undefined' && detNodeId) {
+          window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
+            detail: {
+              nodeId: detNodeId,
+              success: detResult.success !== false,
+              latencyMs: detResult.latencyMs || 5,
+              output: detResult.output
+            }
+          }));
+        }
+
+        logStep(
+          'Deterministic Tool Complete',
+          `Completed "${detName}" in ${detResult.latencyMs || 5}ms (0 tokens consumed).`,
+          'tools',
+          detNodeId,
+          150
+        );
+
+        const outputStr = typeof detResult.output === 'object'
+          ? JSON.stringify(detResult.output, null, 2)
+          : String(detResult.output !== undefined && detResult.output !== null ? detResult.output : (detResult.error || 'Execution completed with 0 output'));
+
+        currentMessages.push({ role: 'assistant', content: rawResponseText });
+        currentMessages.push({
+          role: 'user',
+          content: `[DETERMINISTIC TOOL RESULT ("${toolName}") — 0 TOKENS CONSUMED]:\n${outputStr}\n\nIngest this exact deterministic computation and continue synthesizing your conclusion.`
         });
         continue;
       }

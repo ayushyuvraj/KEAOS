@@ -65,16 +65,42 @@ export default function MeetingSimulator({
   const [copiedHash, setCopiedHash] = useState(false);
   const [executionMode, setExecutionMode] = useState('local'); // 'local' | 'cluster'
 
-  const attachedPillars = nodes
-    .filter(n => n.type === 'pillar' && !n.data?.isDeactivated)
-    .map(n => ({
-      id: n.data.toolId || n.id,
-      name: n.data.name,
-      type: n.data.pillarType,
-      config: n.data.config || {},
-      customDirective: n.data.customDirective || null,
-      referenceDoc: n.data.referenceDoc || null
-    }));
+  const attachedPillars = [
+    ...nodes
+      .filter(n => n.type === 'pillar' && !n.data?.isDeactivated)
+      .map(n => ({
+        id: n.data.toolId || n.id,
+        name: n.data.name,
+        type: n.data.pillarType,
+        config: n.data.config || {},
+        customDirective: n.data.customDirective || null,
+        referenceDoc: n.data.referenceDoc || null
+      })),
+    ...nodes
+      .filter(n => n.type === 'deterministicNode' && !n.data?.isDeactivated)
+      .map(n => ({
+        id: n.id,
+        nodeId: n.id,
+        name: n.data?.name || 'Deterministic Logic Box',
+        type: 'tools',
+        isDeterministic: true,
+        nodeData: n.data,
+        config: {
+          language: n.data?.language || 'python',
+          code: n.data?.code,
+          prompt: n.data?.ruleSummary || n.data?.prompt || '',
+          ruleSummary: n.data?.ruleSummary || n.data?.prompt || ''
+        },
+        tools: [
+          {
+            name: (n.data?.name || 'deterministic_tool').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
+            displayName: n.data?.name || 'Deterministic Logic Box',
+            description: n.data?.ruleSummary || n.data?.prompt || 'Deterministic mathematical and logic computation (0 tokens)',
+            isDeterministic: true
+          }
+        ]
+      }))
+  ];
 
   const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
 

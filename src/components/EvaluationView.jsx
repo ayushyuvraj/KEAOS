@@ -97,7 +97,7 @@ export default function EvaluationView({
   };
 
   const attachedPillars = useMemo(() => {
-    return nodes
+    const regular = (nodes || [])
       .filter(n => n.type === 'pillar')
       .map(n => ({
         id: n.data.toolId || n.id,
@@ -105,6 +105,21 @@ export default function EvaluationView({
         type: n.data.pillarType,
         config: n.data.config
       }));
+
+    const deterministic = (nodes || [])
+      .filter(n => n.type === 'deterministicNode')
+      .map(n => ({
+        id: n.id,
+        name: n.data?.name || 'Deterministic Logic Box',
+        type: 'tools',
+        isDeterministic: true,
+        config: {
+          language: n.data?.language || 'python',
+          prompt: n.data?.ruleSummary || n.data?.prompt || ''
+        }
+      }));
+
+    return [...regular, ...deterministic];
   }, [nodes]);
 
   // Current active run and compare run

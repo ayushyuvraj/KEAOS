@@ -315,6 +315,22 @@ export default function DeterministicNode({ id, data, selected }) {
         className={isRunning ? 'animate-pulse ring-4 ring-amber-400/80' : ''}
         title="Input Data Stream"
       />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="in-out"
+        style={{
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '12px',
+          height: '12px',
+          left: '-6px',
+          opacity: 0,
+          cursor: 'crosshair',
+          zIndex: 31
+        }}
+        title="Output Stream / Tool Return"
+      />
 
       {/* Exactly 1 Output Handle (Right - Flush Diamond) */}
       <Handle
@@ -335,6 +351,22 @@ export default function DeterministicNode({ id, data, selected }) {
         }}
         className={isRunning ? 'animate-pulse ring-4 ring-amber-400/80' : ''}
         title="Output Data Stream"
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="out-in"
+        style={{
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '12px',
+          height: '12px',
+          right: '-6px',
+          opacity: 0,
+          cursor: 'crosshair',
+          zIndex: 31
+        }}
+        title="Input Stream / Tool Invocation"
       />
 
       {/* Header Row: Icon + Editable Title on left, Status Dot + Action buttons on right */}

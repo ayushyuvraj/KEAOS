@@ -16,7 +16,15 @@ export default function CodeExportView({ activeUseCase, nodes, edges = [] }) {
     model: nodes.find(n => n.data?.pillarType === 'model')?.data,
     skills: nodes.filter(n => n.data?.pillarType === 'skills').map(n => n.data),
     mcp: nodes.filter(n => n.data?.pillarType === 'mcp').map(n => n.data),
-    tools: nodes.filter(n => n.data?.pillarType === 'tools' || n.type === 'ingestionNode').map(n => n.data),
+    tools: [
+      ...nodes.filter(n => n.data?.pillarType === 'tools' || n.type === 'ingestionNode').map(n => n.data),
+      ...nodes.filter(n => n.type === 'deterministicNode').map(n => ({
+        ...n.data,
+        isDeterministic: true,
+        name: n.data?.name || 'Deterministic Logic Box',
+        prompt: n.data?.ruleSummary || n.data?.prompt || ''
+      }))
+    ],
     gateway: nodes.filter(n => n.data?.pillarType === 'gateway').map(n => n.data),
     memory: nodes.filter(n => n.data?.pillarType === 'memory').map(n => n.data),
     policies: nodes.filter(n => n.data?.pillarType === 'policies').map(n => n.data)

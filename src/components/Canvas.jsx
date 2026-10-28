@@ -1843,8 +1843,16 @@ function CanvasInner({
       if (sourceNode.type === 'deterministicNode' && targetNode.type === 'deterministicNode') {
         return true;
       }
-      // 2. Deterministic box feeding Agent Core (or reverse)
+      // 2. Deterministic box feeding Agent Core or attached as Tool (Single clean bidirectional wire)
       if ((sourceNode.type === 'deterministicNode' && targetNode.type === 'agentCore') || (sourceNode.type === 'agentCore' && targetNode.type === 'deterministicNode')) {
+        const alreadyConnected = (edges || []).some(
+          ed => (ed.source === source && ed.target === target) || (ed.source === target && ed.target === source)
+        );
+        if (alreadyConnected) return false;
+        return true;
+      }
+      // Tool pillar nodes connecting to/from Deterministic Box
+      if ((sourceNode.data?.pillarType === 'tools' && targetNode.type === 'deterministicNode') || (sourceNode.type === 'deterministicNode' && targetNode.data?.pillarType === 'tools')) {
         return true;
       }
       // 3. Ingestion Node feeding Deterministic box
@@ -1968,6 +1976,7 @@ function CanvasInner({
       let edgeSourceHandle = params.sourceHandle;
       let edgeTargetHandle = params.targetHandle;
 
+      let isAgentToolsBinding = false;
       if (sourceNode?.data?.pillarType === 'gateway' && targetNode?.data?.pillarType === 'mcp') {
         // Dragged from Gateway to MCP: normalize edge so MCP is source and Gateway is target
         edgeSource = targetNode.id;
@@ -1990,9 +1999,32 @@ function CanvasInner({
         strokeWidth = 2.4;
         strokeDasharray = '5 4';
       } else if ((sourceNode?.type === 'agentCore' && targetNode?.type === 'deterministicNode') || (sourceNode?.type === 'deterministicNode' && targetNode?.type === 'agentCore')) {
-        strokeColor = '#EAAA00'; // Amber Gold for Agent to Deterministic pipeline
-        strokeWidth = 2.4;
-        strokeDasharray = '5 4';
+        // Check if connecting via Tools port
+        const isToolsSlot =
+          params.sourceHandle === 'tools-out' || params.sourceHandle === 'tools-in' || params.sourceHandle === 'tool-in' ||
+          params.targetHandle === 'tools-in' || params.targetHandle === 'tools-out' || params.targetHandle === 'tool-in';
+
+        if (isToolsSlot) {
+          isAgentToolsBinding = true;
+          if (sourceNode.type === 'agentCore') {
+            edgeSource = sourceNode.id;
+            edgeSourceHandle = 'tools-out';
+            edgeTarget = targetNode.id;
+            edgeTargetHandle = 'in';
+          } else {
+            edgeSource = targetNode.id;
+            edgeSourceHandle = 'tools-out';
+            edgeTarget = sourceNode.id;
+            edgeTargetHandle = 'in';
+          }
+          strokeColor = '#0091DA'; // Pacific Blue for Tools
+          strokeWidth = 2.4;
+          strokeDasharray = '6 4';
+        } else {
+          strokeColor = '#EAAA00'; // Amber Gold for Agent to Deterministic pipeline
+          strokeWidth = 2.4;
+          strokeDasharray = '5 4';
+        }
       } else if (targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2' || sourceNode?.type === 'outputNode' || sourceNode?.type === 'outputNodeV2') {
         strokeColor = '#10B981'; // Emerald accent for data/output pipelines
       } else if (sourceNode?.type === 'ingestionNode' || params.targetHandle === 'tools-in' || params.targetHandle === 'tool-in' || sourceNode?.data?.pillarType === 'tools') {
@@ -2056,7 +2088,11 @@ function CanvasInner({
             type: 'deletable',
             animated: true,
             style: { stroke: strokeColor, strokeWidth, strokeDasharray },
-            data: { onDelete: handleDeleteEdge }
+            data: { 
+              onDelete: handleDeleteEdge,
+              isToolBinding: isAgentToolsBinding,
+              isBidirectional: isAgentToolsBinding
+            }
           },
           eds
         )
@@ -2100,7 +2136,7 @@ function CanvasInner({
       if (sourceNode?.type === 'agentCore') {
         if (handleId === 'model-in') {
           targetCategory = 'model';
-        } else if (handleId === 'tools-in' || handleId === 'tool-in') {
+        } else if (handleId === 'tools-in' || handleId === 'tool-in' || handleId === 'tools-out') {
           targetCategory = 'tools';
         } else if (handleId === 'mcp-in') {
           targetCategory = 'gateway';
@@ -2378,6 +2414,25 @@ function CanvasInner({
               if (edge.targetHandle === 'mcp-in' && sourceNode?.data?.pillarType === 'gateway' && !isSourceDeactivated) {
                 agentCounts.gateway = (agentCounts.gateway || 0) + 1;
               }
+            }
+            if (
+              !isSourceDeactivated &&
+              (edge.targetHandle === 'tools-in' || edge.targetHandle === 'tools-out' || edge.targetHandle === 'tool-in' || edge.data?.isToolBinding) &&
+              sourceNode?.type === 'deterministicNode'
+            ) {
+              agentCounts.tools += 1;
+            }
+          }
+
+          if (edge.source === n.id) {
+            const targetNode = nodeLookup[edge.target];
+            const isTargetDeactivated = !!targetNode?.data?.isDeactivated;
+            if (
+              !isTargetDeactivated &&
+              (edge.sourceHandle === 'tools-out' || edge.sourceHandle === 'tools-in' || edge.sourceHandle === 'tool-in' || edge.data?.isToolBinding) &&
+              targetNode?.type === 'deterministicNode'
+            ) {
+              agentCounts.tools += 1;
             }
           }
         });

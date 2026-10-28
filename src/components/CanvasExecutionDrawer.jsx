@@ -357,6 +357,49 @@ export default function CanvasExecutionDrawer({
       }
     });
 
+    // Also resolve all Deterministic Boxes connected to this agent's Tools port
+    const detEdges = (edges || []).filter(e =>
+      (e.source === activeAgentNode.id && (e.sourceHandle === 'tools-out' || e.sourceHandle === 'tools-in' || e.sourceHandle === 'tool-in' || e.data?.isToolBinding) && nodeLookup[e.target]?.type === 'deterministicNode') ||
+      (e.target === activeAgentNode.id && (e.targetHandle === 'tools-in' || e.targetHandle === 'tools-out' || e.targetHandle === 'tool-in' || e.data?.isToolBinding) && nodeLookup[e.source]?.type === 'deterministicNode')
+    );
+
+    detEdges.forEach(e => {
+      const otherId = e.source === activeAgentNode.id ? e.target : e.source;
+      const detNode = nodeLookup[otherId];
+      if (!detNode || detNode.data?.isDeactivated) return;
+
+      const rawTitle = detNode.data?.name || 'Deterministic Logic Box';
+      const cleanSnakeName = rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || `deterministic_tool_${detNode.id.slice(-4)}`;
+      const summaryText = detNode.data?.ruleSummary || detNode.data?.prompt || detNode.data?.summary || 'Deterministic mathematical and logic computation (0 tokens)';
+
+      directPillars.push({
+        id: detNode.id,
+        nodeId: detNode.id,
+        name: rawTitle,
+        displayName: rawTitle,
+        type: 'tools',
+        isDeterministic: true,
+        deterministicNode: detNode,
+        nodeData: detNode.data,
+        config: {
+          language: detNode.data?.language || 'python',
+          code: detNode.data?.code,
+          prompt: summaryText,
+          ruleSummary: summaryText
+        },
+        tools: [
+          {
+            name: cleanSnakeName,
+            displayName: rawTitle,
+            description: summaryText,
+            isDeterministic: true,
+            nodeId: detNode.id
+          }
+        ],
+        handle: 'tools-in'
+      });
+    });
+
     // Merge and de-duplicate by id
     const seen = new Set();
     const result = [];

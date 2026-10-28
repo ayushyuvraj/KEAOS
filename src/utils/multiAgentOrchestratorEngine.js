@@ -16,6 +16,7 @@ import {
   NEO4J_OFFICIAL_ACTIONS,
   OUTLOOK_OFFICIAL_ACTIONS
 } from '../constants/mcpOfficialCatalogs';
+import { executeDeterministicTask } from '../services/deterministicRunner';
 
 /**
  * Universal SHA-256 Audit Fingerprint Generator (W3C WebCrypto)
@@ -139,7 +140,7 @@ export function getAgentAttachedPillars(agentId, nodes = [], edges = []) {
   const incomingEdges = (edges || []).filter(e => e.target === agentId);
   const nodeLookup = Object.fromEntries((nodes || []).map(n => [n.id, n]));
   
-  return incomingEdges.map(e => {
+  const regularPillars = incomingEdges.map(e => {
     const src = nodeLookup[e.source];
     if (!src || src.data?.isDeactivated || src.type === 'agentCore') return null;
     return {
@@ -160,6 +161,59 @@ export function getAgentAttachedPillars(agentId, nodes = [], edges = []) {
       data: src.data
     };
   }).filter(Boolean);
+
+  // Also resolve all Deterministic Boxes connected to this agent's Tools port
+  const detEdges = (edges || []).filter(e =>
+    (e.source === agentId && (e.sourceHandle === 'tools-out' || e.sourceHandle === 'tools-in' || e.sourceHandle === 'tool-in' || e.data?.isToolBinding) && nodeLookup[e.target]?.type === 'deterministicNode') ||
+    (e.target === agentId && (e.targetHandle === 'tools-in' || e.targetHandle === 'tools-out' || e.targetHandle === 'tool-in' || e.data?.isToolBinding) && nodeLookup[e.source]?.type === 'deterministicNode')
+  );
+
+  const deterministicPillars = detEdges.map(e => {
+    const otherId = e.source === agentId ? e.target : e.source;
+    const detNode = nodeLookup[otherId];
+    if (!detNode || detNode.data?.isDeactivated) return null;
+
+    const rawTitle = detNode.data?.name || 'Deterministic Logic Box';
+    const cleanSnakeName = rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || `deterministic_tool_${detNode.id.slice(-4)}`;
+    const summaryText = detNode.data?.ruleSummary || detNode.data?.prompt || detNode.data?.summary || 'Deterministic mathematical and logic computation (0 tokens)';
+
+    return {
+      id: detNode.id,
+      nodeId: detNode.id,
+      name: rawTitle,
+      displayName: rawTitle,
+      type: 'tools',
+      isDeterministic: true,
+      deterministicNode: detNode,
+      nodeData: detNode.data,
+      config: {
+        language: detNode.data?.language || 'python',
+        code: detNode.data?.code,
+        prompt: summaryText,
+        ruleSummary: summaryText
+      },
+      tools: [
+        {
+          name: cleanSnakeName,
+          displayName: rawTitle,
+          description: summaryText,
+          isDeterministic: true,
+          nodeId: detNode.id
+        }
+      ],
+      handle: 'tools-in',
+      data: detNode.data
+    };
+  }).filter(Boolean);
+
+  // De-duplicate by id
+  const seen = new Set();
+  const allAttached = [...regularPillars, ...deterministicPillars];
+  return allAttached.filter(p => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  });
 }
 
 /**
@@ -383,6 +437,29 @@ async function executeSingleAgentInPipeline({
     }
   }
 
+  // Register all attached Deterministic Logic Boxes as zero-token execution tools
+  const deterministicPillars = attachedPillars.filter(p => p.isDeterministic || p.nodeData?.isDeterministicNode || p.config?.isDeterministic);
+  if (deterministicPillars.length > 0) {
+    for (const dp of deterministicPillars) {
+      const dTools = dp.tools || [];
+      const primaryTool = dTools[0] || {
+        name: (dp.name || 'deterministic_tool').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
+        description: dp.config?.ruleSummary || dp.config?.prompt || dp.name
+      };
+      const cleanToolName = primaryTool.name.toLowerCase().replace(/[-]/g, '_');
+      availableToolsMap.set(cleanToolName, {
+        tool: primaryTool,
+        toolName: cleanToolName,
+        isDeterministic: true,
+        deterministicNode: dp,
+        nodeData: dp.nodeData || dp.config || {},
+        isBlocked: false,
+        isServerDeactivated: false
+      });
+    }
+    await logStep('Deterministic Tools', `Bound ${deterministicPillars.length} deterministic tools (${deterministicPillars.map(d => d.name).join(', ')}).`, 'tools', 180);
+  }
+
   if (mcpNodes.length > 0) {
     await logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} active MCP servers with ${availableToolsMap.size} capabilities (${mcpNodes.map(m => m.displayName || m.name).join(', ')}).`, 'mcp', 320);
   }
@@ -402,6 +479,31 @@ async function executeSingleAgentInPipeline({
         return txt;
       }).join('\n')}`
     : '';
+
+  let deterministicToolsInstruction = '';
+  if (deterministicPillars.length > 0) {
+    deterministicToolsInstruction = `\n[CONNECTED DETERMINISTIC LOGIC TOOLS (0 TOKENS COMPUTE)]:
+The following zero-token deterministic tools are connected to your Tools port. You can invoke them whenever you need mathematical calculation, tabular transformation, deterministic filtering, or task execution:
+${deterministicPillars.map((dp, idx) => {
+  const dTools = dp.tools || [];
+  const primaryTool = dTools[0] || {
+    name: (dp.name || 'deterministic_tool').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
+    description: dp.config?.ruleSummary || dp.config?.prompt || dp.name
+  };
+  return `• Tool ${idx + 1}: \`${primaryTool.name}\` — ${primaryTool.description || dp.config?.ruleSummary || dp.name || 'Deterministic logic execution'}`;
+}).join('\n')}
+
+When you need to execute one of these deterministic tasks, output a tool call using the standard tool call format:
+<<<TOOL_CALL>>>
+{
+  "tool": "<tool_name>",
+  "arguments": {
+    "inputs": "<data or parameters to process>"
+  }
+}
+<<<END_TOOL_CALL>>>
+When the tool completes, its verified result will be provided back to you so you can conclude your task.`;
+  }
 
   const mcpContext = mcpNodes.length > 0
     ? `\n[CONNECTED MCP PROTOCOL SERVERS & CAPABILITY PERIMETER (Zero-Trust Gateway Enforced)]:
@@ -447,7 +549,7 @@ When summarizing or extracting data from incoming emails and attachments:
 
   const memoryPrompt = memoryContext ? `\n[HISTORICAL EPISODIC MEMORY]:\n${memoryContext}` : '';
 
-  const fullSystemPrompt = `${basePrompt}${roleContext}${skillsContext}${mcpContext}${memoryPrompt}
+  const fullSystemPrompt = `${basePrompt}${roleContext}${skillsContext}${mcpContext}${deterministicToolsInstruction}${memoryPrompt}
 
 You are participating in an institutional multi-agent workflow. Review all upstream agent handoffs, execute your specific task thoroughly, and format your conclusions clearly with headers, key findings, and action items.`;
 
@@ -541,11 +643,76 @@ You are participating in an institutional multi-agent workflow. Review all upstr
       const toolEntry = findToolInCatalog(toolName, availableToolsMap);
 
       if (!toolEntry) {
-        await logStep('Tool Lookup Failed', `Tool "${toolName}" was not found across connected MCP servers.`, 'mcp', 100);
+        await logStep('Tool Lookup Failed', `Tool "${toolName}" was not found across connected tools or MCP servers.`, 'tools', 100);
         currentMessages.push({ role: 'assistant', content: rawText });
         currentMessages.push({
           role: 'user',
-          content: `[TOOL EXECUTION ERROR]: Tool "${toolName}" is not registered on any connected MCP server. Available tools: ${Array.from(availableToolsMap.keys()).join(', ')}.`
+          content: `[TOOL EXECUTION ERROR]: Tool "${toolName}" is not registered on any connected tool or MCP server. Available tools: ${Array.from(availableToolsMap.keys()).join(', ')}.`
+        });
+        continue;
+      }
+
+      // Check if this is a zero-token Deterministic Logic Tool!
+      if (toolEntry.isDeterministic) {
+        const detNode = toolEntry.deterministicNode;
+        const detNodeData = detNode?.nodeData || detNode?.data || toolEntry.nodeData || {};
+        const detName = detNodeData?.name || detNode?.name || toolName;
+        const detNodeId = detNode?.id || detNode?.nodeId;
+
+        await logStep(
+          'Deterministic Tool Invocation',
+          `Executing deterministic logic "${detName}" with 0 tokens...`,
+          'tools',
+          180
+        );
+
+        if (typeof window !== 'undefined' && detNodeId) {
+          window.dispatchEvent(new CustomEvent('keaos:deterministic-executing', { 
+            detail: { nodeId: detNodeId } 
+          }));
+        }
+
+        let detResult = null;
+        try {
+          detResult = await executeDeterministicTask({
+            language: detNodeData.language || 'python',
+            code: detNodeData.code || '',
+            prompt: detNodeData.prompt || detNodeData.ruleSummary || '',
+            ruleSummary: detNodeData.ruleSummary || detNodeData.prompt || '',
+            inputData: args || {},
+            inputs: args || {},
+            nodeId: detNodeId || 'tool'
+          });
+        } catch (err) {
+          detResult = { success: false, error: err.message, output: null, latencyMs: 5 };
+        }
+
+        if (typeof window !== 'undefined' && detNodeId) {
+          window.dispatchEvent(new CustomEvent('keaos:deterministic-executed', {
+            detail: {
+              nodeId: detNodeId,
+              success: detResult.success !== false,
+              latencyMs: detResult.latencyMs || 5,
+              output: detResult.output
+            }
+          }));
+        }
+
+        await logStep(
+          'Deterministic Tool Complete',
+          `Completed "${detName}" in ${detResult.latencyMs || 5}ms (0 tokens consumed).`,
+          'tools',
+          180
+        );
+
+        const outputStr = typeof detResult.output === 'object'
+          ? JSON.stringify(detResult.output, null, 2)
+          : String(detResult.output !== undefined && detResult.output !== null ? detResult.output : (detResult.error || 'Execution completed with 0 output'));
+
+        currentMessages.push({ role: 'assistant', content: rawText });
+        currentMessages.push({
+          role: 'user',
+          content: `[DETERMINISTIC TOOL RESULT ("${toolName}") — 0 TOKENS CONSUMED]:\n${outputStr}\n\nIngest this exact deterministic computation and continue synthesizing your conclusion.`
         });
         continue;
       }

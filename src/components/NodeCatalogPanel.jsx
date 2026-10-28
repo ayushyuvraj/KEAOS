@@ -514,13 +514,26 @@ const NODE_CATEGORIES = [
   {
     id: 'tools',
     label: 'Tools',
-    subtitle: 'File, audio & data ingestion pipelines (Audio, Documents, Raw Text)',
+    subtitle: 'Deterministic logic execution tools, file & audio ingestion pipelines',
     icon: Wrench,
     color: '#0091DA', // Pacific Blue
     bgColor: '#E6F4FC',
     badge: 'TOOL',
     socketId: 'tools-in',
-    items: PILLARS.tools?.items || []
+    items: [
+      {
+        id: 'deterministic-box-tool',
+        name: 'Deterministic Logic Box',
+        description: 'Zero-token Python, SQL & JS execution tool. The AI Agent dynamically calls this box to execute mathematical, tabular, or custom algorithmic tasks with 0 LLM tokens.',
+        isDeterministicNode: true,
+        badge: '⚡ 0 TOKENS',
+        config: {
+          language: 'python',
+          engine: 'auto'
+        }
+      },
+      ...(PILLARS.tools?.items || [])
+    ]
   },
   {
     id: 'memory',
