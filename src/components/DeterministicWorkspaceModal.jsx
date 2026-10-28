@@ -191,222 +191,9 @@ export default function DeterministicWorkspaceModal({
   // Custom test data modal toggle (default: false, automatically uses inherited stream)
   const [showCustomDataInput, setShowCustomDataInput] = useState(nodeData?.inputMode === 'manual' || nodeData?.inputMode === 'upload');
   const [manualInputText, setManualInputText] = useState(nodeData?.manualInputText || '{\n  "testValue": 100\n}');
-  // Manage list of uploaded files: [{ id, name, key, rowCount, data }]
-  const [uploadedFileList, setUploadedFileList] = useState(() => {
-    if (Array.isArray(nodeData?.uploadedFileList)) {
-      return nodeData.uploadedFileList;
-    }
-    // Backward compatibility with legacy uploadedData object
-    if (nodeData?.uploadedData && typeof nodeData.uploadedData === 'object') {
-      const keys = Object.keys(nodeData.uploadedData).filter(
-        k => k !== '__schemaMap' && k !== 'sources' && k !== 'allOutputs' && k !== 'data'
-      );
-      if (keys.length > 0) {
-        return keys.map((k, idx) => ({
-          id: `file-legacy-${idx}-${k}`,
-          name: `${k}.json`,
-          key: k,
-          rowCount: Array.isArray(nodeData.uploadedData[k]) ? nodeData.uploadedData[k].length : 1,
-          data: nodeData.uploadedData[k]
-        }));
-      }
-    }
-    return [];
-  });
-
-  // Workspace-Wide File Aggregator:
-  // Combines files uploaded to this node + any files uploaded to other nodes in workspace
-  const workspaceGlobalFiles = useMemo(() => {
-    const map = new Map();
-    // 1. Local files uploaded to this node
-    (uploadedFileList || []).forEach(f => {
-      if (f.key && f.data) {
-        map.set(f.key, { ...f, isLocal: true });
-      }
-    });
-    // 2. Scan all other nodes in workspace for uploaded files
-    (nodes || []).forEach(n => {
-      if (n.id !== nodeId) {
-        if (Array.isArray(n.data?.uploadedFileList)) {
-          n.data.uploadedFileList.forEach(f => {
-            if (f.key && f.data && !map.has(f.key)) {
-              map.set(f.key, {
-                ...f,
-                isLocal: false,
-                sourceNodeName: n.data?.name || n.data?.label || n.id
-              });
-            }
-          });
-        }
-        if (n.data?.uploadedData && typeof n.data.uploadedData === 'object') {
-          Object.keys(n.data.uploadedData).forEach(k => {
-            if (k !== '__schemaMap' && k !== 'sources' && k !== 'allOutputs' && k !== 'data' && !map.has(k)) {
-              const d = n.data.uploadedData[k];
-              map.set(k, {
-                id: `global-${n.id}-${k}`,
-                name: `${k}.json`,
-                key: k,
-                rowCount: Array.isArray(d) ? d.length : 1,
-                data: d,
-                isLocal: false,
-                sourceNodeName: n.data?.name || n.data?.label || n.id
-              });
-            }
-          });
-        }
-      }
-    });
-    return Array.from(map.values());
-  }, [uploadedFileList, nodes, nodeId]);
-
-  // Map all workspace uploaded files to inputs dictionary
-  const uploadedData = useMemo(() => {
-    if (!workspaceGlobalFiles.length) return null;
-    const map = {};
-    workspaceGlobalFiles.forEach((f, idx) => {
-      map[f.key] = f.data;
-      if (idx === 0) {
-        map['data'] = f.data; // First file also mirrored as inputs.data
-      }
-    });
-    return map;
-  }, [workspaceGlobalFiles]);
-
-  const uploadedFileName = useMemo(() => {
-    return uploadedFileList.map(f => f.name).join(', ');
-  }, [uploadedFileList]);
-
-  const fileUploadInputRef = useRef(null);
-
-  // Helper to generate a clean, safe JS identifier variable key from a filename
-  const sanitizeKey = (name, existingKeys = []) => {
-    let key = name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
-    if (!key || /^[0-9]/.test(key)) {
-      key = 'file_' + (key || 'data');
-    }
-    let uniqueKey = key;
-    let counter = 2;
-    while (existingKeys.includes(uniqueKey)) {
-      uniqueKey = `${key}_${counter}`;
-      counter++;
-    }
-    return uniqueKey;
-  };
-
-  // Studio In-Memory Test File Uploader (Supports appending multiple CSV, XLSX, JSON files)
-  const handleStudioFileUpload = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    const newEntries = [];
-    let pending = files.length;
-    const existingKeys = uploadedFileList.map(f => f.key);
-
-    files.forEach(file => {
-      const fileName = file.name || 'file';
-      const isJson = fileName.toLowerCase().endsWith('.json');
-      const isXlsx = /\.(xlsx|xls)$/i.test(fileName);
-      const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
-      const key = sanitizeKey(fileName, [...existingKeys, ...newEntries.map(entry => entry.key)]);
-
-      const onDataParsed = (parsedData) => {
-        const rowCount = Array.isArray(parsedData)
-          ? parsedData.length
-          : (parsedData && typeof parsedData === 'object')
-            ? Object.keys(parsedData).length
-            : 1;
-
-        newEntries.push({
-          id: fileId,
-          name: fileName,
-          key,
-          rowCount,
-          data: parsedData
-        });
-        checkComplete();
-      };
-
-      const reader = new FileReader();
-      if (isXlsx && typeof window !== 'undefined' && window.XLSX) {
-        reader.onload = (ev) => {
-          try {
-            const data = new Uint8Array(ev.target.result);
-            const workbook = window.XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.SheetNames[0];
-            const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { defval: null });
-            onDataParsed(rows);
-          } catch (err) {
-            console.warn('XLSX parse error:', err);
-            onDataParsed([]);
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      } else {
-        reader.onload = (ev) => {
-          try {
-            const text = ev.target.result;
-            if (isJson) {
-              const parsed = JSON.parse(text);
-              onDataParsed(parsed);
-            } else {
-              const rows = parseCsv(text);
-              onDataParsed(rows);
-            }
-          } catch (err) {
-            console.warn('File read error:', err);
-            onDataParsed([]);
-          }
-        };
-        reader.readAsText(file);
-      }
-    });
-
-    function checkComplete() {
-      pending--;
-      if (pending === 0) {
-        setUploadedFileList(prev => {
-          const combined = [...prev, ...newEntries];
-          if (onUpdateNode && nodeId) {
-            onUpdateNode(nodeId, { uploadedFileList: combined });
-          }
-          return combined;
-        });
-
-        window.dispatchEvent(new CustomEvent('keaos:toast', {
-          detail: { message: `✓ Added ${newEntries.length} file(s) to input streams` }
-        }));
-
-        if (e.target) {
-          e.target.value = '';
-        }
-      }
-    }
-  };
-
-  // Remove a single uploaded file
-  const handleRemoveFile = (fileId) => {
-    setUploadedFileList(prev => {
-      const updated = prev.filter(f => f.id !== fileId);
-      if (onUpdateNode && nodeId) {
-        onUpdateNode(nodeId, { uploadedFileList: updated });
-      }
-      return updated;
-    });
-    window.dispatchEvent(new CustomEvent('keaos:toast', {
-      detail: { message: 'File removed from input streams' }
-    }));
-  };
-
-  // Clear all uploaded files
-  const handleClearAllFiles = () => {
-    setUploadedFileList([]);
-    if (onUpdateNode && nodeId) {
-      onUpdateNode(nodeId, { uploadedFileList: [] });
-    }
-    window.dispatchEvent(new CustomEvent('keaos:toast', {
-      detail: { message: 'All uploaded files cleared' }
-    }));
-  };
+  // Selected Schema Stream for live column introspection modal
+  const [selectedSchemaStream, setSelectedSchemaStream] = useState(null);
+  const [schemaFilterText, setSchemaFilterText] = useState('');
 
   // UI & Execution states
   const [isCompiling, setIsCompiling] = useState(false);
@@ -451,9 +238,7 @@ export default function DeterministicWorkspaceModal({
         latencyMs: nodeData.lastLatencyMs || 0
       } : null);
       setExecutionError(null);
-      if (Array.isArray(nodeData?.uploadedFileList)) {
-        setUploadedFileList(nodeData.uploadedFileList);
-      }
+
     }
   }, [nodeId, isOpen]);
 
@@ -707,15 +492,69 @@ export default function DeterministicWorkspaceModal({
     return { sources, payload, schemaMap };
   }, [nodeId, nodes, edges]);
 
+  // Bilateral slots formatted for UI and Co-Pilot context
+  const ingestionSlots = useMemo(() => {
+    const slots = [];
+    (upstreamInfo.sources || []).forEach(s => {
+      if (s.type === 'ingestionNode' && s.srcNodeData) {
+        if (s.srcNodeData.slotA) {
+          slots.push({
+            key: 'slotA',
+            isSlotA: true,
+            label: 'Slot A: Primary',
+            name: s.srcNodeData.slotA.name,
+            size: s.srcNodeData.slotA.sizeFormatted || `${Math.round((s.srcNodeData.slotA.size || 0) / 1024)} KB`,
+            rowCount: s.srcNodeData.slotA.rowCount || 0,
+            columnCount: s.srcNodeData.slotA.columnCount || s.srcNodeData.slotA.columns?.length || 0,
+            columns: s.srcNodeData.slotA.columns || [],
+            sample: s.srcNodeData.slotA.sample || []
+          });
+        }
+        if (s.srcNodeData.slotB) {
+          slots.push({
+            key: 'slotB',
+            isSlotA: false,
+            label: 'Slot B: Counterparty',
+            name: s.srcNodeData.slotB.name,
+            size: s.srcNodeData.slotB.sizeFormatted || `${Math.round((s.srcNodeData.slotB.size || 0) / 1024)} KB`,
+            rowCount: s.srcNodeData.slotB.rowCount || 0,
+            columnCount: s.srcNodeData.slotB.columnCount || s.srcNodeData.slotB.columns?.length || 0,
+            columns: s.srcNodeData.slotB.columns || [],
+            sample: s.srcNodeData.slotB.sample || []
+          });
+        }
+      }
+    });
+    return slots;
+  }, [upstreamInfo.sources]);
+
+  // Other non-ingestion upstream streams
+  const otherStreams = useMemo(() => {
+    const list = [];
+    (upstreamInfo.sources || []).forEach(s => {
+      if (s.type !== 'ingestionNode') {
+        const cleanKey = s.name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        list.push({
+          key: cleanKey,
+          label: s.name,
+          name: s.name,
+          type: s.type,
+          rowCount: s.schema?.rowCount || (Array.isArray(s.output) ? s.output.length : 1),
+          columnCount: s.schema?.columnCount || (s.schema?.fields ? Object.keys(s.schema.fields).length : 0),
+          columns: s.schema?.fields ? Object.entries(s.schema.fields).map(([name, type]) => ({ name, type })) : [],
+          sample: Array.isArray(s.output) ? s.output.slice(0, 5) : []
+        });
+      }
+    });
+    return list;
+  }, [upstreamInfo.sources]);
+
+  const hasIngestionSource = useMemo(() => {
+    return (upstreamInfo.sources || []).some(s => s.type === 'ingestionNode');
+  }, [upstreamInfo.sources]);
+
   // Current active inputs
   const currentActiveInput = useMemo(() => {
-    if (uploadedData && typeof uploadedData === 'object') {
-      return {
-        ...upstreamInfo.payload,
-        ...uploadedData,
-        data: uploadedData.data !== undefined ? uploadedData.data : upstreamInfo.payload.data
-      };
-    }
     if (!showCustomDataInput) {
       return upstreamInfo.payload;
     }
@@ -724,46 +563,18 @@ export default function DeterministicWorkspaceModal({
     } catch {
       return { rawText: manualInputText };
     }
-  }, [showCustomDataInput, upstreamInfo.payload, uploadedData, manualInputText]);
+  }, [showCustomDataInput, upstreamInfo.payload, manualInputText]);
 
-  // Inspect incoming variable keys for 1-click copying (Zero hardcoding: only exposed if stream or file exists)
+  // Available input keys for 1-click variable copying
   const availableInputKeys = useMemo(() => {
     const keys = new Set();
-
-    // 1. Keys from all workspace files (local + cross-box)
-    workspaceGlobalFiles.forEach(f => {
-      keys.add(f.key);
-    });
-
-    // 2. Keys from upstream connected nodes
-    if (upstreamInfo.sources.length === 1) {
-      const singleOut = upstreamInfo.sources[0].output;
-      if (singleOut && typeof singleOut === 'object' && !Array.isArray(singleOut)) {
-        Object.keys(singleOut).slice(0, 10).forEach(k => keys.add(k));
-      }
-      const cleanKey = upstreamInfo.sources[0].name.replace(/[^a-zA-Z0-9_]/g, '_');
-      keys.add(cleanKey);
-    } else if (upstreamInfo.sources.length > 1) {
-      upstreamInfo.sources.forEach(s => {
-        keys.add(s.name.replace(/[^a-zA-Z0-9_]/g, '_'));
-      });
-    }
-
-    // 3. Explicitly expose bilateral slots from connected Ingestion Nodes
-    upstreamInfo.sources.forEach(s => {
-      if (s.type === 'ingestionNode') {
-        if (s.srcNodeData?.slotA) keys.add('slotA');
-        if (s.srcNodeData?.slotB) keys.add('slotB');
-      }
-    });
-
-    // 4. Only expose generic 'data' if an actual stream or file exists
-    if (uploadedFileList.length > 0 || upstreamInfo.sources.length > 0) {
+    ingestionSlots.forEach(slot => keys.add(slot.key));
+    otherStreams.forEach(s => keys.add(s.key));
+    if (upstreamInfo.sources.length > 0) {
       keys.add('data');
     }
-
     return Array.from(keys);
-  }, [upstreamInfo, workspaceGlobalFiles]);
+  }, [ingestionSlots, otherStreams, upstreamInfo.sources]);
 
   // Auto-init starter code if blank
   useEffect(() => {
@@ -892,27 +703,32 @@ export default function DeterministicWorkspaceModal({
     lastPlanPromptRef.current = textToSend;
 
     try {
-      // 1. Build upstream & workspace uploaded data schema context for the model
+      // 1. Build upstream pre-ingested data schema context for the model
       const streamLines = [];
-      workspaceGlobalFiles.forEach(f => {
-        let fieldList = 'dynamic fields';
-        if (Array.isArray(f.data) && f.data.length > 0 && typeof f.data[0] === 'object') {
-          fieldList = Object.keys(f.data[0]).slice(0, 15).join(', ');
-        }
-        streamLines.push(
-          `- inputs.${f.key} (File: "${f.name}", format: tabular, fields: [${fieldList}], rowCount: ${f.rowCount || f.data?.length || 1}${!f.isLocal ? `, source: ${f.sourceNodeName}` : ''})`
-        );
-      });
-
-      if (upstreamInfo.sources && upstreamInfo.sources.length > 0) {
-        upstreamInfo.sources.forEach(s => {
+      upstreamInfo.sources.forEach(s => {
+        if (s.type === 'ingestionNode' && s.srcNodeData) {
+          const a = s.srcNodeData.slotA;
+          const b = s.srcNodeData.slotB;
+          if (a) {
+            const colList = a.columns?.map(c => typeof c === 'string' ? c : `${c.name} (${c.type})`).join(', ') || 'columns auto-detected';
+            streamLines.push(
+              `- inputs.slotA (File: "${a.name}", format: ${a.format || 'tabular'}, rowCount: ~${a.rowCount?.toLocaleString()}, columns: [${colList}])`
+            );
+          }
+          if (b) {
+            const colList = b.columns?.map(c => typeof c === 'string' ? c : `${c.name} (${c.type})`).join(', ') || 'columns auto-detected';
+            streamLines.push(
+              `- inputs.slotB (File: "${b.name}", format: ${b.format || 'tabular'}, rowCount: ~${b.rowCount?.toLocaleString()}, columns: [${colList}])`
+            );
+          }
+        } else {
           const streamName = s.name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
           const fields = s.schema?.fields ? Object.keys(s.schema.fields).join(', ') : 'dynamic keys';
           streamLines.push(
             `- inputs.${streamName} (Source: "${s.name}", format: ${s.schema?.format || 'tabular'}, fields: [${fields}], rowCount: ${s.schema?.rowCount || 'unknown'})`
           );
-        });
-      }
+        }
+      });
 
       const inputContext = streamLines.length > 0
         ? `AVAILABLE INPUT DATA STREAMS IN THIS ENVIRONMENT:\n` + streamLines.join('\n')
@@ -1621,32 +1437,16 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                   </button>
                 </div>
 
-                {/* Left Header Right Actions: Upload Test Files & Stream Count */}
+                {/* Left Header Right Actions: Stream Count Badge */}
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileUploadInputRef.current?.click()}
-                    className={`px-2 py-1 text-[10px] font-mono rounded-[6px] border flex items-center gap-1 transition-all cursor-pointer shadow-xs ${
-                      isDarkMode
-                        ? 'bg-[#001E50] border-[#00338D] text-blue-300 hover:bg-[#00338D]'
-                        : 'bg-blue-50 border-blue-300 text-blue-800 hover:bg-blue-100'
-                    }`}
-                    title="Upload local CSV, Excel, or JSON test files directly into inputs"
-                  >
-                    <Upload className="w-2.5 h-2.5" />
-                    <span className="hidden sm:inline">+ Upload File</span>
-                  </button>
-                  <input
-                    ref={fileUploadInputRef}
-                    type="file"
-                    multiple
-                    accept=".csv,.xlsx,.xls,.json"
-                    onChange={handleStudioFileUpload}
-                    className="hidden"
-                  />
-                  <span className="text-[10px] font-mono text-slate-500">
-                    {upstreamInfo.sources.length + uploadedFileList.length} Stream{(upstreamInfo.sources.length + uploadedFileList.length) !== 1 ? 's' : ''}
-                  </span>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono border rounded-[6px] bg-black/20 border-slate-700/60 shadow-xs">
+                    <span className={`w-2 h-2 rounded-full ${upstreamInfo.sources.length > 0 ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                    <span className="text-slate-300 font-bold">
+                      {upstreamInfo.sources.length === 0 
+                        ? '0 Streams Connected'
+                        : `${upstreamInfo.sources.length} Upstream Stream${upstreamInfo.sources.length > 1 ? 's' : ''}`}
+                    </span>
+                  </div>
                   {sandboxLayoutMode === 'minimized' && renderLayoutControls()}
                 </div>
               </div>
@@ -1654,115 +1454,111 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
               {/* View 1: Conversational Chat (PRIMARY on Open) */}
               {leftView === 'chat' && (
                 <div className="flex-1 flex flex-col h-full overflow-hidden">
-                  {/* Upstream Stream Banner & Quick Key Access */}
+                  {/* Upstream Stream Telemetry Bar & Schema Inspector */}
                   <div className={`p-2.5 border-b text-[11px] font-mono shrink-0 ${
                     isDarkMode ? 'bg-[#181920]/80 border-[#2C3242]' : 'bg-white border-slate-200'
                   }`}>
-                    {/* Header Row: Label & Actions */}
                     <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Available Input Streams:</span>
-                        {workspaceGlobalFiles.length > 0 && (
-                          <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
-                            {workspaceGlobalFiles.length} file{workspaceGlobalFiles.length !== 1 ? 's' : ''} available
+                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">
+                          Upstream Input Streams:
+                        </span>
+                        {hasIngestionSource && (
+                          <span className="text-[9px] text-[#0091DA] font-bold bg-[#0091DA]/10 px-1.5 py-0.2 rounded border border-[#0091DA]/30">
+                            Bilateral Ingestion Active
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5">
-                        {/* + Add More Files Button */}
-                        <button
-                          type="button"
-                          onClick={() => fileUploadInputRef.current?.click()}
-                          className={`px-2 py-0.5 text-[9px] font-mono rounded border flex items-center gap-1 transition-all cursor-pointer ${
-                            isDarkMode
-                              ? 'bg-[#00338D]/20 border-[#0091DA]/40 text-[#0091DA] hover:bg-[#00338D]/40 hover:text-white'
-                              : 'bg-blue-50 border-blue-300 text-[#00338D] hover:bg-blue-100'
-                          }`}
-                          title="Add more CSV, Excel, or JSON files to inputs"
-                        >
-                          <Upload className="w-2.5 h-2.5" />
-                          <span>+ Add Files</span>
-                        </button>
-
-                        {/* Clear All Files Button if > 1 file */}
-                        {uploadedFileList.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={handleClearAllFiles}
-                            className="px-1.5 py-0.5 text-[9px] font-mono text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded border border-red-500/20 cursor-pointer transition-all"
-                            title="Remove all uploaded files"
-                          >
-                            Clear All
-                          </button>
-                        )}
-
-                        <span className="text-[9px] text-slate-500 hidden xl:inline">Click pill to copy</span>
-                      </div>
+                      {upstreamInfo.sources.length > 0 && (
+                        <span className="text-[9px] text-slate-500 hidden xl:inline">Click pill to copy variable</span>
+                      )}
                     </div>
 
-                    {/* Uploaded Files Chips with Remove (X) Button */}
-                    {uploadedFileList.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-2 pb-1.5 border-b border-[#2C3242]/40">
-                        {workspaceGlobalFiles.map(f => (
+                    {/* Stream Cards (Bilateral Slot A / Slot B or Generic Streams) */}
+                    {upstreamInfo.sources.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {/* Check for Ingestion Node slots */}
+                        {ingestionSlots.map(slot => (
                           <div
-                            key={f.id}
-                            className={`px-2 py-0.5 text-[10px] font-mono rounded-[6px] border flex items-center gap-1.5 ${
-                              isDarkMode ? 'bg-[#0B0F19] border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                            key={slot.key}
+                            className={`px-2 py-1 text-[10px] font-mono rounded-[6px] border flex items-center gap-1.5 ${
+                              slot.isSlotA
+                                ? isDarkMode ? 'bg-[#0091DA]/10 border-[#0091DA]/30 text-sky-300' : 'bg-sky-50 border-sky-300 text-sky-800'
+                                : isDarkMode ? 'bg-[#6D2077]/10 border-[#6D2077]/30 text-fuchsia-300' : 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'
                             }`}
                           >
-                            <FileSpreadsheet className="w-3 h-3 text-emerald-400 shrink-0" />
-                            <span className="font-semibold truncate max-w-[130px]" title={f.name}>{f.name}</span>
-                            <span className="text-[9px] opacity-60">({f.rowCount} rows)</span>
+                            <Database className="w-3 h-3 shrink-0" />
+                            <span className="font-bold uppercase text-[9px] px-1 py-0.2 rounded bg-black/30">
+                              {slot.label}
+                            </span>
+                            <span className="font-semibold truncate max-w-[130px]" title={slot.name}>
+                              {slot.name}
+                            </span>
+                            <span className="text-[9px] opacity-70">
+                              ({slot.rowCount?.toLocaleString()} rows • {slot.columnCount} cols)
+                            </span>
                             <button
                               type="button"
-                              onClick={() => handleCopyVar(f.key)}
-                              className="px-1 py-0.2 text-[9px] rounded bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 cursor-pointer flex items-center gap-0.5"
-                              title={`Copy inputs.${f.key}`}
+                              onClick={() => handleCopyVar(slot.key)}
+                              className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-black/40 hover:bg-black/60 cursor-pointer flex items-center gap-1 transition-colors"
+                              title={`Copy inputs.${slot.key}`}
                             >
-                              <span>inputs.{f.key}</span>
-                              {copiedKey === f.key ? <Check className="w-2 h-2 text-emerald-300" /> : <Copy className="w-2 h-2 opacity-50" />}
+                              <span>inputs.{slot.key}</span>
+                              {copiedKey === slot.key ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-60" />}
                             </button>
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveFile(f.id);
-                              }}
-                              className="p-0.5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded cursor-pointer transition-colors"
-                              title={`Remove ${f.name}`}
+                              onClick={() => setSelectedSchemaStream(slot)}
+                              className="px-1.5 py-0.5 hover:bg-white/10 rounded cursor-pointer transition-colors text-[9px] flex items-center gap-1 border border-white/10"
+                              title="Inspect Schema & Sample Columns"
                             >
-                              <X className="w-2.5 h-2.5" />
+                              <Sliders className="w-2.5 h-2.5" />
+                              <span className="hidden sm:inline">Schema</span>
+                            </button>
+                          </div>
+                        ))}
+
+                        {/* Non-ingestion generic streams */}
+                        {otherStreams.map(s => (
+                          <div
+                            key={s.key}
+                            className={`px-2 py-1 text-[10px] font-mono rounded-[6px] border flex items-center gap-1.5 ${
+                              isDarkMode ? 'bg-[#141720] border-[#383C4A] text-slate-300' : 'bg-slate-50 border-slate-300 text-slate-700'
+                            }`}
+                          >
+                            <FileCode className="w-3 h-3 text-[#EAAA00] shrink-0" />
+                            <span className="font-semibold">{s.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyVar(s.key)}
+                              className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-black/30 hover:bg-black/50 cursor-pointer flex items-center gap-1 transition-colors"
+                              title={`Copy inputs.${s.key}`}
+                            >
+                              <span>inputs.${s.key}</span>
+                              {copiedKey === s.key ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-60" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSchemaStream(s)}
+                              className="px-1.5 py-0.5 hover:bg-white/10 rounded cursor-pointer transition-colors text-[9px] flex items-center gap-1 border border-white/10"
+                              title="Inspect Schema"
+                            >
+                              <Sliders className="w-2.5 h-2.5" />
+                              <span className="hidden sm:inline">Schema</span>
                             </button>
                           </div>
                         ))}
                       </div>
-                    )}
-
-                    {/* Variable Pills (or No Streams message if empty) */}
-                    {availableInputKeys.length > 0 ? (
-                      <div className="flex flex-wrap items-center gap-1">
-                        <span className="text-[9px] text-slate-500 mr-1">Variable Pills:</span>
-                        {availableInputKeys.map(k => (
-                          <button
-                            key={k}
-                            onClick={() => handleCopyVar(k)}
-                            className={`px-2 py-0.5 text-[10px] font-mono rounded-full border flex items-center gap-1 transition-colors cursor-pointer ${
-                              isDarkMode ? 'bg-[#141720] border-[#383C4A] text-slate-300 hover:border-[#0091DA]' : 'bg-slate-50 border-slate-300 text-slate-700'
-                            }`}
-                          >
-                            <span>inputs.{k}</span>
-                            {copiedKey === k ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-50" />}
-                          </button>
-                        ))}
-                      </div>
                     ) : (
-                      <div className="flex items-center justify-between text-xs text-slate-500 py-0.5">
-                        <span className="text-[10px] text-slate-400 italic">No input streams connected. Connect an upstream node on canvas or click "+ Add Files" above to load data.</span>
+                      <div className="flex items-center gap-2 p-2 bg-black/20 border border-slate-700/40 text-[11px] text-slate-400">
+                        <AlertCircle className="w-3.5 h-3.5 text-[#0091DA] shrink-0" />
+                        <span>
+                          Awaiting input streams: Connect a <strong>Universal Ingestion Node</strong> or <strong>Agent Core</strong> on canvas to pipe datasets into <code className="text-white">inputs</code>.
+                        </span>
                       </div>
                     )}
                   </div>
-
 
                   {/* Chat Message Scroll Area */}
                   <div className="flex-1 overflow-y-auto p-3.5 space-y-3 font-mono text-xs">
@@ -2284,6 +2080,182 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
           )}
 
         </div>
+
+      {/* Schema Inspector Drawer Modal */}
+      {selectedSchemaStream && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className={`w-full max-w-2xl max-h-[85vh] flex flex-col border shadow-2xl ${
+            isDarkMode ? 'bg-[#0B0F19] border-[#00338D] text-white' : 'bg-white border-slate-300 text-slate-900'
+          } rounded-none`}>
+            {/* Header */}
+            <div className={`p-4 border-b flex items-center justify-between ${
+              isDarkMode ? 'bg-[#001E50] border-[#00338D]' : 'bg-slate-100 border-slate-200'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <Database className="w-4 h-4 text-[#0091DA]" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold tracking-tight">
+                      {selectedSchemaStream.label || selectedSchemaStream.name}
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/40 text-sky-400 font-bold border border-sky-500/30">
+                      inputs.{selectedSchemaStream.key}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    {selectedSchemaStream.rowCount?.toLocaleString()} rows • {selectedSchemaStream.columnCount} columns
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedSchemaStream(null)}
+                className="p-1 hover:bg-white/10 rounded cursor-pointer transition-colors text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Column Search Filter */}
+            <div className="p-3 border-b border-slate-700/50 flex items-center gap-2">
+              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                value={schemaFilterText}
+                onChange={(e) => setSchemaFilterText(e.target.value)}
+                placeholder={`Filter ${selectedSchemaStream.columnCount} columns...`}
+                className={`flex-1 px-2.5 py-1 text-xs font-mono bg-black/30 border border-slate-700/60 rounded outline-none focus:border-[#0091DA] ${
+                  isDarkMode ? 'text-white' : 'text-slate-900'
+                }`}
+              />
+              {schemaFilterText && (
+                <button
+                  onClick={() => setSchemaFilterText('')}
+                  className="text-[10px] font-mono text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Discovered Columns Grid */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {(selectedSchemaStream.columns || [])
+                  .filter(c => {
+                    const colName = typeof c === 'string' ? c : c.name;
+                    return !schemaFilterText || colName.toLowerCase().includes(schemaFilterText.toLowerCase());
+                  })
+                  .map((c, idx) => {
+                    const colName = typeof c === 'string' ? c : c.name;
+                    const colType = typeof c === 'object' && c.type ? c.type : 'string';
+                    const sampleVal = selectedSchemaStream.sample?.[0]?.[colName];
+
+                    return (
+                      <div
+                        key={idx}
+                        className="p-2 bg-black/30 border border-slate-800 hover:border-[#0091DA]/50 flex items-center justify-between gap-2 group transition-all"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs font-semibold text-slate-200 truncate">
+                              {colName}
+                            </span>
+                            <span className={`text-[9px] font-mono px-1 py-0.2 rounded font-bold uppercase ${
+                              colType === 'number'
+                                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                : colType === 'date'
+                                  ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                                  : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                            }`}>
+                              {colType}
+                            </span>
+                          </div>
+                          {sampleVal !== undefined && sampleVal !== null && (
+                            <div className="text-[10px] font-mono text-slate-500 truncate mt-0.5">
+                              Sample: <span className="text-slate-400">{String(sampleVal)}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(colName);
+                            window.dispatchEvent(new CustomEvent('keaos:toast', {
+                              detail: { message: `Copied column "${colName}" to clipboard` }
+                            }));
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white cursor-pointer transition-all"
+                          title={`Copy column name "${colName}"`}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* Sample Records Table Preview (First 3 rows) */}
+              {selectedSchemaStream.sample && selectedSchemaStream.sample.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-slate-800">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-2">
+                    Sample Ingested Rows Preview (First {selectedSchemaStream.sample.length} rows):
+                  </span>
+                  <div className="overflow-x-auto border border-slate-800 bg-black/40 text-[10px] font-mono">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-black/60 border-b border-slate-800">
+                          {(selectedSchemaStream.columns || []).slice(0, 8).map((c, i) => (
+                            <th key={i} className="p-1.5 text-left text-slate-400 truncate max-w-[120px]">
+                              {typeof c === 'string' ? c : c.name}
+                            </th>
+                          ))}
+                          {(selectedSchemaStream.columns?.length || 0) > 8 && (
+                            <th className="p-1.5 text-left text-slate-500">
+                              +{(selectedSchemaStream.columns.length - 8)} more
+                            </th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedSchemaStream.sample.slice(0, 3).map((row, rIdx) => (
+                          <tr key={rIdx} className="border-b border-slate-800/40 hover:bg-white/5">
+                            {(selectedSchemaStream.columns || []).slice(0, 8).map((c, cIdx) => {
+                              const cName = typeof c === 'string' ? c : c.name;
+                              return (
+                                <td key={cIdx} className="p-1.5 text-slate-300 truncate max-w-[120px]">
+                                  {row[cName] !== undefined && row[cName] !== null ? String(row[cName]) : '-'}
+                                </td>
+                              );
+                            })}
+                            {(selectedSchemaStream.columns?.length || 0) > 8 && (
+                              <td className="p-1.5 text-slate-500">...</td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={`p-3 border-t flex items-center justify-between text-xs font-mono ${
+              isDarkMode ? 'bg-[#001438] border-[#00338D]' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <span className="text-[11px] text-slate-400">
+                Click any column copy button to copy it for use in your prompt or logic.
+              </span>
+              <button
+                onClick={() => setSelectedSchemaStream(null)}
+                className="px-3 py-1 bg-[#00338D] hover:bg-[#005EB8] text-white text-xs font-bold transition-all cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>
