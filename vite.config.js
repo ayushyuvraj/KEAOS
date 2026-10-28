@@ -211,7 +211,7 @@ function keaosWorkspaceStoragePlugin() {
                 {
                   id: 'msg-welcome',
                   role: 'assistant',
-                  content: 'I am your Deterministic Co-Pilot. Tell me what logic, calculations, or transformations you need. I will write the code immediately, explain it, and configure it for your rule box.',
+                  content: 'How may I help you?',
                   timestamp: '09:17 PM'
                 },
                 {

@@ -141,13 +141,18 @@ export default function DeterministicWorkspaceModal({
   // Conversational Chat State (Bilateral Discussion Protocol)
   const [chatMessages, setChatMessages] = useState(() => {
     if (Array.isArray(nodeData?.chatHistory) && nodeData.chatHistory.length > 0) {
-      return nodeData.chatHistory;
+      return nodeData.chatHistory.map(msg => {
+        if (msg.id === 'msg-welcome' || (msg.role === 'assistant' && msg.content?.includes('Deterministic Co-Pilot'))) {
+          return { ...msg, content: 'How may I help you?' };
+        }
+        return msg;
+      });
     }
     return [
       {
         id: 'msg-welcome',
         role: 'assistant',
-        content: `I am your Deterministic Co-Pilot. Tell me what logic, calculations, or transformations you need. I will write the code immediately, explain it, and configure it for your rule box. You can ask for in-memory transforms, interactive file pickers (e.g. window.showOpenFilePicker), regex parsing, Excel reconciliations, and more.`,
+        content: 'How may I help you?',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
@@ -565,81 +570,6 @@ export default function DeterministicWorkspaceModal({
     }
     return Array.from(keys);
   }, [upstreamInfo, uploadedData]);
-
-  // ---------------------------------------------------------------------------
-  // 3. BRAIN SMART SUGGESTIONS (Based on Inferred Upstream Schemas)
-  // ---------------------------------------------------------------------------
-  const brainSuggestions = useMemo(() => {
-    const suggestions = [];
-    const schemaMap = upstreamInfo.schemaMap || {};
-    const sourceKeys = Object.keys(schemaMap).filter(k => k !== 'data');
-    
-    // Multi-source Join / Reconciliation suggestions
-    if (sourceKeys.length >= 2) {
-      const k1 = sourceKeys[0];
-      const k2 = sourceKeys[1];
-      const s1 = schemaMap[k1];
-      const s2 = schemaMap[k2];
-      
-      const cols1 = s1?.fields ? Object.keys(s1.fields) : [];
-      const cols2 = s2?.fields ? Object.keys(s2.fields) : [];
-      const matchingCols = cols1.filter(c => cols2.includes(c));
-
-      if (matchingCols.length > 0) {
-        suggestions.push({
-          label: `Reconcile on ${matchingCols[0]}`,
-          prompt: `Reconcile inputs.${k1} with inputs.${k2} matching on key "${matchingCols[0]}". Flag matched items, missing records, and amount discrepancy deltas.`
-        });
-      } else {
-        suggestions.push({
-          label: `Join ${k1} with ${k2}`,
-          prompt: `Perform an inner join between inputs.${k1} and inputs.${k2} on primary key and return combined records.`
-        });
-      }
-
-      suggestions.push({
-        label: `Compare Record Counts`,
-        prompt: `Compare volume between inputs.${k1} (${s1?.rowCount || 0} rows) and inputs.${k2} (${s2?.rowCount || 0} rows) and report summary statistics.`
-      });
-    } else if (sourceKeys.length === 1 || upstreamInfo.sources.length === 1) {
-      const k = sourceKeys[0] || 'data';
-      const s = schemaMap[k] || upstreamInfo.sources[0]?.schema;
-      
-      if (s?.format === 'tabular') {
-        suggestions.push({
-          label: 'Preview Top 10 Rows',
-          prompt: `Slice and preview the first 10 rows of inputs.${k} and extract all column headers.`
-        });
-
-        // Numeric column detection
-        const numCols = Object.keys(s.fields || {}).filter(f => s.fields[f].type === 'number');
-        if (numCols.length > 0) {
-          suggestions.push({
-            label: `Sum ${numCols[0]} & Filter`,
-            prompt: `Calculate total ${numCols[0]} from inputs.${k} and filter records where ${numCols[0]} > 0.`
-          });
-        }
-
-        if (s.primaryKeyCandidate) {
-          suggestions.push({
-            label: `Deduplicate by ${s.primaryKeyCandidate}`,
-            prompt: `Deduplicate records in inputs.${k} by primary key "${s.primaryKeyCandidate}".`
-          });
-        }
-      }
-    }
-
-    // Default universal fallbacks
-    if (suggestions.length === 0) {
-      suggestions.push(
-        { label: 'Cash Flow & Runway Engine', prompt: 'Create an interactive cash flow engine with monthly revenue and expense sliders, calculate button, and 12-month trajectory table.' },
-        { label: 'Indirect Tax Reconciliation', prompt: 'Reconcile GSTR-2B tax portal data with ERP Purchase Register using 5-tier cascading matching.' },
-        { label: 'Parse & Transform Inputs', prompt: 'Transform incoming inputs and extract structured key-value summary.' }
-      );
-    }
-
-    return suggestions;
-  }, [upstreamInfo]);
 
   // Auto-init starter code if blank
   useEffect(() => {
@@ -1508,23 +1438,6 @@ CORE PHILOSOPHY & UNINHIBITED CODING CAPABILITIES:
                     </div>
                   </div>
 
-                  {/* Brain Smart Suggestion Chips */}
-                  <div className="p-2 border-b border-[#2C3242]/60 overflow-x-auto flex gap-1.5 shrink-0 bg-black/10">
-                    {brainSuggestions.map((s, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleSendChat(s.prompt)}
-                        className={`px-2.5 py-1 text-[10px] font-mono rounded-full border whitespace-nowrap transition-all cursor-pointer ${
-                          isDarkMode 
-                            ? 'bg-[#EAAA00]/10 border-[#EAAA00]/30 text-[#EAAA00] hover:bg-[#EAAA00]/20' 
-                            : 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100'
-                        }`}
-                        title={s.prompt}
-                      >
-                        ⚡ {s.label}
-                      </button>
-                    ))}
-                  </div>
 
                   {/* Chat Message Scroll Area */}
                   <div className="flex-1 overflow-y-auto p-3.5 space-y-3 font-mono text-xs">
