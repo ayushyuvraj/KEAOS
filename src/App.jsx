@@ -17,6 +17,7 @@ import DeterministicWorkspaceModal from './components/DeterministicWorkspaceModa
 import AuditExplorerView from './components/screens/AuditExplorerView';
 import ObservabilityView from './components/screens/ObservabilityView';
 import UnifiedAuditView from './components/screens/UnifiedAuditView';
+import Audit2View from './components/screens/Audit2View';
 import FrontendShowroomView from './components/screens/FrontendShowroomView';
 import HomeWorkflowsView from './components/screens/HomeWorkflowsView';
 import {
@@ -27,7 +28,7 @@ import {
   saveWorkflow,
   setWorkflowLock
 } from './utils/workflowStorage';
-import { initWorkspaceSync, initAuditLedgerSync } from './services/workspaceSyncService';
+import { initWorkspaceSync, initAuditLedgerSync, initAudit2LedgerSync } from './services/workspaceSyncService';
 import { getActiveApiKey } from './services/geminiService';
 import { getAllConfiguredProviders } from './services/llmService';
 import { FRAMEWORKS } from './constants/frameworks';
@@ -923,6 +924,7 @@ export default function App() {
   useEffect(() => {
     initWorkspaceSync();
     initAuditLedgerSync();
+    initAudit2LedgerSync();
 
     const handleSynced = (e) => {
       const detail = e.detail;
@@ -1837,6 +1839,70 @@ export default function App() {
       return;
     }
 
+    if (pillarKey === 'remoteAgents' || pillarKey === 'remoteAgentNode' || item?.isRemoteAgentNode) {
+      const newNodeId = `node-remote-${Date.now().toString().slice(-4)}`;
+      let count = 1;
+      setNodes((nds) => {
+        const existing = nds.filter(n => n.type === 'remoteAgentNode');
+        count = existing.length + 1;
+        const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
+        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 280 : 560;
+        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
+          ? agentNode.position.y + 40 + (existing.length * 80)
+          : 220 + (existing.length * 80);
+
+        const framework = item.framework || item.config?.framework || 'langgraph';
+        const newNode = {
+          id: newNodeId,
+          type: 'remoteAgentNode',
+          position: { x: xPos, y: yPos },
+          data: {
+            name: item.name ? (item.name.includes('#') ? item.name : `${item.name} #${count}`) : `Remote Agent #${count}`,
+            description: item.description || 'Externally hosted autonomous service connected via REST API with ingrained OpenTelemetry.',
+            framework,
+            endpointUrl: item.config?.endpointUrl || 'https://api.example.com/v1/run',
+            hostingProvider: item.config?.hostingProvider || 'AWS',
+            httpMethod: item.config?.httpMethod || 'POST',
+            authType: item.config?.authType || 'bearer',
+            authToken: item.config?.authToken || '',
+            timeoutSeconds: item.config?.timeoutSeconds || 30,
+            retries: item.config?.retries || 1,
+            requestMode: item.config?.requestMode || 'json_envelope',
+            responsePath: item.config?.responsePath || 'auto',
+            otelIngestion: true,
+            status: 'idle',
+            lastStatus: 'idle',
+            isDarkMode
+          }
+        };
+        setSelectedNode(newNode);
+        return [...nds, newNode];
+      });
+
+      if (targetAgentId) {
+        setEdges((eds) => [
+          ...eds,
+          {
+            id: `edge-${targetAgentId}-to-${newNodeId}`,
+            source: targetAgentId,
+            sourceHandle: 'out',
+            target: newNodeId,
+            targetHandle: 'in',
+            type: 'deletable',
+            animated: true,
+            style: { stroke: '#00A3A6', strokeWidth: 2.2, strokeDasharray: '4 4' }
+          }
+        ]);
+      }
+
+      activeSlotTargetRef.current = null;
+      setIsAddMenuOpen(false);
+      window.dispatchEvent(new CustomEvent('keaos:toast', {
+        detail: { message: `🌐 Added Remote Agent (${item.name || 'External Service'}) to Canvas` }
+      }));
+      return;
+    }
+
     if (pillarKey === 'triggers' || pillarKey === 'triggerNode' || item?.isTriggerNode) {
       const newNodeId = `node-trigger-${Date.now().toString().slice(-4)}`;
       let count = 1;
@@ -2393,6 +2459,13 @@ export default function App() {
               edges={edges}
               isDarkMode={isDarkMode}
               onNavigateHome={() => setViewMode('canvas')}
+            />
+          )}
+
+          {viewMode === 'audit-2' && (
+            <Audit2View
+              activeUseCase={activeUseCase}
+              onOpenCanvas={() => setViewMode('canvas')}
             />
           )}
 

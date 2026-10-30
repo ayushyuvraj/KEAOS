@@ -82,8 +82,8 @@
           "id": "node-ingest-6666",
           "type": "ingestionNode",
           "position": {
-            "x": 704.2495817852101,
-            "y": 41.171890262674964
+            "x": 826.9004756424222,
+            "y": 180.70134749473272
           },
           "data": {
             "title": "Universal Enterprise Dataset Ingestion",
@@ -101,7 +101,7 @@
             "width": 60,
             "height": 60
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
         }
       ],
@@ -122,7 +122,7 @@
         }
       ],
       "createdAt": 1793175155405,
-      "updatedAt": 1793209368067,
+      "updatedAt": 1793347288705,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -8757,8 +8757,8 @@
         "id": "node-ingest-6666",
         "type": "ingestionNode",
         "position": {
-          "x": 704.2495817852101,
-          "y": 41.171890262674964
+          "x": 826.9004756424222,
+          "y": 180.70134749473272
         },
         "data": {
           "title": "Universal Enterprise Dataset Ingestion",
@@ -8776,7 +8776,7 @@
           "width": 60,
           "height": 60
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       }
     ],
@@ -14073,5 +14073,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793209368881
+  "syncedAt": 1793347289518
 }

@@ -12,7 +12,7 @@ import {
   Activity, 
   DollarSign, 
   Plus, 
-  Search,
+  Search, 
   ChevronDown,
   ChevronRight,
   Mic,
@@ -20,7 +20,8 @@ import {
   Type,
   Plug,
   UploadCloud,
-  Code2
+  Code2,
+  Globe
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { getRegisteredMcpServers } from '../services/mcpClientService';
@@ -120,6 +121,38 @@ export default function Palette({ onAddNode }) {
                 onClick={() => onAddNode('agentCore', { name: 'Autonomous Agent' })}
                 className="btn-tactile w-7 h-7 bg-[#00338D] hover:bg-[#005EB8] text-white flex items-center justify-center transition-all shrink-0 border border-[#001E50] shadow-sm cursor-pointer"
                 title="Add new AI Agent to canvas"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Remote Agent / External Service Component Provisioner */}
+        {(!search || 'remote agent external langgraph crewai service fastapi'.includes(search.toLowerCase())) && (
+          <div 
+            className="border border-[#00A3A6]/30 bg-[#FFFFFF] overflow-hidden shadow-sm transition-all" 
+            style={{ borderLeft: '3px solid #00A3A6' }}
+          >
+            <div className="p-2.5 bg-gradient-to-r from-[#F0FDFD] to-white flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#00A3A6] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Globe className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h5 className="text-xs font-bold text-[#0B0F19] tracking-tight">Remote Agent</h5>
+                    <span className="text-[8px] font-mono px-1 py-0.2 bg-[#00A3A6]/10 text-[#00A3A6] font-bold rounded">
+                      EXTERNAL
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">LangGraph, CrewAI & cloud services</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onAddNode('remoteAgentNode', { name: 'LangGraph Remote Agent', framework: 'langgraph', isRemoteAgentNode: true })}
+                className="btn-tactile w-7 h-7 bg-[#00A3A6] hover:bg-[#008D90] text-white flex items-center justify-center transition-all shrink-0 border border-[#008D90] shadow-sm cursor-pointer"
+                title="Add new Remote Agent Gateway to canvas"
               >
                 <Plus className="w-4 h-4" />
               </button>

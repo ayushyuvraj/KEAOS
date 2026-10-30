@@ -8,6 +8,8 @@
 
 import { executeDeterministicTask } from './deterministicRunner';
 import { recordWorkflowExecution } from './unifiedAuditService';
+import { executeRemoteAgentTask } from './remoteAgentRunner';
+import { startTrace, endTrace, startSpan, endSpan } from './audit2Service';
 import { 
   executeRealMcpTool, 
   getRegisteredMcpServers, 
@@ -946,6 +948,109 @@ export async function fireTriggerEvent({
         targetId: target.id,
         targetType: target.type,
         success: true
+      });
+    }
+
+    // TARGET D: Remote Agent Node (LangGraph, CrewAI, FastAPI External Service)
+    else if (target.type === 'remoteAgentNode') {
+      const traceContext = startTrace({
+        workflowId: `wf-trg-${triggerId}`,
+        workflowName: `${triggerName} -> ${target.data?.name || 'Remote Agent'}`,
+        source: 'trigger'
+      });
+
+      // Span for Ingress Trigger
+      const trigSpan = startSpan(traceContext, {
+        name: `Trigger: ${triggerName}`,
+        componentType: 'trigger',
+        componentId: triggerId,
+        componentName: triggerName
+      });
+      await endSpan(traceContext, trigSpan, {
+        status: 'OK',
+        outputData: parsedPayload
+      });
+
+      // Execute Remote Agent
+      const remoteRes = await executeRemoteAgentTask({
+        nodeId: target.id,
+        nodeData: target.data,
+        inputData: parsedPayload,
+        traceContext
+      });
+
+      results.push({
+        targetId: target.id,
+        targetType: 'remoteAgentNode',
+        success: remoteRes.success,
+        output: remoteRes.output,
+        latencyMs: remoteRes.latencyMs
+      });
+
+      // Cascade output through DAG connected nodes if successful
+      let finalWorkflowOutput = remoteRes.output;
+      if (remoteRes.success) {
+        const cascadeFromNode = async (currentNodeId, currentOutput, currentSpanId) => {
+          const downstreamEdges = (edges || []).filter(e => e.source === currentNodeId);
+          const downstreamTargets = (nodes || []).filter(n => downstreamEdges.some(e => e.target === n.id) && !n.data?.isDeactivated);
+
+          for (const dsNode of downstreamTargets) {
+            if (dsNode.type === 'outputNode' || dsNode.type === 'outputNodeV2') {
+              const dsFormatted = typeof currentOutput === 'object'
+                ? JSON.stringify(currentOutput, null, 2)
+                : String(currentOutput || '');
+
+              window.dispatchEvent(new CustomEvent('keaos:output-append-run', {
+                detail: {
+                  targetNodeId: dsNode.id,
+                  output: dsFormatted,
+                  payload: currentOutput,
+                  sourceNodeType: 'remoteAgent',
+                  sourceNodeId: currentNodeId,
+                  sourceNodeName: 'Remote Agent'
+                }
+              }));
+            } else if (dsNode.type === 'remoteAgentNode') {
+              // Chain into next Remote Agent in pipeline! (Product A -> Product B -> ...)
+              const nextRes = await executeRemoteAgentTask({
+                nodeId: dsNode.id,
+                nodeData: dsNode.data,
+                inputData: currentOutput,
+                traceContext,
+                parentSpanId: currentSpanId
+              });
+              if (nextRes.success) {
+                finalWorkflowOutput = nextRes.output;
+                // Propagate downstream from the chained remote agent!
+                await cascadeFromNode(dsNode.id, nextRes.output, nextRes.spanId);
+              }
+            } else if (dsNode.type === 'approvalNode') {
+              window.dispatchEvent(new CustomEvent('keaos:approval-requested', {
+                detail: {
+                  nodeId: dsNode.id,
+                  payload: currentOutput
+                }
+              }));
+            } else if (dsNode.type === 'agentCore') {
+              const formattedContext = typeof currentOutput === 'object'
+                ? JSON.stringify(currentOutput, null, 2)
+                : String(currentOutput || '');
+
+              window.dispatchEvent(new CustomEvent('keaos:execute-workflow', {
+                detail: { agentId: dsNode.id, initialContext: formattedContext }
+              }));
+            }
+          }
+        };
+
+        await cascadeFromNode(target.id, remoteRes.output, remoteRes.spanId);
+      }
+
+      // Seal Audit 2.0 OpenTelemetry Trace
+      await endTrace(traceContext, {
+        status: remoteRes.success ? 'SUCCESS' : 'FAILED',
+        rootInput: parsedPayload,
+        rootOutput: finalWorkflowOutput
       });
     }
   }

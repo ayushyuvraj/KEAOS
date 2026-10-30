@@ -234,3 +234,46 @@ export async function pushAuditLedgerToServer(runs = []) {
     console.warn('[AuditLedgerSync] Push to server failed:', err);
   }
 }
+
+let lastPushedAudit2Snapshot = null;
+
+/**
+ * Initializes and synchronizes the Audit 2.0 OpenTelemetry ledger with /api/audit2-ledger
+ */
+export async function initAudit2LedgerSync() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const res = await fetch('/api/audit2-ledger', { cache: 'no-store' });
+    if (res.ok) {
+      const serverRuns = await res.json();
+      lastPushedAudit2Snapshot = JSON.stringify(serverRuns || []);
+      if (Array.isArray(serverRuns)) {
+        localStorage.setItem('keaos_audit2_ledger', JSON.stringify(serverRuns));
+        window.dispatchEvent(new CustomEvent('keaos:audit2-ledger-updated', { detail: { count: serverRuns.length } }));
+      }
+    }
+  } catch (err) {
+    console.warn('[Audit2LedgerSync] Sync error:', err);
+  }
+}
+
+/**
+ * Pushes Audit 2.0 runs directly to disk with deduplication
+ */
+export async function pushAudit2LedgerToServer(runs = []) {
+  if (typeof window === 'undefined') return;
+  const snapshot = JSON.stringify(runs || []);
+  if (snapshot === lastPushedAudit2Snapshot) return;
+  lastPushedAudit2Snapshot = snapshot;
+
+  try {
+    await fetch('/api/audit2-ledger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: snapshot
+    });
+  } catch (err) {
+    console.warn('[Audit2LedgerSync] Push to server failed:', err);
+  }
+}

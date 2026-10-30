@@ -388,6 +388,90 @@ const NODE_CATEGORIES = [
     ]
   },
   {
+    id: 'remoteAgents',
+    label: 'Remote Agents & Services',
+    subtitle: 'Externally hosted agents (LangGraph, CrewAI, Google ADK, FastAPI) on AWS, Azure, or private cloud',
+    icon: Globe,
+    color: '#00A3A6', // Cyber Teal
+    bgColor: '#E6F6F6',
+    badge: 'REMOTE',
+    socketId: 'in → out',
+    items: [
+      {
+        id: 'remote-agent-langgraph',
+        name: 'LangGraph Remote Agent',
+        description: 'Connects to an externally hosted LangGraph StateGraph service via REST API with zero code rewrites and automatic OpenTelemetry ingestion.',
+        isRemoteAgentNode: true,
+        framework: 'langgraph',
+        config: {
+          framework: 'langgraph',
+          endpointUrl: 'https://api.example.com/v1/run',
+          hostingProvider: 'AWS',
+          httpMethod: 'POST',
+          authType: 'bearer',
+          authToken: '',
+          timeoutSeconds: 30,
+          requestMode: 'json_envelope',
+          responsePath: 'auto'
+        }
+      },
+      {
+        id: 'remote-agent-crewai',
+        name: 'CrewAI Remote Service',
+        description: 'Dispatches tasks to an external CrewAI multi-agent crew hosted on Azure, AWS, or local containers.',
+        isRemoteAgentNode: true,
+        framework: 'crewai',
+        config: {
+          framework: 'crewai',
+          endpointUrl: 'https://api.example.com/crew/run',
+          hostingProvider: 'Azure',
+          httpMethod: 'POST',
+          authType: 'bearer',
+          authToken: '',
+          timeoutSeconds: 45,
+          requestMode: 'json_envelope',
+          responsePath: 'auto'
+        }
+      },
+      {
+        id: 'remote-agent-google-adk',
+        name: 'Google ADK Remote Service',
+        description: 'Connects to a remote Google Agent Development Kit or Vertex AI Agent Engine endpoint.',
+        isRemoteAgentNode: true,
+        framework: 'google-adk',
+        config: {
+          framework: 'google-adk',
+          endpointUrl: 'https://api.example.com/adk/run',
+          hostingProvider: 'GCP',
+          httpMethod: 'POST',
+          authType: 'bearer',
+          authToken: '',
+          timeoutSeconds: 30,
+          requestMode: 'json_envelope',
+          responsePath: 'auto'
+        }
+      },
+      {
+        id: 'remote-agent-universal-fastapi',
+        name: 'Universal External Agent',
+        description: 'Universal HTTP gateway for any Python, FastAPI, Node, or cloud-hosted enterprise agent.',
+        isRemoteAgentNode: true,
+        framework: 'fastapi',
+        config: {
+          framework: 'fastapi',
+          endpointUrl: 'http://127.0.0.1:8000/run',
+          hostingProvider: 'Localhost',
+          httpMethod: 'POST',
+          authType: 'none',
+          authToken: '',
+          timeoutSeconds: 30,
+          requestMode: 'json_envelope',
+          responsePath: 'auto'
+        }
+      }
+    ]
+  },
+  {
     id: 'triggers',
     label: 'Triggers & Ingress',
     subtitle: 'Manual one-click dispatches, instant webhooks, and event-driven pipeline starters',

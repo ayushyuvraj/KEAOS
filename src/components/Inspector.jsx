@@ -50,6 +50,7 @@ import { PILLARS } from '../constants/pillars';
 import TriggerInspectorPanel from './TriggerInspectorPanel';
 import RouterInspectorPanel from './RouterInspectorPanel';
 import ApprovalInspectorPanel from './ApprovalInspectorPanel';
+import RemoteAgentInspectorPanel from './RemoteAgentInspectorPanel';
 import { 
   armScheduleTrigger, 
   disarmScheduleTrigger, 
@@ -1524,15 +1525,15 @@ export default function Inspector({
                   <InfoTooltip text="Component role and connectivity profile in the workspace." align="left" />
                 </span>
                 <span className="text-[10px] font-mono px-2.5 py-0.5 bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30 rounded-full font-semibold">
-                  Socket: {selectedNode.type === 'triggerNode' ? 'trigger-out' : selectedNode.type === 'routerNode' ? 'in → true/false' : selectedNode.type === 'approvalNode' ? 'in → approved/rejected' : pillarDef?.socketId}
+                  Socket: {selectedNode.type === 'triggerNode' ? 'trigger-out' : selectedNode.type === 'routerNode' ? 'in → true/false' : selectedNode.type === 'approvalNode' ? 'in → approved/rejected' : selectedNode.type === 'remoteAgentNode' ? 'in → out' : pillarDef?.socketId}
                 </span>
               </span>
               <div className={`p-3 ${t.subCard} rounded-xl flex items-center justify-between`}>
                 <span className={`text-xs font-bold ${t.title} capitalize`}>
-                  {selectedNode.type === 'triggerNode' ? 'Triggers & Ingress' : selectedNode.type === 'routerNode' ? 'Logics' : selectedNode.type === 'approvalNode' ? 'Governance' : nodeData.pillarType}
+                  {selectedNode.type === 'triggerNode' ? 'Triggers & Ingress' : selectedNode.type === 'routerNode' ? 'Logics' : selectedNode.type === 'approvalNode' ? 'Governance' : selectedNode.type === 'remoteAgentNode' ? 'Remote Agents' : nodeData.pillarType}
                 </span>
                 <span className={`text-[10px] font-mono ${t.subText}`}>
-                  {selectedNode.type === 'triggerNode' ? 'Trigger Node' : selectedNode.type === 'routerNode' ? 'Conditional Router' : selectedNode.type === 'approvalNode' ? 'Approval Gate' : 'Pillar Block'}
+                  {selectedNode.type === 'triggerNode' ? 'Trigger Node' : selectedNode.type === 'routerNode' ? 'Conditional Router' : selectedNode.type === 'approvalNode' ? 'Approval Gate' : selectedNode.type === 'remoteAgentNode' ? 'Remote Service Bridge' : 'Pillar Block'}
                 </span>
               </div>
             </div>
@@ -1590,6 +1591,15 @@ export default function Inspector({
                 onUpdateNodeData={onUpdateNodeData}
                 isDarkMode={isDarkMode}
                 t={t}
+              />
+            )}
+
+            {/* Remote Agent & External Service Configuration Bench */}
+            {selectedNode.type === 'remoteAgentNode' && (
+              <RemoteAgentInspectorPanel
+                selectedNode={selectedNode}
+                onUpdateNodeData={onUpdateNodeData}
+                isDarkMode={isDarkMode}
               />
             )}
 

@@ -61,7 +61,10 @@ import DeterministicNode from './nodes/DeterministicNode';
 import TriggerNode from './nodes/TriggerNode';
 import RouterNode from './nodes/RouterNode';
 import ApprovalNode from './nodes/ApprovalNode';
+import RemoteAgentNode from './nodes/RemoteAgentNode';
 import { executeDeterministicTask } from '../services/deterministicRunner';
+import { executeRemoteAgentTask } from '../services/remoteAgentRunner';
+import { startTrace, endTrace } from '../services/audit2Service';
 import { fireTriggerEvent, disarmScheduleTrigger, disarmPollingWatcher } from '../services/triggerEngine';
 import { loadCanvasViewport, saveCanvasViewport } from '../utils/persistentState';
 import { getActiveWorkflowId } from '../utils/workflowStorage';
@@ -77,7 +80,8 @@ const nodeTypes = {
   deterministicNode: DeterministicNode,
   triggerNode: TriggerNode,
   routerNode: RouterNode,
-  approvalNode: ApprovalNode
+  approvalNode: ApprovalNode,
+  remoteAgentNode: RemoteAgentNode
 };
 
 const edgeTypes = {
@@ -903,8 +907,133 @@ function CanvasInner({
       }
     };
 
+    const handleFireRemoteNode = async (e) => {
+      const detail = e.detail;
+      if (!detail || !detail.nodeId) return;
+
+      const remNode = (nodes || []).find((n) => n.id === detail.nodeId);
+      if (!remNode) return;
+
+      setToastNotification(`🌐 Executing Remote Agent: "${remNode.data?.name || 'Remote Service'}"`);
+      setTimeout(() => setToastNotification((curr) => (curr?.startsWith('🌐 Executing') ? null : curr)), 2000);
+
+      try {
+        const traceContext = startTrace({
+          workflowId: `wf-remote-${remNode.id}`,
+          workflowName: `Direct Execution: ${remNode.data?.name || 'Remote Agent'}`,
+          source: 'canvas'
+        });
+
+        let upstreamInput = detail.inputData;
+        if (!upstreamInput) {
+          const incomingEdges = (edges || []).filter(ed => ed.target === remNode.id);
+          const ingestNode = (nodes || []).find(n => incomingEdges.some(ed => ed.source === n.id) && (n.type === 'ingestionNode' || n.type === 'outputNode' || n.type === 'outputNodeV2'));
+          if (ingestNode) {
+            upstreamInput = ingestNode.data?.content || ingestNode.data?.outputContent || null;
+          }
+        }
+
+        const remoteRes = await executeRemoteAgentTask({
+          nodeId: remNode.id,
+          nodeData: remNode.data,
+          inputData: upstreamInput || 'KEAOS Canvas Direct Execution',
+          traceContext
+        });
+
+        // Fast-fail: If remote execution failed, seal trace as FAILED and halt downstream cascading
+        if (!remoteRes.success) {
+          await endTrace(traceContext, {
+            status: 'FAILED',
+            rootInput: upstreamInput || 'KEAOS Canvas Direct Execution',
+            rootOutput: remoteRes.error || 'Remote agent execution failed'
+          });
+          setToastNotification(`❌ Remote Agent Failed: ${remoteRes.error || 'Execution failed'}`);
+          setTimeout(() => setToastNotification(null), 3500);
+          window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
+            detail: { isExecuting: false, step: 'Failed' }
+          }));
+          return;
+        }
+
+        // Cascade downstream through DAG connected nodes!
+        let finalWorkflowOutput = remoteRes.output;
+        const cascadeFromNode = async (currentNodeId, currentOutput, currentSpanId) => {
+          const downstreamEdges = (edges || []).filter(ed => ed.source === currentNodeId);
+          const downstreamTargets = (nodes || []).filter(n => downstreamEdges.some(ed => ed.target === n.id) && !n.data?.isDeactivated);
+
+          for (const dsNode of downstreamTargets) {
+            if (dsNode.type === 'outputNode' || dsNode.type === 'outputNodeV2') {
+              const dsFormatted = typeof currentOutput === 'object'
+                ? JSON.stringify(currentOutput, null, 2)
+                : String(currentOutput || '');
+
+              window.dispatchEvent(new CustomEvent('keaos:output-append-run', {
+                detail: {
+                  targetNodeId: dsNode.id,
+                  output: dsFormatted,
+                  payload: currentOutput,
+                  sourceNodeType: 'remoteAgent',
+                  sourceNodeId: currentNodeId,
+                  sourceNodeName: 'Remote Agent'
+                }
+              }));
+            } else if (dsNode.type === 'remoteAgentNode') {
+              // Chain into next Remote Agent in pipeline! (Product A -> Product B -> ...)
+              const nextRes = await executeRemoteAgentTask({
+                nodeId: dsNode.id,
+                nodeData: dsNode.data,
+                inputData: currentOutput,
+                traceContext,
+                parentSpanId: currentSpanId
+              });
+              if (nextRes.success) {
+                finalWorkflowOutput = nextRes.output;
+                // Propagate downstream from the chained remote agent!
+                await cascadeFromNode(dsNode.id, nextRes.output, nextRes.spanId);
+              }
+            } else if (dsNode.type === 'approvalNode') {
+              window.dispatchEvent(new CustomEvent('keaos:approval-requested', {
+                detail: {
+                  nodeId: dsNode.id,
+                  payload: currentOutput
+                }
+              }));
+            } else if (dsNode.type === 'agentCore') {
+              const formattedContext = typeof currentOutput === 'object'
+                ? JSON.stringify(currentOutput, null, 2)
+                : String(currentOutput || '');
+
+              window.dispatchEvent(new CustomEvent('keaos:execute-workflow', {
+                detail: { agentId: dsNode.id, initialContext: formattedContext }
+              }));
+            }
+          }
+        };
+
+        await cascadeFromNode(remNode.id, remoteRes.output, remoteRes.spanId);
+
+        await endTrace(traceContext, {
+          status: remoteRes.success ? 'SUCCESS' : 'FAILED',
+          rootInput: upstreamInput || 'KEAOS Canvas Direct Execution',
+          rootOutput: finalWorkflowOutput
+        });
+
+        window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
+          detail: { isExecuting: false, step: 'Complete' }
+        }));
+      } catch (err) {
+        console.error('Remote agent execution error:', err);
+        setToastNotification(`❌ Remote Agent Error: ${err.message}`);
+        setTimeout(() => setToastNotification(null), 3500);
+      }
+    };
+
     window.addEventListener('keaos:fire-trigger-node', handleFireTriggerNode);
-    return () => window.removeEventListener('keaos:fire-trigger-node', handleFireTriggerNode);
+    window.addEventListener('keaos:fire-remote-node', handleFireRemoteNode);
+    return () => {
+      window.removeEventListener('keaos:fire-trigger-node', handleFireTriggerNode);
+      window.removeEventListener('keaos:fire-remote-node', handleFireRemoteNode);
+    };
   }, [nodes, edges]);
 
   // Listen for real-time execution state updates across all engines (Trigger, Multi-Agent, Deterministic, Meeting Simulator)
@@ -1643,6 +1772,28 @@ function CanvasInner({
         });
         return;
       }
+
+      // Check if there are remote agent nodes
+      const activeRemoteNodes = (nodes || []).filter(
+        (n) => n.type === 'remoteAgentNode' && !n.data?.isDeactivated
+      );
+      if (activeRemoteNodes.length > 0) {
+        const rootRemoteNodes = activeRemoteNodes.filter(
+          (n) => !edges.some((e) => e.target === n.id && (nodes || []).find((src) => src.id === e.source && src.type === 'remoteAgentNode' && !src.data?.isDeactivated))
+        );
+        const targetsToRun = rootRemoteNodes.length > 0 ? rootRemoteNodes : activeRemoteNodes;
+        targetsToRun.forEach((remNode) => {
+          window.dispatchEvent(
+            new CustomEvent('keaos:fire-remote-node', {
+              detail: {
+                nodeId: remNode.id,
+                inputData: null
+              }
+            })
+          );
+        });
+        return;
+      }
     }
 
     // 3. If NO trigger node exists, execute directly through the workflow execution event!
@@ -1810,16 +1961,28 @@ function CanvasInner({
 
       if (!sourceNode || !targetNode) return false;
 
-      // Allow connections into Canvas Output Node from Agent Core, Tools, Deterministic Box, or another Output Node
+      // Allow connections into Canvas Output Node from Agent Core, Tools, Deterministic Box, Remote Agent, or another Output Node
       if (targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2') {
-        if (sourceNode.type === 'agentCore' || sourceNode.type === 'pillar' || sourceNode.type === 'outputNode' || sourceNode.type === 'outputNodeV2' || sourceNode.type === 'deterministicNode') {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'pillar' || sourceNode.type === 'outputNode' || sourceNode.type === 'outputNodeV2' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'remoteAgentNode') {
           return true;
         }
       }
 
-      // Allow pass-through connections from Output Node to downstream Agent Core, next Output Node, or Deterministic Box
+      // Allow pass-through connections from Output Node to downstream Agent Core, next Output Node, Remote Agent, or Deterministic Box
       if (sourceNode.type === 'outputNode' || sourceNode.type === 'outputNodeV2') {
-        if (targetNode.type === 'agentCore' || targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2' || targetNode.type === 'deterministicNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2' || targetNode.type === 'deterministicNode' || targetNode.type === 'remoteAgentNode') {
+          return true;
+        }
+      }
+
+      // Remote Agent Connections (Multi-Product Mesh: chaining, fan-in, fan-out across external & internal agents)
+      if (targetNode.type === 'remoteAgentNode') {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'remoteAgentNode' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'routerNode' || sourceNode.type === 'approvalNode' || (sourceNode.data?.pillarType === 'policies' && targetHandle === 'policy-in')) {
+          return true;
+        }
+      }
+      if (sourceNode.type === 'remoteAgentNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'remoteAgentNode' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode') {
           return true;
         }
       }
@@ -2319,7 +2482,8 @@ function CanvasInner({
         (n.type === 'deterministicNode' && (executionState.nodeId === n.id || executionState.step?.includes('Deterministic'))) ||
         (n.type === 'triggerNode' && (executionState.nodeId === n.id || executionState.step?.includes('Trigger') || executionState.step?.includes('Ingress'))) ||
         (n.type === 'routerNode' && (executionState.nodeId === n.id || executionState.step?.includes('Router'))) ||
-        (n.type === 'approvalNode' && (executionState.nodeId === n.id || executionState.step?.includes('Approval') || executionState.step?.includes('Sign-off')))
+        (n.type === 'approvalNode' && (executionState.nodeId === n.id || executionState.step?.includes('Approval') || executionState.step?.includes('Sign-off'))) ||
+        (n.type === 'remoteAgentNode' && (executionState.nodeId === n.id || executionState.step?.includes('Remote') || executionState.pillarType === 'remote_agent'))
       );
 
       // Dynamically calculate attachedCounts and connectedModelName specifically for THIS agent node

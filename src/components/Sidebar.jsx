@@ -9,7 +9,8 @@ import {
   Lock,
   Home, 
   X,
-  Sparkles
+  Sparkles,
+  Activity
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -35,7 +36,8 @@ export default function Sidebar({
 
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'unified-audit', label: 'Audit & Observability', icon: ShieldCheck }
+    { id: 'unified-audit', label: 'Audit & Observability', icon: ShieldCheck },
+    { id: 'audit-2', label: 'Audit 2.0', icon: Activity, badge: 'OTel' }
   ];
 
   // Theme-adaptive classes
@@ -229,6 +231,11 @@ export default function Sidebar({
                   <div className="flex items-center gap-2.5">
                     <Icon className="w-4 h-4 shrink-0" />
                     <span>{tab.label}</span>
+                    {tab.badge && (
+                      <span className="text-[8px] font-mono font-bold px-1 py-0.2 rounded bg-[#00A3A6]/20 text-[#00A3A6] border border-[#00A3A6]/30">
+                        {tab.badge}
+                      </span>
+                    )}
                   </div>
                   {isActive && (
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

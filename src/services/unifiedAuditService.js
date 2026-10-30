@@ -13,6 +13,7 @@
 
 import { calculateInferenceCost, getLiveModelProfile } from './modelPricingService';
 import { pushAuditLedgerToServer } from './workspaceSyncService';
+import { getStoredAudit2Runs, saveAudit2Runs, generateTraceId, generateSpanId } from './audit2Service';
 
 const UNIFIED_AUDIT_STORAGE_KEY = 'keaos_unified_audit_ledger';
 const MAX_LEDGER_ENTRIES = 200;
@@ -318,9 +319,82 @@ export async function recordWorkflowExecution({
     }
   };
 
-  // 7. Persist to storage
+  // 7. Persist to storage (Audit 1.0)
   const existing = getStoredAuditRuns();
   saveAuditRuns([newRecord, ...existing]);
+
+  // 8. Ingrained OpenTelemetry Notarization (Audit 2.0)
+  try {
+    const traceId = generateTraceId();
+    const rootSpanId = generateSpanId();
+    const otelSpans = finalActivities.map((act, idx) => ({
+      spanId: generateSpanId(),
+      traceId,
+      parentSpanId: rootSpanId,
+      name: act.name,
+      kind: act.pillarType === 'model' ? 'INTERNAL' : act.pillarType === 'remote_agent' ? 'CLIENT' : 'INTERNAL',
+      componentType: act.pillarType || 'generic',
+      componentId: act.component || `comp-${idx}`,
+      componentName: act.name,
+      startTime: Date.now() - Math.max(1, act.latencyMs || 10),
+      endTime: Date.now(),
+      durationMs: act.latencyMs || 10,
+      status: { code: act.status === 'PASSED' || act.status === 'OK' ? 'OK' : 'ERROR' },
+      attributes: {
+        'component.type': act.pillarType,
+        'llm.cost_usd': act.costUsd || 0,
+        ...(act.details || {})
+      }
+    }));
+
+    const audit2Record = {
+      version: '2.0',
+      runId,
+      traceId,
+      rootSpanId,
+      workflowId,
+      workflowName,
+      frameworkId,
+      frameworkName,
+      origin,
+      status,
+      timestamp,
+      completedAt: new Date().toISOString(),
+      durationMs: Math.max(1, Math.round(durationMs)),
+      initiator: finalInitiator,
+      cryptography: {
+        rootSha256,
+        inputSha256,
+        outputSha256,
+        standard: 'W3C OpenTelemetry Trace Context / W3C SHA-256',
+        piiSanitizedCount,
+        verified: true
+      },
+      metrics: {
+        totalTokens,
+        promptTokens: totalPromptTokens,
+        completionTokens: totalCompletionTokens,
+        totalCostUsd: Number(totalCostUsd.toFixed(5)),
+        currency: 'USD',
+        spansCount: otelSpans.length,
+        componentsCount: new Set(otelSpans.map(s => s.componentType)).size,
+        activeModelsCount: multiBrainBreakdown.length,
+        humanMinutesSaved,
+        laborValueSavedUsd,
+        netRoiMultiplier
+      },
+      spans: otelSpans,
+      payload: {
+        inputSnippet: inputStr.slice(0, 240) + (inputStr.length > 240 ? '...' : ''),
+        outputSnippet: outputStr.slice(0, 360) + (outputStr.length > 360 ? '...' : '')
+      }
+    };
+
+    const existingAudit2 = getStoredAudit2Runs();
+    saveAudit2Runs([audit2Record, ...existingAudit2]);
+  } catch (err) {
+    console.warn('[UnifiedAudit] Audit 2.0 sync warning:', err);
+  }
 
   return newRecord;
 }
