@@ -1,1 +1,114 @@
-[]
+[
+  {
+    "version": "2.0",
+    "runId": "RUN-263250",
+    "traceId": "f6d1e04da94dc5d176de12179fb5870f",
+    "rootSpanId": "49e0c12bfba1b50a",
+    "workflowId": "uc-wf-1793175155405-hreve",
+    "workflowName": "Sandbox Test",
+    "frameworkId": "google-adk",
+    "frameworkName": "Google ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-02T13:14:23.249Z",
+    "completedAt": "2026-11-02T13:14:23.268Z",
+    "durationMs": 8666,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "d3f5be93c21b3a66b98d0327d9880179ffd627ac126c010c812f8a8982df8baa",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "1c696d7cd2b65430506eed2f9b06b78b2f43c16e946e9e64aec15e0cbd9ad1b4",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 542,
+      "promptTokens": 190,
+      "completionTokens": 352,
+      "totalCostUsd": 0.004,
+      "currency": "USD",
+      "spansCount": 3,
+      "componentsCount": 3,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 11,
+      "laborValueSavedUsd": 11.92,
+      "netRoiMultiplier": 2980
+    },
+    "spans": [
+      {
+        "spanId": "6fc59d4ec9723242",
+        "traceId": "f6d1e04da94dc5d176de12179fb5870f",
+        "parentSpanId": "49e0c12bfba1b50a",
+        "name": "Ingress Validation",
+        "kind": "INTERNAL",
+        "componentType": "gateway",
+        "componentId": "Gateway Controller",
+        "componentName": "Ingress Validation",
+        "startTime": 1793625263258,
+        "endTime": 1793625263268,
+        "durationMs": 10,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "gateway",
+          "llm.cost_usd": 0,
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "80fc7c5ad8411aff",
+        "traceId": "f6d1e04da94dc5d176de12179fb5870f",
+        "parentSpanId": "49e0c12bfba1b50a",
+        "name": "Autonomous Agent #1 (OpenAI: GPT-4o)",
+        "kind": "INTERNAL",
+        "componentType": "model",
+        "componentId": "gpt-4o",
+        "componentName": "Autonomous Agent #1 (OpenAI: GPT-4o)",
+        "startTime": 1793625254878,
+        "endTime": 1793625263268,
+        "durationMs": 8390,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "model",
+          "llm.cost_usd": 0.004,
+          "promptTokens": 190,
+          "completionTokens": 352
+        }
+      },
+      {
+        "spanId": "e8d44fdd89ba4f4b",
+        "traceId": "f6d1e04da94dc5d176de12179fb5870f",
+        "parentSpanId": "49e0c12bfba1b50a",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "kind": "INTERNAL",
+        "componentType": "audit",
+        "componentId": "Cryptographic Audit Notary",
+        "componentName": "W3C SHA-256 Ledger Immutability Seal",
+        "startTime": 1793625263253,
+        "endTime": 1793625263268,
+        "durationMs": 15,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "audit",
+          "llm.cost_usd": 0,
+          "rootSha256": "d3f5be93c21b3a66b98d0327d9880179ffd627ac126c010c812f8a8982df8baa"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": "# Task Execution Report\n\n## Overview\nThe task requires synthesizing and executing enterprise directives with high precision. This involves reviewing upstream agent handoffs, understanding the directives, and implementing them effectively.\n\n## Upstream Agent Handoffs\n1. **Directive Analysis**: The upstream agents have provided a detailed analysis of the enter..."
+    }
+  }
+]

@@ -2345,7 +2345,7 @@ export default function App() {
               {/* Single Unified Right Sidebar (Identical width w-96, flawless smooth transition between Inspector & Catalog) */}
               {((isInspectorOpen && selectedNode) || isAddMenuOpen) && (
                 <aside 
-                  className={`w-96 h-full border-l shrink-0 flex flex-col overflow-hidden select-none z-20 animate-swift-slide-in transition-all ${
+                  className={`w-96 h-full border-l shrink-0 flex flex-col overflow-hidden select-none z-40 animate-swift-slide-in transition-all ${
                     isDarkMode ? 'bg-[#0D0F17] border-white/[0.08] shadow-2xl' : 'bg-white border-slate-200/80 shadow-xl'
                   }`}
                 >

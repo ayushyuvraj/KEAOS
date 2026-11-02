@@ -683,11 +683,14 @@ export default function CanvasPromptBar({
   return (
     <div 
       id="canvas-prompt-bar-container" 
-      className={`absolute ${
-        isDrawerExpanded ? 'bottom-[min(440px,calc(50vh+20px))]' : 'bottom-12'
-      } left-1/2 -translate-x-1/2 z-30 w-full max-w-2xl px-4 pointer-events-none select-none transition-all duration-300`}
+      className={`fixed bottom-12 left-1/2 -translate-x-1/2 z-30 w-full max-w-2xl px-4 select-none transition-all duration-200 ${
+        isDrawerExpanded 
+          ? 'opacity-0 pointer-events-none invisible' 
+          : 'opacity-100 pointer-events-none'
+      }`}
     >
-      <div className="relative pointer-events-auto flex flex-col items-center">
+      <div className={`relative flex flex-col items-center ${isDrawerExpanded ? "pointer-events-none" : "pointer-events-auto"}`}>
+
         
         {/* 1. CLARIFICATION CARD (Floating above the prompt bar) */}
         {clarification && (
@@ -1123,14 +1126,6 @@ export default function CanvasPromptBar({
               </div>
             </div>
 
-            {/* Signature Stitch Bottom Drag Handle / Center Notch */}
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 pointer-events-none flex items-center justify-center z-10">
-              <div className={`w-8 h-1 rounded-full border transition-colors ${
-                isDarkMode 
-                  ? 'bg-[#181B26] border-white/20 shadow-xs' 
-                  : 'bg-white border-slate-300 shadow-xs'
-              }`} />
-            </div>
           </div>
         </div>
 

@@ -1,5 +1,106 @@
 [
   {
+    "runId": "RUN-263250",
+    "workflowId": "uc-wf-1793175155405-hreve",
+    "workflowName": "Sandbox Test",
+    "frameworkId": "google-adk",
+    "frameworkName": "Google ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-02T13:14:23.249Z",
+    "durationMs": 8666,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "d3f5be93c21b3a66b98d0327d9880179ffd627ac126c010c812f8a8982df8baa",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "1c696d7cd2b65430506eed2f9b06b78b2f43c16e946e9e64aec15e0cbd9ad1b4",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 542,
+      "promptTokens": 190,
+      "completionTokens": 352,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.004,
+      "currency": "USD",
+      "humanMinutesSaved": 11,
+      "laborValueSavedUsd": 11.92,
+      "netRoiMultiplier": 2980
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core-8175",
+        "agentName": "Autonomous Agent #1",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 190,
+        "completionTokens": 352,
+        "totalTokens": 542,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.004,
+        "latencyMs": 8390,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Autonomous Agent #1 (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 8390,
+        "costUsd": 0.004,
+        "details": {
+          "promptTokens": 190,
+          "completionTokens": 352
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "d3f5be93c21b3a66b98d0327d9880179ffd627ac126c010c812f8a8982df8baa"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": "# Task Execution Report\n\n## Overview\nThe task requires synthesizing and executing enterprise directives with high precision. This involves reviewing upstream agent handoffs, understanding the directives, and implementing them effectively.\n\n## Upstream Agent Handoffs\n1. **Directive Analysis**: The upstream agents have provided a detailed analysis of the enter..."
+    }
+  },
+  {
     "runId": "RUN-787662",
     "workflowId": "workflow-7662",
     "workflowName": "Custom Workflow",
