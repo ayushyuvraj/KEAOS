@@ -28,6 +28,7 @@ import {
   FileCheck2
 } from 'lucide-react';
 import { transcribeAudioUniversal, getProviderCredential } from '../../services/llmService';
+import NodeActionToolbar from '../common/NodeActionToolbar';
 
 /**
  * Universal Zero-RAM Chunk Sniffer for Massive Files (CSV, TSV, XLSX, JSON)
@@ -129,6 +130,16 @@ export default function IngestionNode({ id, data = {}, selected }) {
     isDarkMode = true,
     onDelete
   } = data;
+
+  const isDeactivated = Boolean(data?.isDeactivated);
+  const isLocked = Boolean(data?.isLocked);
+  const [nodeTitle, setNodeTitle] = useState(data?.title || 'Universal Enterprise Dataset Ingestion');
+
+  useEffect(() => {
+    if (data?.title) {
+      setNodeTitle(data.title);
+    }
+  }, [data?.title]);
 
   // Ingestion Mode: 'bilateral' (Exactly 2 files) | 'single' (1 file) | 'audio' (meeting) | 'text' (raw text)
   const [ingestMode, setIngestMode] = useState(data.ingestMode || 'bilateral');
@@ -395,8 +406,30 @@ export default function IngestionNode({ id, data = {}, selected }) {
     return (
       <div 
         onWheel={(e) => e.stopPropagation()}
-        className="relative group select-none flex flex-col items-center justify-center font-sans">
+        className={`relative group select-none flex flex-col items-center justify-center font-sans ${
+          isDeactivated ? 'opacity-40 grayscale pointer-events-none' : ''
+        }`}>
         
+        {/* Floating Action Toolbar on Hover (Circular Disc Flank) */}
+        <NodeActionToolbar
+          nodeId={id}
+          nodeName={nodeTitle}
+          isDeactivated={isDeactivated}
+          isLocked={isLocked}
+          onToggleDeactivate={() => data?.onToggleDeactivate && data.onToggleDeactivate(id)}
+          onDelete={() => data?.onDelete && data.onDelete(id)}
+          onOpenInspector={() => data?.onOpenInspector && data.onOpenInspector(id)}
+          onDuplicate={() => data?.onDuplicate && data.onDuplicate(id)}
+          onCopy={() => data?.onCopy && data.onCopy(id)}
+          onRename={(nodeId, newName) => {
+            setNodeTitle(newName);
+            if (data?.onRename) data.onRename(nodeId, newName);
+          }}
+          isDarkMode={isDarkMode}
+          mode="circle-left"
+          dropdownPlacement="auto"
+        />
+
         {/* Precision Micro Typography Header */}
         <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap z-10">
           <span className="text-[10px] font-mono uppercase tracking-wider font-bold block text-slate-400">
@@ -496,7 +529,9 @@ export default function IngestionNode({ id, data = {}, selected }) {
         minWidth: '420px',
         minHeight: '360px'
       }}
-      className={`nowheel relative flex flex-col rounded-none border-2 transition-colors duration-200 shadow-2xl select-none font-sans ${
+      className={`nowheel relative group flex flex-col rounded-none border-2 transition-colors duration-200 shadow-2xl select-none font-sans ${
+        isDeactivated ? 'opacity-40 grayscale pointer-events-none' : ''
+      } ${
         statusInfo.isReady
           ? 'border-[#009A44] shadow-[0_0_24px_rgba(0,154,68,0.25)]'
           : isDarkMode 
@@ -505,6 +540,26 @@ export default function IngestionNode({ id, data = {}, selected }) {
       } ${selected ? 'ring-2 ring-[#0091DA]' : ''}`}
     >
       
+      {/* Floating Action Toolbar on Hover (Card Top Rim) */}
+      <NodeActionToolbar
+        nodeId={id}
+        nodeName={nodeTitle}
+        isDeactivated={isDeactivated}
+        isLocked={isLocked}
+        onToggleDeactivate={() => data?.onToggleDeactivate && data.onToggleDeactivate(id)}
+        onDelete={() => data?.onDelete && data.onDelete(id)}
+        onOpenInspector={() => data?.onOpenInspector && data.onOpenInspector(id)}
+        onDuplicate={() => data?.onDuplicate && data.onDuplicate(id)}
+        onCopy={() => data?.onCopy && data.onCopy(id)}
+        onRename={(nodeId, newName) => {
+          setNodeTitle(newName);
+          if (data?.onRename) data.onRename(nodeId, newName);
+        }}
+        isDarkMode={isDarkMode}
+        mode="card-top"
+        dropdownPlacement="auto"
+      />
+
       {/* Node Resizer */}
       <NodeResizer 
         minWidth={420}

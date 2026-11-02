@@ -1,5 +1,5 @@
 {
-  "activeWorkflowId": "wf-1793626912680-m2v6p",
+  "activeWorkflowId": "wf-1793175155405-hreve",
   "uiState": {
     "isDarkMode": false,
     "isSidebarCollapsed": true,
@@ -236,35 +236,6 @@
       },
       "nodes": [
         {
-          "id": "agent-core-8175",
-          "type": "agentCore",
-          "position": {
-            "x": 833.2937181663838,
-            "y": 284.8556876061121
-          },
-          "data": {
-            "name": "Autonomous Agent #1",
-            "framework": {
-              "id": "google-adk",
-              "name": "Google ADK",
-              "subtitle": "Google Agent Development Kit & GenAI SDK",
-              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-              "defaultModel": "gemini-2.0-flash",
-              "exportExtension": ".py",
-              "category": "SDK"
-            },
-            "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
-            "temperature": 0.2,
-            "topP": 0.95
-          },
-          "measured": {
-            "width": 228,
-            "height": 173
-          },
-          "selected": false,
-          "dragging": false
-        },
-        {
           "id": "node-ingest-6666",
           "type": "ingestionNode",
           "position": {
@@ -310,31 +281,16 @@
             "isDarkMode": false
           },
           "measured": {
-            "width": 198,
+            "width": 196,
             "height": 54
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
         }
       ],
-      "edges": [
-        {
-          "id": "edge-ingest-6667",
-          "source": "node-ingest-6666",
-          "sourceHandle": "data-out",
-          "target": "agent-core-8175",
-          "targetHandle": "tools-in",
-          "type": "deletable",
-          "animated": false,
-          "style": {
-            "stroke": "#0091DA",
-            "strokeWidth": 1.8,
-            "strokeDasharray": "4 4"
-          }
-        }
-      ],
+      "edges": [],
       "createdAt": 1793175155405,
-      "updatedAt": 1793625254659,
+      "updatedAt": 1793643306925,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -342,8 +298,8 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 3,
-        "agentCount": 1,
+        "nodeCount": 2,
+        "agentCount": 0,
         "mcpCount": 0,
         "modelCount": 0,
         "skillCount": 0,
@@ -1262,7 +1218,7 @@
           },
           "className": "animate-in zoom-in-95 duration-200",
           "measured": {
-            "width": 140,
+            "width": 60,
             "height": 60
           }
         },
@@ -1276,13 +1232,13 @@
           "data": {
             "name": "Autonomous Enterprise Agent",
             "framework": {
-              "id": "google-adk",
-              "name": "Google ADK",
-              "subtitle": "Google Agent Development Kit & GenAI SDK",
-              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
-              "defaultModel": "gemini-2.0-flash",
+              "id": "langchain",
+              "name": "LangChain",
+              "subtitle": "Composable LCEL chains and agent toolkits",
+              "description": "Classic modular framework with prebuilt toolkits, output parsers, and prompt serialization.",
+              "defaultModel": "claude-3-5-sonnet",
               "exportExtension": ".py",
-              "category": "SDK"
+              "category": "Chains"
             },
             "prompt": "Execute enterprise multi-step workflow with analytical fidelity and compliance enforcement.",
             "temperature": 0.2,
@@ -1305,7 +1261,8 @@
           "measured": {
             "width": 228,
             "height": 173
-          }
+          },
+          "selected": true
         },
         {
           "id": "node-model-8651",
@@ -1482,7 +1439,7 @@
         }
       ],
       "createdAt": 1792874578283,
-      "updatedAt": 1792874915416,
+      "updatedAt": 1793642982574,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -3423,7 +3380,7 @@
         }
       ],
       "createdAt": 1792873823152,
-      "updatedAt": 1793182329771,
+      "updatedAt": 1793643133555,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -8937,141 +8894,62 @@
   "canvasState": {
     "nodes": [
       {
-        "id": "node-remote-4883",
-        "type": "remoteAgentNode",
+        "id": "node-ingest-6666",
+        "type": "ingestionNode",
         "position": {
-          "x": 663.5218553657202,
-          "y": 186.24287325030858
+          "x": 826.9004756424222,
+          "y": 180.70134749473272
         },
         "data": {
-          "name": "Universal External Agent #1",
-          "description": "Universal HTTP gateway for any Python, FastAPI, Node, or cloud-hosted enterprise agent.",
-          "framework": "fastapi",
-          "endpointUrl": "http://127.0.0.1:8000/run",
-          "hostingProvider": "Localhost",
-          "httpMethod": "POST",
-          "authType": "none",
-          "authToken": "",
-          "timeoutSeconds": 30,
-          "retries": 1,
-          "requestMode": "json_envelope",
-          "responsePath": "auto",
-          "otelIngestion": true,
-          "status": "idle",
-          "lastStatus": "idle",
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 290,
-          "height": 162
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-remote-3578",
-        "type": "remoteAgentNode",
-        "position": {
-          "x": 981.9640843711425,
-          "y": 200.97909486757194
-        },
-        "data": {
-          "name": "LangGraph Remote Agent #2",
-          "description": "Connects to an externally hosted LangGraph StateGraph service via REST API with zero code rewrites and automatic OpenTelemetry ingestion.",
-          "framework": "langgraph",
-          "endpointUrl": "https://api.example.com/v1/run",
-          "hostingProvider": "GCP",
-          "httpMethod": "POST",
-          "authType": "bearer",
-          "authToken": "",
-          "timeoutSeconds": 30,
-          "retries": 1,
-          "requestMode": "json_envelope",
-          "responsePath": "auto",
-          "otelIngestion": true,
-          "status": "idle",
-          "lastStatus": "idle",
-          "isDarkMode": false
-        },
-        "measured": {
-          "width": 290,
-          "height": 162
-        },
-        "selected": false,
-        "dragging": false
-      },
-      {
-        "id": "node-trigger-7842",
-        "type": "triggerNode",
-        "position": {
-          "x": 180,
-          "y": 220
-        },
-        "data": {
-          "name": "Webhook Ingress #1",
-          "triggerType": "webhook",
-          "description": "Universal HTTP webhook endpoint. Subscribes to external systems, fast ACKs (200 OK), and dispatches payload.",
-          "config": {
-            "triggerType": "webhook",
-            "webhookPath": "/api/ingress/v1/wh_live",
-            "requireSecret": true,
-            "defaultPayload": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
-          },
-          "lastFired": null,
-          "lastStatus": "idle",
-          "status": "idle",
-          "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
-        },
-        "measured": {
-          "width": 140,
-          "height": 60
-        }
-      },
-      {
-        "id": "node-output-4315",
-        "type": "outputNode",
-        "position": {
-          "x": 790,
-          "y": 207
-        },
-        "data": {
-          "name": "Final Output Viewer & Exporter",
-          "title": "Final Output Viewer & Exporter",
-          "outputContent": "",
+          "title": "Universal Enterprise Dataset Ingestion",
+          "fileName": "",
+          "fileSize": "",
+          "fileType": "auto",
           "content": "",
-          "status": "idle",
-          "format": "markdown",
-          "runsHistory": [],
-          "sourceNodeType": null,
-          "sourceNodeId": null,
-          "sourceNodeName": null,
+          "status": "empty",
+          "ingestMode": "bilateral",
+          "slotA": null,
+          "slotB": null,
           "isExpanded": false
         },
         "measured": {
-          "width": 560,
-          "height": 440
-        }
-      }
-    ],
-    "edges": [
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "dragging": false
+      },
       {
-        "id": "edge-output-4316",
-        "source": "agent-core",
-        "sourceHandle": "out",
-        "target": "node-output-4315",
-        "targetHandle": "data-in",
-        "type": "deletable",
-        "animated": false,
-        "style": {
-          "stroke": "#10B981",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        }
+        "id": "node-router-7274",
+        "type": "routerNode",
+        "position": {
+          "x": 1430.2161855089157,
+          "y": 234.69054024951726
+        },
+        "data": {
+          "name": "Conditional Router #1",
+          "description": "Subtle visual decision fork. Evaluates incoming data and routes execution to True or False branches.",
+          "targetField": "status",
+          "operator": "==",
+          "comparisonValue": "approved",
+          "trueLabel": "True / Match",
+          "falseLabel": "False / Default",
+          "lastEvaluatedBranch": null,
+          "status": "idle",
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 196,
+          "height": 54
+        },
+        "selected": false,
+        "dragging": false
       }
     ],
+    "edges": [],
     "activeUseCase": {
-      "id": "uc-wf-1793626912680-m2v6p",
-      "name": "Untitled Workflow 6",
+      "id": "uc-wf-1793175155405-hreve",
+      "name": "Sandbox Test",
       "description": "",
       "framework": {
         "id": "google-adk",
@@ -14346,5 +14224,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793637604556
+  "syncedAt": 1793643307739
 }
