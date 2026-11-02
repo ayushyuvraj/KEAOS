@@ -236,37 +236,68 @@
       },
       "nodes": [
         {
-          "id": "node-ingest-6666",
-          "type": "ingestionNode",
+          "id": "node-remote-2481",
+          "type": "remoteAgentNode",
           "position": {
-            "x": 826.9004756424222,
-            "y": 180.70134749473272
+            "x": 752.4156224732409,
+            "y": 253.86526010875508
           },
           "data": {
-            "title": "Universal Enterprise Dataset Ingestion",
-            "fileName": "",
-            "fileSize": "",
-            "fileType": "auto",
-            "content": "",
-            "status": "empty",
-            "ingestMode": "bilateral",
-            "slotA": null,
-            "slotB": null,
-            "isExpanded": false
+            "name": "Universal External Agent #2",
+            "description": "Universal HTTP gateway for any Python, FastAPI, LangGraph, CrewAI, Google ADK, or cloud-hosted enterprise agent with zero code rewrites and automatic OpenTelemetry ingestion.",
+            "framework": "fastapi",
+            "endpointUrl": "http://127.0.0.1:8000/run",
+            "hostingProvider": "Localhost",
+            "httpMethod": "POST",
+            "authType": "none",
+            "authToken": "",
+            "timeoutSeconds": 30,
+            "retries": 1,
+            "requestMode": "json_envelope",
+            "responsePath": "auto",
+            "otelIngestion": true,
+            "status": "idle",
+            "lastStatus": "idle",
+            "isDarkMode": false
           },
           "measured": {
-            "width": 60,
-            "height": 60
+            "width": 290,
+            "height": 162
           },
           "selected": false,
           "dragging": false
         },
         {
-          "id": "node-router-7274",
+          "id": "node-output-3650",
+          "type": "outputNode",
+          "position": {
+            "x": 1206,
+            "y": 233
+          },
+          "data": {
+            "name": "Final Output Viewer & Exporter",
+            "title": "Final Output Viewer & Exporter",
+            "outputContent": "",
+            "content": "",
+            "status": "idle",
+            "format": "markdown",
+            "runsHistory": [],
+            "sourceNodeType": null,
+            "sourceNodeId": null,
+            "sourceNodeName": null,
+            "isExpanded": false
+          },
+          "measured": {
+            "width": 56,
+            "height": 56
+          }
+        },
+        {
+          "id": "node-router-1949",
           "type": "routerNode",
           "position": {
-            "x": 1430.2161855089157,
-            "y": 234.69054024951726
+            "x": 1162,
+            "y": 353
           },
           "data": {
             "name": "Conditional Router #1",
@@ -283,14 +314,121 @@
           "measured": {
             "width": 196,
             "height": 54
+          }
+        },
+        {
+          "id": "agent-core-1064",
+          "type": "agentCore",
+          "position": {
+            "x": 280,
+            "y": 200
           },
-          "selected": false,
-          "dragging": false
+          "data": {
+            "name": "Autonomous Agent #1",
+            "framework": {
+              "id": "google-adk",
+              "name": "Google ADK",
+              "subtitle": "Google Agent Development Kit & GenAI SDK",
+              "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+              "defaultModel": "gemini-2.0-flash",
+              "exportExtension": ".py",
+              "category": "SDK"
+            },
+            "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+            "temperature": 0.2,
+            "topP": 0.95
+          },
+          "measured": {
+            "width": 228,
+            "height": 173
+          },
+          "selected": false
+        },
+        {
+          "id": "node-model-5240",
+          "type": "pillar",
+          "position": {
+            "x": 400,
+            "y": 98
+          },
+          "data": {
+            "pillarType": "model",
+            "toolId": "model-openai-gpt-4o-mini",
+            "name": "OpenAI: gpt-4o-mini",
+            "description": "OpenAI gpt-4o-mini (Owner: system, Created: 7/17/2024)",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "provider": "openai",
+              "modelId": "gpt-4o-mini"
+            },
+            "tools": null,
+            "itemId": "model-openai-gpt-4o-mini"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
         }
       ],
-      "edges": [],
+      "edges": [
+        {
+          "id": "edge-node-remote-2481-out-to-node-output-3650-data-in-3652",
+          "source": "node-remote-2481",
+          "sourceHandle": "out",
+          "target": "node-output-3650",
+          "targetHandle": "data-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          },
+          "data": {
+            "isToolBinding": false,
+            "isBidirectional": false
+          }
+        },
+        {
+          "id": "edge-node-remote-2481-out-to-node-router-1949-in-1950",
+          "source": "node-remote-2481",
+          "sourceHandle": "out",
+          "target": "node-router-1949",
+          "targetHandle": "in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#00B8F5",
+            "strokeWidth": 2,
+            "strokeDasharray": "4 4"
+          },
+          "data": {
+            "isToolBinding": false,
+            "isBidirectional": false
+          }
+        },
+        {
+          "id": "edge-node-model-5240-out-to-agent-core-1064-model-in-5241",
+          "source": "node-model-5240",
+          "sourceHandle": "out",
+          "target": "agent-core-1064",
+          "targetHandle": "model-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#00338D",
+            "strokeWidth": 2,
+            "strokeDasharray": "4 4"
+          },
+          "data": {
+            "isToolBinding": false,
+            "isBidirectional": false
+          }
+        }
+      ],
       "createdAt": 1793175155405,
-      "updatedAt": 1793643306925,
+      "updatedAt": 1793648205402,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -298,10 +436,10 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 2,
-        "agentCount": 0,
+        "nodeCount": 5,
+        "agentCount": 1,
         "mcpCount": 0,
-        "modelCount": 0,
+        "modelCount": 1,
         "skillCount": 0,
         "toolCount": 0,
         "policyCount": 0,
@@ -4408,7 +4546,16 @@
               "memory": 1,
               "policies": 1
             },
-            "isDarkMode": false
+            "isDarkMode": false,
+            "lastOutput": "### Meeting Transcript Analysis\n\n#### Key Findings\n- The meeting transcript titled \"ARC_5_Minute_Test_Meeting_v2.mp3\" has been successfully ingested and contains 18,292 rows of data.\n- The analysis of the transcript will be conducted once Slot B is loaded to ensure comprehensive extraction of decisions and action items.\n\n#### Next Steps\n- Await the loading of Slot B to proceed with the extraction of confirmed decisions and action items from the meeting transcript.\n- Prepare to analyze the transcript for explicit commitments and owners to ensure compliance with the confirmed action rules.\n\n### Action Items\n- **Action Item Owner**: Awaiting Slot B.\n- **Deadline**: Upon completion of Slot B loading. \n\nOnce Slot B is available, I will extract and summarize the decisions and action items accordingly.",
+            "auditHash": "0e3c23986dad30fb4aa89bea09ea0e060e2061c35d9efb7674cf882b50f8ccfc",
+            "observability": {
+              "totalTokens": 1632,
+              "latencyMs": 6694,
+              "modelUsed": "openai (gpt-4o-mini)",
+              "framework": "LangChain"
+            },
+            "costUsd": 0.00072
           },
           "measured": {
             "width": 228,
@@ -4524,16 +4671,38 @@
           "data": {
             "name": "Final Output Viewer & Exporter",
             "title": "Final Output Viewer & Exporter",
-            "outputContent": "",
+            "outputContent": "### Meeting Transcript Analysis\n\n#### Key Findings\n- The meeting transcript titled \"ARC_5_Minute_Test_Meeting_v2.mp3\" has been successfully ingested and contains 18,292 rows of data.\n- The analysis of the transcript will be conducted once Slot B is loaded to ensure comprehensive extraction of decisions and action items.\n\n#### Next Steps\n- Await the loading of Slot B to proceed with the extraction of confirmed decisions and action items from the meeting transcript.\n- Prepare to analyze the transcript for explicit commitments and owners to ensure compliance with the confirmed action rules.\n\n### Action Items\n- **Action Item Owner**: Awaiting Slot B.\n- **Deadline**: Upon completion of Slot B loading. \n\nOnce Slot B is available, I will extract and summarize the decisions and action items accordingly.",
             "content": "",
-            "status": "idle",
+            "status": "ready",
             "format": "markdown",
-            "runsHistory": [],
-            "sourceNodeType": null,
-            "sourceNodeId": null,
-            "sourceNodeName": null,
+            "runsHistory": [
+              {
+                "runNumber": 1,
+                "timestamp": "12:05:32 AM",
+                "content": "### Meeting Transcript Analysis\n\n#### Key Findings\n- The meeting transcript titled \"ARC_5_Minute_Test_Meeting_v2.mp3\" has been successfully ingested and contains 18,292 rows of data.\n- The analysis of the transcript will be conducted once Slot B is loaded to ensure comprehensive extraction of decisions and action items.\n\n#### Next Steps\n- Await the loading of Slot B to proceed with the extraction of confirmed decisions and action items from the meeting transcript.\n- Prepare to analyze the transcript for explicit commitments and owners to ensure compliance with the confirmed action rules.\n\n### Action Items\n- **Action Item Owner**: Awaiting Slot B.\n- **Deadline**: Upon completion of Slot B loading. \n\nOnce Slot B is available, I will extract and summarize the decisions and action items accordingly.",
+                "auditHash": "0e3c23986dad30fb4aa89bea09ea0e060e2061c35d9efb7674cf882b50f8ccfc",
+                "tokens": 1632,
+                "latencyMs": 6694,
+                "costUsd": 0.00072,
+                "source": "agent",
+                "sourceNodeType": "agent",
+                "sourceNodeId": "agent-core",
+                "sourceNodeName": "MIA2"
+              }
+            ],
+            "sourceNodeType": "agent",
+            "sourceNodeId": "agent-core",
+            "sourceNodeName": "MIA2",
             "isExpanded": false,
-            "isDarkMode": false
+            "isDarkMode": false,
+            "auditHash": "0e3c23986dad30fb4aa89bea09ea0e060e2061c35d9efb7674cf882b50f8ccfc",
+            "observability": {
+              "totalTokens": 1632,
+              "latencyMs": 6694,
+              "modelUsed": "openai (gpt-4o-mini)",
+              "framework": "LangChain"
+            },
+            "costUsd": 0.00072
           },
           "measured": {
             "width": 56,
@@ -4557,7 +4726,7 @@
             "isDarkMode": false
           },
           "measured": {
-            "width": 140,
+            "width": 60,
             "height": 60
           },
           "selected": false,
@@ -4681,7 +4850,7 @@
         }
       ],
       "createdAt": 1729080000000,
-      "updatedAt": 1792836058705,
+      "updatedAt": 1793644576902,
       "isStarred": true,
       "tags": [
         "Meeting Intelligence",
@@ -4700,7 +4869,8 @@
         "hasAudit": false
       },
       "isLocked": true,
-      "isWorkflowLocked": true
+      "isWorkflowLocked": true,
+      "agentLogs": []
     },
     {
       "id": "wf-outlook-stream-intelligence",
@@ -8894,37 +9064,68 @@
   "canvasState": {
     "nodes": [
       {
-        "id": "node-ingest-6666",
-        "type": "ingestionNode",
+        "id": "node-remote-2481",
+        "type": "remoteAgentNode",
         "position": {
-          "x": 826.9004756424222,
-          "y": 180.70134749473272
+          "x": 752.4156224732409,
+          "y": 253.86526010875508
         },
         "data": {
-          "title": "Universal Enterprise Dataset Ingestion",
-          "fileName": "",
-          "fileSize": "",
-          "fileType": "auto",
-          "content": "",
-          "status": "empty",
-          "ingestMode": "bilateral",
-          "slotA": null,
-          "slotB": null,
-          "isExpanded": false
+          "name": "Universal External Agent #2",
+          "description": "Universal HTTP gateway for any Python, FastAPI, LangGraph, CrewAI, Google ADK, or cloud-hosted enterprise agent with zero code rewrites and automatic OpenTelemetry ingestion.",
+          "framework": "fastapi",
+          "endpointUrl": "http://127.0.0.1:8000/run",
+          "hostingProvider": "Localhost",
+          "httpMethod": "POST",
+          "authType": "none",
+          "authToken": "",
+          "timeoutSeconds": 30,
+          "retries": 1,
+          "requestMode": "json_envelope",
+          "responsePath": "auto",
+          "otelIngestion": true,
+          "status": "idle",
+          "lastStatus": "idle",
+          "isDarkMode": false
         },
         "measured": {
-          "width": 60,
-          "height": 60
+          "width": 290,
+          "height": 162
         },
         "selected": false,
         "dragging": false
       },
       {
-        "id": "node-router-7274",
+        "id": "node-output-3650",
+        "type": "outputNode",
+        "position": {
+          "x": 1206,
+          "y": 233
+        },
+        "data": {
+          "name": "Final Output Viewer & Exporter",
+          "title": "Final Output Viewer & Exporter",
+          "outputContent": "",
+          "content": "",
+          "status": "idle",
+          "format": "markdown",
+          "runsHistory": [],
+          "sourceNodeType": null,
+          "sourceNodeId": null,
+          "sourceNodeName": null,
+          "isExpanded": false
+        },
+        "measured": {
+          "width": 56,
+          "height": 56
+        }
+      },
+      {
+        "id": "node-router-1949",
         "type": "routerNode",
         "position": {
-          "x": 1430.2161855089157,
-          "y": 234.69054024951726
+          "x": 1162,
+          "y": 353
         },
         "data": {
           "name": "Conditional Router #1",
@@ -8941,12 +9142,119 @@
         "measured": {
           "width": 196,
           "height": 54
+        }
+      },
+      {
+        "id": "agent-core-1064",
+        "type": "agentCore",
+        "position": {
+          "x": 280,
+          "y": 200
         },
-        "selected": false,
-        "dragging": false
+        "data": {
+          "name": "Autonomous Agent #1",
+          "framework": {
+            "id": "google-adk",
+            "name": "Google ADK",
+            "subtitle": "Google Agent Development Kit & GenAI SDK",
+            "description": "Enterprise reasoning with Gemini 2.0 native multimodal support, tool calling, and high-context processing.",
+            "defaultModel": "gemini-2.0-flash",
+            "exportExtension": ".py",
+            "category": "SDK"
+          },
+          "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
+          "temperature": 0.2,
+          "topP": 0.95
+        },
+        "measured": {
+          "width": 228,
+          "height": 173
+        },
+        "selected": false
+      },
+      {
+        "id": "node-model-5240",
+        "type": "pillar",
+        "position": {
+          "x": 400,
+          "y": 98
+        },
+        "data": {
+          "pillarType": "model",
+          "toolId": "model-openai-gpt-4o-mini",
+          "name": "OpenAI: gpt-4o-mini",
+          "description": "OpenAI gpt-4o-mini (Owner: system, Created: 7/17/2024)",
+          "customDirective": null,
+          "referenceDoc": null,
+          "config": {
+            "provider": "openai",
+            "modelId": "gpt-4o-mini"
+          },
+          "tools": null,
+          "itemId": "model-openai-gpt-4o-mini"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        }
       }
     ],
-    "edges": [],
+    "edges": [
+      {
+        "id": "edge-node-remote-2481-out-to-node-output-3650-data-in-3652",
+        "source": "node-remote-2481",
+        "sourceHandle": "out",
+        "target": "node-output-3650",
+        "targetHandle": "data-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#10B981",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        },
+        "data": {
+          "isToolBinding": false,
+          "isBidirectional": false
+        }
+      },
+      {
+        "id": "edge-node-remote-2481-out-to-node-router-1949-in-1950",
+        "source": "node-remote-2481",
+        "sourceHandle": "out",
+        "target": "node-router-1949",
+        "targetHandle": "in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#00B8F5",
+          "strokeWidth": 2,
+          "strokeDasharray": "4 4"
+        },
+        "data": {
+          "isToolBinding": false,
+          "isBidirectional": false
+        }
+      },
+      {
+        "id": "edge-node-model-5240-out-to-agent-core-1064-model-in-5241",
+        "source": "node-model-5240",
+        "sourceHandle": "out",
+        "target": "agent-core-1064",
+        "targetHandle": "model-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#00338D",
+          "strokeWidth": 2,
+          "strokeDasharray": "4 4"
+        },
+        "data": {
+          "isToolBinding": false,
+          "isBidirectional": false
+        }
+      }
+    ],
     "activeUseCase": {
       "id": "uc-wf-1793175155405-hreve",
       "name": "Sandbox Test",
@@ -14224,5 +14532,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793643307739
+  "syncedAt": 1793648206214
 }

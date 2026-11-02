@@ -60,7 +60,7 @@ export async function executeRemoteAgentTask({
   parentSpanId = null
 }) {
   const startTime = performance.now();
-  const endpointUrl = nodeData.endpointUrl || 'https://api.example.com/run';
+  const endpointUrl = nodeData.endpointUrl || 'http://127.0.0.1:8000/run';
   const httpMethod = nodeData.httpMethod || 'POST';
   const authType = nodeData.authType || 'none';
   const authToken = nodeData.authToken || '';
@@ -68,8 +68,8 @@ export async function executeRemoteAgentTask({
   const maxRetries = Number(nodeData.retries) || 0;
   const requestMode = nodeData.requestMode || 'json_envelope';
   const responsePath = nodeData.responsePath || 'auto';
-  const nodeName = nodeData.name || 'Remote Agent';
-  const framework = nodeData.framework || 'langgraph';
+  const nodeName = nodeData.name || 'Universal External Agent';
+  const framework = nodeData.framework || 'fastapi';
 
   // 1. Start OpenTelemetry Child Span
   let span = null;

@@ -146,11 +146,11 @@ export default function Palette({ onAddNode }) {
                       EXTERNAL
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-500">LangGraph, CrewAI & cloud services</p>
+                  <p className="text-[10px] text-slate-500">Universal external HTTP agent bridge</p>
                 </div>
               </div>
               <button
-                onClick={() => onAddNode('remoteAgentNode', { name: 'LangGraph Remote Agent', framework: 'langgraph', isRemoteAgentNode: true })}
+                onClick={() => onAddNode('remoteAgentNode', { name: 'Universal External Agent', framework: 'fastapi', isRemoteAgentNode: true })}
                 className="btn-tactile w-7 h-7 bg-[#00A3A6] hover:bg-[#008D90] text-white flex items-center justify-center transition-all shrink-0 border border-[#008D90] shadow-sm cursor-pointer"
                 title="Add new Remote Agent Gateway to canvas"
               >

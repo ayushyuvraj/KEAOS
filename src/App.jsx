@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import Canvas from './components/Canvas';
 import Inspector from './components/Inspector';
 import NodeCatalogPanel from './components/NodeCatalogPanel';
+import { resolveAutoWiring } from './utils/socketValidator';
 import MakeUseCaseModal from './components/MakeUseCaseModal';
 import MeetingSimulator from './components/MeetingSimulator';
 import EvaluationView from './components/EvaluationView';
@@ -909,15 +910,49 @@ export default function App() {
     return Boolean(initialActiveWorkflow?.isLocked ?? initialActiveWorkflow?.isWorkflowLocked ?? false);
   });
 
-  // Listen for slot click / wire release from AgentCoreNode or Canvas to remember originating slot
+  const activeConnectorRef = useRef(null);
+  const [activeConnector, setActiveConnector] = useState(null);
+
+  // Listen for connector wire release or slot click from Canvas/Nodes to remember originating connector
   useEffect(() => {
-    const handleOpenSlotCatalog = (e) => {
-      activeSlotTargetRef.current = e.detail; // { agentId, agentName, slotId, categoryId }
+    const handleOpenConnectorCatalog = (e) => {
+      const detail = e.detail;
+      activeConnectorRef.current = detail;
+      setActiveConnector(detail);
+      activeSlotTargetRef.current = {
+        agentId: detail.originNodeId,
+        agentName: detail.originNodeName,
+        slotId: detail.handleId,
+        categoryId: detail.categoryId,
+        dropPosition: detail.dropPosition
+      };
       setIsAddMenuOpen(true);
       setIsInspectorOpenState(false);
     };
+
+    const handleOpenSlotCatalog = (e) => {
+      const detail = e.detail;
+      activeSlotTargetRef.current = detail;
+      activeConnectorRef.current = {
+        originNodeId: detail.agentId,
+        originNodeName: detail.agentName,
+        originNodeType: 'agentCore',
+        handleId: detail.slotId,
+        handleType: detail.slotId?.includes('-in') ? 'target' : 'source',
+        categoryId: detail.categoryId,
+        dropPosition: detail.dropPosition
+      };
+      setActiveConnector(activeConnectorRef.current);
+      setIsAddMenuOpen(true);
+      setIsInspectorOpenState(false);
+    };
+
+    window.addEventListener('keaos:open-connector-catalog', handleOpenConnectorCatalog);
     window.addEventListener('keaos:open-slot-catalog', handleOpenSlotCatalog);
-    return () => window.removeEventListener('keaos:open-slot-catalog', handleOpenSlotCatalog);
+    return () => {
+      window.removeEventListener('keaos:open-connector-catalog', handleOpenConnectorCatalog);
+      window.removeEventListener('keaos:open-slot-catalog', handleOpenSlotCatalog);
+    };
   }, []);
 
   // Initialize two-way disk synchronization and listen for external updates
@@ -1445,10 +1480,64 @@ export default function App() {
     }));
   }, [isDarkMode, handleDeleteNode, setNodes, setEdges, nodes]);
 
+  const handleDeleteEdge = useCallback((edgeId) => {
+    setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+  }, [setEdges]);
+
+  // Universal Auto-Wiring Engine for Extended Connectors
+  const applyAutoWiring = useCallback((newNode, defaultTitle, defaultStroke = '#00B8F5') => {
+    const activeConn = activeConnectorRef.current;
+    if (activeConn) {
+      const wiring = resolveAutoWiring(activeConn, newNode, nodes, edges);
+      if (wiring.isValid) {
+        setEdges((eds) => [
+          ...eds,
+          {
+            id: `edge-${wiring.source}-${wiring.sourceHandle}-to-${wiring.target}-${wiring.targetHandle}-${Date.now().toString().slice(-4)}`,
+            source: wiring.source,
+            sourceHandle: wiring.sourceHandle,
+            target: wiring.target,
+            targetHandle: wiring.targetHandle,
+            type: 'deletable',
+            animated: true,
+            style: {
+              stroke: wiring.strokeColor || defaultStroke,
+              strokeWidth: wiring.strokeWidth || 2.0,
+              strokeDasharray: wiring.strokeDasharray || '4 4'
+            },
+            data: {
+              isToolBinding: wiring.isToolBinding,
+              isBidirectional: wiring.isToolBinding,
+              onDelete: handleDeleteEdge
+            }
+          }
+        ]);
+
+        const isDownstream = activeConn.handleType === 'source';
+        const msg = isDownstream
+          ? `🔗 Connected "${activeConn.originNodeName}" → "${defaultTitle}"`
+          : `🔗 Connected "${defaultTitle}" → "${activeConn.originNodeName}"`;
+        window.dispatchEvent(new CustomEvent('keaos:toast', { detail: { message: msg } }));
+      } else {
+        window.dispatchEvent(new CustomEvent('keaos:toast', {
+          detail: { message: `ℹ️ Added "${defaultTitle}" as freestanding (incompatible with ${activeConn.handleId} socket)` }
+        }));
+      }
+      activeConnectorRef.current = null;
+      setActiveConnector(null);
+      activeSlotTargetRef.current = null;
+      setIsAddMenuOpen(false);
+      return true;
+    }
+    return false;
+  }, [nodes, edges, handleDeleteEdge]);
+
   // Add node from Palette / Catalog with slot context awareness & auto-wiring
   const handleAddNode = useCallback((pillarKey, item) => {
     const targetSlot = activeSlotTargetRef.current; // { agentId, agentName, slotId, categoryId }
     const targetAgentId = targetSlot?.agentId;
+    const dropPos = activeConnectorRef.current?.dropPosition || activeSlotTargetRef.current?.dropPosition;
+    const hasDropPos = Boolean(dropPos && typeof dropPos.x === 'number' && typeof dropPos.y === 'number' && !isNaN(dropPos.x));
 
     if (pillarKey === 'mcp') {
       handleAddRealMcpToCanvas(item);
@@ -1459,13 +1548,18 @@ export default function App() {
     if (pillarKey === 'agentCore') {
       const newNodeId = `agent-core-${Date.now().toString().slice(-4)}`;
       let agentCount = 1;
+      let newNode = null;
       setNodes((nds) => {
         const existingAgents = nds.filter(n => n.type === 'agentCore');
         agentCount = existingAgents.length + 1;
-        const xPos = 280 + (existingAgents.length * 300);
-        const yPos = 200 + ((existingAgents.length % 2) * 60);
+        const xPos = hasDropPos 
+          ? Math.round(dropPos.x - 40)
+          : (280 + (existingAgents.length * 300));
+        const yPos = hasDropPos 
+          ? Math.round(dropPos.y - 30)
+          : (200 + ((existingAgents.length % 2) * 60));
 
-        const newNode = {
+        newNode = {
           id: newNodeId,
           type: 'agentCore',
           position: { x: xPos, y: yPos },
@@ -1482,6 +1576,10 @@ export default function App() {
         setSelectedNode(newNode);
         return [...nds, newNode];
       });
+
+      if (newNode && applyAutoWiring(newNode, item.name || 'Autonomous Agent', '#6366F1')) {
+        return;
+      }
 
       if (targetAgentId) {
         setEdges((eds) => [
@@ -1509,15 +1607,20 @@ export default function App() {
 
     if (pillarKey === 'outputNodeV2' || item?.nodeType === 'outputNodeV2') {
       const newNodeId = `node-output-v2-${Date.now().toString().slice(-4)}`;
+      let newNode = null;
       setNodes((nds) => {
         const agentNode = targetAgentId 
           ? nds.find(n => n.id === targetAgentId) 
           : nds.find(n => n.type === 'agentCore');
         const existingOuts = nds.filter(n => n.type === 'outputNode' || n.type === 'outputNodeV2');
-        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790;
-        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y + 42 : 207;
+        const xPos = hasDropPos 
+          ? Math.round(dropPos.x - 40)
+          : ((agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790);
+        const yPos = hasDropPos 
+          ? Math.round(dropPos.y - 30)
+          : ((agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y + 42 : 207);
 
-        const newNode = {
+        newNode = {
           id: newNodeId,
           type: 'outputNodeV2',
           position: { x: xPos, y: yPos },
@@ -1538,6 +1641,10 @@ export default function App() {
         setSelectedNode(newNode);
         return [...nds, newNode];
       });
+
+      if (newNode && applyAutoWiring(newNode, item.name || 'Output Viewer v2.0', '#10B981')) {
+        return;
+      }
 
       // Auto-wire from target agent's out handle
       setEdges((eds) => {
@@ -1567,15 +1674,20 @@ export default function App() {
 
     if (pillarKey === 'outputNode') {
       const newNodeId = `node-output-${Date.now().toString().slice(-4)}`;
+      let newNode = null;
       setNodes((nds) => {
         const agentNode = targetAgentId 
           ? nds.find(n => n.id === targetAgentId) 
           : nds.find(n => n.type === 'agentCore');
         const existingOuts = nds.filter(n => n.type === 'outputNode');
-        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790;
-        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y + 42 : 207;
+        const xPos = hasDropPos 
+          ? Math.round(dropPos.x - 40)
+          : ((agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 270 + (existingOuts.length * 40) : 790);
+        const yPos = hasDropPos 
+          ? Math.round(dropPos.y - 30)
+          : ((agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y + 42 : 207);
 
-        const newNode = {
+        newNode = {
           id: newNodeId,
           type: 'outputNode',
           position: { x: xPos, y: yPos },
@@ -1596,6 +1708,10 @@ export default function App() {
         setSelectedNode(newNode);
         return [...nds, newNode];
       });
+
+      if (newNode && applyAutoWiring(newNode, item.name || 'Output Viewer', '#10B981')) {
+        return;
+      }
 
       // Auto-wire from target agent's out handle
       setEdges((eds) => {
@@ -1626,16 +1742,21 @@ export default function App() {
     if (pillarKey === 'ingestionNode' || item?.isIngestionNode || item?.id?.startsWith('ingest-')) {
       const newNodeId = `node-ingest-${Date.now().toString().slice(-4)}`;
       const fileType = item?.config?.fileType || (item?.id === 'ingest-audio-stream' ? 'audio' : item?.id === 'ingest-raw-text' ? 'text' : 'auto');
+      let newNode = null;
 
       setNodes((nds) => {
         const agentNode = targetAgentId 
           ? nds.find(n => n.id === targetAgentId) 
           : nds.find(n => n.type === 'agentCore');
         const existingIngests = nds.filter(n => n.type === 'ingestionNode');
-        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 46 - (existingIngests.length * 30) : 474;
-        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y - 110 : 55;
+        const xPos = hasDropPos 
+          ? Math.round(dropPos.x - 40)
+          : ((agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 46 - (existingIngests.length * 30) : 474);
+        const yPos = hasDropPos 
+          ? Math.round(dropPos.y - 30)
+          : ((agentNode?.position?.y != null && !isNaN(agentNode.position.y)) ? agentNode.position.y - 110 : 55);
 
-        const newNode = {
+        newNode = {
           id: newNodeId,
           type: 'ingestionNode',
           position: { x: xPos, y: yPos },
@@ -1655,6 +1776,10 @@ export default function App() {
         setSelectedNode(newNode);
         return [...nds, newNode];
       });
+
+      if (newNode && applyAutoWiring(newNode, item.name || 'Ingestion', '#0091DA')) {
+        return;
+      }
 
       // Auto-wire to target agent's tools-in
       setEdges((eds) => {
@@ -1685,6 +1810,8 @@ export default function App() {
     if (pillarKey === 'deterministicNode' || pillarKey === 'deterministic' || item?.isDeterministicNode) {
       const newNodeId = `node-deterministic-${Date.now().toString().slice(-4)}`;
       let count = 1;
+      let newNode = null;
+
       setNodes((nds) => {
         const existing = nds.filter(n => n.type === 'deterministicNode');
         count = existing.length + 1;
@@ -1692,7 +1819,10 @@ export default function App() {
         const isToolsSlot = targetSlot?.slotId === 'tools-in' || targetSlot?.slotId === 'tools-out' || targetSlot?.categoryId === 'tools';
         
         let xPos, yPos;
-        if (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) {
+        if (hasDropPos) {
+          xPos = Math.round(dropPos.x - 40);
+          yPos = Math.round(dropPos.y - 30);
+        } else if (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) {
           if (isToolsSlot) {
             xPos = agentNode.position.x - 260 - (existing.length * 25);
             yPos = agentNode.position.y - 40 + (existing.length * 45);
@@ -1705,7 +1835,7 @@ export default function App() {
           yPos = 300 + (existing.length * 40);
         }
 
-        const newNode = {
+        newNode = {
           id: newNodeId,
           type: 'deterministicNode',
           position: { x: xPos, y: yPos },
@@ -1723,6 +1853,10 @@ export default function App() {
         setSelectedNode(newNode);
         return [...nds, newNode];
       });
+
+      if (newNode && applyAutoWiring(newNode, item.name || 'Deterministic Box', '#EAAA00')) {
+        return;
+      }
 
       if (targetAgentId) {
         const isToolsSlot = targetSlot?.slotId === 'tools-in' || targetSlot?.slotId === 'tools-out' || targetSlot?.categoryId === 'tools';
@@ -1757,16 +1891,22 @@ export default function App() {
     if (pillarKey === 'logics' || pillarKey === 'routerNode' || item?.isRouterNode) {
       const newNodeId = `node-router-${Date.now().toString().slice(-4)}`;
       let count = 1;
+      let newNode = null;
+
       setNodes((nds) => {
         const existing = nds.filter(n => n.type === 'routerNode');
         count = existing.length + 1;
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 220 : 360;
-        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
-          ? agentNode.position.y + 140 + (existing.length * 80)
-          : 300 + (existing.length * 80);
+        const xPos = hasDropPos 
+          ? Math.round(dropPos.x - 40)
+          : ((agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 220 : 360);
+        const yPos = hasDropPos 
+          ? Math.round(dropPos.y - 30)
+          : ((agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
+              ? agentNode.position.y + 140 + (existing.length * 80)
+              : 300 + (existing.length * 80));
 
-        const newNode = {
+        newNode = {
           id: newNodeId,
           type: 'routerNode',
           position: { x: xPos, y: yPos },
@@ -1789,6 +1929,10 @@ export default function App() {
         return [...nds, newNode];
       });
 
+      if (newNode && applyAutoWiring(newNode, item.name || 'Conditional Router', '#00B8F5')) {
+        return;
+      }
+
       activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
@@ -1800,16 +1944,22 @@ export default function App() {
     if (pillarKey === 'governance' || pillarKey === 'approvalNode' || item?.isApprovalNode) {
       const newNodeId = `node-approval-${Date.now().toString().slice(-4)}`;
       let count = 1;
+      let newNode = null;
+
       setNodes((nds) => {
         const existing = nds.filter(n => n.type === 'approvalNode');
         count = existing.length + 1;
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 240 : 540;
-        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
-          ? agentNode.position.y + 140 + (existing.length * 80)
-          : 320 + (existing.length * 80);
+        const xPos = hasDropPos 
+          ? Math.round(dropPos.x - 40)
+          : ((agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 240 : 540);
+        const yPos = hasDropPos 
+          ? Math.round(dropPos.y - 30)
+          : ((agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
+              ? agentNode.position.y + 140 + (existing.length * 80)
+              : 320 + (existing.length * 80));
 
-        const newNode = {
+        newNode = {
           id: newNodeId,
           type: 'approvalNode',
           position: { x: xPos, y: yPos },
@@ -1831,6 +1981,10 @@ export default function App() {
         return [...nds, newNode];
       });
 
+      if (newNode && applyAutoWiring(newNode, item.name || 'Approval Gate', '#EAAA00')) {
+        return;
+      }
+
       activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
       window.dispatchEvent(new CustomEvent('keaos:toast', {
@@ -1842,28 +1996,34 @@ export default function App() {
     if (pillarKey === 'remoteAgents' || pillarKey === 'remoteAgentNode' || item?.isRemoteAgentNode) {
       const newNodeId = `node-remote-${Date.now().toString().slice(-4)}`;
       let count = 1;
+      let newNode = null;
+
       setNodes((nds) => {
         const existing = nds.filter(n => n.type === 'remoteAgentNode');
         count = existing.length + 1;
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 280 : 560;
-        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
-          ? agentNode.position.y + 40 + (existing.length * 80)
-          : 220 + (existing.length * 80);
+        const xPos = hasDropPos 
+          ? Math.round(dropPos.x - 40)
+          : ((agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x + 280 : 560);
+        const yPos = hasDropPos 
+          ? Math.round(dropPos.y - 30)
+          : ((agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
+              ? agentNode.position.y + 40 + (existing.length * 80)
+              : 220 + (existing.length * 80));
 
-        const framework = item.framework || item.config?.framework || 'langgraph';
-        const newNode = {
+        const framework = item.framework || item.config?.framework || 'fastapi';
+        newNode = {
           id: newNodeId,
           type: 'remoteAgentNode',
           position: { x: xPos, y: yPos },
           data: {
-            name: item.name ? (item.name.includes('#') ? item.name : `${item.name} #${count}`) : `Remote Agent #${count}`,
+            name: item.name ? (item.name.includes('#') ? item.name : `${item.name} #${count}`) : `Universal External Agent #${count}`,
             description: item.description || 'Externally hosted autonomous service connected via REST API with ingrained OpenTelemetry.',
             framework,
-            endpointUrl: item.config?.endpointUrl || 'https://api.example.com/v1/run',
-            hostingProvider: item.config?.hostingProvider || 'AWS',
+            endpointUrl: item.config?.endpointUrl || 'http://127.0.0.1:8000/run',
+            hostingProvider: item.config?.hostingProvider || 'Localhost',
             httpMethod: item.config?.httpMethod || 'POST',
-            authType: item.config?.authType || 'bearer',
+            authType: item.config?.authType || 'none',
             authToken: item.config?.authToken || '',
             timeoutSeconds: item.config?.timeoutSeconds || 30,
             retries: item.config?.retries || 1,
@@ -1878,6 +2038,10 @@ export default function App() {
         setSelectedNode(newNode);
         return [...nds, newNode];
       });
+
+      if (newNode && applyAutoWiring(newNode, item.name || 'Universal External Agent', '#00A3A6')) {
+        return;
+      }
 
       if (targetAgentId) {
         setEdges((eds) => [
@@ -1906,18 +2070,24 @@ export default function App() {
     if (pillarKey === 'triggers' || pillarKey === 'triggerNode' || item?.isTriggerNode) {
       const newNodeId = `node-trigger-${Date.now().toString().slice(-4)}`;
       let count = 1;
+      let newNode = null;
+
       setNodes((nds) => {
         const trgType = item.config?.triggerType || 'manual';
         const existingSameType = nds.filter(n => n.type === 'triggerNode' && (n.data?.triggerType === trgType));
         count = existingSameType.length + 1;
         const existingAllTriggers = nds.filter(n => n.type === 'triggerNode');
         const agentNode = targetAgentId ? nds.find(n => n.id === targetAgentId) : nds.find(n => n.type === 'agentCore');
-        const xPos = (agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 320 : 180;
-        const yPos = (agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
-          ? agentNode.position.y + (existingAllTriggers.length * 90) 
-          : 220 + (existingAllTriggers.length * 90);
+        const xPos = hasDropPos 
+          ? Math.round(dropPos.x - 40)
+          : ((agentNode?.position?.x != null && !isNaN(agentNode.position.x)) ? agentNode.position.x - 320 : 180);
+        const yPos = hasDropPos 
+          ? Math.round(dropPos.y - 30)
+          : ((agentNode?.position?.y != null && !isNaN(agentNode.position.y)) 
+              ? agentNode.position.y + (existingAllTriggers.length * 90) 
+              : 220 + (existingAllTriggers.length * 90));
 
-        const newNode = {
+        newNode = {
           id: newNodeId,
           type: 'triggerNode',
           position: { x: xPos, y: yPos },
@@ -1935,6 +2105,10 @@ export default function App() {
         setSelectedNode(newNode);
         return [...nds, newNode];
       });
+
+      if (newNode && applyAutoWiring(newNode, item.name || 'Trigger', '#00A3A6')) {
+        return;
+      }
 
       activeSlotTargetRef.current = null;
       setIsAddMenuOpen(false);
@@ -1957,6 +2131,14 @@ export default function App() {
       else if (pillarKey === 'skills') targetHandleId = 'skill-in';
     }
 
+    let newNode = null;
+    let strokeColor = '#00338D';
+    if (pillarKey === 'tools') strokeColor = '#0091DA';
+    else if (pillarKey === 'gateway') strokeColor = '#00A3A6';
+    else if (pillarKey === 'policies') strokeColor = '#470A68';
+    else if (pillarKey === 'memory') strokeColor = '#483698';
+    else if (pillarKey === 'skills') strokeColor = '#6D2077';
+
     setNodes((nds) => {
       const targetAgent = targetAgentId 
         ? nds.find(n => n.id === targetAgentId) 
@@ -1965,7 +2147,10 @@ export default function App() {
       let xPos = 400 + Math.random() * 200;
       let yPos = 150 + Math.random() * 250;
 
-      if (targetAgent?.position?.x != null && targetAgent?.position?.y != null) {
+      if (hasDropPos) {
+        xPos = Math.round(dropPos.x - 40);
+        yPos = Math.round(dropPos.y - 30);
+      } else if (targetAgent?.position?.x != null && targetAgent?.position?.y != null) {
         if (pillarKey === 'model') {
           const modelCount = nds.filter(n => n.data?.pillarType === 'model').length;
           xPos = targetAgent.position.x + 44 + (modelCount * 30);
@@ -1991,7 +2176,7 @@ export default function App() {
         }
       }
 
-      const newNode = {
+      newNode = {
         id: newNodeId,
         type: 'pillar',
         position: { x: xPos, y: yPos },
@@ -2013,6 +2198,10 @@ export default function App() {
       return [...nds, newNode];
     });
 
+    if (newNode && applyAutoWiring(newNode, item.name, strokeColor)) {
+      return;
+    }
+
     // Auto-wire to designated or first agent
     setEdges((eds) => {
       const destAgentId = targetAgentId || eds.find(e => e.target?.startsWith('agent-core') || e.source?.startsWith('agent-core'))?.target || (nodes.find(n => n.type === 'agentCore')?.id || 'agent-core');
@@ -2023,13 +2212,6 @@ export default function App() {
       const filteredEds = isSingleConn
         ? eds.filter(e => !(e.target === destAgentId && e.targetHandle === targetHandleId))
         : eds;
-
-      let strokeColor = '#00338D';
-      if (pillarKey === 'tools') strokeColor = '#0091DA';
-      else if (pillarKey === 'gateway') strokeColor = '#00A3A6';
-      else if (pillarKey === 'policies') strokeColor = '#470A68';
-      else if (pillarKey === 'memory') strokeColor = '#483698';
-      else if (pillarKey === 'skills') strokeColor = '#6D2077';
 
       return [
         ...filteredEds,
@@ -2052,7 +2234,7 @@ export default function App() {
     window.dispatchEvent(new CustomEvent('keaos:toast', {
       detail: { message: `➕ Added "${item.name}" & connected to agent` }
     }));
-  }, [setNodes, activeUseCase, handleDeleteNode, setIsInspectorOpen, handleAddRealMcpToCanvas, setEdges, nodes, isDarkMode]);
+  }, [setNodes, activeUseCase, handleDeleteNode, setIsInspectorOpen, handleAddRealMcpToCanvas, setEdges, nodes, isDarkMode, applyAutoWiring]);
 
   // Update Agent Config
   const handleUpdateAgentConfig = (updates) => {
@@ -2359,8 +2541,14 @@ export default function App() {
                       }`}
                     >
                       <NodeCatalogPanel
-                        isOpen={true}
-                        onClose={() => setIsAddMenuOpen(false)}
+                          isOpen={true}
+                          onClose={() => {
+                            setIsAddMenuOpen(false);
+                            setActiveConnector(null);
+                            activeConnectorRef.current = null;
+                            activeSlotTargetRef.current = null;
+                          }}
+                          activeConnector={activeConnector}
                         onAddNode={(category, item) => {
                           handleAddNode(category, item);
                         }}

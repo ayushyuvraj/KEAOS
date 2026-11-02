@@ -17,12 +17,12 @@ export default function RemoteAgentInspectorPanel({
   const nodeData = selectedNode?.data || {};
 
   // Form State
-  const [name, setName] = useState(nodeData.name || 'LangGraph Remote Agent');
-  const [framework, setFramework] = useState(nodeData.framework || 'langgraph');
-  const [hostingProvider, setHostingProvider] = useState(nodeData.hostingProvider || 'AWS');
-  const [endpointUrl, setEndpointUrl] = useState(nodeData.endpointUrl || 'https://api.example.com/run');
+  const [name, setName] = useState(nodeData.name || 'Universal External Agent');
+  const [framework, setFramework] = useState(nodeData.framework || 'fastapi');
+  const [hostingProvider, setHostingProvider] = useState(nodeData.hostingProvider || 'Localhost');
+  const [endpointUrl, setEndpointUrl] = useState(nodeData.endpointUrl || 'http://127.0.0.1:8000/run');
   const [httpMethod, setHttpMethod] = useState(nodeData.httpMethod || 'POST');
-  const [authType, setAuthType] = useState(nodeData.authType || 'bearer');
+  const [authType, setAuthType] = useState(nodeData.authType || 'none');
   const [authToken, setAuthtoken] = useState(nodeData.authToken || '');
   const [showAuthToken, setShowAuthToken] = useState(false);
   const [timeoutSeconds, setTimeoutSeconds] = useState(nodeData.timeoutSeconds || 30);

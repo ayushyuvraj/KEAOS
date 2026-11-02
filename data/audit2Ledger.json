@@ -1,6 +1,118 @@
 [
   {
     "version": "2.0",
+    "runId": "RUN-532767",
+    "traceId": "2c2a80a7b216d6c0a36953d0852e29cb",
+    "rootSpanId": "a60c6592fce42a93",
+    "workflowId": "uc-meeting-intel",
+    "workflowName": "MIA2",
+    "frameworkId": "langchain",
+    "frameworkName": "LangChain",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-02T18:35:32.767Z",
+    "completedAt": "2026-11-02T18:35:32.782Z",
+    "durationMs": 6966,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "37e3eff058f6c590f7155da32323a5ba8c8b10ef23217155769149a54be60ccb",
+      "inputSha256": "7752cb569f1b370d6a1ae0f33623a5a6a70423a86e597058cc36c3e580dc7885",
+      "outputSha256": "14e42160883c380a8509bd970778f68509ea9d3529f2ae272b9ee149352b8571",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 1632,
+      "promptTokens": 571,
+      "completionTokens": 1061,
+      "totalCostUsd": 0.00072,
+      "currency": "USD",
+      "spansCount": 3,
+      "componentsCount": 3,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 33,
+      "laborValueSavedUsd": 35.75,
+      "netRoiMultiplier": 49653
+    },
+    "spans": [
+      {
+        "spanId": "21477cee410a2dfb",
+        "traceId": "2c2a80a7b216d6c0a36953d0852e29cb",
+        "parentSpanId": "a60c6592fce42a93",
+        "name": "Ingress Validation",
+        "kind": "INTERNAL",
+        "componentType": "gateway",
+        "componentId": "Gateway Controller",
+        "componentName": "Ingress Validation",
+        "startTime": 1793644532772,
+        "endTime": 1793644532782,
+        "durationMs": 10,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "gateway",
+          "llm.cost_usd": 0,
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 112
+        }
+      },
+      {
+        "spanId": "03665448dc9cfe68",
+        "traceId": "2c2a80a7b216d6c0a36953d0852e29cb",
+        "parentSpanId": "a60c6592fce42a93",
+        "name": "MIA2 (OpenAI: GPT-4o-mini)",
+        "kind": "INTERNAL",
+        "componentType": "model",
+        "componentId": "gpt-4o-mini",
+        "componentName": "MIA2 (OpenAI: GPT-4o-mini)",
+        "startTime": 1793644526088,
+        "endTime": 1793644532782,
+        "durationMs": 6694,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "model",
+          "llm.cost_usd": 0.00072,
+          "promptTokens": 571,
+          "completionTokens": 1061
+        }
+      },
+      {
+        "spanId": "9cebc5f90e4b55af",
+        "traceId": "2c2a80a7b216d6c0a36953d0852e29cb",
+        "parentSpanId": "a60c6592fce42a93",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "kind": "INTERNAL",
+        "componentType": "audit",
+        "componentId": "Cryptographic Audit Notary",
+        "componentName": "W3C SHA-256 Ledger Immutability Seal",
+        "startTime": 1793644532767,
+        "endTime": 1793644532782,
+        "durationMs": 15,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "audit",
+          "llm.cost_usd": 0,
+          "rootSha256": "37e3eff058f6c590f7155da32323a5ba8c8b10ef23217155769149a54be60ccb"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "[DATASET INGESTION: Slot A Loaded]\n\"ARC_5_Minute_Test_Meeting_v2.mp3\" (18,292 rows, 1 columns). Awaiting Slot B.",
+      "outputSnippet": "### Meeting Transcript Analysis\n\n#### Key Findings\n- The meeting transcript titled \"ARC_5_Minute_Test_Meeting_v2.mp3\" has been successfully ingested and contains 18,292 rows of data.\n- The analysis of the transcript will be conducted once Slot B is loaded to ensure comprehensive extraction of decisions and action items.\n\n#### Next Steps\n- Await the loading o..."
+    }
+  },
+  {
+    "version": "2.0",
     "runId": "RUN-263250",
     "traceId": "f6d1e04da94dc5d176de12179fb5870f",
     "rootSpanId": "49e0c12bfba1b50a",

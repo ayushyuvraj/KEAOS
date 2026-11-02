@@ -2288,15 +2288,55 @@ function CanvasInner({
   );
 
   // Triggered when cursor is released after dragging a connector wire
-  const handleConnectEnd = useCallback(() => {
+  const handleConnectEnd = useCallback((event) => {
     // Only open the catalog if the wire was dropped in empty space (did NOT connect to a target handle)
     if (!didConnectRef.current && pendingConnectionRef.current) {
-      const { nodeId, handleId } = pendingConnectionRef.current;
+      const { nodeId, handleId, handleType } = pendingConnectionRef.current;
       const sourceNode = (nodes || []).find((n) => n.id === nodeId);
+
+      let dropPosition = null;
+      if (event && rfInstance) {
+        const clientX = event.clientX ?? (event.changedTouches && event.changedTouches[0]?.clientX);
+        const clientY = event.clientY ?? (event.changedTouches && event.changedTouches[0]?.clientY);
+        if (clientX != null && clientY != null) {
+          try {
+            if (typeof rfInstance.screenToFlowPosition === 'function') {
+              dropPosition = rfInstance.screenToFlowPosition({ x: clientX, y: clientY });
+            } else if (typeof rfInstance.project === 'function') {
+              dropPosition = rfInstance.project({ x: clientX, y: clientY });
+            }
+          } catch {
+            // fallback if viewport transform failed
+          }
+        }
+      }
+
+      const inferredHandleType = handleType || (
+        handleId === 'in' || handleId === 'data-in' || handleId === 'policy-in' || (handleId && handleId.endsWith('-in'))
+          ? 'target'
+          : 'source'
+      );
+
+      if (!dropPosition && sourceNode?.position) {
+        dropPosition = {
+          x: sourceNode.position.x + (inferredHandleType === 'target' ? -300 : 320),
+          y: sourceNode.position.y
+        };
+      }
 
       let targetCategory = null;
 
-      if (sourceNode?.type === 'agentCore') {
+      if (sourceNode?.type === 'remoteAgentNode') {
+        if (handleId === 'out' || inferredHandleType === 'source') {
+          targetCategory = 'outputNode';
+        } else if (handleId === 'in' || inferredHandleType === 'target') {
+          targetCategory = 'triggers';
+        } else if (handleId === 'policy-in') {
+          targetCategory = 'policies';
+        } else {
+          targetCategory = 'outputNode';
+        }
+      } else if (sourceNode?.type === 'agentCore') {
         if (handleId === 'model-in') {
           targetCategory = 'model';
         } else if (handleId === 'tools-in' || handleId === 'tool-in' || handleId === 'tools-out') {
@@ -2322,28 +2362,57 @@ function CanvasInner({
           targetCategory = 'mcp';
         } else if (pillarType === 'mcp') {
           targetCategory = 'gateway';
+        } else if (pillarType === 'policies') {
+          targetCategory = 'remoteAgents';
         } else if (pillarType) {
           targetCategory = pillarType;
         }
       } else if (sourceNode?.type === 'ingestionNode') {
         targetCategory = 'tools';
       } else if (sourceNode?.type === 'outputNode' || sourceNode?.type === 'outputNodeV2') {
-        targetCategory = 'outputNode';
+        if (handleId === 'out') {
+          targetCategory = 'remoteAgents';
+        } else {
+          targetCategory = 'outputNode';
+        }
       } else if (sourceNode?.type === 'triggerNode') {
-        targetCategory = 'agentCore';
+        targetCategory = 'remoteAgents';
       } else if (sourceNode?.type === 'deterministicNode') {
+        if (handleId === 'out') {
+          targetCategory = 'outputNode';
+        } else {
+          targetCategory = 'tools';
+        }
+      } else if (sourceNode?.type === 'routerNode' || sourceNode?.type === 'approvalNode') {
         targetCategory = 'outputNode';
       }
 
-      // If source was an AgentCoreNode, notify App so it remembers the originating slot for auto-wiring
-      if (sourceNode?.type === 'agentCore') {
+      if (sourceNode) {
+        // Universal Extended Connector Event
+        window.dispatchEvent(
+          new CustomEvent('keaos:open-connector-catalog', {
+            detail: {
+              originNodeId: sourceNode.id,
+              originNodeType: sourceNode.type,
+              originPillarType: sourceNode.data?.pillarType,
+              originNodeName: sourceNode.data?.name || sourceNode.data?.title || 'Node',
+              handleId,
+              handleType: inferredHandleType,
+              dropPosition,
+              categoryId: targetCategory
+            }
+          })
+        );
+
+        // Legacy slot catalog event
         window.dispatchEvent(
           new CustomEvent('keaos:open-slot-catalog', {
             detail: {
               agentId: sourceNode.id,
-              agentName: sourceNode.data?.name,
+              agentName: sourceNode.data?.name || sourceNode.data?.title,
               slotId: handleId,
-              categoryId: targetCategory
+              categoryId: targetCategory,
+              dropPosition
             }
           })
         );
@@ -2367,7 +2436,7 @@ function CanvasInner({
     setTimeout(() => {
       isConnectingRef.current = false;
     }, 200);
-  }, [nodes, setIsAddMenuOpen, setIsInspectorOpen]);
+  }, [nodes, setIsAddMenuOpen, setIsInspectorOpen, rfInstance]);
 
 
 

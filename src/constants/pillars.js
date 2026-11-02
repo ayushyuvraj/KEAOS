@@ -1,4 +1,4 @@
-import { NEO4J_OFFICIAL_ACTIONS, OUTLOOK_OFFICIAL_ACTIONS } from './mcpOfficialCatalogs';
+import { NEO4J_OFFICIAL_ACTIONS, OUTLOOK_OFFICIAL_ACTIONS } from './mcpOfficialCatalogs.js';
 
 export const PILLARS = {
   model: {

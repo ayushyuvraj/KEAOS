@@ -462,14 +462,14 @@ export async function ingestOtlpTrace(otlpPacket) {
         kind: raw.kind || 'SERVER',
         componentType: raw.componentType || 'remote_agent',
         componentId: raw.componentId || 'external-service',
-        componentName: raw.componentName || 'LangGraph Remote Agent',
+        componentName: raw.componentName || 'Universal External Agent',
         startTime: raw.startTime || startTime,
         endTime: raw.endTime || (startTime + durationMs),
         durationMs: raw.durationMs || durationMs,
         status: { code: raw.status?.code || 'OK' },
         attributes: {
           'component.type': 'remote_agent',
-          'external.framework': raw.framework || otlpPacket.framework || 'langgraph',
+          'external.framework': raw.framework || otlpPacket.framework || 'fastapi',
           'external.endpoint': raw.endpoint || otlpPacket.endpoint || 'remote-service',
           ...(raw.attributes || {})
         },

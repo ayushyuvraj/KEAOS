@@ -41,6 +41,7 @@ import {
   Activity
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
+import { isCatalogItemCompatible } from '../utils/socketValidator.js';
 
 // Official Model Context Protocol (MCP) Icon
 function McpIcon({ className = 'w-4 h-4' }) {
@@ -390,7 +391,7 @@ const NODE_CATEGORIES = [
   {
     id: 'remoteAgents',
     label: 'Remote Agents & Services',
-    subtitle: 'Externally hosted agents (LangGraph, CrewAI, Google ADK, FastAPI) on AWS, Azure, or private cloud',
+    subtitle: 'Externally hosted agents (FastAPI, LangGraph, CrewAI, Google ADK) on AWS, Azure, GCP, or private cloud',
     icon: Globe,
     color: '#00A3A6', // Cyber Teal
     bgColor: '#E6F6F6',
@@ -398,63 +399,9 @@ const NODE_CATEGORIES = [
     socketId: 'in → out',
     items: [
       {
-        id: 'remote-agent-langgraph',
-        name: 'LangGraph Remote Agent',
-        description: 'Connects to an externally hosted LangGraph StateGraph service via REST API with zero code rewrites and automatic OpenTelemetry ingestion.',
-        isRemoteAgentNode: true,
-        framework: 'langgraph',
-        config: {
-          framework: 'langgraph',
-          endpointUrl: 'https://api.example.com/v1/run',
-          hostingProvider: 'AWS',
-          httpMethod: 'POST',
-          authType: 'bearer',
-          authToken: '',
-          timeoutSeconds: 30,
-          requestMode: 'json_envelope',
-          responsePath: 'auto'
-        }
-      },
-      {
-        id: 'remote-agent-crewai',
-        name: 'CrewAI Remote Service',
-        description: 'Dispatches tasks to an external CrewAI multi-agent crew hosted on Azure, AWS, or local containers.',
-        isRemoteAgentNode: true,
-        framework: 'crewai',
-        config: {
-          framework: 'crewai',
-          endpointUrl: 'https://api.example.com/crew/run',
-          hostingProvider: 'Azure',
-          httpMethod: 'POST',
-          authType: 'bearer',
-          authToken: '',
-          timeoutSeconds: 45,
-          requestMode: 'json_envelope',
-          responsePath: 'auto'
-        }
-      },
-      {
-        id: 'remote-agent-google-adk',
-        name: 'Google ADK Remote Service',
-        description: 'Connects to a remote Google Agent Development Kit or Vertex AI Agent Engine endpoint.',
-        isRemoteAgentNode: true,
-        framework: 'google-adk',
-        config: {
-          framework: 'google-adk',
-          endpointUrl: 'https://api.example.com/adk/run',
-          hostingProvider: 'GCP',
-          httpMethod: 'POST',
-          authType: 'bearer',
-          authToken: '',
-          timeoutSeconds: 30,
-          requestMode: 'json_envelope',
-          responsePath: 'auto'
-        }
-      },
-      {
-        id: 'remote-agent-universal-fastapi',
+        id: 'remote-agent-universal',
         name: 'Universal External Agent',
-        description: 'Universal HTTP gateway for any Python, FastAPI, Node, or cloud-hosted enterprise agent.',
+        description: 'Universal HTTP gateway for any Python, FastAPI, LangGraph, CrewAI, Google ADK, or cloud-hosted enterprise agent with zero code rewrites and automatic OpenTelemetry ingestion.',
         isRemoteAgentNode: true,
         framework: 'fastapi',
         config: {
@@ -694,8 +641,11 @@ export default function NodeCatalogPanel({
   onSelectNode,
   onDeleteNode,
   isDarkMode = true,
-  isEmbedded = false
+  isEmbedded = false,
+  activeConnector = null
 }) {
+  const [internalConnector, setInternalConnector] = useState(null);
+  const effectiveConnector = activeConnector || internalConnector;
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [selectedToolSection, setSelectedToolSection] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -852,13 +802,20 @@ export default function NodeCatalogPanel({
         setSearchQuery('');
       }
     };
+    const handleConnectorEvent = (e) => {
+      if (e.detail) {
+        setInternalConnector(e.detail);
+      }
+    };
     window.addEventListener('keaos:select-catalog-category', handleSelectCategoryEvent);
     window.addEventListener('keaos:open-node-catalog', handleSelectCategoryEvent);
     window.addEventListener('keaos:open-slot-catalog', handleSelectCategoryEvent);
+    window.addEventListener('keaos:open-connector-catalog', handleConnectorEvent);
     return () => {
       window.removeEventListener('keaos:select-catalog-category', handleSelectCategoryEvent);
       window.removeEventListener('keaos:open-node-catalog', handleSelectCategoryEvent);
       window.removeEventListener('keaos:open-slot-catalog', handleSelectCategoryEvent);
+      window.removeEventListener('keaos:open-connector-catalog', handleConnectorEvent);
     };
   }, []);
 
@@ -1012,6 +969,7 @@ export default function NodeCatalogPanel({
       onAddNode(categoryId, item);
       setAddedItemId(item.id);
       setTimeout(() => setAddedItemId(null), 1400);
+      setInternalConnector(null);
     }
   };
 
@@ -1288,6 +1246,25 @@ export default function NodeCatalogPanel({
       {/* ============================================================ */}
       {/* BODY CONTENT: Search Results / Tier 1 List / Tier 2 List     */}
       {/* ============================================================ */}
+            {/* Active Connector Context Banner */}
+      {effectiveConnector && (
+        <div className={`mx-3 mt-3 px-3 py-2 rounded-xl flex items-center justify-between text-xs font-mono border ${
+          isDarkMode 
+            ? 'bg-[#00B8F5]/10 border-[#00B8F5]/30 text-[#00B8F5]' 
+            : 'bg-[#00B8F5]/10 border-[#00B8F5]/25 text-[#00338D]'
+        }`}>
+          <div className="flex items-center gap-2 truncate">
+            <span className="w-2 h-2 rounded-full bg-[#00B8F5] animate-pulse shrink-0" />
+            <span className="truncate">
+              Extending from: <strong className="font-bold">{effectiveConnector.originNodeName || 'Node'}</strong> <span className="opacity-70">({effectiveConnector.handleId})</span>
+            </span>
+          </div>
+          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-[#00B8F5]/30 bg-[#00B8F5]/10 shrink-0 ml-2">
+            {effectiveConnector.handleType === 'target' ? 'Inflow' : 'Outflow'}
+          </span>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto divide-y divide-inherit">
         {searchResults ? (
           /* Global Search Results */
@@ -1321,6 +1298,11 @@ export default function NodeCatalogPanel({
                           }`}>
                             {item.name}
                           </h4>
+                          {effectiveConnector && isCatalogItemCompatible(effectiveConnector, category.id, item) && (
+                            <span className="ml-2 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-[#00B8F5]/15 text-[#00B8F5] border border-[#00B8F5]/30 shrink-0">
+                              ✓ Compatible
+                            </span>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -2279,6 +2261,11 @@ export default function NodeCatalogPanel({
                           }`}>
                             {item.name}
                           </h4>
+                          {effectiveConnector && isCatalogItemCompatible(effectiveConnector, activeCategory?.id, item) && (
+                            <span className="ml-2 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-[#00B8F5]/15 text-[#00B8F5] border border-[#00B8F5]/30 shrink-0">
+                              ✓ Compatible
+                            </span>
+                          )}
 
                           {isCustom && (
                             <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 shrink-0">
@@ -2348,6 +2335,11 @@ export default function NodeCatalogPanel({
                       {category.label}
                     </h4>
                   </div>
+                  {effectiveConnector && isCatalogItemCompatible(effectiveConnector, category.id) && (
+                    <span className="ml-auto mr-2 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-[#00B8F5]/15 text-[#00B8F5] border border-[#00B8F5]/30 shrink-0">
+                      ✓ Compatible
+                    </span>
+                  )}
 
                   <ChevronRight className={`w-3.5 h-3.5 transition-all duration-150 shrink-0 ${
                     isDarkMode 
