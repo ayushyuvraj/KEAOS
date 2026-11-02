@@ -53,8 +53,8 @@
           "id": "node-remote-4883",
           "type": "remoteAgentNode",
           "position": {
-            "x": 882.9431792387144,
-            "y": 222.25047511664607
+            "x": 663.5218553657202,
+            "y": 186.24287325030858
           },
           "data": {
             "name": "Universal External Agent #1",
@@ -75,16 +75,115 @@
             "isDarkMode": false
           },
           "measured": {
-            "width": 280,
-            "height": 132
+            "width": 290,
+            "height": 162
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
+        },
+        {
+          "id": "node-remote-3578",
+          "type": "remoteAgentNode",
+          "position": {
+            "x": 981.9640843711425,
+            "y": 200.97909486757194
+          },
+          "data": {
+            "name": "LangGraph Remote Agent #2",
+            "description": "Connects to an externally hosted LangGraph StateGraph service via REST API with zero code rewrites and automatic OpenTelemetry ingestion.",
+            "framework": "langgraph",
+            "endpointUrl": "https://api.example.com/v1/run",
+            "hostingProvider": "GCP",
+            "httpMethod": "POST",
+            "authType": "bearer",
+            "authToken": "",
+            "timeoutSeconds": 30,
+            "retries": 1,
+            "requestMode": "json_envelope",
+            "responsePath": "auto",
+            "otelIngestion": true,
+            "status": "idle",
+            "lastStatus": "idle",
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 290,
+            "height": 162
+          },
+          "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-trigger-7842",
+          "type": "triggerNode",
+          "position": {
+            "x": 180,
+            "y": 220
+          },
+          "data": {
+            "name": "Webhook Ingress #1",
+            "triggerType": "webhook",
+            "description": "Universal HTTP webhook endpoint. Subscribes to external systems, fast ACKs (200 OK), and dispatches payload.",
+            "config": {
+              "triggerType": "webhook",
+              "webhookPath": "/api/ingress/v1/wh_live",
+              "requireSecret": true,
+              "defaultPayload": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+            },
+            "lastFired": null,
+            "lastStatus": "idle",
+            "status": "idle",
+            "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          }
+        },
+        {
+          "id": "node-output-4315",
+          "type": "outputNode",
+          "position": {
+            "x": 790,
+            "y": 207
+          },
+          "data": {
+            "name": "Final Output Viewer & Exporter",
+            "title": "Final Output Viewer & Exporter",
+            "outputContent": "",
+            "content": "",
+            "status": "idle",
+            "format": "markdown",
+            "runsHistory": [],
+            "sourceNodeType": null,
+            "sourceNodeId": null,
+            "sourceNodeName": null,
+            "isExpanded": true
+          },
+          "measured": {
+            "width": 560,
+            "height": 440
+          }
         }
       ],
-      "edges": [],
+      "edges": [
+        {
+          "id": "edge-output-4316",
+          "source": "agent-core",
+          "sourceHandle": "out",
+          "target": "node-output-4315",
+          "targetHandle": "data-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#10B981",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        }
+      ],
       "createdAt": 1793626912680,
-      "updatedAt": 1793633057330,
+      "updatedAt": 1793637603138,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -92,7 +191,7 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 1,
+        "nodeCount": 4,
         "agentCount": 0,
         "mcpCount": 0,
         "modelCount": 0,
@@ -8841,8 +8940,8 @@
         "id": "node-remote-4883",
         "type": "remoteAgentNode",
         "position": {
-          "x": 882.9431792387144,
-          "y": 222.25047511664607
+          "x": 663.5218553657202,
+          "y": 186.24287325030858
         },
         "data": {
           "name": "Universal External Agent #1",
@@ -8863,14 +8962,113 @@
           "isDarkMode": false
         },
         "measured": {
-          "width": 280,
-          "height": 132
+          "width": 290,
+          "height": 162
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
+      },
+      {
+        "id": "node-remote-3578",
+        "type": "remoteAgentNode",
+        "position": {
+          "x": 981.9640843711425,
+          "y": 200.97909486757194
+        },
+        "data": {
+          "name": "LangGraph Remote Agent #2",
+          "description": "Connects to an externally hosted LangGraph StateGraph service via REST API with zero code rewrites and automatic OpenTelemetry ingestion.",
+          "framework": "langgraph",
+          "endpointUrl": "https://api.example.com/v1/run",
+          "hostingProvider": "GCP",
+          "httpMethod": "POST",
+          "authType": "bearer",
+          "authToken": "",
+          "timeoutSeconds": 30,
+          "retries": 1,
+          "requestMode": "json_envelope",
+          "responsePath": "auto",
+          "otelIngestion": true,
+          "status": "idle",
+          "lastStatus": "idle",
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 290,
+          "height": 162
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-trigger-7842",
+        "type": "triggerNode",
+        "position": {
+          "x": 180,
+          "y": 220
+        },
+        "data": {
+          "name": "Webhook Ingress #1",
+          "triggerType": "webhook",
+          "description": "Universal HTTP webhook endpoint. Subscribes to external systems, fast ACKs (200 OK), and dispatches payload.",
+          "config": {
+            "triggerType": "webhook",
+            "webhookPath": "/api/ingress/v1/wh_live",
+            "requireSecret": true,
+            "defaultPayload": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+          },
+          "lastFired": null,
+          "lastStatus": "idle",
+          "status": "idle",
+          "payloadText": "{\n  \"event\": \"customer.created\",\n  \"id\": \"cust_9921\",\n  \"timestamp\": 1718000000\n}"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        }
+      },
+      {
+        "id": "node-output-4315",
+        "type": "outputNode",
+        "position": {
+          "x": 790,
+          "y": 207
+        },
+        "data": {
+          "name": "Final Output Viewer & Exporter",
+          "title": "Final Output Viewer & Exporter",
+          "outputContent": "",
+          "content": "",
+          "status": "idle",
+          "format": "markdown",
+          "runsHistory": [],
+          "sourceNodeType": null,
+          "sourceNodeId": null,
+          "sourceNodeName": null,
+          "isExpanded": false
+        },
+        "measured": {
+          "width": 560,
+          "height": 440
+        }
       }
     ],
-    "edges": [],
+    "edges": [
+      {
+        "id": "edge-output-4316",
+        "source": "agent-core",
+        "sourceHandle": "out",
+        "target": "node-output-4315",
+        "targetHandle": "data-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#10B981",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      }
+    ],
     "activeUseCase": {
       "id": "uc-wf-1793626912680-m2v6p",
       "name": "Untitled Workflow 6",
@@ -14148,5 +14346,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793633058142
+  "syncedAt": 1793637604556
 }

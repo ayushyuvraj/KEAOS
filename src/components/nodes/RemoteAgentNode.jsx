@@ -9,6 +9,13 @@ import {
 } from 'lucide-react';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
+// Strict 5-Color Palette from the Brand Pentagon
+// 1. Royal Navy:   #00338D
+// 2. Electric Blue: #1E49E2
+// 3. Vivid Cyan:    #00B8F5
+// 4. Vibrant Magenta: #FD349C
+// 5. Electric Violet: #7213EA
+
 export default function RemoteAgentNode({ id, data, selected }) {
   const isDarkMode = data?.isDarkMode !== false;
   const isDeactivated = Boolean(data?.isDeactivated);
@@ -78,28 +85,56 @@ export default function RemoteAgentNode({ id, data, selected }) {
     return endpointUrl.replace(/https?:\/\//, '').slice(0, 24);
   };
 
-  const getFrameworkBadgeColor = () => {
+  // Framework pills mapped strictly to the 5-color pentagon palette
+  const getFrameworkBadge = () => {
     switch (framework.toLowerCase()) {
+      case 'fastapi':
+        return {
+          label: 'FastAPI',
+          classes: isDarkMode 
+            ? 'bg-[#00B8F5]/15 text-[#00B8F5] border-[#00B8F5]/35 shadow-[0_2px_8px_rgba(0,184,245,0.2)]' 
+            : 'bg-[#00B8F5]/10 text-[#00338D] border-[#00B8F5]/30'
+        };
       case 'langgraph':
-        return 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/30';
+        return {
+          label: 'LangGraph',
+          classes: isDarkMode 
+            ? 'bg-[#1E49E2]/20 text-[#1E49E2] border-[#1E49E2]/40 shadow-[0_2px_8px_rgba(30,73,226,0.2)]' 
+            : 'bg-blue-50 text-[#1E49E2] border-[#1E49E2]/30'
+        };
       case 'crewai':
-        return 'bg-amber-500/15 text-amber-500 border-amber-500/30';
+        return {
+          label: 'CrewAI',
+          classes: isDarkMode 
+            ? 'bg-[#FD349C]/15 text-[#FD349C] border-[#FD349C]/35 shadow-[0_2px_8px_rgba(253,52,156,0.2)]' 
+            : 'bg-pink-50 text-[#FD349C] border-[#FD349C]/30'
+        };
       case 'google-adk':
       case 'google adk':
-        return 'bg-blue-500/15 text-blue-500 border-blue-500/30';
-      case 'fastapi':
-        return 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30';
+        return {
+          label: 'Google ADK',
+          classes: isDarkMode 
+            ? 'bg-[#00338D]/30 text-[#00B8F5] border-[#00B8F5]/35 shadow-[0_2px_8px_rgba(0,51,141,0.2)]' 
+            : 'bg-blue-50 text-[#00338D] border-[#00338D]/30'
+        };
       default:
-        return 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30';
+        return {
+          label: framework,
+          classes: isDarkMode 
+            ? 'bg-[#7213EA]/20 text-purple-300 border-[#7213EA]/40 shadow-xs' 
+            : 'bg-purple-50 text-[#7213EA] border-[#7213EA]/30'
+        };
     }
   };
 
+  const frameworkBadge = getFrameworkBadge();
+
   return (
     <div
-      className={`relative group transition-all duration-200 select-none ${
+      className={`relative group transition-all duration-300 select-none ${
         isDeactivated ? 'opacity-40 grayscale pointer-events-none' : ''
       }`}
-      style={{ width: '280px' }}
+      style={{ width: '290px' }}
     >
       {/* Node Action Toolbar for Hover / Quick Controls */}
       <NodeActionToolbar
@@ -109,133 +144,172 @@ export default function RemoteAgentNode({ id, data, selected }) {
         isDeactivated={isDeactivated}
         isLocked={isLocked}
         pillarType="remote_agent"
+        mode="card-top"
       />
 
-      {/* Main Structural Card */}
+      {/* Main Soft-Modern Frosted Card */}
       <div
-        className={`border transition-all duration-200 ${
+        className={`relative transition-all duration-300 rounded-[22px] p-3.5 backdrop-blur-xl border ${
           isDarkMode
-            ? 'bg-[#0D111C] border-[#1E293B] text-slate-100 shadow-xl'
-            : 'bg-white border-slate-300 text-slate-900 shadow-md'
-        } ${selected ? 'ring-2 ring-[#00A3A6] border-transparent shadow-lg' : ''} ${
-          isRunning ? 'ring-2 ring-[#00A3A6] shadow-[#00A3A6]/20 shadow-lg' : ''
+            ? 'bg-[#080E1C]/92 border-white/[0.09] text-slate-100 shadow-[0_20px_45px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.12)]'
+            : 'bg-white/95 border-slate-200/90 text-slate-900 shadow-[0_16px_36px_rgba(0,51,141,0.08),0_2px_8px_rgba(0,0,0,0.03),inset_0_1px_1px_rgba(255,255,255,0.9)]'
+        } ${
+          selected
+            ? 'ring-2 ring-[#00B8F5] shadow-[0_0_26px_rgba(0,184,245,0.4)]'
+            : 'hover:shadow-[0_20px_40px_rgba(0,51,141,0.14)]'
+        } ${
+          isRunning
+            ? 'ring-2 ring-[#00B8F5] shadow-[0_0_28px_rgba(0,184,245,0.5)] animate-pulse'
+            : ''
         }`}
-        style={{
-          borderTop: '3px solid #00A3A6',
-          borderRadius: 0
-        }}
       >
-        {/* Node Header */}
-        <div
-          className={`p-2.5 flex items-center justify-between border-b ${
-            isDarkMode ? 'border-[#1E293B] bg-[#111827]/70' : 'border-slate-100 bg-slate-50/80'
-          }`}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-sm bg-[#00A3A6]/15 border border-[#00A3A6]/30 text-[#00A3A6] flex items-center justify-center shrink-0">
+        {/* Top Header Row: Floating Squircle Icon + Titles + Framework Pill */}
+        <div className="flex items-start justify-between gap-2.5 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Soft-Clay Squircle Icon Badge using Pentagon Blues & Cyans */}
+            <div
+              className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 border transition-transform duration-200 group-hover:scale-105 ${
+                isDarkMode
+                  ? 'bg-gradient-to-br from-[#00B8F5]/25 via-[#1E49E2]/20 to-[#00338D]/30 text-[#00B8F5] border-[#00B8F5]/40 shadow-[0_4px_14px_rgba(0,184,245,0.3)]'
+                  : 'bg-gradient-to-br from-[#00B8F5]/15 via-[#1E49E2]/10 to-[#00338D]/10 text-[#1E49E2] border-[#00B8F5]/35 shadow-[0_4px_12px_rgba(0,184,245,0.18)]'
+              }`}
+            >
               {isRunning ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-[#00B8F5]" />
               ) : (
-                <Globe className="w-4 h-4" />
+                <Globe className="w-4 h-4 stroke-[2.2]" />
               )}
             </div>
+
+            {/* Title & Endpoint Micro-Pill */}
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs truncate tracking-tight">
-                  {nodeTitle}
+              <h3 className={`font-bold text-xs truncate tracking-tight ${
+                isDarkMode ? 'text-white' : 'text-[#001E50]'
+              }`}>
+                {nodeTitle}
+              </h3>
+              <div className="mt-0.5">
+                <span className={`inline-block text-[10px] font-mono px-2 py-0.2 rounded-full border truncate max-w-[135px] ${
+                  isDarkMode 
+                    ? 'bg-white/[0.04] border-white/[0.08] text-slate-300' 
+                    : 'bg-[#00338D]/5 border-[#00338D]/15 text-[#00338D]'
+                }`}>
+                  {cleanDomain()}
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 font-mono truncate">
-                {cleanDomain()}
-              </p>
             </div>
           </div>
 
-          {/* Framework Badge */}
+          {/* Framework Pill Badge */}
           <span
-            className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-full border shrink-0 ${getFrameworkBadgeColor()}`}
+            className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0 transition-colors ${frameworkBadge.classes}`}
           >
-            {framework}
+            {frameworkBadge.label}
           </span>
         </div>
 
-        {/* Node Body & Telemetry Highlights */}
-        <div className="p-2.5 space-y-2">
-          {/* Host & Protocol Details */}
-          <div className="flex items-center justify-between text-[10px] font-mono">
-            <span className="text-slate-400 flex items-center gap-1">
-              <Server className="w-3 h-3 text-slate-400" />
-              <span>Host:</span>
-              <span className="font-semibold text-slate-300 uppercase">{host}</span>
+        {/* Middle Telemetry & Host Ribbon */}
+        <div
+          className={`px-3 py-1.5 rounded-xl flex items-center justify-between text-[10px] font-mono mb-2.5 transition-colors border ${
+            isDarkMode 
+              ? 'bg-white/[0.03] border-white/[0.06] text-slate-300' 
+              : 'bg-[#00338D]/[0.03] border-[#00338D]/10 text-slate-700'
+          }`}
+        >
+          <span className="flex items-center gap-1.5 truncate">
+            <Server className={`w-3 h-3 ${isDarkMode ? 'text-[#00B8F5]' : 'text-[#1E49E2]'}`} />
+            <span className="opacity-70">Host:</span>
+            <span className={`font-semibold uppercase truncate ${isDarkMode ? 'text-white' : 'text-[#001E50]'}`}>
+              {host}
             </span>
+          </span>
 
-            <span className="text-slate-400 flex items-center gap-1">
-              <Activity className="w-3 h-3 text-[#00A3A6]" />
-              <span>OTel 2.0</span>
-            </span>
-          </div>
-
-          {/* Latency & Status Row */}
-          <div
-            className={`p-2 border rounded-sm flex items-center justify-between text-[11px] font-mono ${
-              isDarkMode ? 'bg-[#090D16] border-[#1E293B]' : 'bg-slate-50 border-slate-200'
-            }`}
-          >
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isRunning
-                    ? 'bg-amber-400 animate-pulse'
-                    : runStatus === 'completed'
-                    ? 'bg-emerald-500'
-                    : runStatus === 'error'
-                    ? 'bg-red-500'
-                    : 'bg-slate-500'
-                }`}
-              />
-              <span className="uppercase text-[10px] font-semibold text-slate-300">
-                {isRunning ? 'EXECUTING' : runStatus}
-              </span>
-            </div>
-
-            <div className="text-[10px] text-slate-400">
-              {latencyMs != null ? `${latencyMs}ms` : 'Ready'}
-            </div>
-          </div>
-
-          {/* Error Message Snippet (if any) */}
-          {statusMessage && runStatus === 'error' && (
-            <div className="p-1.5 bg-red-500/10 border border-red-500/30 rounded-sm text-[10px] text-red-400 flex items-start gap-1 font-mono">
-              <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
-              <span className="truncate">{statusMessage}</span>
-            </div>
-          )}
+          <span className="flex items-center gap-1 shrink-0">
+            <Activity className="w-3 h-3 text-[#00B8F5]" />
+            <span className="font-semibold text-[#00B8F5]">OTel 2.0</span>
+          </span>
         </div>
 
-        {/* Input Handle (Left Socket) */}
+        {/* Bottom Recessed Telemetry & Status Tray */}
+        <div
+          className={`p-2 rounded-xl flex items-center justify-between text-[11px] font-mono transition-colors border ${
+            isDarkMode
+              ? 'bg-[#040813]/90 border-white/[0.06] shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]'
+              : 'bg-slate-100/80 border-slate-200/80 shadow-[inset_0_1px_3px_rgba(0,0,0,0.03)]'
+          }`}
+        >
+          {/* Status Indicator Dot & Label (Mapped strictly to 5-color palette: Cyan, Magenta, Slate) */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${
+                isRunning
+                  ? 'bg-[#00B8F5] animate-pulse shadow-[0_0_8px_rgba(0,184,245,0.7)]'
+                  : runStatus === 'completed'
+                  ? 'bg-[#00B8F5] shadow-[0_0_8px_rgba(0,184,245,0.6)]'
+                  : runStatus === 'error'
+                  ? 'bg-[#FD349C] shadow-[0_0_8px_rgba(253,52,156,0.6)]'
+                  : 'bg-slate-400'
+              }`}
+            />
+            <span className={`uppercase text-[10px] font-bold tracking-wider truncate ${
+              isRunning 
+                ? 'text-[#00B8F5]' 
+                : runStatus === 'completed' 
+                ? (isDarkMode ? 'text-[#00B8F5]' : 'text-[#1E49E2]')
+                : runStatus === 'error' 
+                ? 'text-[#FD349C]' 
+                : (isDarkMode ? 'text-slate-400' : 'text-slate-600')
+            }`}>
+              {isRunning ? 'EXECUTING' : runStatus}
+            </span>
+          </div>
+
+          {/* Latency Pill */}
+          <div className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+            latencyMs != null
+              ? (isDarkMode 
+                  ? 'bg-[#00B8F5]/15 border-[#00B8F5]/35 text-[#00B8F5]' 
+                  : 'bg-[#00338D]/10 border-[#00338D]/20 text-[#00338D]')
+              : (isDarkMode 
+                  ? 'bg-white/[0.04] border-white/[0.08] text-slate-400' 
+                  : 'bg-white border-slate-200 text-slate-500')
+          }`}>
+            {latencyMs != null ? `${latencyMs}ms` : 'Ready'}
+          </div>
+        </div>
+
+        {/* Error Message Snippet (using Magenta #FD349C instead of red) */}
+        {statusMessage && runStatus === 'error' && (
+          <div className="mt-2 p-2 bg-[#FD349C]/10 border border-[#FD349C]/30 rounded-xl text-[10px] text-[#FD349C] flex items-start gap-1.5 font-mono">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#FD349C]" />
+            <span className="truncate">{statusMessage}</span>
+          </div>
+        )}
+
+        {/* Input Handle (Left Socket - Inflow: Vivid Cyan #00B8F5) */}
         <Handle
           type="target"
           position={Position.Left}
           id="in"
-          className="!w-2.5 !h-2.5 !bg-[#00A3A6] !border-2 !border-white dark:!border-[#0D111C] hover:!scale-125 transition-transform"
+          className="!w-3 !h-3 !bg-[#00B8F5] !border-2 !border-white dark:!border-[#080E1C] !rounded-full shadow-[0_2px_8px_rgba(0,184,245,0.5)] hover:!scale-125 transition-transform"
           title="Data Inflow (Input Context from Upstream Nodes)"
         />
 
-        {/* Output Handle (Right Socket) */}
+        {/* Output Handle (Right Socket - Outflow: Vivid Cyan #00B8F5) */}
         <Handle
           type="source"
           position={Position.Right}
           id="out"
-          className="!w-2.5 !h-2.5 !bg-[#00A3A6] !border-2 !border-white dark:!border-[#0D111C] hover:!scale-125 transition-transform"
+          className="!w-3 !h-3 !bg-[#00B8F5] !border-2 !border-white dark:!border-[#080E1C] !rounded-full shadow-[0_2px_8px_rgba(0,184,245,0.5)] hover:!scale-125 transition-transform"
           title="Data Outflow (Remote Service Result to Downstream Nodes)"
         />
 
-        {/* Auxiliary Handle (Top Socket: Optional Policy / Guardrail) */}
+        {/* Auxiliary Handle (Top Socket - Security & Policy: Vibrant Magenta #FD349C) */}
         <Handle
           type="target"
           position={Position.Top}
           id="policy-in"
-          className="!w-2.5 !h-2.5 !bg-[#6D2077] !border-2 !border-white dark:!border-[#0D111C] hover:!scale-125 transition-transform"
+          className="!w-3 !h-3 !bg-[#FD349C] !border-2 !border-white dark:!border-[#080E1C] !rounded-full shadow-[0_2px_8px_rgba(253,52,156,0.5)] hover:!scale-125 transition-transform"
           title="Security & Guardrails Policy Socket"
         />
       </div>

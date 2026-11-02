@@ -1,228 +1,175 @@
-# Design System Specification: KPMG in India
-**Target URL:** https://kpmg.com/in/en.html  
-**Document Version:** 1.0.0  
-**Scope:** Brand Tokens, Layout Grids, Typography, Component Specs, and CSS Declarations.
+# Design System Specification: KEAOS Studio
+**Document Version:** 2.0.0 (Soft Neo-Modernist Edition)  
+**Scope:** Brand Tokens, Soft-Modern Geometry, Pentagon Color System, Component Blueprints, and Dual-Theme Specs.
 
 ---
 
-## 1. Brand Architecture & Foundations
+## 1. Brand Architecture & Design Foundations
 
-* **Brand Posture:** Authoritative, institutional, data-driven, editorial.
-* **Geometry:** Angular, architectural layout. Predominantly `0px` border radius across core containers, cards, and modal components to convey institutional permanence.
-* **Layout Principle:** Asymmetrical split grids, category-first metadata tagging, high typographic contrast, and generous negative space balanced by structured data density.
-* **Accessibility Target:** WCAG 2.1 Level AA / AAA compliant contrast ratios (minimum 4.5:1 for body copy; 7:1 for headers against brand surfaces).
+* **Brand Posture:** Institutional, hyper-precise, tactile, modern enterprise operating system.
+* **Aesthetic Philosophy:** **Soft Neo-Modernist / Frosted Glass-Clay Operating Studio**. Combines architectural precision with tactile physical depth, continuous curvature (squircles), frosted glass overlays, and multi-layered ambient elevation.
+* **Strict Anonymity Rule:** NEVER mention any specific external consulting firm or corporation name anywhere in code, comments, UI, or documentation. The platform brand is strictly **KEAOS | Enterprise Agent Operating Studio**.
+* **Layout Principle:** Floating island modularity (toolbars, docks, and prompt bars float detached from viewport edges with clean margins), bilateral clustered metadata density, and breathing negative space.
+* **Accessibility Target:** WCAG 2.1 Level AA / AAA compliant contrast ratios across all Light Mode and Dark Mode surfaces.
 
 ---
 
-## 2. Color System
+## 2. Core Color System: The 5-Color Pentagon Palette
 
-### 2.1 Core Brand Colors
-| Token | Hex | RGB | Functional Role |
+All primary, interactive, socket, and badge colors are strictly mapped to the **5-Color Pentagon Palette**:
+
+### 2.1 The 5 Brand Facet Tokens
+| Token | Hex | RGB | Functional Role & Semantic Mapping |
 | :--- | :--- | :--- | :--- |
-| `--color-kpmg-blue` | `#00338D` | `rgb(0, 51, 141)` | Primary brand color, primary CTAs, active states, key titles |
-| `--color-medium-blue` | `#005EB8` | `rgb(0, 94, 184)` | Hover states, active text links, interactive elements |
-| `--color-pacific-blue` | `#0091DA` | `rgb(0, 145, 218)` | Secondary accents, progress indicators, focused borders |
-| `--color-navy-deep` | `#001E50` | `rgb(0, 30, 80)` | Deep hero section backgrounds, high-contrast dark surfaces |
+| `--color-royal-navy` | `#00338D` | `rgb(0, 51, 141)` | **Primary Brand Anchor**: High-contrast headlines, deep brand surfaces, active tab indicators, primary CTAs |
+| `--color-electric-blue`| `#1E49E2` | `rgb(30, 73, 226)` | **Interactive Velocity**: Secondary CTAs, hover states, host server glyphs, LangGraph framework pills |
+| `--color-vivid-cyan` | `#00B8F5` | `rgb(0, 184, 245)` | **Dataflow & Telemetry**: Horizontal inflow/outflow sockets, active execution pulse, selection rings, OTel badges |
+| `--color-vibrant-magenta`| `#FD349C` | `rgb(253, 52, 156)` | **Governance & Guardrails**: Top policy sockets, compliance alerts, error states, CrewAI framework pills |
+| `--color-electric-violet`| `#7213EA` | `rgb(114, 19, 234)` | **Cognitive Orchestration**: Memory stores, model routing, auxiliary capability badges |
 
-### 2.2 Editorial & Industry Taxonomy Colors
-KPMG maps color accents to specific industry verticals and content pillars:
-| Token | Hex | Mapped Industry / Content Vertical |
+### 2.2 Dual-Theme Surfaces & Neutrals
+
+#### Light Mode: Sculpted Porcelain Surface
+| Token | Hex / RGBA | Functional Role |
 | :--- | :--- | :--- |
-| `--color-tax-amber` | `#EAAA00` | Tax, Regulatory, and Financial Services |
-| `--color-tech-magenta`| `#6D2077` | Technology, Emerging Giants, Innovation |
-| `--color-lead-purple` | `#470A68` | Board Leadership Center, Executive Perspectives |
-| `--color-esg-green` | `#009A44` | Energy, Renewables, ESG, Sustainability |
-| `--color-cyber-teal` | `#00A3A6` | Cybersecurity, Data Centres, DPDP, Infrastructure |
-| `--color-work-violet` | `#483698` | Transformation, Workforce, Future of Work |
+| `--color-canvas-bg-light` | `#EDF2F7` | Soft slate-grey ambient canvas (allows white glass cards to pop) |
+| `--color-card-bg-light` | `rgba(255, 255, 255, 0.95)` | Primary card & modal surface with `backdrop-blur-xl` |
+| `--color-tray-bg-light` | `rgba(244, 247, 251, 0.85)` | Recessed telemetry trays, inner metadata ribbons |
+| `--color-card-border-light`| `rgba(226, 232, 240, 0.9)` | Subtle card perimeter border with `rgba(0, 51, 141, 0.08)` sheen |
+| `--color-text-primary-light`| `#001E50` | Deep Navy headline text (AAA contrast) |
+| `--color-text-secondary-light`| `#4B5563` | Subtitles, metadata, form labels |
+| `--color-text-muted-light` | `#94A3B8` | Micro-labels, timestamps, inactive icons |
 
-### 2.3 Neutrals & Surface Colors
-| Token | Hex | Functional Role |
+#### Dark Mode: Luminous Obsidian Surface
+| Token | Hex / RGBA | Functional Role |
 | :--- | :--- | :--- |
-| `--color-surface-bg` | `#FFFFFF` | Primary surface background |
-| `--color-surface-subtle`| `#F5F6F8` | Secondary section background, alternate zebra rows |
-| `--color-surface-dark` | `#0B0F19` | Dark theme cards, footer backgrounds |
-| `--color-text-primary` | `#0B0F19` | High-contrast headline and body copy |
-| `--color-text-secondary`| `#333333` | Subtitles, article summaries, metadata copy |
-| `--color-text-muted` | `#666666` | Form placeholders, timestamps, auxiliary labels |
-| `--color-border-subtle` | `#E0E0E0` | Card borders, table borders, dividers |
-| `--color-border-strong` | `#1E1E1E` | High-contrast focus borders and outline buttons |
+| `--color-canvas-bg-dark` | `#070A12` | Ultra-deep obsidian workspace canvas |
+| `--color-card-bg-dark` | `rgba(8, 14, 28, 0.92)` | Deep navy-obsidian surface with `backdrop-blur-2xl` |
+| `--color-tray-bg-dark` | `rgba(4, 8, 19, 0.90)` | Inset digital telemetry tray, terminal console backgrounds |
+| `--color-card-border-dark` | `rgba(255, 255, 255, 0.09)`| Translucent boundary with subtle electric blue sheen |
+| `--color-text-primary-dark` | `#FFFFFF` | Crisp white headline text (AAA contrast) |
+| `--color-text-secondary-dark`| `#94A3B8` | Cool slate metadata and secondary copy |
+| `--color-text-muted-dark` | `#64748B` | Monospace timestamps, inactive badges |
 
 ---
 
-## 3. Typography System
+## 3. Shape, Geometry & Border Radii
 
-### 3.1 Font Stacks
-* **Display / Headings:** `"KPMG Light"`, `"Univers"`, `"Helvetica Neue"`, `Arial`, sans-serif
-* **Body / System Text:** `Arial`, `"Helvetica Neue"`, `Helvetica`, sans-serif
-* **Data / Monospace:** `Consolas`, `Monaco`, `Courier New`, monospace (used in event timers, tickers)
+KEAOS enforces **continuous concentric curvature (squircles)**. Nested elements maintain optical harmony by scaling radii proportionally:
 
-### 3.2 Type Hierarchy
-| Scale Name | Size (px / rem) | Weight | Line Height | Tracking | Transform |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Hero Display** | `52px / 3.25rem` | 300 (Light) | `1.15` | `-0.02em` | None |
-| **Section H1** | `40px / 2.5rem` | 300 (Light) | `1.2` | `-0.01em` | None |
-| **Subheading H2** | `28px / 1.75rem` | 600 (SemiBold)| `1.25` | `0` | None |
-| **Card Title H3** | `20px / 1.25rem` | 600 (SemiBold)| `1.35` | `0` | None |
-| **Eyebrow / Tag** | `12px / 0.75rem` | 700 (Bold) | `1.4` | `+0.08em` | Uppercase |
-| **Lead Paragraph** | `18px / 1.125rem`| 400 (Regular) | `1.5` | `0` | None |
-| **Body Standard** | `15px / 0.9375rem`| 400 (Regular) | `1.55`| `0` | None |
-| **Caption / Fine** | `12px / 0.75rem` | 400 (Regular) | `1.4` | `+0.01em` | None |
-| **Interactive CTA** | `14px / 0.875rem`| 600 (SemiBold)| `1.2` | `+0.02em` | None |
+```
+┌────────────────────────────────────────────────────────┐
+│  Structural Card: rounded-[22px]                       │
+│  ╭──────────────────────────────────────────────────╮  │
+│  │  Floating Squircle Badge: rounded-2xl (16px)     │  │
+│  │  ╭────────────────────────────────────────────╮  │  │
+│  │  │  Recessed Telemetry Tray: rounded-xl (12px)│  │  │
+│  │  │  ( ● Status )                [ Pill: 9999px]│  │  │
+│  │  ╰────────────────────────────────────────────╯  │  │
+│  ╰──────────────────────────────────────────────────╯  │
+└────────────────────────────────────────────────────────┘
+```
 
----
-
-## 4. Spacing, Grid & Layout
-
-### 4.1 Spacing Scale
-* **Base Metric:** `8px`
-* **Scale Intervals:** `4px` (half), `8px` (base), `16px`, `24px`, `32px`, `48px`, `64px`, `96px`
-
-### 4.2 Containers & Grid Rules
-* **Max Width:** `1440px` (standard container: `1280px` max-width with `32px` gutter on desktop).
-* **Column Setup:**
-  * **Desktop (`≥ 1024px`):** 12 columns, `gap: 24px` or `gap: 32px`.
-  * **Tablet (`768px – 1023px`):** 8 columns, `gap: 20px`.
-  * **Mobile (`< 768px`):** 4 columns, `gap: 16px`, outer horizontal padding `16px`.
-
-### 4.3 Breakpoints
-* **Mobile (SM):** `< 768px`
-* **Tablet (MD):** `768px – 1024px`
-* **Desktop (LG):** `1025px – 1440px`
-* **Wide (XL):** `> 1440px`
+* **Structural Cards & Modals:** `22px` (`rounded-[22px]` / `rounded-3xl`).
+* **Floating Squircle Icon Badges & Action Buttons:** `16px` (`rounded-2xl`).
+* **Recessed Trays & Nested Ribbons:** `12px` (`rounded-xl`).
+* **Status Indicators, Sockets, Chips & Action Pills:** `9999px` (`rounded-full`).
 
 ---
 
-## 5. Shape, Elevation & Borders
+## 4. Elevation, Lighting & Depth Physics
 
-* **Border Radius:**
-  * Structural Cards, Modals, Inputs, Primary Buttons: `0px`
-  * Action Chips / Wayfinding Pills: `9999px` (Full pill radius)
-* **Borders:**
-  * Default Container / Card Border: `1px solid var(--color-border-subtle)`
-  * Accent Border: `2px solid var(--color-kpmg-blue)` (tab indicators, focus rings)
-* **Shadows & Elevation:**
-  * Flat default state (elevation `0`).
-  * Subtle hover card elevation: `0 4px 16px rgba(0, 0, 0, 0.08)`.
+KEAOS uses multi-stop diffused ambient drop shadows paired with top-edge glass bevels:
+
+* **Light Mode Elevation:**
+  * Card Default: `box-shadow: 0 16px 36px rgba(0, 51, 141, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.9);`
+  * Card Hover: `box-shadow: 0 20px 42px rgba(0, 51, 141, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.95);`
+  * Inset Telemetry Tray: `box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);`
+* **Dark Mode Elevation:**
+  * Card Default: `box-shadow: 0 20px 45px rgba(0, 0, 0, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.12);`
+  * Card Hover: `box-shadow: 0 24px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.18);`
+  * Inset Telemetry Tray: `box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.60);`
+* **Card Selection State:** `ring-2 ring-[#00B8F5] shadow-[0_0_26px_rgba(0,184,245,0.40)]`
+* **Running Execution Aura:** `ring-2 ring-[#00B8F5] shadow-[0_0_30px_rgba(0,184,245,0.50)] animate-pulse`
+
+---
+
+## 5. Typography System
+
+* **Display & Headings:** `"Univers"`, `"Helvetica Neue"`, `Arial`, sans-serif (SemiBold / Bold).
+* **Body / System Text:** `Arial`, `"Helvetica Neue"`, `Helvetica`, sans-serif (Regular / Medium).
+* **Data, Telemetry & Code:** `Consolas`, `Monaco`, `"Courier New"`, monospace.
+* **Hierarchy:**
+  * **Card Title:** `13px` SemiBold (`tracking-tight`)
+  * **Endpoint / Micro-Pill:** `10px` Monospace (`tracking-normal`)
+  * **Framework / Status Badges:** `9px` or `10px` Monospace Bold Uppercase (`tracking-wider`)
+  * **Telemetry Metric:** `10px` or `11px` Monospace Bold (`[ 142ms ]`)
 
 ---
 
 ## 6. Component Blueprint Specifications
 
-### 6.1 Navigation Bar & Top Utility Bar
-* **Top Utility Row:**
-  * Background: `#FFFFFF`
-  * Items: Country Selector (`India (EN)` with `expand_more` icon), `Submit RFP` button, Search trigger button, Hamburger menu toggle.
-  * Border Bottom: `1px solid #E0E0E0`.
-* **Primary Navigation Menu:**
-  * Background: `#00338D` or `#FFFFFF` (context-dependent multi-tier header).
-  * Links: `Insights`, `Industries`, `Services`, `How we work`, `Working with us`, `KPMG Global Services`.
-  * Hover State: `2px solid #005EB8` bottom underline indicator.
+### 6.1 Canvas Node Blueprint
+* **Outer Chassis:** `w-[290px] rounded-[22px] p-3.5 backdrop-blur-xl border`.
+* **Top Header Row:**
+  * Left: Tactile Squircle Icon Badge (`w-9 h-9 rounded-2xl flex items-center justify-center`). Gradient fill from `#00B8F5` via `#1E49E2` to `#00338D`.
+  * Title & Endpoint: Node name (`text-xs font-bold`) paired with a monospace domain micro-pill.
+  * Right: Framework Pill Badge (`rounded-full px-2.5 py-0.5 text-[9px] uppercase font-bold`).
+* **Middle Telemetry Ribbon:** `rounded-xl px-3 py-1.5` displaying `Host: LOCALHOST` and `∿ OTel 2.0`.
+* **Bottom Inset Telemetry Tray:** `rounded-xl p-2 flex items-center justify-between` featuring a live pulsing status dot (`#00B8F5` for running/complete, `#FD349C` for error, `#94A3B8` for idle) and latency badge.
 
-### 6.2 Buttons
-* **Primary CTA:**
-  * Background: `var(--color-kpmg-blue)` (`#00338D`)
-  * Text Color: `#FFFFFF`
-  * Padding: `12px 24px`
-  * Border Radius: `0px`
-  * Hover: Background shifts to `var(--color-medium-blue)` (`#005EB8`)
-* **Secondary / Outline CTA:**
-  * Background: `transparent`
-  * Border: `1px solid var(--color-kpmg-blue)`
-  * Text Color: `var(--color-kpmg-blue)`
-  * Padding: `11px 23px`
-  * Border Radius: `0px`
-  * Hover: Background `var(--color-kpmg-blue)`, Text `#FFFFFF`
-* **Text / Inline Action Link:**
-  * Format: `Read more ❯` or `Explore ❯`
-  * Font Weight: `600`
-  * Color: `var(--color-kpmg-blue)`
-  * Text Decoration: None (underline on hover)
+### 6.2 Strictly-Typed Sockets
+* **Horizontal Pipeline Sockets (Left: `in`, Right: `out`):**
+  * Color: **Vivid Cyan (`#00B8F5`)**
+  * Styling: `w-3 h-3 rounded-full border-2 border-white dark:border-[#080E1C] shadow-[0_2px_8px_rgba(0,184,245,0.5)]`
+* **Vertical Governance Socket (Top: `policy-in`):**
+  * Color: **Vibrant Magenta (`#FD349C`)**
+  * Styling: `w-3 h-3 rounded-full border-2 border-white dark:border-[#080E1C] shadow-[0_2px_8px_rgba(253,52,156,0.5)]`
 
-### 6.3 Content & Editorial Cards
-* **Insight Standard Card:**
-  * Background: `#FFFFFF`
-  * Border: `1px solid #E0E0E0`
-  * Border Radius: `0px`
-  * Padding: `24px`
-  * Vertical Hierarchy:
-    1. Eyebrow: `12px Bold Uppercase` (Taxonomy-colored, e.g., `#00A3A6`)
-    2. Headline: `20px SemiBold` (`#0B0F19`)
-    3. Abstract: `14px Regular` (`#333333`, max-height 3-lines with ellipsis)
-    4. Action Link: `Read more ❯` (`#00338D`)
-* **Spotlight / Dark Event Banner Card:**
-  * Background: `var(--color-navy-deep)` (`#001E50`)
-  * Text Color: `#FFFFFF`
-  * Padding: `32px`
-  * Countdown Timer Element: Monospaced numerical values, highlighted with `--color-pacific-blue` (`#0091DA`).
-
-### 6.4 Taxonomy / Wayfinding Pills
-* Used for horizontal scrolling or filter blocks (`Artificial Intelligence ❯`, `Data Centres ❯`, `DPDP ❯`):
-  * Padding: `6px 14px`
-  * Border: `1px solid #CBD5E1`
-  * Border Radius: `9999px`
-  * Background: `#FFFFFF`
-  * Typography: `13px Medium`, text color `#00338D`
-  * Hover State: Background `#F0F4F8`, border-color `#005EB8`
-
-### 6.5 Footer & Legal Architecture
-* **Theme:** High-contrast neutral / dark layout (`#0B0F19` or split `#F5F6F8` / `#FFFFFF`).
-* **Grid:** 4 primary columns (Contact, Media, Company, Apps & Social).
-* **Legal Disclaimers:**
-  * Font Size: `11px – 12px`, color: `#666666`.
-  * Mandatory AI Disclosure Text: `*Some images have been enhanced using artificial intelligence (AI) technology.`
-  * Standard copyright, LLP member firm governance statement, and OneTrust cookie preference triggers.
+### 6.3 Floating Navigation Dock & Island Elements
+* Floating capsule styling (`rounded-full` or `rounded-3xl` with detached viewport margins).
+* Background: `backdrop-blur-2xl` with soft dual-stop shadows.
+* Action buttons use soft-hover lifts (`hover:scale-105 active:scale-95`).
 
 ---
 
-## 7. Interactive Behaviors & Motion
-
-* **Transition Timing Function:** `cubic-bezier(0.4, 0, 0.2, 1)`
-* **Standard Duration:**
-  * Hover transitions (buttons, pills, links): `150ms`
-  * Card lift / shadow elevation: `200ms`
-  * Mega-menu dropdown panel expand: `250ms`
-* **Focus State:** `2px solid #0091DA` with `2px` offset on all focusable inputs and links.
-
----
-
-## 8. Ready-to-Use CSS Implementation Tokens
+## 7. Ready-to-Use CSS Implementation Tokens
 
 ```css
 :root {
-  /* Brand Primary */
-  --kpmg-blue: #00338D;
-  --kpmg-blue-hover: #005EB8;
-  --kpmg-blue-light: #0091DA;
-  --kpmg-navy-dark: #001E50;
+  /* 5-Color Pentagon Palette */
+  --keaos-royal-navy: #00338D;
+  --keaos-electric-blue: #1E49E2;
+  --keaos-vivid-cyan: #00B8F5;
+  --keaos-vibrant-magenta: #FD349C;
+  --keaos-electric-violet: #7213EA;
 
-  /* Industry & Pillar Taxonomy */
-  --kpmg-tax-amber: #EAAA00;
-  --kpmg-tech-magenta: #6D2077;
-  --kpmg-lead-purple: #470A68;
-  --kpmg-esg-green: #009A44;
-  --kpmg-cyber-teal: #00A3A6;
-  --kpmg-work-violet: #483698;
+  /* Dual-Theme Neutrals (Light Mode) */
+  --keaos-canvas-light: #EDF2F7;
+  --keaos-surface-light: rgba(255, 255, 255, 0.95);
+  --keaos-tray-light: rgba(244, 247, 251, 0.85);
+  --keaos-border-light: rgba(226, 232, 240, 0.90);
+  --keaos-text-primary-light: #001E50;
+  --keaos-text-secondary-light: #4B5563;
 
-  /* Neutrals */
-  --kpmg-bg-white: #FFFFFF;
-  --kpmg-bg-subtle: #F5F6F8;
-  --kpmg-text-primary: #0B0F19;
-  --kpmg-text-secondary: #333333;
-  --kpmg-text-muted: #666666;
-  --kpmg-border-subtle: #E0E0E0;
+  /* Dual-Theme Neutrals (Dark Mode) */
+  --keaos-canvas-dark: #070A12;
+  --keaos-surface-dark: rgba(8, 14, 28, 0.92);
+  --keaos-tray-dark: rgba(4, 8, 19, 0.90);
+  --keaos-border-dark: rgba(255, 255, 255, 0.09);
+  --keaos-text-primary-dark: #FFFFFF;
+  --keaos-text-secondary-dark: #94A3B8;
 
-  /* Typography */
-  --font-kpmg-display: "KPMG Light", "Univers", "Helvetica Neue", Arial, sans-serif;
-  --font-kpmg-body: Arial, "Helvetica Neue", Helvetica, sans-serif;
-  --font-kpmg-mono: "Consolas", "Monaco", monospace;
-
-  /* Layout & Geometry */
-  --radius-sharp: 0px;
+  /* Continuous Squircle Radii */
+  --radius-card: 22px;
+  --radius-badge: 16px;
+  --radius-tray: 12px;
   --radius-pill: 9999px;
-  --max-content-width: 1440px;
 
-  /* Shadows & Motion */
-  --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration-quick: 150ms;
+  /* Shadows & Glass Bevels */
+  --shadow-light-card: 0 16px 36px rgba(0, 51, 141, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03);
+  --shadow-dark-card: 0 20px 45px rgba(0, 0, 0, 0.70);
+  --glass-top-light: inset 0 1px 1px rgba(255, 255, 255, 0.90);
+  --glass-top-dark: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
+```

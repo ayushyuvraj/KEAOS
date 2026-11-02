@@ -1,62 +1,62 @@
 /**
  * KEAOS DESIGN TOKENS
- * Authoritative JavaScript tokens and helper classes adhering strictly to src/design.md
- * Enhanced with Emil Kowalski & Taste design engineering craft principles.
+ * Authoritative JavaScript tokens and helper classes adhering strictly to src/design.md (v2.0)
+ * Soft Neo-Modernist Edition with 5-Color Pentagon Palette.
  * 
  * Rules for all screens and components:
- * 1. Geometry: Angular 0px border-radius for all structural containers, cards, inputs, and buttons.
- * 2. Pills: 9999px border-radius strictly for taxonomy badges, status indicators, and action chips.
- * 3. Color Hierarchy:
- *    - Deep Navy (#001E50): Primary navigation bar and high-contrast dark surfaces.
- *    - Brand Blue (#00338D): Primary CTAs, active states, active tab borders.
- *    - Medium Blue (#005EB8): Hover states on interactive elements.
- *    - Pacific Blue (#0091DA): Secondary accents, focus outlines, progress indicators.
- *    - Subtle Surface (#F5F6F8): App workspace background, zebra stripes.
- *    - Pure White (#FFFFFF): Primary card surfaces.
+ * 1. Geometry: Continuous concentric curvature (Squircles).
+ *    - Structural Containers & Cards: 22px (rounded-[22px] / rounded-3xl).
+ *    - Floating Badges & Action Buttons: 16px (rounded-2xl).
+ *    - Inner Trays & Ribbons: 12px (rounded-xl).
+ *    - Status Badges, Sockets, and Action Chips: 9999px (rounded-full).
+ * 2. 5-Color Pentagon Palette:
+ *    - Royal Navy (#00338D): Primary brand anchor, high-contrast dark accents.
+ *    - Electric Blue (#1E49E2): Interactive velocity, hovers, secondary CTAs.
+ *    - Vivid Cyan (#00B8F5): Horizontal dataflow sockets, live execution pulse, OTel.
+ *    - Vibrant Magenta (#FD349C): Top security policy socket, compliance alerts, error states.
+ *    - Electric Violet (#7213EA): Cognitive routing, memory stores, capability tags.
+ * 3. Elevation & Surfaces:
+ *    - Frosted glassmorphism with backdrop-blur and multi-layered ambient drop shadows.
+ *    - Inner glass top-bevel highlights (inset 0 1px 0).
  * 4. Strict Anonymity: No proprietary corporate or consulting firm names allowed anywhere.
  */
 
 export const DESIGN_TOKENS = {
-  // Brand Color Palette (Section 2.1 of design.md)
+  // Brand Color Palette (Pentagon 5-Facet Tokens)
   colors: {
-    brandBlue: '#00338D',     // Primary brand color, primary CTAs, active states
-    mediumBlue: '#005EB8',    // Hover states, active text links
-    pacificBlue: '#0091DA',   // Secondary accents, progress indicators, focused borders
-    navyDeep: '#001E50',      // Deep header background, high-contrast dark surfaces
+    royalNavy: '#00338D',     // Primary brand color, primary CTAs, active states
+    electricBlue: '#1E49E2',  // Interactive hovers, velocity, secondary CTAs
+    vividCyan: '#00B8F5',     // Dataflow sockets, active pulse, live telemetry
+    vibrantMagenta: '#FD349C',// Governance sockets, alerts, security policies
+    electricViolet: '#7213EA',// Memory stores, auxiliary routing
 
-    // Editorial & Industry Taxonomy Colors (Section 2.2 of design.md)
-    taxonomy: {
-      amber: '#EAAA00',       // Cost & Benefit, ROI, Financial Services
-      magenta: '#6D2077',     // Technology, Emerging Giants, Innovation
-      purple: '#470A68',      // Executive Governance, Leadership
-      green: '#009A44',       // Skills, Sustainability, Active Status, Success
-      teal: '#00A3A6',        // MCP, Infrastructure, Cybersecurity
-      violet: '#483698'       // Workforce, Orchestration, Memory
-    },
-
-    // Neutrals & Surface Colors (Section 2.3 of design.md)
+    // Dual-Theme Surface & Neutral Colors
     surface: {
-      bg: '#FFFFFF',          // Primary card and modal background
-      subtle: '#F5F6F8',      // App background, workspace canvas, table headers
-      dark: '#0B0F19',        // Dark theme cards, code display background, console
-      textPrimary: '#0B0F19', // High-contrast headline and body copy
-      textSecondary: '#333333',// Subtitles, metadata copy
-      textMuted: '#666666',   // Placeholders, timestamps, auxiliary labels
-      borderSubtle: '#E0E0E0',// Card borders, dividers, table borders
-      borderStrong: '#1E1E1E' // High-contrast borders
+      canvasLight: '#EDF2F7', // Soft ambient slate canvas
+      canvasDark: '#070A12',  // Deep obsidian canvas
+      cardLight: 'rgba(255, 255, 255, 0.95)',
+      cardDark: 'rgba(8, 14, 28, 0.92)',
+      trayLight: 'rgba(244, 247, 251, 0.85)',
+      trayDark: 'rgba(4, 8, 19, 0.90)',
+      textPrimaryLight: '#001E50',
+      textPrimaryDark: '#FFFFFF',
+      textSecondaryLight: '#4B5563',
+      textSecondaryDark: '#94A3B8',
+      textMuted: '#64748B',
+      borderLight: 'rgba(226, 232, 240, 0.90)',
+      borderDark: 'rgba(255, 255, 255, 0.09)'
     }
   },
 
-  // Geometry & Border Radii (Section 5 of design.md)
+  // Geometry & Border Radii (Continuous Squircle Hierarchy)
   radii: {
-    container: '0px',         // Structural containers, layout blocks
-    card: '0px',              // Information cards, node boxes
-    button: '0px',            // Primary, secondary, and tertiary buttons
-    input: '0px',             // Form inputs, textareas, selects
-    pill: '9999px'            // Status badges, taxonomy tags, action chips only
+    card: '22px',             // Structural cards, modal panels (rounded-[22px])
+    badge: '16px',            // Floating icon badges, primary action buttons (rounded-2xl)
+    tray: '12px',             // Recessed telemetry trays, inner ribbons (rounded-xl)
+    pill: '9999px'            // Status badges, sockets, action chips (rounded-full)
   },
 
-  // Typography Hierarchy (Section 3 of design.md)
+  // Typography Hierarchy
   typography: {
     fontFamilies: {
       display: '"Univers", "Helvetica Neue", Arial, sans-serif',
@@ -76,42 +76,48 @@ export const DESIGN_TOKENS = {
     }
   },
 
-  // Elevation & Shadows (Section 5 of design.md)
+  // Elevation, Ambient Shadows & Glass Highlights
   shadows: {
-    flat: 'none',
-    cardHover: '0 4px 16px rgba(0, 30, 80, 0.08)',
-    modal: '0 12px 36px rgba(0, 30, 80, 0.25)'
+    cardLight: '0 16px 36px rgba(0, 51, 141, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)',
+    cardDark: '0 20px 45px rgba(0, 0, 0, 0.70)',
+    trayLightInset: 'inset 0 1px 3px rgba(0, 0, 0, 0.04)',
+    trayDarkInset: 'inset 0 2px 5px rgba(0, 0, 0, 0.60)',
+    selectionAura: '0 0 26px rgba(0, 184, 245, 0.40)',
+    executionPulse: '0 0 30px rgba(0, 184, 245, 0.50)'
   }
 };
 
 /**
- * Standard Tailwind CSS class strings adhering strictly to design.md
- * Enhanced with tactile responses and high-contrast institutional hierarchy.
+ * Standard Tailwind CSS class strings adhering strictly to design.md (v2.0)
+ * Soft Neo-Modernist surfaces with frosted glass depth and tactile squircle geometry.
  */
 export const DESIGN_CLASSES = {
-  // Container & Card Classes
-  card: 'bg-[#FFFFFF] border border-[#E0E0E0] rounded-none shadow-none',
-  cardHover: 'transition-all duration-150 hover:shadow-[0_4px_16px_rgba(0,30,80,0.08)] hover:border-[#00338D]',
+  // Container & Card Classes (Squircles with multi-stop elevation)
+  card: 'bg-white/95 dark:bg-[#080E1C]/92 border border-slate-200/90 dark:border-white/[0.09] rounded-[22px] backdrop-blur-xl shadow-[0_16px_36px_rgba(0,51,141,0.08),0_2px_8px_rgba(0,0,0,0.03)] dark:shadow-[0_20px_45px_rgba(0,0,0,0.7)]',
+  cardHover: 'transition-all duration-200 hover:shadow-[0_20px_42px_rgba(0,51,141,0.14)] dark:hover:shadow-[0_24px_50px_rgba(0,0,0,0.85)] hover:scale-[1.01]',
   
+  // Recessed Telemetry Tray
+  recessedTray: 'bg-slate-100/80 dark:bg-[#040813]/90 border border-slate-200/80 dark:border-white/[0.06] rounded-xl shadow-[inset_0_1px_3px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]',
+
   // Headers & Subheaders
-  screenHeader: 'bg-[#001E50] border-b border-[#00338D] text-white px-6 py-4 flex items-center justify-between shadow-sm',
-  sectionTitle: 'text-sm font-bold text-[#0B0F19] tracking-tight',
-  eyebrow: 'text-[10px] font-bold uppercase tracking-[0.08em] text-[#00338D] font-mono',
+  screenHeader: 'bg-white/90 dark:bg-[#080E1C]/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] text-[#001E50] dark:text-white px-6 py-4 flex items-center justify-between shadow-xs',
+  sectionTitle: 'text-sm font-bold text-[#001E50] dark:text-white tracking-tight',
+  eyebrow: 'text-[10px] font-bold uppercase tracking-[0.08em] text-[#00B8F5] font-mono',
   
-  // Buttons (Angular 0px with tactile press)
-  buttonPrimary: 'px-4 py-2 text-xs font-bold bg-[#00338D] text-white hover:bg-[#005EB8] active:scale-[0.98] rounded-none transition-all duration-150 shadow-sm border-b-2 border-[#001E50] focus:outline-none focus:ring-2 focus:ring-[#0091DA]',
-  buttonSecondary: 'px-4 py-2 text-xs font-bold bg-[#FFFFFF] text-[#00338D] border border-[#00338D] hover:bg-[#F5F6F8] active:scale-[0.98] rounded-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#0091DA]',
-  buttonDanger: 'px-4 py-2 text-xs font-bold bg-[#6D2077] text-white hover:bg-[#470A68] active:scale-[0.98] rounded-none transition-all duration-150 shadow-sm',
-  buttonTertiary: 'px-3 py-1.5 text-xs font-semibold text-[#00338D] hover:bg-[#E6EDF7] active:scale-[0.98] rounded-none transition-all duration-150',
+  // Buttons (Tactile Squircle with subtle spring response)
+  buttonPrimary: 'px-4 py-2 text-xs font-bold bg-[#00338D] hover:bg-[#1E49E2] text-white active:scale-[0.97] rounded-2xl transition-all duration-150 shadow-[0_4px_14px_rgba(0,51,141,0.3)] focus:outline-none focus:ring-2 focus:ring-[#00B8F5]',
+  buttonSecondary: 'px-4 py-2 text-xs font-bold bg-white dark:bg-white/[0.05] text-[#00338D] dark:text-[#00B8F5] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 active:scale-[0.97] rounded-2xl transition-all duration-150 shadow-xs focus:outline-none focus:ring-2 focus:ring-[#00B8F5]',
+  buttonDanger: 'px-4 py-2 text-xs font-bold bg-[#FD349C] text-white hover:bg-[#FD349C]/90 active:scale-[0.97] rounded-2xl transition-all duration-150 shadow-[0_4px_14px_rgba(253,52,156,0.35)]',
+  buttonTertiary: 'px-3 py-1.5 text-xs font-semibold text-[#00338D] dark:text-[#00B8F5] hover:bg-[#00338D]/10 dark:hover:bg-white/5 active:scale-[0.97] rounded-xl transition-all duration-150',
 
-  // Status & Taxonomy Pills (9999px Full Pill)
-  statusPillActive: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#E6F5EC] text-[#009A44] border border-[#009A44]/30',
-  statusPillPending: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#FEF6E6] text-[#EAAA00] border border-[#EAAA00]/30',
-  statusPillAlert: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#F2E9F4] text-[#6D2077] border border-[#6D2077]/30',
-  statusPillBrand: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#E6EDF7] text-[#00338D] border border-[#00338D]/20',
-  statusPillDark: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#0B0F19] text-[#94A3B8] border border-[#334155]',
+  // Status & Wayfinding Pills (9999px Full Pill mapped to Pentagon Colors)
+  statusPillActive: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#00B8F5]/15 text-[#00B8F5] border border-[#00B8F5]/30 shadow-[0_2px_8px_rgba(0,184,245,0.2)]',
+  statusPillPending: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#1E49E2]/15 text-[#1E49E2] border border-[#1E49E2]/30 shadow-xs',
+  statusPillAlert: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#FD349C]/15 text-[#FD349C] border border-[#FD349C]/30 shadow-[0_2px_8px_rgba(253,52,156,0.2)]',
+  statusPillBrand: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#00338D]/15 text-[#00338D] dark:text-[#00B8F5] border border-[#00338D]/25',
+  statusPillViolet: 'px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-[#7213EA]/15 text-[#7213EA] border border-[#7213EA]/30',
 
-  // Form Controls
-  input: 'w-full px-3 py-2 bg-[#FFFFFF] border border-[#E0E0E0] text-xs text-[#0B0F19] rounded-none focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] transition-colors',
-  textarea: 'w-full p-3 bg-[#FFFFFF] border border-[#E0E0E0] text-xs text-[#0B0F19] rounded-none focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] resize-none transition-colors'
+  // Form Controls (Squircles with clean focus auras)
+  input: 'w-full px-3.5 py-2.5 bg-white dark:bg-[#040813]/90 border border-slate-200/90 dark:border-white/[0.08] text-xs text-[#001E50] dark:text-white rounded-xl focus:outline-none focus:border-[#00B8F5] focus:ring-2 focus:ring-[#00B8F5]/30 transition-all placeholder-slate-400',
+  textarea: 'w-full p-3.5 bg-white dark:bg-[#040813]/90 border border-slate-200/90 dark:border-white/[0.08] text-xs text-[#001E50] dark:text-white rounded-xl focus:outline-none focus:border-[#00B8F5] focus:ring-2 focus:ring-[#00B8F5]/30 resize-none transition-all placeholder-slate-400'
 };

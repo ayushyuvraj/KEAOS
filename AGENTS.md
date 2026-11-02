@@ -142,26 +142,28 @@ const result = await synthesizeMeetingUniversal({
 
 ---
 
-## 5. Design System Strict Adherence (`src/design.md`)
+## 5. Design System Strict Adherence (`src/design.md` v2.0 - Soft Neo-Modernist Edition)
 
 Whenever creating new screens, cards, modals, or buttons, you MUST follow these non-negotiable rules:
 
-1. **Angular 0px Geometry**:
-   - ALL structural cards, modals, containers, form inputs, and buttons MUST use `rounded-none` (`0px` border-radius).
-   - Only action chips, status badges, and taxonomy pills use `rounded-full` (`9999px`).
-2. **Brand Palette**:
-   - Primary Header: Deep Navy `#001E50` with `#00338D` bottom border.
-   - Primary Buttons / Active Tabs: Royal Brand Blue `#00338D` (hover: `#005EB8`).
-   - App Workspace Background: Light subtle gray `#F5F6F8`.
-   - Card Backgrounds: Pure White `#FFFFFF` with `#E0E0E0` border.
-   - Code Display / Dark Cards: Deep slate `#0B0F19` with `#001438` code blocks.
-3. **Taxonomy Accents**:
-   - `#EAAA00` (Amber) for Financial / ROI / Gateways
-   - `#009A44` (Green) for Skills / Active Status / Verification
-   - `#00A3A6` (Teal) for MCP / Infrastructure
-   - `#6D2077` (Magenta) for Innovation / Policies / Alerts
-   - `#483698` (Violet) for Workforce / Memory
-4. **Screen Wrapper Pattern**:
+1. **Continuous Concentric Squircle Geometry**:
+   - ALL structural cards and modal containers MUST use `rounded-[22px]` (or `rounded-3xl`).
+   - Floating icon badges and primary action buttons MUST use `rounded-2xl` (`16px`).
+   - Recessed telemetry trays, inner micro-ribbons, and form inputs MUST use `rounded-xl` (`12px`).
+   - Status badges, sockets, action chips, and wayfinding pills MUST use `rounded-full` (`9999px`).
+2. **The 5-Color Pentagon Brand Palette**:
+   - Primary Brand Anchor: Deep Royal Navy `#00338D` (headlines, primary CTAs, active states).
+   - Interactive Velocity: Cobalt / Electric Blue `#1E49E2` (hovers, secondary CTAs, host metrics).
+   - Dataflow & Telemetry: Vivid Cyan `#00B8F5` (pipeline sockets, live execution pulse, OTel badge).
+   - Governance & Security: Vibrant Magenta `#FD349C` (policy sockets, guardrails, compliance alerts, error states).
+   - Cognitive Orchestration: Electric Violet `#7213EA` (memory stores, routing, capability tags).
+3. **Frosted Glass Depth & Elevation Physics**:
+   - Multi-stop diffused ambient drop shadows paired with top-edge glass bevels (`inset 0 1px 0`).
+   - Light Mode: Sculpted porcelain cards (`bg-white/95 backdrop-blur-xl border-slate-200/90`).
+   - Dark Mode: Luminous obsidian cards (`bg-[#080E1C]/92 backdrop-blur-2xl border-white/[0.09]`).
+4. **Recessed Digital Telemetry Trays**:
+   - Status, metrics, and latency must sit inside recessed inner trays with subtle inner shadows (`shadow-[inset_0_2px_4px_...]`).
+5. **Screen Wrapper Pattern**:
    - Wrap all new screens in `<ScreenScaffold title="..." eyebrow="..." statusText="...">` located in `src/components/common/ScreenScaffold.jsx`.
 
 ---
