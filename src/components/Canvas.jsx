@@ -63,11 +63,12 @@ import RouterNode from './nodes/RouterNode';
 import ApprovalNode from './nodes/ApprovalNode';
 import RemoteAgentNode from './nodes/RemoteAgentNode';
 import { executeDeterministicTask } from '../services/deterministicRunner';
-import { executeRemoteAgentTask } from '../services/remoteAgentRunner';
+import { executeRemoteAgentTask, abortAllRemoteExecutions } from '../services/remoteAgentRunner';
 import { startTrace, endTrace } from '../services/audit2Service';
 import { fireTriggerEvent, disarmScheduleTrigger, disarmPollingWatcher } from '../services/triggerEngine';
 import { loadCanvasViewport, saveCanvasViewport } from '../utils/persistentState';
 import { getActiveWorkflowId } from '../utils/workflowStorage';
+import { getPersistedBinaryFile } from '../services/fileStorageService';
 
 const nodeTypes = {
   agentCore: AgentCoreNode,
@@ -995,8 +996,40 @@ function CanvasInner({
           }
         }
 
-        if (remNode.data?.requestMode === 'multipart' && !upstreamInput) {
-          setToastNotification('⚠️ Ingestion Node is empty. Please click the Ingestion node or drop an invoice PDF/image into it before executing.');
+        let effectiveInput = upstreamInput;
+        let hasBinaryFile = Boolean(
+          effectiveInput instanceof File ||
+          effectiveInput?.rawFile instanceof File ||
+          effectiveInput instanceof Blob ||
+          effectiveInput?.file instanceof File ||
+          (typeof window !== 'undefined' && window.__KEAOS_FILES__?.['latest'] instanceof File)
+        );
+
+        // Attempt async IndexedDB rehydration if lost across page reload
+        if (remNode.data?.requestMode === 'multipart' && !hasBinaryFile) {
+          try {
+            const incomingEdges = (edges || []).filter(ed => ed.target === remNode.id);
+            const ingestNode = (nodes || []).find(n => incomingEdges.some(ed => ed.source === n.id) && n.type === 'ingestionNode');
+            const persistedFile = await getPersistedBinaryFile(`ingest-${ingestNode?.id}-slotA`) ||
+                                  await getPersistedBinaryFile('latest-invoice-binary');
+            if (persistedFile) {
+              effectiveInput = persistedFile;
+              hasBinaryFile = true;
+              if (typeof window !== 'undefined') {
+                window.__KEAOS_FILES__ = window.__KEAOS_FILES__ || {};
+                window.__KEAOS_FILES__['latest'] = persistedFile;
+                if (ingestNode?.id) {
+                  window.__KEAOS_FILES__[ingestNode.id] = { slotA: { rawFile: persistedFile }, rawFile: persistedFile };
+                }
+              }
+            }
+          } catch {
+            // Rehydration fallback
+          }
+        }
+
+        if (remNode.data?.requestMode === 'multipart' && !hasBinaryFile) {
+          setToastNotification('⚠️ Ingestion Node has no file in memory. Please drag & drop the invoice PDF/image into it.');
           setTimeout(() => setToastNotification(null), 4500);
           return;
         }
@@ -1004,7 +1037,7 @@ function CanvasInner({
         const remoteRes = await executeRemoteAgentTask({
           nodeId: remNode.id,
           nodeData: remNode.data,
-          inputData: upstreamInput || 'KEAOS Canvas Direct Execution',
+          inputData: effectiveInput || 'KEAOS Canvas Direct Execution',
           traceContext
         });
 
@@ -1017,9 +1050,21 @@ function CanvasInner({
           });
           setToastNotification(`❌ Remote Agent Failed: ${remoteRes.error || 'Execution failed'}`);
           setTimeout(() => setToastNotification(null), 3500);
-          window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
-            detail: { isExecuting: false, step: 'Failed' }
-          }));
+          setNodes((nds) =>
+            nds.map((n) => {
+              if (n.id === remNode.id) {
+                return {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    lastStatus: 'error',
+                    lastError: remoteRes.error || 'Execution failed'
+                  }
+                };
+              }
+              return n;
+            })
+          );
           return;
         }
 
@@ -1120,6 +1165,37 @@ function CanvasInner({
         console.error('Remote agent execution error:', err);
         setToastNotification(`❌ Remote Agent Error: ${err.message}`);
         setTimeout(() => setToastNotification(null), 3500);
+        window.dispatchEvent(new CustomEvent('keaos:remote-agent-executed', {
+          detail: {
+            nodeId: remNode.id,
+            success: false,
+            error: err.message
+          }
+        }));
+        setNodes((nds) =>
+          nds.map((n) => {
+            if (n.id === remNode.id) {
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  lastStatus: 'error',
+                  lastError: err.message
+                }
+              };
+            }
+            return n;
+          })
+        );
+      } finally {
+        // Guaranteed cleanup: canvas and node must never get trapped in executing state
+        setExecutionState({ isExecuting: false, step: '' });
+        window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
+          detail: { isExecuting: false, step: 'Idle' }
+        }));
+        window.dispatchEvent(new CustomEvent('keaos:remote-agent-executing', {
+          detail: { nodeId: remNode.id, isRunning: false }
+        }));
       }
     };
 
@@ -1336,12 +1412,28 @@ function CanvasInner({
   // Global listener to stop streaming and cancel active execution
   useEffect(() => {
     const handleCancelExecution = () => {
+      // Abort all active fetch / polling requests
+      abortAllRemoteExecutions();
+
       setExecutionState({ isExecuting: false, step: '' });
+      window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
+        detail: { isExecuting: false, step: 'Stopped' }
+      }));
+      window.dispatchEvent(new CustomEvent('keaos:remote-agent-executing', {
+        detail: { isRunning: false }
+      }));
+
       setNodes((nds) =>
         nds.map((n) => {
           let updated = { ...n.data };
           if ((n.type === 'outputNode' || n.type === 'outputNodeV2') && updated.status === 'generating') {
             updated.status = updated.outputContent ? 'ready' : 'idle';
+          }
+          if (n.type === 'remoteAgentNode') {
+            updated.isRunning = false;
+            if (updated.lastStatus === 'running') {
+              updated.lastStatus = 'idle';
+            }
           }
           if (updated.isExecuting) {
             updated.isExecuting = false;

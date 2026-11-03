@@ -61,14 +61,21 @@ export default function RemoteAgentNode({ id, data, selected }) {
       }
     };
 
+    const handleCancelExecution = () => {
+      setIsRunning(false);
+      setRunStatus((prev) => (prev === 'running' ? 'idle' : prev));
+    };
+
     window.addEventListener('keaos:set-execution-state', handleExecState);
     window.addEventListener('keaos:remote-agent-executing', handleRemoteExecuting);
     window.addEventListener('keaos:remote-agent-executed', handleRemoteExecuted);
+    window.addEventListener('keaos:cancel-execution', handleCancelExecution);
 
     return () => {
       window.removeEventListener('keaos:set-execution-state', handleExecState);
       window.removeEventListener('keaos:remote-agent-executing', handleRemoteExecuting);
       window.removeEventListener('keaos:remote-agent-executed', handleRemoteExecuted);
+      window.removeEventListener('keaos:cancel-execution', handleCancelExecution);
     };
   }, [id]);
 

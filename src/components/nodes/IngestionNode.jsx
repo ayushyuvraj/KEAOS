@@ -28,6 +28,7 @@ import {
   FileCheck2
 } from 'lucide-react';
 import { transcribeAudioUniversal, getProviderCredential } from '../../services/llmService';
+import { persistBinaryFile, getPersistedBinaryFile } from '../../services/fileStorageService';
 import NodeActionToolbar from '../common/NodeActionToolbar';
 
 /**
@@ -185,6 +186,35 @@ export default function IngestionNode({ id, data = {}, selected }) {
       setIsExpanded(Boolean(data.isExpanded));
     }
   }, [data.isExpanded]);
+
+  // Rehydrate binary File/Blob from IndexedDB if lost after page refresh
+  useEffect(() => {
+    let isCancelled = false;
+    const rehydrateFromDB = async () => {
+      try {
+        if (slotA && !slotA.rawFile) {
+          const persistedA = await getPersistedBinaryFile(`ingest-${id}-slotA`) || await getPersistedBinaryFile('latest-invoice-binary');
+          if (persistedA && !isCancelled) {
+            const rehydratedA = { ...slotA, rawFile: persistedA };
+            setSlotA(rehydratedA);
+            broadcastBilateralUpdate(rehydratedA, slotB);
+          }
+        }
+        if (slotB && !slotB.rawFile) {
+          const persistedB = await getPersistedBinaryFile(`ingest-${id}-slotB`);
+          if (persistedB && !isCancelled) {
+            const rehydratedB = { ...slotB, rawFile: persistedB };
+            setSlotB(rehydratedB);
+            broadcastBilateralUpdate(slotA, rehydratedB);
+          }
+        }
+      } catch (err) {
+        console.warn('[IngestionNode] Failed to rehydrate from IndexedDB:', err);
+      }
+    };
+    rehydrateFromDB();
+    return () => { isCancelled = true; };
+  }, [id]);
 
   // Overall Status Calculation
   const statusInfo = useMemo(() => {
@@ -351,9 +381,12 @@ export default function IngestionNode({ id, data = {}, selected }) {
       if (targetSlot === 'slotA') {
         setSlotA(slotObject);
         broadcastBilateralUpdate(slotObject, slotB);
+        persistBinaryFile(`ingest-${id}-slotA`, file);
+        persistBinaryFile('latest-invoice-binary', file);
       } else {
         setSlotB(slotObject);
         broadcastBilateralUpdate(slotA, slotObject);
+        persistBinaryFile(`ingest-${id}-slotB`, file);
       }
     } catch (err) {
       console.error('File ingestion error:', err);

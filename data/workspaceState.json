@@ -10,7 +10,7 @@
       "x": 0,
       "y": 0
     },
-    "isInspectorOpen": false,
+    "isInspectorOpen": true,
     "isEnforcerActive": true,
     "viewMode": "canvas",
     "isWorkflowLocked": false
@@ -78,7 +78,7 @@
             "width": 290,
             "height": 162
           },
-          "selected": false,
+          "selected": true,
           "dragging": false
         },
         {
@@ -1572,7 +1572,7 @@
             "width": 56,
             "height": 56
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
         },
         {
@@ -1687,7 +1687,7 @@
         }
       ],
       "createdAt": 1793691016884,
-      "updatedAt": 1793710639166,
+      "updatedAt": 1793712508422,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -7163,7 +7163,7 @@
           "width": 290,
           "height": 162
         },
-        "selected": false,
+        "selected": true,
         "dragging": false
       },
       {
@@ -8657,7 +8657,7 @@
           "width": 56,
           "height": 56
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       },
       {
@@ -14048,5 +14048,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793710639985
+  "syncedAt": 1793712509238
 }
