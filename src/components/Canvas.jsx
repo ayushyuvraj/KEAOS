@@ -450,6 +450,10 @@ function CanvasInner({
               ...n,
               data: {
                 ...n.data,
+                maxFiles: detail.maxFiles !== undefined ? detail.maxFiles : n.data?.maxFiles,
+                enforceUniformType: detail.enforceUniformType !== undefined ? detail.enforceUniformType : n.data?.enforceUniformType,
+                enforceDistinct: detail.enforceDistinct !== undefined ? detail.enforceDistinct : (n.data?.enforceDistinct ?? true),
+                ingestMode: detail.ingestMode !== undefined ? detail.ingestMode : n.data?.ingestMode,
                 files: detail.files || n.data?.files,
                 slotA: detail.slotA || n.data?.slotA,
                 slotB: detail.slotB || n.data?.slotB,

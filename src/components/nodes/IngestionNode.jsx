@@ -17,6 +17,9 @@ import {
   Layers,
   Database,
   FileCheck2,
+  Fingerprint,
+  Sliders,
+  ChevronDown,
   Plus,
   Lock,
   Unlock,
@@ -167,6 +170,11 @@ export default function IngestionNode({ id, data = {}, selected }) {
   // Optional constraint toggle: Enforce Uniform File Type
   const [enforceUniformType, setEnforceUniformType] = useState(Boolean(data.enforceUniformType));
 
+  // Constraint toggle: Enforce Distinct Files (ON by default)
+  const [enforceDistinct, setEnforceDistinct] = useState(
+    data.enforceDistinct !== undefined ? Boolean(data.enforceDistinct) : true
+  );
+
   // Multi-File List: array of processed file descriptors
   const [filesList, setFilesList] = useState(data.files || []);
 
@@ -181,6 +189,36 @@ export default function IngestionNode({ id, data = {}, selected }) {
     width: data.width || 680,
     height: data.height || 460
   });
+
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const configRef = useRef(null);
+  const settingsBtnRef = useRef(null);
+
+  // Close popover on outside click or Escape key (Emil Kowalski UX)
+  useEffect(() => {
+    if (!isConfigOpen) return;
+    const handleOutsideClick = (e) => {
+      if (
+        configRef.current?.contains(e.target) || 
+        settingsBtnRef.current?.contains(e.target)
+      ) {
+        return;
+      }
+      setIsConfigOpen(false);
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsConfigOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isConfigOpen]);
 
   const multiFileInputRef = useRef(null);
 
@@ -199,10 +237,13 @@ export default function IngestionNode({ id, data = {}, selected }) {
     if (data.enforceUniformType !== undefined && data.enforceUniformType !== enforceUniformType) {
       setEnforceUniformType(Boolean(data.enforceUniformType));
     }
+    if (data.enforceDistinct !== undefined && data.enforceDistinct !== enforceDistinct) {
+      setEnforceDistinct(Boolean(data.enforceDistinct));
+    }
     if (data.ingestMode && data.ingestMode !== ingestMode) {
       setIngestMode(data.ingestMode === 'text' ? 'text' : 'files');
     }
-  }, [data.maxFiles, data.enforceUniformType, data.ingestMode]);
+  }, [data.maxFiles, data.enforceUniformType, data.enforceDistinct, data.ingestMode]);
 
   // Rehydrate binary File/Blob from IndexedDB if lost after page refresh
   useEffect(() => {
@@ -283,7 +324,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
   }, [ingestMode, filesList, maxFiles, textContent]);
 
   // Broadcast updates to canvas DAG & downstream Deterministic Boxes
-  const broadcastFilesUpdate = (newFilesList, currentLimit = maxFiles, currentUniform = enforceUniformType) => {
+  const broadcastFilesUpdate = (newFilesList, currentLimit = maxFiles, currentUniform = enforceUniformType, currentMode = ingestMode, currentDistinct = enforceDistinct) => {
     const outputPayload = {
       files: newFilesList.map(f => f.sample || f.columns || f.name),
       count: newFilesList.length
@@ -343,6 +384,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
     data.files = newFilesList;
     data.maxFiles = currentLimit;
     data.enforceUniformType = currentUniform;
+    data.enforceDistinct = currentDistinct;
     data.ingestMode = ingestMode;
     data.slotA = newFilesList[0] || null;
     data.slotB = newFilesList[1] || null;
@@ -377,6 +419,10 @@ export default function IngestionNode({ id, data = {}, selected }) {
           content: textSummary,
           output: outputPayload,
           files: newFilesList,
+          maxFiles: currentLimit,
+          enforceUniformType: currentUniform,
+          enforceDistinct: currentDistinct,
+          ingestMode: ingestMode,
           slotA: newFilesList[0] || null,
           slotB: newFilesList[1] || null,
           rawFile: newFilesList[0]?.rawFile || null,
@@ -403,6 +449,36 @@ export default function IngestionNode({ id, data = {}, selected }) {
         `Intake Limit Exceeded: Limit is set to ${maxFiles} file(s) (${currentCount} already loaded). You dropped/selected ${newRawFiles.length} file(s). Please increase the Max Files limit or select at most ${capacity} file(s).`
       );
       return;
+    }
+
+    // Distinct Files Enforcement Rule (ON by default)
+    if (enforceDistinct) {
+      // 1. Check if any incoming file is already in filesList
+      const existingDuplicate = newRawFiles.find(newFile =>
+        filesList.some(existing =>
+          existing.name === newFile.name &&
+          (existing.sizeBytes === newFile.size || existing.size === newFile.size)
+        )
+      );
+      if (existingDuplicate) {
+        setErrorAlert(
+          `Duplicate File Rejected: "${existingDuplicate.name}" is already uploaded. Turn off "Distinct Files" in Settings if duplicate intake is intended.`
+        );
+        return;
+      }
+
+      // 2. Check for internal duplicates within the new incoming batch
+      const seenInBatch = new Set();
+      for (const file of newRawFiles) {
+        const sig = `${file.name}-${file.size}`;
+        if (seenInBatch.has(sig)) {
+          setErrorAlert(
+            `Duplicate File in Selection: "${file.name}" was selected multiple times in this batch.`
+          );
+          return;
+        }
+        seenInBatch.add(sig);
+      }
     }
 
     // Uniform Type Enforcement Rule
@@ -518,32 +594,55 @@ export default function IngestionNode({ id, data = {}, selected }) {
     broadcastFilesUpdate([], maxFiles, enforceUniformType);
   };
 
+  const handleModeChange = (newMode) => {
+    setIngestMode(newMode);
+    data.ingestMode = newMode;
+    setErrorAlert(null);
+    if (newMode === 'text') {
+      handleTextChange(textContent, 'text');
+    } else {
+      broadcastFilesUpdate(filesList, maxFiles, enforceUniformType, 'files');
+    }
+  };
+
   const handleLimitChange = (newLimit) => {
     const val = newLimit === 'unlimited' ? 'unlimited' : Math.max(1, parseInt(newLimit, 10) || 1);
     setMaxFiles(val);
     data.maxFiles = val;
-    broadcastFilesUpdate(filesList, val, enforceUniformType);
+    broadcastFilesUpdate(filesList, val, enforceUniformType, ingestMode);
   };
 
   const handleToggleUniform = () => {
     const nextVal = !enforceUniformType;
     setEnforceUniformType(nextVal);
     data.enforceUniformType = nextVal;
-    broadcastFilesUpdate(filesList, maxFiles, nextVal);
+    broadcastFilesUpdate(filesList, maxFiles, nextVal, ingestMode, enforceDistinct);
   };
 
-  const handleTextChange = (newText) => {
+  const handleToggleDistinct = () => {
+    const nextVal = !enforceDistinct;
+    setEnforceDistinct(nextVal);
+    data.enforceDistinct = nextVal;
+    broadcastFilesUpdate(filesList, maxFiles, enforceUniformType, ingestMode, nextVal);
+  };
+
+  const handleTextChange = (newText, currentMode = 'text') => {
     setTextContent(newText);
     data.content = newText;
     data.status = newText?.trim() ? 'ready' : 'empty';
     data.lastOutput = { text: newText, content: newText };
+    data.ingestMode = currentMode;
 
     window.dispatchEvent(new CustomEvent('keaos:ingestion-updated', {
       detail: {
         nodeId: id,
         content: newText,
         output: { text: newText, content: newText },
-        status: newText?.trim() ? 'ready' : 'empty'
+        status: newText?.trim() ? 'ready' : 'empty',
+        ingestMode: currentMode,
+        maxFiles,
+        enforceUniformType,
+        enforceDistinct
       }
     }));
   };
@@ -555,6 +654,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
   };
 
   const isUnlimited = maxFiles === 'unlimited';
+  const displayTarget = isUnlimited ? '∞' : maxFiles;
   const remainingCapacity = isUnlimited ? Infinity : Math.max(0, maxFiles - filesList.length);
   const canAddMore = isUnlimited || filesList.length < maxFiles;
 
@@ -562,7 +662,6 @@ export default function IngestionNode({ id, data = {}, selected }) {
   // 1. COMPACT ORIGIN DISC VIEW (Rule 13 Origin Token Invariant)
   // -------------------------------------------------------------
   if (!isExpanded) {
-    const displayTarget = isUnlimited ? '∞' : maxFiles;
     return (
       <div 
         onWheel={(e) => e.stopPropagation()}
@@ -686,7 +785,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
   }
 
   // -------------------------------------------------------------
-  // 2. EXPANDED INSTITUTIONAL VIEWPORT CARD (Rule 5 Angular 0px)
+  // 2. EXPANDED INSTITUTIONAL VIEWPORT CARD (Hybrid Apple-Google Studio)
   // -------------------------------------------------------------
   return (
     <div 
@@ -697,15 +796,19 @@ export default function IngestionNode({ id, data = {}, selected }) {
         minWidth: '460px',
         minHeight: '380px'
       }}
-      className={`nowheel relative group flex flex-col rounded-none border-2 transition-colors duration-200 shadow-2xl select-none font-sans ${
+      className={`nowheel relative group flex flex-col rounded-[22px] border transition-all duration-200 select-none font-sans ${
         isDeactivated ? 'opacity-40 grayscale pointer-events-none' : ''
+      } ${
+        isDarkMode 
+          ? 'bg-[#080E1C] text-white shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.12)]' 
+          : 'bg-white text-[#001E50] shadow-[0_16px_36px_rgba(0,51,141,0.08),0_2px_8px_rgba(0,0,0,0.03),inset_0_1px_1px_rgba(255,255,255,0.9)]'
       } ${
         statusInfo.isReady
           ? 'border-[#009A44] shadow-[0_0_24px_rgba(0,154,68,0.25)]'
           : isDarkMode 
-            ? 'bg-[#0E131F] border-[#0091DA]/50 text-white shadow-[0_20px_50px_rgba(0,0,0,0.7)]' 
-            : 'bg-white border-[#0091DA]/50 text-[#0B0F19] shadow-[0_16px_36px_rgba(0,30,80,0.12)]'
-      } ${selected ? 'ring-2 ring-[#0091DA]' : ''}`}
+            ? 'border-white/[0.09]' 
+            : 'border-slate-200/90'
+      } ${selected ? 'ring-2 ring-[#00B8F5] shadow-[0_0_26px_rgba(0,184,245,0.35)]' : ''}`}
     >
       
       {/* Floating Action Toolbar on Hover */}
@@ -735,8 +838,8 @@ export default function IngestionNode({ id, data = {}, selected }) {
         maxWidth={1200}
         maxHeight={950}
         isVisible={true}
-        lineClassName="!border-[#0091DA] hover:!border-2 !opacity-40 hover:!opacity-100 transition-opacity"
-        handleClassName="!w-2.5 !h-2.5 !bg-[#0091DA] !border-2 !border-white !rounded-none hover:!scale-125 transition-transform"
+        lineClassName="!border-[#00B8F5] hover:!border-2 !opacity-30 hover:!opacity-100 transition-opacity"
+        handleClassName="!w-3 !h-3 !bg-[#00B8F5] !border-2 !border-white !rounded-full hover:!scale-125 transition-transform"
         onResize={(_, params) => {
           setCustomSize({
             width: params.width,
@@ -756,11 +859,11 @@ export default function IngestionNode({ id, data = {}, selected }) {
       />
 
       {/* Header Bar */}
-      <div className={`p-3 border-b flex items-center justify-between shrink-0 ${
-        isDarkMode ? 'border-[#1E2638] bg-[#070A10]' : 'border-slate-200 bg-slate-50'
+      <div className={`px-4 py-3 border-b flex items-center justify-between shrink-0 rounded-t-[21px] transition-colors ${
+        isDarkMode ? 'border-white/[0.07] bg-white/[0.02]' : 'border-slate-200/80 bg-slate-50/80'
       }`}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-none bg-[#00338D] text-white flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-[#00338D]/15 text-[#0091DA] flex items-center justify-center shrink-0 shadow-xs border border-[#0091DA]/20">
             <UploadCloud className="w-4 h-4 text-[#0091DA]" />
           </div>
           <div className="min-w-0">
@@ -768,10 +871,10 @@ export default function IngestionNode({ id, data = {}, selected }) {
               <h4 className={`text-xs font-mono font-bold uppercase tracking-wider truncate ${
                 isDarkMode ? 'text-white' : 'text-slate-900'
               }`}>
-                Universal Ingestion Port
+                {nodeTitle || 'Universal Ingestion Port'}
               </h4>
               <span 
-                className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold uppercase border shrink-0"
+                className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold uppercase border shrink-0 transition-colors"
                 style={{
                   backgroundColor: `${statusInfo.color}15`,
                   color: statusInfo.color,
@@ -784,195 +887,360 @@ export default function IngestionNode({ id, data = {}, selected }) {
             <p className={`text-[10px] font-mono truncate mt-0.5 ${
               isDarkMode ? 'text-slate-400' : 'text-slate-500'
             }`}>
-              Multimodal Multi-File Intake • Zero-RAM Chunk Sniffing
+              Multimodal Ingestion • Zero-RAM Sniffer
             </p>
           </div>
         </div>
 
-        {/* Header Controls (nodrag nopan prevents ReactFlow canvas interception) */}
+        {/* Minimalist Controls with Restored Settings Button & Popover */}
         <div 
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="nodrag nopan flex items-center gap-2 shrink-0 select-none"
+          className="nodrag nopan relative flex items-center gap-2 shrink-0 select-none"
         >
-          {/* Intake Mode Switcher */}
-          <select
-            value={ingestMode}
-            onChange={(e) => {
-              setIngestMode(e.target.value);
-              data.ingestMode = e.target.value;
-              setErrorAlert(null);
+          {/* Settings / Configuration Pill Button */}
+          <button
+            ref={settingsBtnRef}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsConfigOpen((prev) => !prev);
             }}
-            className={`px-2 py-1 text-[10px] font-mono rounded-none border outline-none cursor-pointer ${
-              isDarkMode ? 'bg-[#0E131F] border-[#1E2638] text-slate-300' : 'bg-white border-slate-300 text-slate-800'
+            className={`px-3 py-1.5 text-[10px] font-mono font-semibold rounded-full border flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
+              isConfigOpen
+                ? 'bg-[#0091DA] text-white border-[#0091DA] shadow-[0_0_12px_rgba(0,145,218,0.4)]'
+                : isDarkMode
+                  ? 'bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 border-white/[0.1]'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
             }`}
+            title="Configure Stream Type, File Limits & Uniform Rules"
           >
-            <option value="files">Files & Media</option>
-            <option value="text">Raw Direct Text</option>
-          </select>
+            <Sliders className="w-3.5 h-3.5 text-[#0091DA]" />
+            <span>
+              {ingestMode === 'text' 
+                ? 'Direct Text' 
+                : `Limit: ${displayTarget}${enforceUniformType ? ' • Uniform' : ''}${enforceDistinct ? ' • Distinct' : ''}`}
+            </span>
+            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isConfigOpen ? 'rotate-180' : ''}`} />
+          </button>
 
-          {/* Max Files Controller: Stepper + Custom Number Input + Presets + Unlimited */}
-          {ingestMode === 'files' && (
-            <div className={`flex items-center border p-0.5 gap-1 ${
-              isDarkMode ? 'bg-[#0E131F] border-[#1E2638]' : 'bg-white border-slate-300 shadow-xs'
-            }`}>
-              <span className={`text-[9px] font-mono px-1 font-bold uppercase ${
-                isDarkMode ? 'text-slate-400' : 'text-slate-500'
-              }`}>
-                Max:
-              </span>
-
-              {/* Stepper Controls & Custom Number Input */}
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const cur = isUnlimited ? 1 : Math.max(1, (Number(maxFiles) || 1) - 1);
-                    handleLimitChange(cur);
-                  }}
-                  disabled={!isUnlimited && Number(maxFiles) <= 1}
-                  className={`w-4 h-5 flex items-center justify-center text-[10px] font-mono font-bold transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
-                    isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                  title="Decrease file limit"
-                >
-                  -
-                </button>
-
-                <input
-                  type="number"
-                  min="1"
-                  max="500"
-                  value={isUnlimited ? '' : maxFiles}
-                  placeholder={isUnlimited ? '∞' : '1'}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === '') {
-                      handleLimitChange(1);
-                    } else {
-                      const num = Math.max(1, parseInt(val, 10) || 1);
-                      handleLimitChange(num);
-                    }
-                  }}
-                  className={`w-9 h-5 text-center text-[10px] font-mono font-bold border-x outline-none transition-all ${
-                    isDarkMode 
-                      ? 'bg-[#141A29] border-[#1E2638] text-cyan-400 focus:border-[#0091DA]' 
-                      : 'bg-slate-50 border-slate-200 text-[#00338D] focus:border-[#0091DA]'
-                  }`}
-                  title="Type custom number of files (e.g. 1, 2, 3, 4, 7, 20...)"
-                />
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const cur = isUnlimited ? 2 : (Number(maxFiles) || 1) + 1;
-                    handleLimitChange(cur);
-                  }}
-                  className={`w-4 h-5 flex items-center justify-center text-[10px] font-mono font-bold transition-colors cursor-pointer ${
-                    isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                  title="Increase file limit"
-                >
-                  +
-                </button>
-              </div>
-
-              {/* Quick Preset Shortcut Chips */}
-              <div className={`flex items-center border-l pl-1 gap-0.5 ${
-                isDarkMode ? 'border-[#1E2638]' : 'border-slate-200'
-              }`}>
-                {[1, 2, 5, 10].map((presetVal) => {
-                  const isPresetActive = !isUnlimited && Number(maxFiles) === presetVal;
-                  return (
-                    <button
-                      key={presetVal}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLimitChange(presetVal);
-                      }}
-                      className={`px-1.5 py-0.5 text-[9px] font-mono transition-colors cursor-pointer ${
-                        isPresetActive
-                          ? 'bg-[#0091DA] text-white font-bold shadow-xs'
-                          : isDarkMode 
-                            ? 'text-slate-400 hover:text-white hover:bg-white/5' 
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                      }`}
-                      title={`Quick preset: ${presetVal} file(s)`}
-                    >
-                      {presetVal}
-                    </button>
-                  );
-                })}
-
-                {/* Unlimited Chip */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLimitChange('unlimited');
-                  }}
-                  className={`px-1.5 py-0.5 text-[9px] font-mono transition-colors cursor-pointer ${
-                    isUnlimited
-                      ? 'bg-[#0091DA] text-white font-bold shadow-xs'
-                      : isDarkMode 
-                        ? 'text-slate-400 hover:text-white hover:bg-white/5' 
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                  title="Allow unlimited files"
-                >
-                  ∞
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Enforce Uniform Type Toggle */}
-          {ingestMode === 'files' && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleUniform();
-              }}
-              className={`px-2 py-1 text-[9px] font-mono border flex items-center gap-1 transition-all cursor-pointer ${
-                enforceUniformType
-                  ? 'bg-[#6D2077]/20 border-[#6D2077] text-pink-400'
-                  : isDarkMode
-                    ? 'bg-[#0E131F] border-[#1E2638] text-slate-400 hover:text-slate-200'
-                    : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-              }`}
-              title="When enabled, requires all uploaded files in this node to share the same category (e.g. only datasets or only audio)"
-            >
-              {enforceUniformType ? <Lock className="w-2.5 h-2.5 text-pink-400" /> : <Unlock className="w-2.5 h-2.5 opacity-60" />}
-              <span>{enforceUniformType ? 'Uniform: ON' : 'Uniform: OFF'}</span>
-            </button>
-          )}
-
-          {/* Minimize / Collapse */}
+          {/* Minimize Button */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(false);
             }}
-            className={`p-1 rounded-none cursor-pointer ${
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors cursor-pointer border ${
               isDarkMode 
-                ? 'hover:bg-white/10 text-slate-400 hover:text-white' 
-                : 'hover:bg-slate-200 text-slate-600 hover:text-slate-900'
+                ? 'border-white/[0.08] hover:bg-white/10 text-slate-400 hover:text-white' 
+                : 'border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-800'
             }`}
             title="Minimize to Origin Disc"
           >
             <Minimize2 className="w-3.5 h-3.5" />
           </button>
+
+          {/* Floating Frosted Glass Settings Popover */}
+          {isConfigOpen && (
+            <div 
+              ref={configRef}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              className={`nodrag nopan absolute top-full right-0 mt-2 w-72 rounded-2xl border p-3.5 space-y-3 z-50 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150 ${
+                isDarkMode 
+                  ? 'bg-[#080E1C]/96 border-white/[0.12] text-white shadow-black/80' 
+                  : 'bg-white/98 border-slate-200 text-slate-900 shadow-slate-300/60'
+              }`}
+            >
+              {/* Header of Popover */}
+              <div className="flex items-center justify-between border-b pb-2 border-inherit">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[#0091DA] flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5" />
+                  Port Configuration
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsConfigOpen(false);
+                  }}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Stream Type Segmented Control */}
+              <div className="space-y-1.5">
+                <label className="text-[9.5px] font-mono uppercase tracking-wider text-slate-400 block font-bold">
+                  Intake Stream Type
+                </label>
+                <div className={`grid grid-cols-2 p-1 rounded-xl border ${
+                  isDarkMode ? 'bg-black/30 border-white/[0.07]' : 'bg-slate-100 border-slate-200'
+                }`}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleModeChange('files');
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-[10px] font-mono font-medium transition-all cursor-pointer ${
+                      ingestMode === 'files'
+                        ? 'bg-[#0091DA] text-white font-bold shadow-xs'
+                        : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Files & Media
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleModeChange('text');
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-[10px] font-mono font-medium transition-all cursor-pointer ${
+                      ingestMode === 'text'
+                        ? 'bg-[#0091DA] text-white font-bold shadow-xs'
+                        : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Raw Direct Text
+                  </button>
+                </div>
+              </div>
+
+              {/* File Limit & Presets (Files mode only) */}
+              {ingestMode === 'files' && (
+                <div className="space-y-2 pt-1 border-t border-inherit">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9.5px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                      Max Files Limit
+                    </label>
+                    <span className="text-[10px] font-mono text-[#0091DA] font-bold">
+                      {isUnlimited ? 'Unlimited (∞)' : `${maxFiles} file${maxFiles === 1 ? '' : 's'}`}
+                    </span>
+                  </div>
+
+                  {/* Stepper + Input */}
+                  <div className="flex items-center gap-1.5">
+                    <div className={`flex items-center rounded-xl border overflow-hidden flex-1 ${
+                      isDarkMode ? 'bg-black/30 border-white/[0.08]' : 'bg-slate-100 border-slate-200'
+                    }`}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const cur = isUnlimited ? 1 : Math.max(1, (Number(maxFiles) || 1) - 1);
+                          handleLimitChange(cur);
+                        }}
+                        disabled={!isUnlimited && Number(maxFiles) <= 1}
+                        className="w-8 h-7 flex items-center justify-center text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max="500"
+                        value={isUnlimited ? '' : maxFiles}
+                        placeholder={isUnlimited ? '∞' : '1'}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          const val = e.target.value.trim();
+                          if (val === '') {
+                            handleLimitChange(1);
+                          } else {
+                            const num = Math.max(1, parseInt(val, 10) || 1);
+                            handleLimitChange(Math.min(500, num));
+                          }
+                        }}
+                        className={`w-full h-7 text-center font-mono text-xs font-bold bg-transparent outline-none border-x ${
+                          isDarkMode ? 'border-white/[0.08] text-cyan-400' : 'border-slate-200 text-[#00338D]'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const cur = isUnlimited ? 2 : (Number(maxFiles) || 1) + 1;
+                          handleLimitChange(Math.min(500, cur));
+                        }}
+                        className="w-8 h-7 flex items-center justify-center text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 5, 10].map(cnt => {
+                        const isPresetActive = !isUnlimited && Number(maxFiles) === cnt;
+                        return (
+                          <button
+                            key={cnt}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLimitChange(cnt);
+                            }}
+                            className={`w-6 h-7 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                              isPresetActive
+                                ? 'bg-[#0091DA] text-white shadow-xs'
+                                : isDarkMode
+                                  ? 'bg-black/30 border border-white/[0.07] text-slate-400 hover:text-white'
+                                  : 'bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            {cnt}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLimitChange('unlimited');
+                        }}
+                        className={`w-6 h-7 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                          isUnlimited
+                            ? 'bg-[#0091DA] text-white shadow-xs'
+                            : isDarkMode
+                              ? 'bg-black/30 border border-white/[0.07] text-slate-400 hover:text-white'
+                              : 'bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900'
+                        }`}
+                        title="Unlimited files"
+                      >
+                        ∞
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Uniform File Type Toggle Row */}
+                  <div 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleUniform();
+                    }}
+                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 mt-2 transition-all duration-150 cursor-pointer select-none group/toggle ${
+                      isDarkMode 
+                        ? 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08]' 
+                        : 'bg-slate-50/90 hover:bg-slate-100/90 border-slate-200/90'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
+                        enforceUniformType 
+                          ? 'bg-[#00338D]/15 border-[#00338D]/40 text-[#00338D] dark:text-[#0091DA]' 
+                          : isDarkMode 
+                            ? 'bg-white/5 border-white/10 text-slate-400' 
+                            : 'bg-white border-slate-200 text-slate-500 shadow-2xs'
+                      }`}>
+                        <Layers className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className={`text-[11px] font-sans font-semibold block leading-tight transition-colors ${
+                          isDarkMode ? 'text-slate-100' : 'text-slate-900'
+                        }`}>
+                          Uniform File Type
+                        </span>
+                        <span className={`text-[9.5px] font-sans block leading-tight mt-0.5 ${
+                          isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                        }`}>
+                          Require all files to share category
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Minimalist Sliding Switch in Royal Navy Blue (#00338D) */}
+                    <div 
+                      role="switch"
+                      aria-checked={enforceUniformType}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                        enforceUniformType
+                          ? isDarkMode
+                            ? 'bg-[#00338D] shadow-[0_0_12px_rgba(0,145,218,0.35)]'
+                            : 'bg-[#00338D] shadow-[0_0_10px_rgba(0,51,141,0.25)]'
+                          : isDarkMode
+                            ? 'bg-slate-700'
+                            : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          enforceUniformType ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Distinct Files Constraint Toggle Row */}
+                  <div 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleDistinct();
+                    }}
+                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 mt-1.5 transition-all duration-150 cursor-pointer select-none group/toggle ${
+                      isDarkMode 
+                        ? 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08]' 
+                        : 'bg-slate-50/90 hover:bg-slate-100/90 border-slate-200/90'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
+                        enforceDistinct 
+                          ? 'bg-[#00338D]/15 border-[#00338D]/40 text-[#00338D] dark:text-[#0091DA]' 
+                          : isDarkMode 
+                            ? 'bg-white/5 border-white/10 text-slate-400' 
+                            : 'bg-white border-slate-200 text-slate-500 shadow-2xs'
+                      }`}>
+                        <Fingerprint className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className={`text-[11px] font-sans font-semibold block leading-tight transition-colors ${
+                          isDarkMode ? 'text-slate-100' : 'text-slate-900'
+                        }`}>
+                          Distinct Files Only
+                        </span>
+                        <span className={`text-[9.5px] font-sans block leading-tight mt-0.5 ${
+                          isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                        }`}>
+                          Prevent duplicate file uploads
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Minimalist Sliding Switch in Royal Navy Blue (#00338D) */}
+                    <div 
+                      role="switch"
+                      aria-checked={enforceDistinct}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                        enforceDistinct
+                          ? isDarkMode
+                            ? 'bg-[#00338D] shadow-[0_0_12px_rgba(0,145,218,0.35)]'
+                            : 'bg-[#00338D] shadow-[0_0_10px_rgba(0,51,141,0.25)]'
+                          : isDarkMode
+                            ? 'bg-slate-700'
+                            : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          enforceDistinct ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Interactive Error Alert Banner */}
       {errorAlert && (
-        <div className="px-3 py-2 bg-red-500/15 border-b border-red-500/30 flex items-center justify-between text-xs font-mono text-red-300 shrink-0">
+        <div className="px-4 py-2 bg-red-500/15 border-b border-red-500/30 flex items-center justify-between text-xs font-mono text-red-300 shrink-0">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
             <span className="text-[11px] leading-tight">{errorAlert}</span>
@@ -980,7 +1248,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
           <button
             type="button"
             onClick={() => setErrorAlert(null)}
-            className="p-0.5 hover:bg-red-500/20 text-red-400 hover:text-white rounded-none cursor-pointer shrink-0 ml-2"
+            className="p-1 hover:bg-red-500/20 text-red-400 hover:text-white rounded-full cursor-pointer shrink-0 ml-2 transition-colors"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -989,40 +1257,81 @@ export default function IngestionNode({ id, data = {}, selected }) {
 
       {/* Main Body */}
       <div 
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleMultiFileDrop}
-        className="flex-1 p-3.5 overflow-y-auto space-y-3 bg-[#0B0F19]"
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(e) => {
+          setIsDragOver(false);
+          handleMultiFileDrop(e);
+        }}
+        className={`flex-1 p-4 overflow-y-auto space-y-3 transition-colors rounded-b-[21px] ${
+          isDarkMode ? 'bg-[#040813]' : 'bg-[#F8FAFC]'
+        }`}
       >
         {/* 1. Files & Media Mode */}
         {ingestMode === 'files' && (
           <div className="h-full flex flex-col justify-between">
             {filesList.length === 0 ? (
-              /* Empty State: Large tactile dropzone */
+              /* Empty State: Ultra-Minimalist Apple AirDrop Radar */
               <div 
                 onClick={() => multiFileInputRef.current?.click()}
-                className="h-full min-h-[220px] border-2 border-dashed border-[#1E2638] hover:border-[#0091DA] p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-[#0E131F] transition-all group"
+                className={`h-full min-h-[220px] rounded-2xl border-2 border-dashed transition-all duration-200 p-6 flex flex-col items-center justify-center text-center cursor-pointer group relative overflow-hidden ${
+                  isDragOver
+                    ? 'border-[#00B8F5] bg-[#0091DA]/10 scale-[1.008] shadow-[0_0_24px_rgba(0,184,245,0.25)]'
+                    : isDarkMode
+                      ? 'border-white/10 hover:border-[#0091DA]/60 bg-white/[0.02] hover:bg-white/[0.04]'
+                      : 'border-slate-300 hover:border-[#0091DA]/60 bg-white/70 hover:bg-white'
+                }`}
               >
-                <div className="w-14 h-14 bg-[#0091DA]/10 text-[#0091DA] border border-[#0091DA]/30 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                  <UploadCloud className="w-8 h-8" />
+                {/* Concentric AirDrop Breathing Radar Rings */}
+                <div className="relative mb-3 flex items-center justify-center">
+                  <div className={`w-32 h-32 rounded-full border transition-all duration-500 flex items-center justify-center ${
+                    isDragOver 
+                      ? 'border-[#00B8F5]/50 scale-110 shadow-[0_0_30px_rgba(0,184,245,0.3)]'
+                      : 'border-[#0091DA]/15 group-hover:border-[#0091DA]/30 animate-pulse'
+                  }`}>
+                    <div className={`w-24 h-24 rounded-full border transition-all duration-300 flex items-center justify-center ${
+                      isDragOver ? 'border-[#00B8F5]/70' : 'border-[#0091DA]/25 group-hover:border-[#0091DA]/50'
+                    }`}>
+                      {/* Central Floating Squircle Icon Badge */}
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00338D]/20 to-[#0091DA]/20 border border-[#0091DA]/40 text-[#0091DA] flex items-center justify-center shadow-lg group-hover:scale-105 active:scale-95 transition-transform duration-200">
+                        <UploadCloud className="w-7 h-7 text-[#0091DA] group-hover:text-[#00B8F5] transition-colors" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-sm font-mono font-bold text-white tracking-tight">
+
+                {/* Typography */}
+                <h5 className={`text-sm font-sans font-bold tracking-tight transition-colors ${
+                  isDarkMode ? 'text-white' : 'text-slate-900'
+                }`}>
                   Drop Files Here or Click to Browse
-                </span>
-                <span className="text-xs text-slate-400 font-mono mt-1">
-                  Supports CSV, Excel, Parquet, PDF, Images (PNG/JPG), and Audio (MP3/WAV)
-                </span>
-                <div className="flex items-center gap-2 mt-3 text-[10px] font-mono text-slate-500">
-                  <span className="px-2 py-0.5 bg-[#141A29] border border-[#2B354D] text-[#0091DA]">
+                </h5>
+                <p className={`text-xs font-sans mt-1 max-w-sm ${
+                  isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                }`}>
+                  Supports Datasets (CSV, XLSX, Parquet), Audio (MP3, WAV), Images, and Documents
+                </p>
+
+                {/* Capacity Telemetry Pill */}
+                <div className="flex items-center gap-2 mt-4 text-[10px] font-mono">
+                  <span className={`px-2.5 py-0.5 rounded-full border font-bold ${
+                    isDarkMode 
+                      ? 'bg-white/5 border-white/10 text-cyan-400' 
+                      : 'bg-white border-slate-200 text-[#00338D] shadow-xs'
+                  }`}>
                     Limit: {isUnlimited ? 'Unlimited' : `${maxFiles} File${maxFiles === 1 ? '' : 's'}`}
                   </span>
-                  <span>•</span>
-                  <span>Zero-RAM 64KB Sniffing</span>
-                  <span>•</span>
-                  <span>1,000,000+ Rows</span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-400">Zero-RAM 64KB Sniffing</span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-400">1M+ Row Scale</span>
                 </div>
               </div>
             ) : (
-              /* Populated State: Responsive File Cards Grid */
+              /* Populated State: Responsive Apple Stash Cards Grid */
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1030,7 +1339,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
                       Uploaded Files ({filesList.length} of {isUnlimited ? '∞' : maxFiles})
                     </span>
                     {enforceUniformType && filesList[0] && (
-                      <span className="text-[9px] font-mono px-1.5 py-0.2 bg-[#6D2077]/20 text-pink-300 border border-[#6D2077]/40 uppercase">
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-pink-500/15 text-pink-300 border border-pink-500/30 uppercase font-bold">
                         Type: {filesList[0].category}
                       </span>
                     )}
@@ -1069,12 +1378,16 @@ export default function IngestionNode({ id, data = {}, selected }) {
                     return (
                       <div
                         key={file.id || idx}
-                        className="p-3 border bg-[#101524] border-[#1E2638] hover:border-[#0091DA]/60 transition-all flex flex-col justify-between space-y-2 relative group"
+                        className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between space-y-2.5 relative group ${
+                          isDarkMode
+                            ? 'bg-[#0B101D] border-white/[0.08] hover:border-[#0091DA]/50 shadow-lg'
+                            : 'bg-white border-slate-200/90 hover:border-[#0091DA]/50 shadow-xs hover:shadow-md'
+                        }`}
                       >
                         {/* Card Top: Category Badge, Size & Delete */}
                         <div className="flex items-center justify-between">
                           <span 
-                            className="text-[9px] font-mono px-1.5 py-0.2 font-bold uppercase border"
+                            className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold uppercase border"
                             style={{
                               backgroundColor: `${badgeColor}15`,
                               color: badgeColor,
@@ -1091,7 +1404,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
                             <button
                               type="button"
                               onClick={() => handleRemoveFile(file.id)}
-                              className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              className="p-1 rounded-full text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                               title="Remove file"
                             >
                               <X className="w-3 h-3" />
@@ -1102,9 +1415,9 @@ export default function IngestionNode({ id, data = {}, selected }) {
                         {/* Card Body: Icon, Title & Dynamic Metadata */}
                         <div className="flex items-start gap-2.5 min-w-0">
                           <div 
-                            className="w-8 h-8 flex items-center justify-center shrink-0 border mt-0.5"
+                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border mt-0.5 shadow-xs"
                             style={{
-                              backgroundColor: `${badgeColor}10`,
+                              backgroundColor: `${badgeColor}12`,
                               borderColor: `${badgeColor}30`,
                               color: badgeColor
                             }}
@@ -1113,7 +1426,9 @@ export default function IngestionNode({ id, data = {}, selected }) {
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <span className="text-xs font-mono font-bold text-white block truncate" title={file.name}>
+                            <span className={`text-xs font-mono font-bold block truncate ${
+                              isDarkMode ? 'text-white' : 'text-slate-900'
+                            }`} title={file.name}>
                               {file.name}
                             </span>
 
@@ -1125,7 +1440,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
 
                             {isAudio && (
                               <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                                Audio Recording • Multimodal Ready
+                                Audio Recording • Multimodal
                               </span>
                             )}
 
@@ -1135,7 +1450,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
                                   <img 
                                     src={file.previewUrl} 
                                     alt={file.name} 
-                                    className="w-full h-16 object-cover border border-[#1E2638]" 
+                                    className="w-full h-16 object-cover rounded-lg border border-inherit" 
                                   />
                                 ) : (
                                   <span className="text-[10px] text-slate-400 font-mono block">Image Binary</span>
@@ -1147,12 +1462,16 @@ export default function IngestionNode({ id, data = {}, selected }) {
                             {isTabular && file.columns && file.columns.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1.5 max-h-12 overflow-y-auto">
                                 {file.columns.slice(0, 4).map((c, i) => (
-                                  <span key={i} className="px-1 py-0.2 bg-[#141A29] text-[#0091DA] border border-[#2B354D] text-[8px] font-mono">
+                                  <span key={i} className={`px-1.5 py-0.2 rounded text-[8px] font-mono border ${
+                                    isDarkMode
+                                      ? 'bg-black/30 text-[#0091DA] border-white/10'
+                                      : 'bg-slate-100 text-[#00338D] border-slate-200'
+                                  }`}>
                                     {typeof c === 'string' ? c : c.name}
                                   </span>
                                 ))}
                                 {file.columns.length > 4 && (
-                                  <span className="px-1 py-0.2 bg-[#141A29] text-slate-500 border border-[#2B354D] text-[8px] font-mono">
+                                  <span className="px-1.5 py-0.2 rounded text-[8px] font-mono text-slate-400">
                                     +{file.columns.length - 4}
                                   </span>
                                 )}
@@ -1161,26 +1480,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
                           </div>
                         </div>
 
-                        {/* Card Footer: Variable Copy Pill */}
-                        <div className="pt-2 border-t border-[#182030] flex items-center justify-between text-[10px] font-mono">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyVar(file.key)}
-                            className="px-2 py-0.5 bg-black/40 hover:bg-black/70 text-[#0091DA] border border-[#1E2638] flex items-center gap-1 cursor-pointer"
-                            title={`Click to copy inputs.${file.key}`}
-                          >
-                            <span>inputs.{file.key}</span>
-                            {copiedKey === file.key ? (
-                              <Check className="w-2.5 h-2.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-2.5 h-2.5 opacity-60" />
-                            )}
-                          </button>
 
-                          <span className="text-slate-500 text-[9px]">
-                            {idx === 0 ? 'Primary (slotA)' : idx === 1 ? 'Secondary (slotB)' : `Index [${idx}]`}
-                          </span>
-                        </div>
                       </div>
                     );
                   })}
@@ -1189,13 +1489,19 @@ export default function IngestionNode({ id, data = {}, selected }) {
                   {canAddMore && (
                     <div 
                       onClick={() => multiFileInputRef.current?.click()}
-                      className="min-h-[120px] p-4 border-2 border-dashed border-[#1E2638] hover:border-[#0091DA] flex flex-col items-center justify-center text-center cursor-pointer bg-[#0E131F] transition-all group"
+                      className={`min-h-[120px] p-4 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all group ${
+                        isDarkMode
+                          ? 'border-white/10 hover:border-[#0091DA] bg-white/[0.02] hover:bg-white/[0.04]'
+                          : 'border-slate-300 hover:border-[#0091DA] bg-white/60 hover:bg-white'
+                      }`}
                     >
-                      <Plus className="w-6 h-6 text-slate-500 group-hover:text-[#0091DA] transition-colors mb-1" />
-                      <span className="text-xs font-mono font-bold text-slate-300 group-hover:text-white">
+                      <Plus className="w-6 h-6 text-slate-400 group-hover:text-[#0091DA] transition-colors mb-1" />
+                      <span className={`text-xs font-mono font-bold transition-colors ${
+                        isDarkMode ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'
+                      }`}>
                         + Add File
                       </span>
-                      <span className="text-[9px] text-slate-500 font-mono mt-0.5">
+                      <span className="text-[9px] text-slate-400 font-mono mt-0.5">
                         {isUnlimited ? 'Unlimited files' : `${remainingCapacity} more slot${remainingCapacity === 1 ? '' : 's'}`}
                       </span>
                     </div>
@@ -1208,7 +1514,9 @@ export default function IngestionNode({ id, data = {}, selected }) {
 
         {/* 2. Raw Direct Text Stream Mode */}
         {ingestMode === 'text' && (
-          <div className="h-full flex flex-col justify-between p-3.5 bg-[#0E131F] border border-[#1E2638] space-y-3">
+          <div className={`h-full flex flex-col justify-between p-4 rounded-2xl border space-y-3 ${
+            isDarkMode ? 'bg-[#0A1020]/80 border-white/[0.08]' : 'bg-white border-slate-200'
+          }`}>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0091DA] flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5" />
@@ -1223,14 +1531,22 @@ export default function IngestionNode({ id, data = {}, selected }) {
               value={textContent}
               onChange={(e) => handleTextChange(e.target.value)}
               placeholder="Paste raw meeting transcript, executive directives, policy instructions, or tabular text lines..."
-              className="flex-1 w-full p-2.5 bg-[#101524] border border-[#1E2638] focus:border-[#0091DA] text-slate-200 text-xs font-mono resize-none outline-none leading-relaxed"
+              className={`flex-1 w-full p-3 rounded-xl border font-mono text-xs resize-none outline-none leading-relaxed transition-colors ${
+                isDarkMode 
+                  ? 'bg-black/30 border-white/10 text-slate-200 focus:border-[#0091DA]' 
+                  : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-[#0091DA]'
+              }`}
             />
 
-            <div className="pt-2 border-t border-[#182030] flex items-center justify-between text-[10px] font-mono">
+            <div className="pt-2 border-t border-inherit flex items-center justify-between text-[10px] font-mono">
               <button
                 type="button"
                 onClick={() => handleCopyVar('text')}
-                className="px-2 py-0.5 bg-black/40 hover:bg-black/70 text-[#0091DA] border border-[#1E2638] flex items-center gap-1 cursor-pointer"
+                className={`px-2 py-0.5 rounded-full border flex items-center gap-1 cursor-pointer transition-colors ${
+                  isDarkMode
+                    ? 'bg-black/40 hover:bg-black/70 text-[#0091DA] border-white/10'
+                    : 'bg-slate-100 hover:bg-slate-200 text-[#00338D] border-slate-200'
+                }`}
               >
                 <span>inputs.text</span>
                 {copiedKey === 'text' ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-60" />}
@@ -1238,7 +1554,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
               <button
                 type="button"
                 onClick={() => handleTextChange('')}
-                className="text-[9px] text-slate-500 hover:text-red-400 cursor-pointer"
+                className="text-[9px] text-slate-400 hover:text-red-400 cursor-pointer transition-colors"
               >
                 Clear text
               </button>
@@ -1247,23 +1563,43 @@ export default function IngestionNode({ id, data = {}, selected }) {
         )}
       </div>
 
-      {/* Footer Pipeline Status Bar */}
-      <div className={`p-2.5 border-t shrink-0 flex items-center justify-between text-[10px] font-mono ${
-        isDarkMode ? 'border-[#1E2638] bg-[#070A10]' : 'border-slate-200 bg-slate-50'
-      }`}>
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusInfo.color }} />
-          <span className="text-slate-300">{statusInfo.desc}</span>
-        </div>
-        <span className="text-slate-500 hidden sm:inline">
-          {ingestMode === 'text'
-            ? 'Emits: inputs.text'
-            : filesList.length >= 2
-              ? 'Emits: inputs.files, inputs.slotA & inputs.slotB'
-              : 'Emits: inputs.files & inputs[keys]'}
-        </span>
-      </div>
-
+            {/* Sockets for Downstream Canvas Connections */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="data-out"
+        style={{
+          left: '50%',
+          bottom: '-6px',
+          transform: 'translateX(-50%) rotate(45deg)',
+          width: '12px',
+          height: '12px',
+          borderRadius: '2px',
+          backgroundColor: statusInfo.color,
+          borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+          borderWidth: '2px',
+          zIndex: 10
+        }}
+        title="Connect Ingested Dataset Stream to Canvas DAG"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="tools-out"
+        style={{
+          top: '50%',
+          right: '-6px',
+          transform: 'translateY(-50%) rotate(45deg)',
+          width: '12px',
+          height: '12px',
+          borderRadius: '2px',
+          backgroundColor: statusInfo.color,
+          borderColor: isDarkMode ? '#1E2026' : '#FFFFFF',
+          borderWidth: '2px',
+          zIndex: 10
+        }}
+        title="Horizontal Stream Out"
+      />
     </div>
   );
 }

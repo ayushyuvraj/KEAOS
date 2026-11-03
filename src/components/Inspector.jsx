@@ -44,7 +44,9 @@ import {
   Database,
   FileSpreadsheet,
   Maximize2,
-  FileCheck2
+  FileCheck2,
+  Layers,
+  Fingerprint
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import TriggerInspectorPanel from './TriggerInspectorPanel';
@@ -899,22 +901,89 @@ export default function Inspector({
 
               {/* Uniform File Type Enforcement Toggle */}
               {(nodeData.ingestMode || 'files') !== 'text' && (
-                <div className="pt-1 flex items-center justify-between border-t border-slate-700/30">
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-300 block font-bold">Enforce Uniform File Type</span>
-                    <span className="text-[9px] text-slate-400 block">Require all uploaded files to match the first file type</span>
+                <div 
+                  onClick={() => onUpdateNodeData(selectedNode.id, { enforceUniformType: !nodeData.enforceUniformType })}
+                  className="p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] flex items-center justify-between gap-3 transition-colors cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
+                      nodeData.enforceUniformType 
+                        ? 'bg-[#00338D]/20 border-[#00338D]/40 text-[#0091DA]' 
+                        : 'bg-white/5 border-white/10 text-slate-400'
+                    }`}>
+                      <Layers className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[11px] font-sans font-semibold text-slate-100 block leading-tight">
+                        Uniform File Type
+                      </span>
+                      <span className="text-[9.5px] font-sans text-slate-400 block leading-tight mt-0.5">
+                        Require all uploaded files to match first category
+                      </span>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateNodeData(selectedNode.id, { enforceUniformType: !nodeData.enforceUniformType })}
-                    className={`px-2 py-1 text-[10px] font-mono font-bold transition-all border cursor-pointer ${
+
+                  {/* Minimalist Sliding Switch in Royal Navy Blue (#00338D) */}
+                  <div 
+                    role="switch"
+                    aria-checked={Boolean(nodeData.enforceUniformType)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                       nodeData.enforceUniformType
-                        ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                        : 'bg-black/20 text-slate-400 border-slate-700/40 hover:text-white'
+                        ? 'bg-[#00338D] shadow-[0_0_12px_rgba(0,145,218,0.35)]'
+                        : 'bg-slate-700'
                     }`}
                   >
-                    {nodeData.enforceUniformType ? 'UNIFORM: ON' : 'UNIFORM: OFF'}
-                  </button>
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        nodeData.enforceUniformType ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Distinct Files Only Enforcement Toggle */}
+              {(nodeData.ingestMode || 'files') !== 'text' && (
+                <div 
+                  onClick={() => onUpdateNodeData(selectedNode.id, { 
+                    enforceDistinct: nodeData.enforceDistinct !== undefined ? !nodeData.enforceDistinct : false 
+                  })}
+                  className="p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] flex items-center justify-between gap-3 transition-colors cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
+                      (nodeData.enforceDistinct !== undefined ? nodeData.enforceDistinct : true)
+                        ? 'bg-[#00338D]/20 border-[#00338D]/40 text-[#0091DA]' 
+                        : 'bg-white/5 border-white/10 text-slate-400'
+                    }`}>
+                      <Fingerprint className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[11px] font-sans font-semibold text-slate-100 block leading-tight">
+                        Distinct Files Only
+                      </span>
+                      <span className="text-[9.5px] font-sans text-slate-400 block leading-tight mt-0.5">
+                        Prevent duplicate file intake (default: ON)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Minimalist Sliding Switch in Royal Navy Blue (#00338D) */}
+                  <div 
+                    role="switch"
+                    aria-checked={nodeData.enforceDistinct !== undefined ? nodeData.enforceDistinct : true}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      (nodeData.enforceDistinct !== undefined ? nodeData.enforceDistinct : true)
+                        ? 'bg-[#00338D] shadow-[0_0_12px_rgba(0,145,218,0.35)]'
+                        : 'bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        (nodeData.enforceDistinct !== undefined ? nodeData.enforceDistinct : true) ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -987,13 +1056,13 @@ export default function Inspector({
                           </div>
                           <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
                             <span>{f.sizeFormatted || `${Math.round((f.size || 0) / 1024)} KB`}</span>
-                            {f.rowCount !== undefined && (
+                            {f.rowCount != null && !isNaN(Number(f.rowCount)) && (
                               <>
                                 <span>•</span>
-                                <span>{f.rowCount.toLocaleString()} rows</span>
+                                <span>{Number(f.rowCount).toLocaleString()} rows</span>
                               </>
                             )}
-                            {f.columnCount !== undefined && (
+                            {f.columnCount != null && (
                               <>
                                 <span>•</span>
                                 <span>{f.columnCount} cols</span>
