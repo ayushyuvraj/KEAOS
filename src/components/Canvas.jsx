@@ -703,9 +703,11 @@ function CanvasInner({
               content: formattedContent,
               tableData: detail.tableData || (typeof payload === 'object' ? payload : null),
               auditHash: null,
-              tokens: 0,
+              tokens: detail.tokens || 0,
               latencyMs: detail.latencyMs || 0,
-              costUsd: 0,
+              costUsd: detail.costUsd || 0,
+              modelId: detail.modelId || null,
+              telemetryBreakdown: detail.telemetryBreakdown || null,
               source: sourceNodeType || 'trigger',
               sourceNodeType: sourceNodeType || 'triggerNode',
               sourceNodeId: sourceNodeId || '',
@@ -719,7 +721,11 @@ function CanvasInner({
                 ...n.data,
                 outputContent: formattedContent,
                 runsHistory: nextHistory,
-                status: 'ready'
+                status: 'ready',
+                tokens: detail.tokens || 0,
+                costUsd: detail.costUsd || 0,
+                modelId: detail.modelId || null,
+                telemetryBreakdown: detail.telemetryBreakdown || null
               }
             };
           }
@@ -1017,6 +1023,28 @@ function CanvasInner({
           return;
         }
 
+        // Update executing Remote Agent node state on Canvas
+        setNodes((nds) =>
+          nds.map((n) => {
+            if (n.id === remNode.id) {
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  lastOutput: remoteRes.output,
+                  lastTokens: remoteRes.tokens || 0,
+                  lastCostUsd: remoteRes.costUsd || 0,
+                  lastModelId: remoteRes.modelId || 'gemini-2.5-flash',
+                  lastTelemetry: remoteRes.telemetryBreakdown || null,
+                  lastStatus: 'success',
+                  lastLatencyMs: remoteRes.latencyMs || 0
+                }
+              };
+            }
+            return n;
+          })
+        );
+
         // Cascade downstream through DAG connected nodes!
         let finalWorkflowOutput = remoteRes.output;
         const cascadeFromNode = async (currentNodeId, currentOutput, currentSpanId) => {
@@ -1036,7 +1064,12 @@ function CanvasInner({
                   payload: currentOutput,
                   sourceNodeType: 'remoteAgent',
                   sourceNodeId: currentNodeId,
-                  sourceNodeName: 'Remote Agent'
+                  sourceNodeName: remNode.data?.name || 'Remote Agent',
+                  tokens: remoteRes.tokens || 0,
+                  costUsd: remoteRes.costUsd || 0,
+                  modelId: remoteRes.modelId || 'gemini-2.5-flash',
+                  telemetryBreakdown: remoteRes.telemetryBreakdown || null,
+                  latencyMs: remoteRes.latencyMs || 0
                 }
               }));
             } else if (dsNode.type === 'remoteAgentNode') {

@@ -30,6 +30,9 @@ export default function RemoteAgentInspectorPanel({
   const [requestMode, setRequestMode] = useState(nodeData.requestMode || 'json_envelope');
   const [responsePath, setResponsePath] = useState(nodeData.responsePath || 'auto');
   const [otelIngestion, setOtelIngestion] = useState(nodeData.otelIngestion !== false);
+  const [underlyingModel, setUnderlyingModel] = useState(nodeData.underlyingModel || 'gemini-2.5-flash');
+  const [enterpriseDiscountPercent, setEnterpriseDiscountPercent] = useState(nodeData.enterpriseDiscountPercent || 0);
+  const [architectureTier, setArchitectureTier] = useState(nodeData.architectureTier || 'auto');
 
   // Live Ping Testing State
   const [isPinging, setIsPinging] = useState(false);
@@ -169,6 +172,64 @@ export default function RemoteAgentInspectorPanel({
               <option value="On-Prem">On-Premise Private Cloud</option>
               <option value="Localhost">Localhost / Docker</option>
             </select>
+          </div>
+        </div>
+
+        {/* Underlying AI Model & Multi-Stage Telemetry */}
+        <div className="pt-2 border-t border-[#1E293B] space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-400 font-mono block">Underlying AI Model</span>
+            <span className="text-[9px] font-mono text-[#00B8F5] uppercase">MULTI-TIER TELEMETRY</span>
+          </div>
+          <select
+            value={underlyingModel}
+            onChange={(e) => {
+              setUnderlyingModel(e.target.value);
+              handleFieldChange('underlyingModel', e.target.value);
+            }}
+            className="w-full px-2 py-1.5 bg-[#090D16] border border-[#1E293B] rounded-none text-slate-200 text-xs font-mono"
+          >
+            <option value="gemini-2.5-flash">Google Gemini 2.5 Flash ($0.15 / $0.60 per 1M)</option>
+            <option value="gemini-2.5-pro">Google Gemini 2.5 Pro ($1.25 / $5.00 per 1M)</option>
+            <option value="gemini-2.0-flash">Google Gemini 2.0 Flash ($0.10 / $0.40 per 1M)</option>
+            <option value="gpt-4o">OpenAI GPT-4o ($2.50 / $10.00 per 1M)</option>
+            <option value="gpt-4o-mini">OpenAI GPT-4o-mini ($0.15 / $0.60 per 1M)</option>
+            <option value="claude-3-5-sonnet">Anthropic Claude 3.5 Sonnet ($3.00 / $15.00 per 1M)</option>
+            <option value="custom">Deterministic / Private Mesh (0-Token)</option>
+          </select>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <span className="text-[9px] text-slate-500 font-mono block mb-0.5">Enterprise Discount %</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={enterpriseDiscountPercent}
+                onChange={(e) => {
+                  const val = Number(e.target.value) || 0;
+                  setEnterpriseDiscountPercent(val);
+                  handleFieldChange('enterpriseDiscountPercent', val);
+                }}
+                placeholder="0"
+                className="w-full px-2 py-1 bg-[#090D16] border border-[#1E293B] rounded-none text-slate-200 text-xs font-mono"
+              />
+            </div>
+            <div>
+              <span className="text-[9px] text-slate-500 font-mono block mb-0.5">Detection Tier</span>
+              <select
+                value={architectureTier}
+                onChange={(e) => {
+                  setArchitectureTier(e.target.value);
+                  handleFieldChange('architectureTier', e.target.value);
+                }}
+                className="w-full px-2 py-1 bg-[#090D16] border border-[#1E293B] rounded-none text-slate-200 text-xs font-mono"
+              >
+                <option value="auto">Auto-Detect Cascade</option>
+                <option value="tier1">Force Tier 1 (Headers)</option>
+                <option value="tier3">Force Tier 3 (Decompose)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

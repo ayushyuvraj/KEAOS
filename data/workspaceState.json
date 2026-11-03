@@ -12,7 +12,7 @@
     },
     "isInspectorOpen": false,
     "isEnforcerActive": true,
-    "viewMode": "audit-2",
+    "viewMode": "canvas",
     "isWorkflowLocked": false
   },
   "workflows": [
@@ -1564,13 +1564,13 @@
             "sourceNodeType": null,
             "sourceNodeId": null,
             "sourceNodeName": null,
-            "isExpanded": true,
+            "isExpanded": false,
             "persistenceStrategy": "overwrite",
             "filenamePrefix": ""
           },
           "measured": {
-            "width": 560,
-            "height": 440
+            "width": 56,
+            "height": 56
           },
           "selected": true,
           "dragging": false
@@ -1687,7 +1687,7 @@
         }
       ],
       "createdAt": 1793691016884,
-      "updatedAt": 1793704001825,
+      "updatedAt": 1793710639166,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -8654,8 +8654,8 @@
           "filenamePrefix": ""
         },
         "measured": {
-          "width": 560,
-          "height": 440
+          "width": 56,
+          "height": 56
         },
         "selected": true,
         "dragging": false
@@ -14048,5 +14048,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793704012936
+  "syncedAt": 1793710639985
 }

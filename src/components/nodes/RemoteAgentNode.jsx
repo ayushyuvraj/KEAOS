@@ -253,17 +253,32 @@ export default function RemoteAgentNode({ id, data, selected }) {
             </span>
           </div>
 
-          {/* Latency Pill */}
-          <div className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 ${latencyMs != null
-              ? (isDarkMode
-                ? 'bg-[#00B8F5]/15 border-[#00B8F5]/35 text-[#00B8F5]'
-                : 'bg-[#00338D]/10 border-[#00338D]/20 text-[#00338D]')
-              : (isDarkMode
-                ? 'bg-white/[0.04] border-white/[0.08] text-slate-400'
-                : 'bg-white border-slate-200 text-slate-500')
-            }`}>
-            {latencyMs != null ? `${latencyMs}ms` : 'Ready'}
-          </div>
+          {/* Latency & Multi-Stage Telemetry Pill */}
+          {data?.lastTokens > 0 ? (
+            <div 
+              className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 flex items-center gap-1.5 ${
+                isDarkMode 
+                  ? 'bg-[#00B8F5]/15 border-[#00B8F5]/35 text-[#00B8F5]' 
+                  : 'bg-[#00338D]/10 border-[#00338D]/20 text-[#00338D]'
+              }`}
+              title={`${data.lastModelId || 'LLM'}: ${data.lastTokens.toLocaleString()} tokens ($${Number(data.lastCostUsd || 0).toFixed(4)})`}
+            >
+              <span>{data.lastTokens >= 1000 ? `${(data.lastTokens / 1000).toFixed(1)}k tok` : `${data.lastTokens} tok`}</span>
+              <span className="opacity-40">•</span>
+              <span className="text-amber-400">${Number(data.lastCostUsd || 0).toFixed(4)}</span>
+            </div>
+          ) : (
+            <div className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 ${latencyMs != null
+                ? (isDarkMode
+                  ? 'bg-[#00B8F5]/15 border-[#00B8F5]/35 text-[#00B8F5]'
+                  : 'bg-[#00338D]/10 border-[#00338D]/20 text-[#00338D]')
+                : (isDarkMode
+                  ? 'bg-white/[0.04] border-white/[0.08] text-slate-400'
+                  : 'bg-white border-slate-200 text-slate-500')
+              }`}>
+              {latencyMs != null ? `${latencyMs}ms` : 'Ready'}
+            </div>
+          )}
         </div>
 
         {/* Error Message Snippet (using Magenta #FD349C instead of red) */}

@@ -29,9 +29,11 @@ const BASELINE_RATES = {
   'gpt-3.5-turbo': { promptPerM: 0.50, completionPerM: 1.50, contextLength: 16385, description: 'Legacy fast model for basic translation and simple text transformations.' },
   
   // Google
-  'gemini-2.0-flash': { promptPerM: 0.10, completionPerM: 0.40, contextLength: 1048576, description: 'Google next-generation high-speed multimodal model with native audio ingestion and 1M context.' },
-  'gemini-1.5-pro': { promptPerM: 1.25, completionPerM: 5.00, contextLength: 2097152, description: 'Google flagship model for complex reasoning across ultra-long documents with 2M token context.' },
-  'gemini-1.5-flash': { promptPerM: 0.075, completionPerM: 0.30, contextLength: 1048576, description: 'Fast and lightweight model optimized for frequency and scale.' },
+  'gemini-2.5-flash': { promptPerM: 0.15, completionPerM: 0.60, cachedPerM: 0.0375, contextLength: 1048576, description: 'Google Gemini 2.5 Flash multimodal model with native vision/audio and 1M context.' },
+  'gemini-2.5-pro': { promptPerM: 1.25, completionPerM: 5.00, cachedPerM: 0.3125, contextLength: 2097152, description: 'Google Gemini 2.5 Pro frontier multimodal reasoning model with 2M context.' },
+  'gemini-2.0-flash': { promptPerM: 0.10, completionPerM: 0.40, cachedPerM: 0.0250, contextLength: 1048576, description: 'Google next-generation high-speed multimodal model with native audio ingestion and 1M context.' },
+  'gemini-1.5-pro': { promptPerM: 1.25, completionPerM: 5.00, cachedPerM: 0.3125, contextLength: 2097152, description: 'Google flagship model for complex reasoning across ultra-long documents with 2M token context.' },
+  'gemini-1.5-flash': { promptPerM: 0.075, completionPerM: 0.30, cachedPerM: 0.01875, contextLength: 1048576, description: 'Fast and lightweight model optimized for frequency and scale.' },
   
   // Anthropic
   'claude-3-5-sonnet-20241022': { promptPerM: 3.00, completionPerM: 15.00, contextLength: 200000, description: 'Anthropic state-of-the-art analytical model combining top-tier reasoning and coding.' },
@@ -47,6 +49,7 @@ const BASELINE_RATES = {
 function loadCachedCatalog() {
   if (memoryCatalog) return memoryCatalog;
   try {
+    if (typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(LIVE_CATALOG_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
@@ -67,6 +70,7 @@ function loadCachedCatalog() {
 function saveCachedCatalog(data) {
   memoryCatalog = data;
   try {
+    if (typeof localStorage === 'undefined') return;
     localStorage.setItem(LIVE_CATALOG_STORAGE_KEY, JSON.stringify({
       timestamp: Date.now(),
       data
@@ -275,4 +279,64 @@ export function calculateInferenceCost({
   const cTokens = totalTokens - pTokens;
   const cost = (pTokens * profile.promptPricePerToken) + (cTokens * profile.completionPricePerToken);
   return Number(cost.toFixed(5));
+}
+
+/**
+ * Calculate multi-stage token, caching, and financial cost attribution
+ * across all detected pipeline stages.
+ */
+export function calculateMultiStageCost({
+  provider = 'google',
+  modelId = 'gemini-2.5-flash',
+  stages = [],
+  discountPercent = 0
+}) {
+  const profile = getLiveModelProfile(provider, modelId);
+  const discountMultiplier = Math.max(0, 1 - (Number(discountPercent) || 0) / 100);
+
+  const enrichedStages = stages.map((stg) => {
+    if (stg.nature === 'deterministic' || stg.tokens === 0) {
+      return {
+        ...stg,
+        tokens: 0,
+        costUsd: 0,
+        pctOfTotal: 0
+      };
+    }
+
+    const pTokens = Number(stg.promptTokens ?? (stg.isInput ? stg.tokens : 0));
+    const cTokens = Number(stg.completionTokens ?? (!stg.isInput ? stg.tokens : 0));
+    const cachedTokens = Number(stg.cachedTokens || 0);
+
+    const cachedRatePerToken = (profile.promptPricePerToken * 0.25);
+    const stageCost = (
+      ((pTokens - cachedTokens) * profile.promptPricePerToken) +
+      (cTokens * profile.completionPricePerToken) +
+      (cachedTokens * cachedRatePerToken)
+    ) * discountMultiplier;
+
+    return {
+      ...stg,
+      costUsd: Number(stageCost.toFixed(5))
+    };
+  });
+
+  const totalCostUsd = Number(enrichedStages.reduce((acc, s) => acc + (s.costUsd || 0), 0).toFixed(5));
+  const totalTokens = enrichedStages.reduce((acc, s) => acc + (s.tokens || 0), 0);
+
+  const finalizedStages = enrichedStages.map(s => ({
+    ...s,
+    pctOfTotal: totalCostUsd > 0 
+      ? Math.round((s.costUsd / totalCostUsd) * 100) 
+      : (totalTokens > 0 ? Math.round((s.tokens / totalTokens) * 100) : 0)
+  }));
+
+  return {
+    modelId,
+    provider,
+    totalTokens,
+    totalCostUsd,
+    discountPercent,
+    stages: finalizedStages
+  };
 }

@@ -11,6 +11,7 @@
  */
 
 import { startSpan, endSpan } from './audit2Service.js';
+import { detectAndAttributeTelemetry } from './architectureDetector.js';
 
 /**
  * Resolves dot-delimited path or array index (e.g. "data.summary" or "choices[0].message.content")
@@ -179,6 +180,7 @@ export async function executeRemoteAgentTask({
   let lastError = null;
   let responseData = null;
   let finalStatus = 0;
+  let capturedHeaders = {};
   let attempt = 0;
 
   while (attempt <= maxRetries) {
@@ -195,6 +197,18 @@ export async function executeRemoteAgentTask({
       });
       clearTimeout(timer);
       finalStatus = response.status;
+
+      // Extract and normalize response headers for architecture detection
+      capturedHeaders = {};
+      try {
+        if (response.headers && typeof response.headers.forEach === 'function') {
+          response.headers.forEach((val, key) => {
+            capturedHeaders[key.toLowerCase()] = val;
+          });
+        }
+      } catch (e) {
+        // Headers parsing fallback
+      }
 
       const rawText = await response.text();
       let parsed = null;
@@ -252,32 +266,53 @@ export async function executeRemoteAgentTask({
     }
   }
 
-  // Extract optional token accounting returned from remote service
-  const extractedTokens = (responseData && typeof responseData === 'object')
-    ? (responseData.tokens?.total || responseData.totalTokens || responseData.metrics?.totalTokens || 0)
-    : 0;
-  const extractedModel = (responseData && typeof responseData === 'object')
-    ? (responseData.model || responseData.modelId || `${framework}-remote`)
-    : `${framework}-remote`;
+  // 6. Multi-Tier Architecture & Multi-Stage Telemetry Engine
+  const selectedModel = nodeData.underlyingModel || 'gemini-2.5-flash';
+  const enterpriseDiscount = Number(nodeData.enterpriseDiscountPercent || 0);
 
-  // 6. Complete OpenTelemetry Span
+  let telemetry = null;
+  if (!lastError && responseData) {
+    try {
+      telemetry = detectAndAttributeTelemetry({
+        endpointUrl,
+        responseHeaders: capturedHeaders,
+        responseBody: responseData,
+        inputData,
+        modelId: selectedModel,
+        provider: 'google',
+        discountPercent: enterpriseDiscount,
+        latencyMs
+      });
+    } catch (e) {
+      console.warn('[RemoteAgentRunner] Telemetry detection notice:', e);
+    }
+  }
+
+  const effectiveTokens = telemetry?.totalTokens || 0;
+  const effectiveCostUsd = telemetry?.totalCostUsd || 0;
+  const effectiveModel = telemetry?.modelId || selectedModel;
+
+  // 7. Complete OpenTelemetry Span
   if (traceContext && span) {
     await endSpan(traceContext, span, {
       status: lastError ? 'ERROR' : 'OK',
       errorMessage: lastError ? lastError.message : null,
       inputData: isFileInput ? { file: (inputData?.name || inputData?.rawFile?.name || 'document.pdf'), size: (inputData?.size || inputData?.rawFile?.size || 'binary') } : inputData,
       outputData: finalOutput,
-      tokens: extractedTokens,
-      modelId: extractedModel,
+      tokens: effectiveTokens,
+      modelId: effectiveModel,
       provider: framework,
       customAttributes: {
         'http.status_code': finalStatus,
-        'http.retries': attempt - 1
+        'http.retries': attempt - 1,
+        'telemetry.tier': telemetry?.tier || 'tier3_decomposed',
+        'telemetry.stages': telemetry?.stages ? JSON.stringify(telemetry.stages) : null,
+        'llm.cost.total_usd': effectiveCostUsd
       }
     });
   }
 
-  // 7. Emit Real-time Execution Finished Event
+  // 8. Emit Real-time Execution Finished Event
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('keaos:remote-agent-executed', {
       detail: {
@@ -285,6 +320,10 @@ export async function executeRemoteAgentTask({
         success: !lastError,
         latencyMs,
         output: finalOutput,
+        tokens: effectiveTokens,
+        costUsd: effectiveCostUsd,
+        modelId: effectiveModel,
+        telemetry,
         error: lastError ? lastError.message : null
       }
     }));
@@ -306,6 +345,10 @@ export async function executeRemoteAgentTask({
     latencyMs,
     nodeId,
     spanId: span ? span.spanId : null,
+    tokens: effectiveTokens,
+    costUsd: effectiveCostUsd,
+    modelId: effectiveModel,
+    telemetryBreakdown: telemetry,
     rawResponse: responseData
   };
 }
