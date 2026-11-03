@@ -436,6 +436,37 @@ function CanvasInner({
     return () => window.removeEventListener('keaos:agent-output', handleAgentOutput);
   }, [edges, setNodes]);
 
+  // Synchronize Ingestion Node updates and uploaded binary files with Canvas state
+  useEffect(() => {
+    const handleIngestionUpdated = (e) => {
+      const detail = e.detail;
+      if (!detail || !detail.nodeId) return;
+
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.id === detail.nodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                slotA: detail.slotA || n.data?.slotA,
+                slotB: detail.slotB || n.data?.slotB,
+                rawFile: detail.slotA?.rawFile || detail.slotB?.rawFile || detail.rawFile || n.data?.rawFile,
+                content: detail.content || n.data?.content,
+                lastOutput: detail.output || n.data?.lastOutput,
+                status: detail.status || n.data?.status
+              }
+            };
+          }
+          return n;
+        })
+      );
+    };
+
+    window.addEventListener('keaos:ingestion-updated', handleIngestionUpdated);
+    return () => window.removeEventListener('keaos:ingestion-updated', handleIngestionUpdated);
+  }, [setNodes]);
+
   // Listen for real-time Deterministic Node execution events and update connected downstream nodes
   useEffect(() => {
     const handleDeterministicExecuted = (e) => {
@@ -929,8 +960,39 @@ function CanvasInner({
           const incomingEdges = (edges || []).filter(ed => ed.target === remNode.id);
           const ingestNode = (nodes || []).find(n => incomingEdges.some(ed => ed.source === n.id) && (n.type === 'ingestionNode' || n.type === 'outputNode' || n.type === 'outputNodeV2'));
           if (ingestNode) {
-            upstreamInput = ingestNode.data?.content || ingestNode.data?.outputContent || null;
+            const cachedFromWindow = (typeof window !== 'undefined' && window.__KEAOS_FILES__)
+              ? (window.__KEAOS_FILES__[ingestNode.id]?.rawFile 
+                 || window.__KEAOS_FILES__[ingestNode.id]?.slotA?.rawFile 
+                 || window.__KEAOS_FILES__[ingestNode.id]?.slotB?.rawFile
+                 || window.__KEAOS_FILES__['latest'])
+              : null;
+
+            upstreamInput = cachedFromWindow
+              || ingestNode.data?.slotA?.rawFile 
+              || ingestNode.data?.slotB?.rawFile 
+              || ingestNode.data?.rawFile 
+              || ingestNode.data?.slotA 
+              || ingestNode.data?.slotB
+              || ingestNode.data?.content 
+              || ingestNode.data?.outputContent 
+              || null;
           }
+
+          // Fallback: Check if any ingestion node on canvas or global cache has a file
+          if (!upstreamInput) {
+            const anyIngestNode = (nodes || []).find(n => n.type === 'ingestionNode' && (n.data?.slotA?.rawFile || n.data?.slotB?.rawFile || n.data?.rawFile));
+            if (anyIngestNode) {
+              upstreamInput = anyIngestNode.data?.slotA?.rawFile || anyIngestNode.data?.slotB?.rawFile || anyIngestNode.data?.rawFile;
+            } else if (typeof window !== 'undefined' && window.__KEAOS_FILES__?.['latest']) {
+              upstreamInput = window.__KEAOS_FILES__['latest'];
+            }
+          }
+        }
+
+        if (remNode.data?.requestMode === 'multipart' && !upstreamInput) {
+          setToastNotification('⚠️ Ingestion Node is empty. Please click the Ingestion node or drop an invoice PDF/image into it before executing.');
+          setTimeout(() => setToastNotification(null), 4500);
+          return;
         }
 
         const remoteRes = await executeRemoteAgentTask({

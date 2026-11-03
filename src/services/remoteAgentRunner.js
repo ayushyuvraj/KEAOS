@@ -10,7 +10,7 @@
  * - Ingrained OpenTelemetry: Emits W3C trace spans into Audit 2.0.
  */
 
-import { startSpan, endSpan } from './audit2Service';
+import { startSpan, endSpan } from './audit2Service.js';
 
 /**
  * Resolves dot-delimited path or array index (e.g. "data.summary" or "choices[0].message.content")
@@ -115,9 +115,41 @@ export async function executeRemoteAgentTask({
     'Accept': 'application/json, text/plain, */*'
   };
 
+  const isFileInput = (typeof File !== 'undefined' && (inputData instanceof File || inputData?.rawFile instanceof File || inputData instanceof Blob)) ||
+                      (inputData && typeof inputData === 'object' && inputData.name && (inputData.size !== undefined || inputData.rawFile)) ||
+                      requestMode === 'multipart';
+
   if (httpMethod !== 'GET') {
-    headers['Content-Type'] = 'application/json';
-    if (requestMode === 'json_envelope') {
+    if (!isFileInput) headers['Content-Type'] = 'application/json';
+    if (isFileInput) {
+      let fileToUpload = null;
+      if (typeof File !== 'undefined' && inputData instanceof File) {
+        fileToUpload = inputData;
+      } else if (inputData?.rawFile && (typeof File !== 'undefined' && inputData.rawFile instanceof File)) {
+        fileToUpload = inputData.rawFile;
+      } else if (inputData?.slotA?.rawFile && (typeof File !== 'undefined' && inputData.slotA.rawFile instanceof File)) {
+        fileToUpload = inputData.slotA.rawFile;
+      } else if (inputData?.slotB?.rawFile && (typeof File !== 'undefined' && inputData.slotB.rawFile instanceof File)) {
+        fileToUpload = inputData.slotB.rawFile;
+      } else if (typeof Blob !== 'undefined' && inputData instanceof Blob) {
+        fileToUpload = inputData;
+      } else if (inputData?.file && (typeof File !== 'undefined' && inputData.file instanceof File)) {
+        fileToUpload = inputData.file;
+      } else if (typeof window !== 'undefined' && window.__KEAOS_FILES__?.['latest'] instanceof File) {
+        fileToUpload = window.__KEAOS_FILES__['latest'];
+      }
+
+      if (!fileToUpload) {
+        throw new Error(
+          'No invoice file loaded in the Ingestion Node. Please expand the Ingestion Node or drop an invoice PDF/image into it before executing.'
+        );
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileToUpload, fileToUpload.name || 'invoice.pdf');
+      formData.append('channel', 'upload');
+      requestBody = formData;
+    } else if (requestMode === 'json_envelope') {
       requestBody = JSON.stringify({
         input: inputData,
         context: {
@@ -233,7 +265,7 @@ export async function executeRemoteAgentTask({
     await endSpan(traceContext, span, {
       status: lastError ? 'ERROR' : 'OK',
       errorMessage: lastError ? lastError.message : null,
-      inputData: inputData,
+      inputData: isFileInput ? { file: (inputData?.name || inputData?.rawFile?.name || 'document.pdf'), size: (inputData?.size || inputData?.rawFile?.size || 'binary') } : inputData,
       outputData: finalOutput,
       tokens: extractedTokens,
       modelId: extractedModel,

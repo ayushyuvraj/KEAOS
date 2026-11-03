@@ -1,6 +1,861 @@
 [
   {
     "version": "2.0",
+    "runId": "RUN-542365",
+    "traceId": "c383f60e847af810e4edee9951f592c1",
+    "rootSpanId": "9f52d09e7e38aa67",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-03T10:59:02.365Z",
+    "completedAt": "2026-11-03T11:00:26.522Z",
+    "durationMs": 84157,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "08e9436e320f8e040bc7bbc11bb0a2cd10a5e65aaccf356a6fa710162917ecbe",
+      "inputSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "outputSha256": "0c7b7941fafc4f6d2ac71278f2f0519971fe102b29ace2154d15abe12537c652",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 168,
+      "laborValueSavedUsd": 182,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "eaab22c87647172e",
+        "traceId": "c383f60e847af810e4edee9951f592c1",
+        "parentSpanId": "9f52d09e7e38aa67",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793703542366,
+        "endTime": 1793703626518,
+        "durationMs": 84152,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/invoices",
+          "remote.framework": "fastapi",
+          "remote.method": "POST",
+          "remote.host": "Localhost",
+          "input.snippet": "{\"file\":\"IMG-20261103-WA0002.jpg\",\"size\":275451}",
+          "output.snippet": "{\"id\":\"f42579ba027847fb801ab4cd0a76a95d\",\"txnId\":\"TXN-2026-004008\",\"caseId\":\"AP-2026-001308\",\"status\":\"Exception\",\"stage\":\"validation\",\"channel\":\"upload\",\"fileName\":\"IMG-20261103-WA0002.jpg\",\"pages\":1,\"receivedAt\":\"03 Nov 2026, 16:29\",\"pipeline\":{\"state\":\"done\",\"step\":10,\"steps\":[\"Reading invoice st",
+          "audit.input_sha256": "f650f6e3ec688c75769ab973d81b5d67d41abcaaaaa52933627f8b91cdddfe8f",
+          "audit.output_sha256": "0c7b7941fafc4f6d2ac71278f2f0519971fe102b29ace2154d15abe12537c652",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 202,
+          "http.retries": 0
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{}",
+      "outputSnippet": "{\"id\":\"f42579ba027847fb801ab4cd0a76a95d\",\"txnId\":\"TXN-2026-004008\",\"caseId\":\"AP-2026-001308\",\"status\":\"Exception\",\"stage\":\"validation\",\"channel\":\"upload\",\"fileName\":\"IMG-20261103-WA0002.jpg\",\"pages\":1,\"receivedAt\":\"03 Nov 2026, 16:29\",\"pipeline\":{\"state\":\"done\",\"step\":10,\"steps\":[\"Reading invoice structure…\",\"Identifying supplier…\",\"Validating GSTIN…\",\"Inter..."
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-459807",
+    "traceId": "c89162d22a1b6212d2a4b3c5d6966775",
+    "rootSpanId": "cd14be62efb48f35",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "FAILED",
+    "timestamp": "2026-11-03T10:57:39.807Z",
+    "completedAt": "2026-11-03T10:58:40.693Z",
+    "durationMs": 60886,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "8640945a616714b2d863fdf3bfba687de097202de79ed20a8a413baaf7658507",
+      "inputSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "outputSha256": "fcf9b3623c3d920212766bce257e419abbcf98a23516ac42ff4bc6950e1c4d58",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 122,
+      "laborValueSavedUsd": 132.17,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "c6b36357241a05f6",
+        "traceId": "c89162d22a1b6212d2a4b3c5d6966775",
+        "parentSpanId": "cd14be62efb48f35",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793703459808,
+        "endTime": 1793703520688,
+        "durationMs": 60880,
+        "status": {
+          "code": "ERROR",
+          "message": "Request timed out after 30s cap"
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/invoices",
+          "remote.framework": "fastapi",
+          "remote.method": "POST",
+          "remote.host": "Localhost",
+          "input.snippet": "{\"file\":\"IMG-20261103-WA0002.jpg\",\"size\":275451}",
+          "output.snippet": "",
+          "audit.input_sha256": "f650f6e3ec688c75769ab973d81b5d67d41abcaaaaa52933627f8b91cdddfe8f",
+          "audit.output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 0,
+          "http.retries": 1
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{}",
+      "outputSnippet": "Request timed out after 30s cap"
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-968167",
+    "traceId": "b123866a3a4e3e618ab1115a24c26df7",
+    "rootSpanId": "2101bc0ebc78804f",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "FAILED",
+    "timestamp": "2026-11-03T10:32:48.167Z",
+    "completedAt": "2026-11-03T10:32:48.451Z",
+    "durationMs": 284,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "f9718302ccce90ca9d057c3b371dbb2480a398fb74b52874249803cb3ff0a539",
+      "inputSha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+      "outputSha256": "b23b272e33740ee482eb4de207498e56c582f108c1fbb466e9b90e29edcec54b",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "d3e774080d513443",
+        "traceId": "b123866a3a4e3e618ab1115a24c26df7",
+        "parentSpanId": "2101bc0ebc78804f",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793701968168,
+        "endTime": 1793701968449,
+        "durationMs": 281,
+        "status": {
+          "code": "ERROR",
+          "message": "Remote HTTP 422 Unprocessable Entity: {\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"file\"],\"msg\":\"Value error, Expected UploadFile, received: <class 'str'>\",\"input\":\"KEAOS Canvas Direct Execution\""
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/invoices",
+          "remote.framework": "fastapi",
+          "remote.method": "POST",
+          "remote.host": "Localhost",
+          "input.snippet": "{\"file\":\"document.pdf\",\"size\":\"binary\"}",
+          "output.snippet": "",
+          "audit.input_sha256": "4c9274c946fd921af37ad10c5f003bc364f1a33c5ff40a6f8ebb31c73fdc28e7",
+          "audit.output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 422,
+          "http.retries": 0
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "KEAOS Canvas Direct Execution",
+      "outputSnippet": "Remote HTTP 422 Unprocessable Entity: {\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"file\"],\"msg\":\"Value error, Expected UploadFile, received: <class 'str'>\",\"input\":\"KEAOS Canvas Direct Execution\""
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-794225",
+    "traceId": "4db2e0706c2f357548c87ea5e07df364",
+    "rootSpanId": "4c75851fae0594f0",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "FAILED",
+    "timestamp": "2026-11-03T10:29:54.225Z",
+    "completedAt": "2026-11-03T10:29:54.505Z",
+    "durationMs": 280,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "b7f071b9296860383c0ad19f710df0b9c8fbf9b38ac1203b99f568ef8932834d",
+      "inputSha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+      "outputSha256": "b23b272e33740ee482eb4de207498e56c582f108c1fbb466e9b90e29edcec54b",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "b4f81a60f52de26a",
+        "traceId": "4db2e0706c2f357548c87ea5e07df364",
+        "parentSpanId": "4c75851fae0594f0",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793701794225,
+        "endTime": 1793701794503,
+        "durationMs": 278,
+        "status": {
+          "code": "ERROR",
+          "message": "Remote HTTP 422 Unprocessable Entity: {\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"file\"],\"msg\":\"Value error, Expected UploadFile, received: <class 'str'>\",\"input\":\"KEAOS Canvas Direct Execution\""
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/invoices",
+          "remote.framework": "fastapi",
+          "remote.method": "POST",
+          "remote.host": "Localhost",
+          "input.snippet": "{\"file\":\"document.pdf\",\"size\":\"binary\"}",
+          "output.snippet": "",
+          "audit.input_sha256": "4c9274c946fd921af37ad10c5f003bc364f1a33c5ff40a6f8ebb31c73fdc28e7",
+          "audit.output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 422,
+          "http.retries": 0
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "KEAOS Canvas Direct Execution",
+      "outputSnippet": "Remote HTTP 422 Unprocessable Entity: {\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"file\"],\"msg\":\"Value error, Expected UploadFile, received: <class 'str'>\",\"input\":\"KEAOS Canvas Direct Execution\""
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-783421",
+    "traceId": "1f9f5c5b4daf9a26351e0f60db4c3bd3",
+    "rootSpanId": "89b20f0068b2a033",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "FAILED",
+    "timestamp": "2026-11-03T10:29:43.421Z",
+    "completedAt": "2026-11-03T10:29:43.704Z",
+    "durationMs": 283,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "6fc56c1eac8a0ee0664fb1494fba77e35422c3d5a436b5238771eff7833dde12",
+      "inputSha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+      "outputSha256": "b23b272e33740ee482eb4de207498e56c582f108c1fbb466e9b90e29edcec54b",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "c7faeccc8dffc64d",
+        "traceId": "1f9f5c5b4daf9a26351e0f60db4c3bd3",
+        "parentSpanId": "89b20f0068b2a033",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793701783421,
+        "endTime": 1793701783702,
+        "durationMs": 281,
+        "status": {
+          "code": "ERROR",
+          "message": "Remote HTTP 422 Unprocessable Entity: {\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"file\"],\"msg\":\"Value error, Expected UploadFile, received: <class 'str'>\",\"input\":\"KEAOS Canvas Direct Execution\""
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/invoices",
+          "remote.framework": "fastapi",
+          "remote.method": "POST",
+          "remote.host": "Localhost",
+          "input.snippet": "{\"file\":\"document.pdf\",\"size\":\"binary\"}",
+          "output.snippet": "",
+          "audit.input_sha256": "4c9274c946fd921af37ad10c5f003bc364f1a33c5ff40a6f8ebb31c73fdc28e7",
+          "audit.output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 422,
+          "http.retries": 0
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "KEAOS Canvas Direct Execution",
+      "outputSnippet": "Remote HTTP 422 Unprocessable Entity: {\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"file\"],\"msg\":\"Value error, Expected UploadFile, received: <class 'str'>\",\"input\":\"KEAOS Canvas Direct Execution\""
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-771937",
+    "traceId": "883afce7628a33391e502b2eab488a76",
+    "rootSpanId": "daa52111d3bc119b",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "FAILED",
+    "timestamp": "2026-11-03T10:29:31.937Z",
+    "completedAt": "2026-11-03T10:29:32.230Z",
+    "durationMs": 293,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "5db90b3d6d90d8cd01e3c7b8592298d3fb81d1644c4e7a3251c8a356b4fbdf09",
+      "inputSha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+      "outputSha256": "b23b272e33740ee482eb4de207498e56c582f108c1fbb466e9b90e29edcec54b",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "cc8a917157b9f9c1",
+        "traceId": "883afce7628a33391e502b2eab488a76",
+        "parentSpanId": "daa52111d3bc119b",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793701771937,
+        "endTime": 1793701772227,
+        "durationMs": 290,
+        "status": {
+          "code": "ERROR",
+          "message": "Remote HTTP 422 Unprocessable Entity: {\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"file\"],\"msg\":\"Value error, Expected UploadFile, received: <class 'str'>\",\"input\":\"KEAOS Canvas Direct Execution\""
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/invoices",
+          "remote.framework": "fastapi",
+          "remote.method": "POST",
+          "remote.host": "Localhost",
+          "input.snippet": "{\"file\":\"document.pdf\",\"size\":\"binary\"}",
+          "output.snippet": "",
+          "audit.input_sha256": "4c9274c946fd921af37ad10c5f003bc364f1a33c5ff40a6f8ebb31c73fdc28e7",
+          "audit.output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 422,
+          "http.retries": 0
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "KEAOS Canvas Direct Execution",
+      "outputSnippet": "Remote HTTP 422 Unprocessable Entity: {\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"file\"],\"msg\":\"Value error, Expected UploadFile, received: <class 'str'>\",\"input\":\"KEAOS Canvas Direct Execution\""
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-647609",
+    "traceId": "764f30ce104f85c197c8b8e03e3a832b",
+    "rootSpanId": "ac2050a974d77301",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-03T10:27:27.609Z",
+    "completedAt": "2026-11-03T10:27:27.887Z",
+    "durationMs": 278,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "830a4bd5bd327f2733731b8d1f5625b76ecf064eba408077d50a51ce1bb1253a",
+      "inputSha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+      "outputSha256": "98ebdad23ea9dc58c5314ee01951ce5da51af84902edd6fbe1fef35a8e643bc3",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "12362f0857e24d4a",
+        "traceId": "764f30ce104f85c197c8b8e03e3a832b",
+        "parentSpanId": "ac2050a974d77301",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793701647609,
+        "endTime": 1793701647884,
+        "durationMs": 275,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/health",
+          "remote.framework": "fastapi",
+          "remote.method": "GET",
+          "remote.host": "Localhost",
+          "input.snippet": "KEAOS Canvas Direct Execution",
+          "output.snippet": "{\"ok\":true,\"zohoMode\":\"mock\",\"gemini\":true}",
+          "audit.input_sha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+          "audit.output_sha256": "98ebdad23ea9dc58c5314ee01951ce5da51af84902edd6fbe1fef35a8e643bc3",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 200,
+          "http.retries": 0
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "KEAOS Canvas Direct Execution",
+      "outputSnippet": "{\"ok\":true,\"zohoMode\":\"mock\",\"gemini\":true}"
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-644226",
+    "traceId": "fd9398897ae75206cdff5b8b4b649d19",
+    "rootSpanId": "5e8706dbd5298d85",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-03T10:27:24.226Z",
+    "completedAt": "2026-11-03T10:27:24.515Z",
+    "durationMs": 289,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "c5519b4babbd1bc021a14574855a0f669aef1804a0e9da1f414f4f499a4fb30d",
+      "inputSha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+      "outputSha256": "98ebdad23ea9dc58c5314ee01951ce5da51af84902edd6fbe1fef35a8e643bc3",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "2a17d6407ea04b2b",
+        "traceId": "fd9398897ae75206cdff5b8b4b649d19",
+        "parentSpanId": "5e8706dbd5298d85",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793701644227,
+        "endTime": 1793701644510,
+        "durationMs": 283,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/health",
+          "remote.framework": "fastapi",
+          "remote.method": "GET",
+          "remote.host": "Localhost",
+          "input.snippet": "KEAOS Canvas Direct Execution",
+          "output.snippet": "{\"ok\":true,\"zohoMode\":\"mock\",\"gemini\":true}",
+          "audit.input_sha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+          "audit.output_sha256": "98ebdad23ea9dc58c5314ee01951ce5da51af84902edd6fbe1fef35a8e643bc3",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 200,
+          "http.retries": 0
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "KEAOS Canvas Direct Execution",
+      "outputSnippet": "{\"ok\":true,\"zohoMode\":\"mock\",\"gemini\":true}"
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-409349",
+    "traceId": "119a40ff608fb8e4fe267b15ac4d89b3",
+    "rootSpanId": "ee011b848312a42d",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-03T07:36:49.349Z",
+    "completedAt": "2026-11-03T07:36:49.666Z",
+    "durationMs": 317,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "6f8d600e5fb97190e64a472bf6c56615943b46cffefd29a701893fc14b9c1875",
+      "inputSha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+      "outputSha256": "ed153ae6b3801b31a75cad11f6fabf1f75a228f42c1b61fdf2fca61f2a100e46",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalCostUsd": 0,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 1,
+      "laborValueSavedUsd": 1.08,
+      "netRoiMultiplier": 0
+    },
+    "spans": [
+      {
+        "spanId": "2503e600881591fd",
+        "traceId": "119a40ff608fb8e4fe267b15ac4d89b3",
+        "parentSpanId": "ee011b848312a42d",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793691409350,
+        "endTime": 1793691409635,
+        "durationMs": 285,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/health",
+          "remote.framework": "fastapi",
+          "remote.method": "GET",
+          "remote.host": "Localhost",
+          "input.snippet": "KEAOS Canvas Direct Execution",
+          "output.snippet": "{\"ok\":true,\"zohoMode\":\"mock\",\"gemini\":false}",
+          "audit.input_sha256": "36b9134e515e1bf476ad8f2b7c0ca2e887aed7c856c8d95ee60ac6fda4675400",
+          "audit.output_sha256": "ed153ae6b3801b31a75cad11f6fabf1f75a228f42c1b61fdf2fca61f2a100e46",
+          "llm.model_name": "fastapi-remote",
+          "llm.provider": "fastapi",
+          "llm.cost_usd": 0,
+          "http.status_code": 200,
+          "http.retries": 0
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "KEAOS Canvas Direct Execution",
+      "outputSnippet": "{\"ok\":true,\"zohoMode\":\"mock\",\"gemini\":false}"
+    }
+  },
+  {
+    "version": "2.0",
+    "runId": "RUN-696901",
+    "traceId": "4f706bc1616902b9479fb59b5aec1fee",
+    "rootSpanId": "8141316938775531",
+    "workflowId": "uc-wf-1793175155405-hreve",
+    "workflowName": "Sandbox Test",
+    "frameworkId": "google-adk",
+    "frameworkName": "Google ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-02T19:44:56.901Z",
+    "completedAt": "2026-11-02T19:44:56.920Z",
+    "durationMs": 5952,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "20e1b91b89bf008eb13b8a95f81245bf74655f8c92593f5c65039209c299089e",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outputSha256": "825622236df63dc231805efca767021e5957ce37b80c12c68272a3663dffcdfe",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 401,
+      "promptTokens": 140,
+      "completionTokens": 261,
+      "totalCostUsd": 0.00018,
+      "currency": "USD",
+      "spansCount": 3,
+      "componentsCount": 3,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 8,
+      "laborValueSavedUsd": 8.67,
+      "netRoiMultiplier": 48167
+    },
+    "spans": [
+      {
+        "spanId": "cdd6a5a75865147f",
+        "traceId": "4f706bc1616902b9479fb59b5aec1fee",
+        "parentSpanId": "8141316938775531",
+        "name": "Ingress Validation",
+        "kind": "INTERNAL",
+        "componentType": "gateway",
+        "componentId": "Gateway Controller",
+        "componentName": "Ingress Validation",
+        "startTime": 1793648696909,
+        "endTime": 1793648696919,
+        "durationMs": 10,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "gateway",
+          "llm.cost_usd": 0,
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 0
+        }
+      },
+      {
+        "spanId": "7e652603a8e5d79f",
+        "traceId": "4f706bc1616902b9479fb59b5aec1fee",
+        "parentSpanId": "8141316938775531",
+        "name": "Autonomous Agent #1 (OpenAI: GPT-4o-mini)",
+        "kind": "INTERNAL",
+        "componentType": "model",
+        "componentId": "gpt-4o-mini",
+        "componentName": "Autonomous Agent #1 (OpenAI: GPT-4o-mini)",
+        "startTime": 1793648691235,
+        "endTime": 1793648696919,
+        "durationMs": 5684,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "model",
+          "llm.cost_usd": 0.00018,
+          "promptTokens": 140,
+          "completionTokens": 261
+        }
+      },
+      {
+        "spanId": "e3ee0d96c822bec7",
+        "traceId": "4f706bc1616902b9479fb59b5aec1fee",
+        "parentSpanId": "8141316938775531",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "kind": "INTERNAL",
+        "componentType": "audit",
+        "componentId": "Cryptographic Audit Notary",
+        "componentName": "W3C SHA-256 Ledger Immutability Seal",
+        "startTime": 1793648696905,
+        "endTime": 1793648696920,
+        "durationMs": 15,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "audit",
+          "llm.cost_usd": 0,
+          "rootSha256": "20e1b91b89bf008eb13b8a95f81245bf74655f8c92593f5c65039209c299089e"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "",
+      "outputSnippet": "# Enterprise Directive Synthesis and Execution\n\n## Key Findings\n1. **Understanding Directives**: The enterprise directives received are focused on enhancing operational efficiency, improving customer satisfaction, and ensuring compliance with regulatory standards.\n2. **Stakeholder Engagement**: There is a need for collaboration among various departments to e..."
+    }
+  },
+  {
+    "version": "2.0",
     "runId": "RUN-532767",
     "traceId": "2c2a80a7b216d6c0a36953d0852e29cb",
     "rootSpanId": "a60c6592fce42a93",

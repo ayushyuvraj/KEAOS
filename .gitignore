@@ -27,3 +27,11 @@ dist-ssr
 *.sw?
 scratch/
 scratch*
+
+# Ephemeral external test projects & Python artifacts
+InvoiceProcessing-main/
+.venv/
+__pycache__/
+*.pyc
+*.sqlite
+*.db

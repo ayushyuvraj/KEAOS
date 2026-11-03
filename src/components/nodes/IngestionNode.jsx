@@ -41,6 +41,19 @@ async function sniffDatasetChunk(file) {
   const fileSize = file.size || 0;
   const ext = fileName.split('.').pop().toLowerCase();
 
+  // PDF / Image handling (Binary Documents)
+  if (['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
+    return {
+      format: ext,
+      delimiter: null,
+      columns: [{ name: 'document_binary', type: 'binary' }],
+      columnCount: 1,
+      rowCount: 1,
+      sample: [{ file: fileName, size: (fileSize / 1024).toFixed(1) + ' KB', type: ext.toUpperCase() }],
+      isSniffed: false
+    };
+  }
+
   // Excel (.xlsx, .xls) handling
   if (['xlsx', 'xls'].includes(ext)) {
     if (typeof window !== 'undefined' && window.XLSX) {
@@ -275,12 +288,26 @@ export default function IngestionNode({ id, data = {}, selected }) {
     // Mutate ReactFlow node data
     data.slotA = newSlotA;
     data.slotB = newSlotB;
+    data.rawFile = newSlotA?.rawFile || newSlotB?.rawFile || null;
     data.ingestMode = ingestMode;
     data.lastOutput = outputPayload;
     data.content = textSummary;
     data.status = statusInfo.status;
     data.fileName = newSlotA ? (newSlotB ? `${newSlotA.name}, ${newSlotB.name}` : newSlotA.name) : (newSlotB?.name || '');
     data.fileSize = newSlotA ? `${newSlotA.size}${newSlotB ? ` + ${newSlotB.size}` : ''}` : (newSlotB?.size || '');
+
+    // Global in-memory cache to guarantee zero-loss file retrieval across canvas
+    if (typeof window !== 'undefined') {
+      window.__KEAOS_FILES__ = window.__KEAOS_FILES__ || {};
+      window.__KEAOS_FILES__[id] = {
+        slotA: newSlotA,
+        slotB: newSlotB,
+        rawFile: newSlotA?.rawFile || newSlotB?.rawFile || null
+      };
+      if (newSlotA?.rawFile || newSlotB?.rawFile) {
+        window.__KEAOS_FILES__['latest'] = newSlotA?.rawFile || newSlotB?.rawFile;
+      }
+    }
 
     // Dispatch institutional event for Canvas DAG
     try {
@@ -291,6 +318,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
           output: outputPayload,
           slotA: newSlotA,
           slotB: newSlotB,
+          rawFile: newSlotA?.rawFile || newSlotB?.rawFile || null,
           status: statusInfo.status
         }
       }));
@@ -443,6 +471,16 @@ export default function IngestionNode({ id, data = {}, selected }) {
         {/* 60px Concentric Origin Disc */}
         <div
           onClick={() => setIsExpanded(true)}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMultiFileDrop(e, 'slotA');
+          }}
+          title="Click to expand Ingestion Panel, or drop an invoice PDF/image directly here"
           className={`w-[60px] h-[60px] rounded-full flex flex-col items-center justify-center border-2 transition-all duration-200 cursor-pointer shadow-lg relative active:scale-95 ${
             statusInfo.isReady
               ? 'border-[#009A44] ring-2 ring-[#009A44]/30 shadow-[0_0_16px_rgba(0,154,68,0.3)]'
@@ -581,14 +619,14 @@ export default function IngestionNode({ id, data = {}, selected }) {
       <input
         ref={fileInputRefA}
         type="file"
-        accept=".csv,.tsv,.xlsx,.xls,.json,.parquet,.txt,.md,.pdf,.docx"
+        accept=".csv,.tsv,.xlsx,.xls,.json,.parquet,.txt,.md,.pdf,.docx,.png,.jpg,.jpeg,.webp"
         onChange={(e) => e.target.files?.[0] && handleIngestFile(e.target.files[0], 'slotA')}
         className="hidden"
       />
       <input
         ref={fileInputRefB}
         type="file"
-        accept=".csv,.tsv,.xlsx,.xls,.json,.parquet,.txt,.md,.pdf,.docx"
+        accept=".csv,.tsv,.xlsx,.xls,.json,.parquet,.txt,.md,.pdf,.docx,.png,.jpg,.jpeg,.webp"
         onChange={(e) => e.target.files?.[0] && handleIngestFile(e.target.files[0], 'slotB')}
         className="hidden"
       />

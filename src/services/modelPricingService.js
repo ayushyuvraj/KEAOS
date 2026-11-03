@@ -8,7 +8,7 @@
  * with resilient localStorage caching and built-in fallback profiles.
  */
 
-import { isFixedTemperatureModel } from './llmService';
+import { isFixedTemperatureModel } from './llmService.js';
 
 const LIVE_CATALOG_STORAGE_KEY = 'keaos_live_pricing_catalog';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours

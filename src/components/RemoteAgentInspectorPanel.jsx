@@ -306,6 +306,7 @@ export default function RemoteAgentInspectorPanel({
             >
               <option value="json_envelope">Standard JSON ({'{ input, context }'})</option>
               <option value="raw">Raw Upstream Content</option>
+              <option value="multipart">Multipart Form (PDF / Image Upload)</option>
             </select>
           </div>
 

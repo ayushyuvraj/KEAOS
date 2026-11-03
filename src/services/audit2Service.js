@@ -11,7 +11,7 @@
  * - Multi-Brain and External Agent (LangGraph, CrewAI, Google ADK, FastAPI) token and USD cost accounting.
  */
 
-import { calculateInferenceCost } from './modelPricingService';
+import { calculateInferenceCost } from './modelPricingService.js';
 
 export const AUDIT2_STORAGE_KEY = 'keaos_audit2_ledger';
 const MAX_AUDIT2_ENTRIES = 300;
