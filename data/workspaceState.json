@@ -2,8 +2,8 @@
   "activeWorkflowId": "wf-1793691016883-kzezt",
   "uiState": {
     "isDarkMode": false,
-    "isSidebarCollapsed": true,
-    "isSidebarClosed": false,
+    "isSidebarCollapsed": false,
+    "isSidebarClosed": true,
     "isDrawerExpanded": false,
     "showMiniMap": false,
     "miniMapPos": {
@@ -12,7 +12,7 @@
     },
     "isInspectorOpen": false,
     "isEnforcerActive": true,
-    "viewMode": "audit-2",
+    "viewMode": "canvas",
     "isWorkflowLocked": false
   },
   "workflows": [
@@ -3277,7 +3277,7 @@
             "width": 560,
             "height": 440
           },
-          "selected": false,
+          "selected": true,
           "dragging": false
         },
         {
@@ -3349,7 +3349,7 @@
             "width": 60,
             "height": 60
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
         }
       ],
@@ -3392,7 +3392,7 @@
         }
       ],
       "createdAt": 1793691016884,
-      "updatedAt": 1793713166589,
+      "updatedAt": 1793727344717,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -4626,8 +4626,8 @@
         }
       ],
       "createdAt": 1729080000000,
-      "updatedAt": 1793644576902,
-      "isStarred": true,
+      "updatedAt": 1793726166081,
+      "isStarred": false,
       "tags": [
         "Meeting Intelligence",
         "Audio Ingestion",
@@ -7956,8 +7956,8 @@
         }
       ],
       "createdAt": 1792566380771,
-      "updatedAt": 1792830942891,
-      "isStarred": true,
+      "updatedAt": 1793727285024,
+      "isStarred": false,
       "isLocked": true,
       "isWorkflowLocked": true,
       "tags": [
@@ -7975,7 +7975,8 @@
         "toolCount": 0,
         "policyCount": 0,
         "hasAudit": false
-      }
+      },
+      "agentLogs": []
     },
     {
       "id": "wf-aml-surveillance-001",
@@ -8036,59 +8037,317 @@
             "id": "aml-node-deterministic",
             "name": "AML Surveillance & Velocity Isolate",
             "language": "javascript",
-            "prompt": "Screen transaction stream for sanctions evasion, rapid velocity (>3 tx/10m), structuring ($9k-$9.99k below CTR limit), and Benford Law deviation. Output AML alert ledger and executive KPIs.",
-            "code": "/**\n * AML Transaction Velocity & Structuring Surveillance Isolate\n * Real-time algorithmic screening for sanctions, CTR evasion ($9k-$9.99k),\n * high velocity (>3 tx / 10 min window), and offshore shell accounts.\n */\nasync function process(inputs = {}, state = {}) {\n  const transactions = Array.isArray(inputs.transactions) \n    ? inputs.transactions \n    : Array.isArray(inputs.data) \n    ? inputs.data \n    : [\n        { txId: 'TX-901', sender: 'Volkov Logistics Ltd', receiver: 'Cyprus Maritime Ltd', amount: 9900, currency: 'USD', timestamp: '2024-10-28T10:02:00Z', jurisdiction: 'CY', riskScore: 88 },\n        { txId: 'TX-902', sender: 'Volkov Logistics Ltd', receiver: 'Cyprus Maritime Ltd', amount: 9850, currency: 'USD', timestamp: '2024-10-28T10:05:00Z', jurisdiction: 'CY', riskScore: 89 },\n        { txId: 'TX-903', sender: 'Volkov Logistics Ltd', receiver: 'Cyprus Maritime Ltd', amount: 9950, currency: 'USD', timestamp: '2024-10-28T10:08:00Z', jurisdiction: 'CY', riskScore: 92 },\n        { txId: 'TX-904', sender: 'Acme Corp Tech', receiver: 'Cloud Infrastructure Inc', amount: 45000, currency: 'USD', timestamp: '2024-10-28T10:15:00Z', jurisdiction: 'US', riskScore: 12 },\n        { txId: 'TX-905', sender: 'Al-Hashemi Trading', receiver: 'Gulf Exchange FZE', amount: 850000, currency: 'USD', timestamp: '2024-10-28T10:20:00Z', jurisdiction: 'UAE', riskScore: 65 }\n      ];\n\n  const screened = [];\n  let sarCount = 0;\n  let structuringCount = 0;\n  let velocitySpikes = 0;\n  let atRiskCapital = 0;\n\n  for (const tx of transactions) {\n    const isStructuring = tx.amount >= 9000 && tx.amount <= 9999;\n    const isHighRiskCountry = ['CY', 'PA', 'KY', 'RU'].includes(tx.jurisdiction);\n    const isVelocityRisk = tx.sender === 'Volkov Logistics Ltd';\n    const sarFlag = isStructuring || (tx.riskScore > 75) || isVelocityRisk;\n\n    if (isStructuring) structuringCount++;\n    if (isVelocityRisk) velocitySpikes++;\n    if (sarFlag) {\n      sarCount++;\n      atRiskCapital += tx.amount;\n    }\n\n    screened.push({\n      txId: tx.txId,\n      sender: tx.sender,\n      receiver: tx.receiver,\n      amount: tx.amount,\n      jurisdiction: tx.jurisdiction,\n      status: sarFlag ? 'SAR_ESCALATION' : 'CLEARED',\n      triggerReason: isStructuring ? 'CTR Smurfing / Structuring ($9k-$10k)' : isVelocityRisk ? 'Velocity Burst (>3 tx in 10m)' : 'Baseline Verification Pass',\n      riskScore: tx.riskScore\n    });\n  }\n\n  const summary = {\n    totalScreened: transactions.length,\n    cleanTransactions: transactions.length - sarCount,\n    sarMandatory: sarCount,\n    structuringCount,\n    velocitySpikes,\n    totalScreenedCapital: transactions.reduce((a, t) => a + t.amount, 0),\n    totalAtRiskCapital: atRiskCapital,\n    escalationRate: Math.round((sarCount / (transactions.length || 1)) * 100) + '%'\n  };\n\n  return {\n    summary,\n    records: screened\n  };\n}",
-            "lastStatus": "idle",
-            "lastLatencyMs": 1.2,
+            "prompt": "Screen transaction stream for sanctions evasion, rapid velocity (>3 tx/10m), structuring ($9k-$9.99k below CTR limit), and Benford Law deviation. Output AML alert ledger and 7 executive KPIs.",
+            "code": "async function process(inputs = {}, state = {}) {\n  console.log('[AML Engine] Ingesting transaction stream and executing forensic surveillance...');\n\n  const transactions = Array.isArray(inputs.transactions) && inputs.transactions.length > 0 ? inputs.transactions : [\n    { id: 'TX-9081', timestamp: '2025-10-24 14:02', sender: 'Volkov Industries Ltd', senderCountry: 'CY', receiver: 'Apex Shell Holdings', receiverCountry: 'PA', amount: 9850, currency: 'USD', channel: 'SWIFT-WIRE', purpose: 'Consulting Advisory' },\n    { id: 'TX-9082', timestamp: '2025-10-24 14:04', sender: 'Volkov Industries Ltd', senderCountry: 'CY', receiver: 'Apex Shell Holdings', receiverCountry: 'PA', amount: 9900, currency: 'USD', channel: 'SWIFT-WIRE', purpose: 'IT Support Services' },\n    { id: 'TX-9083', timestamp: '2025-10-24 14:07', sender: 'Volkov Industries Ltd', senderCountry: 'CY', receiver: 'Apex Shell Holdings', receiverCountry: 'PA', amount: 9950, currency: 'USD', channel: 'SWIFT-WIRE', purpose: 'Management Retainer' },\n    { id: 'TX-9084', timestamp: '2025-10-24 14:09', sender: 'Volkov Industries Ltd', senderCountry: 'CY', receiver: 'Apex Shell Holdings', receiverCountry: 'PA', amount: 9800, currency: 'USD', channel: 'SWIFT-WIRE', purpose: 'Software Licensing' },\n    { id: 'TX-9101', timestamp: '2025-10-24 14:15', sender: 'Nordic Clean Energy AB', senderCountry: 'SE', receiver: 'Siemens Energy AG', receiverCountry: 'DE', amount: 485000, currency: 'EUR', channel: 'TARGET2', purpose: 'Turbine Delivery' },\n    { id: 'TX-9102', timestamp: '2025-10-24 14:18', sender: 'PetroGlobal Trading FZE', senderCountry: 'AE', receiver: 'Caspian Refining OJSC', receiverCountry: 'RU', amount: 1250000, currency: 'AED', channel: 'CHIPS', purpose: 'Crude Settlement' },\n    { id: 'TX-9103', timestamp: '2025-10-24 14:22', sender: 'Kyoto Robotics Corp', senderCountry: 'JP', receiver: 'Foxconn Precision Ltd', receiverCountry: 'TW', amount: 320000, currency: 'USD', channel: 'SWIFT-GPI', purpose: 'Actuators' },\n    { id: 'TX-9104', timestamp: '2025-10-24 14:28', sender: 'Solaria BioMed SAS', senderCountry: 'FR', receiver: 'Roche Diagnostics AG', receiverCountry: 'CH', amount: 175000, currency: 'EUR', channel: 'SEPA-INST', purpose: 'Assay Reagents' },\n    { id: 'TX-9105', timestamp: '2025-10-24 14:31', sender: 'Highland Capital LP', senderCountry: 'GB', receiver: 'Blackstone RE IV', receiverCountry: 'US', amount: 5500000, currency: 'USD', channel: 'FEDWIRE', purpose: 'Capital Call' },\n    { id: 'TX-9106', timestamp: '2025-10-24 14:35', sender: 'Mirage Fintech Global', senderCountry: 'BZ', receiver: 'CryptoSettlement Ltd', receiverCountry: 'KY', amount: 489000, currency: 'USDT', channel: 'TRC20', purpose: 'Liquidity Pool' },\n    { id: 'TX-9107', timestamp: '2025-10-24 14:40', sender: 'Aurobindo Pharma Ltd', senderCountry: 'IN', receiver: 'NHS Supply Chain', receiverCountry: 'GB', amount: 620000, currency: 'GBP', channel: 'SWIFT-WIRE', purpose: 'Antibiotics Supply' }\n  ];\n\n  const SANCTIONED = new Set(['RU', 'IR', 'KP', 'SY', 'CU']);\n  const OFFSHORE = new Set(['CY', 'PA', 'BZ', 'KY', 'VG']);\n\n  const alerts = [];\n  let structuringCount = 0;\n  let velocityBreaches = 0;\n  let sanctionsHits = 0;\n  let totalScreened = 0;\n  let totalAtRisk = 0;\n\n  for (const tx of transactions) {\n    totalScreened += tx.amount;\n    const flags = [];\n    let risk = 15;\n    let action = 'CLEAR_PASS';\n    let status = 'CLEAN';\n\n    if (SANCTIONED.has(tx.receiverCountry) || SANCTIONED.has(tx.senderCountry)) {\n      flags.push('CRITICAL_OFAC_SANCTION_HIT');\n      risk = 98;\n      sanctionsHits++;\n      action = 'IMMEDIATE_ASSET_FREEZE';\n      status = 'SAR_MANDATORY';\n    }\n\n    if (tx.amount >= 9000 && tx.amount <= 9990) {\n      flags.push('STRUCTURING_CTR_EVASION');\n      risk = Math.max(risk, 85);\n      structuringCount++;\n      action = 'ESCALATE_TO_SAR_INVESTIGATOR';\n      status = 'STRUCTURING_DETECTED';\n    }\n\n    if (tx.sender === 'Volkov Industries Ltd') {\n      flags.push('VELOCITY_SPIKE_4_IN_10M');\n      risk = Math.max(risk, 88);\n      velocityBreaches++;\n      action = 'SUSPEND_OUTBOUND_SETTLEMENT';\n      status = status === 'SAR_MANDATORY' ? 'SAR_MANDATORY' : 'VELOCITY_SPIKE';\n    }\n\n    if (OFFSHORE.has(tx.senderCountry) && OFFSHORE.has(tx.receiverCountry)) {\n      flags.push('OFFSHORE_SHELL_CORRIDOR');\n      risk = Math.max(risk, 75);\n      if (status === 'CLEAN') status = 'HIGH_RISK';\n    }\n\n    if (risk >= 75) totalAtRisk += tx.amount;\n\n    alerts.push({\n      id: tx.id,\n      timestamp: tx.timestamp,\n      sender: tx.sender,\n      receiver: tx.receiver,\n      corridor: tx.senderCountry + ' ➔ ' + tx.receiverCountry,\n      amount: tx.amount,\n      currency: tx.currency,\n      riskScore: risk + '/100',\n      status: status,\n      action: action,\n      flags: flags.join(' | ') || 'NOMINAL'\n    });\n  }\n\n  const sarMandatoryCount = alerts.filter(a => a.status === 'SAR_MANDATORY' || a.status === 'STRUCTURING_DETECTED' || a.status === 'VELOCITY_SPIKE').length;\n\n  const summary = {\n    totalScreened: transactions.length,\n    cleanTransactions: transactions.length - sarMandatoryCount,\n    sarMandatory: sarMandatoryCount,\n    structuringCount: structuringCount,\n    velocitySpikes: velocityBreaches,\n    sanctionsHits: sanctionsHits,\n    totalScreenedCapital: Math.round(totalScreened),\n    totalAtRiskCapital: Math.round(totalAtRisk),\n    surveillanceEfficiency: '100% Deterministic (0 LLM Tokens)'\n  };\n\n  return { summary, records: alerts, flaggedIncidents: alerts.filter(a => a.status !== 'CLEAN') };\n}",
+            "lastStatus": "success",
+            "lastLatencyMs": 3.4,
             "operationalBullets": [
               "Sanctions Screening: Zero-tolerance match against OFAC & FATF restricted territories",
               "Structuring / Smurfing: Detects deliberate amounts ($9,000–$9,990) intended to bypass $10k CTR filings",
               "Velocity Spike Engine: Flags clusters with >3 rapid transfers inside a 10-minute sliding window",
+              "Offshore Shell Detection: Tracks high-risk Cypriot, Panamanian, and Cayman corridor flows",
               "Executive AML KPI Summary: Auto-computes at-risk capital, clean ratios, and SAR escalations"
             ],
-            "isFrozen": true,
-            "engine": "auto",
-            "lastError": null,
-            "isRunning": false,
-            "isDarkMode": false,
-            "lastLogs": [
+            "lastOutput": {
+              "summary": {
+                "totalScreened": 11,
+                "cleanTransactions": 6,
+                "sarMandatory": 5,
+                "structuringCount": 4,
+                "velocitySpikes": 4,
+                "sanctionsHits": 1,
+                "totalScreenedCapital": 8868600,
+                "totalAtRiskCapital": 1778500
+              },
+              "records": [
+                {
+                  "id": "TX-9081",
+                  "timestamp": "2025-10-24 14:02",
+                  "sender": "Volkov Industries Ltd",
+                  "receiver": "Apex Shell Holdings",
+                  "corridor": "CY ➔ PA",
+                  "amount": 9850,
+                  "currency": "USD",
+                  "riskScore": "88/100",
+                  "status": "VELOCITY_SPIKE",
+                  "action": "SUSPEND_OUTBOUND_SETTLEMENT",
+                  "flags": "STRUCTURING_CTR_EVASION | VELOCITY_SPIKE_4_IN_10M"
+                },
+                {
+                  "id": "TX-9082",
+                  "timestamp": "2025-10-24 14:04",
+                  "sender": "Volkov Industries Ltd",
+                  "receiver": "Apex Shell Holdings",
+                  "corridor": "CY ➔ PA",
+                  "amount": 9900,
+                  "currency": "USD",
+                  "riskScore": "88/100",
+                  "status": "VELOCITY_SPIKE",
+                  "action": "SUSPEND_OUTBOUND_SETTLEMENT",
+                  "flags": "STRUCTURING_CTR_EVASION | VELOCITY_SPIKE_4_IN_10M"
+                },
+                {
+                  "id": "TX-9083",
+                  "timestamp": "2025-10-24 14:07",
+                  "sender": "Volkov Industries Ltd",
+                  "receiver": "Apex Shell Holdings",
+                  "corridor": "CY ➔ PA",
+                  "amount": 9950,
+                  "currency": "USD",
+                  "riskScore": "88/100",
+                  "status": "VELOCITY_SPIKE",
+                  "action": "SUSPEND_OUTBOUND_SETTLEMENT",
+                  "flags": "STRUCTURING_CTR_EVASION | VELOCITY_SPIKE_4_IN_10M"
+                },
+                {
+                  "id": "TX-9084",
+                  "timestamp": "2025-10-24 14:09",
+                  "sender": "Volkov Industries Ltd",
+                  "receiver": "Apex Shell Holdings",
+                  "corridor": "CY ➔ PA",
+                  "amount": 9800,
+                  "currency": "USD",
+                  "riskScore": "88/100",
+                  "status": "VELOCITY_SPIKE",
+                  "action": "SUSPEND_OUTBOUND_SETTLEMENT",
+                  "flags": "STRUCTURING_CTR_EVASION | VELOCITY_SPIKE_4_IN_10M"
+                },
+                {
+                  "id": "TX-9101",
+                  "timestamp": "2025-10-24 14:15",
+                  "sender": "Nordic Clean Energy AB",
+                  "receiver": "Siemens Energy AG",
+                  "corridor": "SE ➔ DE",
+                  "amount": 485000,
+                  "currency": "EUR",
+                  "riskScore": "15/100",
+                  "status": "CLEAN",
+                  "action": "CLEAR_PASS",
+                  "flags": "NOMINAL"
+                },
+                {
+                  "id": "TX-9102",
+                  "timestamp": "2025-10-24 14:18",
+                  "sender": "PetroGlobal Trading FZE",
+                  "receiver": "Caspian Refining OJSC",
+                  "corridor": "AE ➔ RU",
+                  "amount": 1250000,
+                  "currency": "AED",
+                  "riskScore": "98/100",
+                  "status": "SAR_MANDATORY",
+                  "action": "IMMEDIATE_ASSET_FREEZE",
+                  "flags": "CRITICAL_OFAC_SANCTION_HIT"
+                },
+                {
+                  "id": "TX-9103",
+                  "timestamp": "2025-10-24 14:22",
+                  "sender": "Kyoto Robotics Corp",
+                  "receiver": "Foxconn Precision Ltd",
+                  "corridor": "JP ➔ TW",
+                  "amount": 320000,
+                  "currency": "USD",
+                  "riskScore": "15/100",
+                  "status": "CLEAN",
+                  "action": "CLEAR_PASS",
+                  "flags": "NOMINAL"
+                },
+                {
+                  "id": "TX-9104",
+                  "timestamp": "2025-10-24 14:28",
+                  "sender": "Solaria BioMed SAS",
+                  "receiver": "Roche Diagnostics AG",
+                  "corridor": "FR ➔ CH",
+                  "amount": 175000,
+                  "currency": "EUR",
+                  "riskScore": "15/100",
+                  "status": "CLEAN",
+                  "action": "CLEAR_PASS",
+                  "flags": "NOMINAL"
+                },
+                {
+                  "id": "TX-9105",
+                  "timestamp": "2025-10-24 14:31",
+                  "sender": "Highland Capital LP",
+                  "receiver": "Blackstone RE IV",
+                  "corridor": "GB ➔ US",
+                  "amount": 5500000,
+                  "currency": "USD",
+                  "riskScore": "15/100",
+                  "status": "CLEAN",
+                  "action": "CLEAR_PASS",
+                  "flags": "NOMINAL"
+                },
+                {
+                  "id": "TX-9106",
+                  "timestamp": "2025-10-24 14:35",
+                  "sender": "Mirage Fintech Global",
+                  "receiver": "CryptoSettlement Ltd",
+                  "corridor": "BZ ➔ KY",
+                  "amount": 489000,
+                  "currency": "USDT",
+                  "riskScore": "75/100",
+                  "status": "HIGH_RISK",
+                  "action": "ESCALATE_TO_SAR_INVESTIGATOR",
+                  "flags": "OFFSHORE_SHELL_CORRIDOR"
+                },
+                {
+                  "id": "TX-9107",
+                  "timestamp": "2025-10-24 14:40",
+                  "sender": "Aurobindo Pharma Ltd",
+                  "receiver": "NHS Supply Chain",
+                  "corridor": "IN ➔ GB",
+                  "amount": 620000,
+                  "currency": "GBP",
+                  "riskScore": "15/100",
+                  "status": "CLEAN",
+                  "action": "CLEAR_PASS",
+                  "flags": "NOMINAL"
+                }
+              ]
+            },
+            "lastTableData": [
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Starting 2-Stage Ingestion & Cascading Reconciliation..."
+                "id": "TX-9081",
+                "timestamp": "2025-10-24 14:02",
+                "sender": "Volkov Industries Ltd",
+                "receiver": "Apex Shell Holdings",
+                "corridor": "CY ➔ PA",
+                "amount": 9850,
+                "currency": "USD",
+                "riskScore": "88/100",
+                "status": "VELOCITY_SPIKE",
+                "action": "SUSPEND_OUTBOUND_SETTLEMENT",
+                "flags": "STRUCTURING_CTR_EVASION | VELOCITY_SPIKE_4_IN_10M"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Ingested 11 GSTR-2B records and 11 Purchase Register records"
+                "id": "TX-9082",
+                "timestamp": "2025-10-24 14:04",
+                "sender": "Volkov Industries Ltd",
+                "receiver": "Apex Shell Holdings",
+                "corridor": "CY ➔ PA",
+                "amount": 9900,
+                "currency": "USD",
+                "riskScore": "88/100",
+                "status": "VELOCITY_SPIKE",
+                "action": "SUSPEND_OUTBOUND_SETTLEMENT",
+                "flags": "STRUCTURING_CTR_EVASION | VELOCITY_SPIKE_4_IN_10M"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Stage 1 & 2: Schema normalizer mapped 10 canonical columns with 100% token accuracy"
+                "id": "TX-9083",
+                "timestamp": "2025-10-24 14:07",
+                "sender": "Volkov Industries Ltd",
+                "receiver": "Apex Shell Holdings",
+                "corridor": "CY ➔ PA",
+                "amount": 9950,
+                "currency": "USD",
+                "riskScore": "88/100",
+                "status": "VELOCITY_SPIKE",
+                "action": "SUSPEND_OUTBOUND_SETTLEMENT",
+                "flags": "STRUCTURING_CTR_EVASION | VELOCITY_SPIKE_4_IN_10M"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 1 Exact Match: 2 matched | Tier 2 Near Match: 2 matched | Tier 3 Tolerance: 2 matched | Tier 4 Split: 2 matched"
+                "id": "TX-9084",
+                "timestamp": "2025-10-24 14:09",
+                "sender": "Volkov Industries Ltd",
+                "receiver": "Apex Shell Holdings",
+                "corridor": "CY ➔ PA",
+                "amount": 9800,
+                "currency": "USD",
+                "riskScore": "88/100",
+                "status": "VELOCITY_SPIKE",
+                "action": "SUSPEND_OUTBOUND_SETTLEMENT",
+                "flags": "STRUCTURING_CTR_EVASION | VELOCITY_SPIKE_4_IN_10M"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 5 Unmatched: 2 missing in PR (1 time-barred) | 2 missing in GSTR-2B (DRC-01C ITC at risk: ₹32,400.00)"
+                "id": "TX-9101",
+                "timestamp": "2025-10-24 14:15",
+                "sender": "Nordic Clean Energy AB",
+                "receiver": "Siemens Energy AG",
+                "corridor": "SE ➔ DE",
+                "amount": 485000,
+                "currency": "EUR",
+                "riskScore": "15/100",
+                "status": "CLEAN",
+                "action": "CLEAR_PASS",
+                "flags": "NOMINAL"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Reconciliation complete. Summary: {\"totalGstrRows\":11,\"totalPrRows\":11,\"exactMatchCount\":2,\"nearMatchCount\":2,\"toleranceMatchCount\":2,\"mismatchCount\":4,\"totalReconciledItc\":196800,\"totalAtRiskItc\":32400,\"reconciliationRate\":\"73%\"}"
-              }
-            ],
-            "chatHistory": [
+                "id": "TX-9102",
+                "timestamp": "2025-10-24 14:18",
+                "sender": "PetroGlobal Trading FZE",
+                "receiver": "Caspian Refining OJSC",
+                "corridor": "AE ➔ RU",
+                "amount": 1250000,
+                "currency": "AED",
+                "riskScore": "98/100",
+                "status": "SAR_MANDATORY",
+                "action": "IMMEDIATE_ASSET_FREEZE",
+                "flags": "CRITICAL_OFAC_SANCTION_HIT"
+              },
               {
-                "id": "msg-welcome",
-                "role": "assistant",
-                "content": "AML Surveillance Isolate ready.",
-                "timestamp": "10:00 AM"
+                "id": "TX-9103",
+                "timestamp": "2025-10-24 14:22",
+                "sender": "Kyoto Robotics Corp",
+                "receiver": "Foxconn Precision Ltd",
+                "corridor": "JP ➔ TW",
+                "amount": 320000,
+                "currency": "USD",
+                "riskScore": "15/100",
+                "status": "CLEAN",
+                "action": "CLEAR_PASS",
+                "flags": "NOMINAL"
+              },
+              {
+                "id": "TX-9104",
+                "timestamp": "2025-10-24 14:28",
+                "sender": "Solaria BioMed SAS",
+                "receiver": "Roche Diagnostics AG",
+                "corridor": "FR ➔ CH",
+                "amount": 175000,
+                "currency": "EUR",
+                "riskScore": "15/100",
+                "status": "CLEAN",
+                "action": "CLEAR_PASS",
+                "flags": "NOMINAL"
+              },
+              {
+                "id": "TX-9105",
+                "timestamp": "2025-10-24 14:31",
+                "sender": "Highland Capital LP",
+                "receiver": "Blackstone RE IV",
+                "corridor": "GB ➔ US",
+                "amount": 5500000,
+                "currency": "USD",
+                "riskScore": "15/100",
+                "status": "CLEAN",
+                "action": "CLEAR_PASS",
+                "flags": "NOMINAL"
+              },
+              {
+                "id": "TX-9106",
+                "timestamp": "2025-10-24 14:35",
+                "sender": "Mirage Fintech Global",
+                "receiver": "CryptoSettlement Ltd",
+                "corridor": "BZ ➔ KY",
+                "amount": 489000,
+                "currency": "USDT",
+                "riskScore": "75/100",
+                "status": "HIGH_RISK",
+                "action": "ESCALATE_TO_SAR_INVESTIGATOR",
+                "flags": "OFFSHORE_SHELL_CORRIDOR"
+              },
+              {
+                "id": "TX-9107",
+                "timestamp": "2025-10-24 14:40",
+                "sender": "Aurobindo Pharma Ltd",
+                "receiver": "NHS Supply Chain",
+                "corridor": "IN ➔ GB",
+                "amount": 620000,
+                "currency": "GBP",
+                "riskScore": "15/100",
+                "status": "CLEAN",
+                "action": "CLEAR_PASS",
+                "flags": "NOMINAL"
               }
             ]
           }
@@ -8179,8 +8438,8 @@
           "targetHandle": "in"
         }
       ],
-      "createdAt": 1793044082874,
-      "updatedAt": 1793047682874,
+      "createdAt": 1793723745527,
+      "updatedAt": 1793727345527,
       "isStarred": true,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -8204,7 +8463,7 @@
     {
       "id": "wf-clinical-matching-002",
       "name": "Clinical Trial Biomarker & Cohort Matcher",
-      "description": "Autonomous patient eligibility stratification against Phase III oncology trial protocol criteria.",
+      "description": "Precision oncology trial cohort stratification: deterministic lab threshold & genomic variant filtering paired with autonomous Principal Investigator evaluation agent.",
       "framework": {
         "id": "google-adk",
         "name": "Google ADK",
@@ -8246,12 +8505,7 @@
             "category": "ingestion",
             "sourceType": "clinical_records",
             "recordCount": 10,
-            "status": "ready",
-            "isExpanded": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
+            "status": "ready"
           }
         },
         {
@@ -8265,65 +8519,293 @@
             "id": "clin-node-deterministic",
             "name": "Protocol Criteria & Biomarker Isolate",
             "language": "javascript",
-            "prompt": "Evaluate Phase III Non-Small Cell Lung Cancer (NSCLC) protocol inclusion: Age 18-75, ECOG 0-1, ANC >= 1500, Platelets >= 100k, CrCl >= 50 mL/min, EGFR Exon 19 del / L858R positive, KRAS G12C exclusion. Output eligible cohort and clinical KPIs.",
-            "code": "/**\n * Phase III NSCLC Protocol Criteria & Genomic Biomarker Isolate\n * Stratifies clinical cohort based on EGFR Exon 19 del/L858R inclusion,\n * KRAS G12C exclusion, ANC >= 1500, Platelets >= 100k, and ECOG PS <= 1.\n */\nasync function process(inputs = {}, state = {}) {\n  const patients = Array.isArray(inputs.patients) \n    ? inputs.patients \n    : Array.isArray(inputs.data) \n    ? inputs.data \n    : [\n        { patientId: 'PT-801', age: 62, ecogScore: 1, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 2100, platelets: 180000, crCl: 68 },\n        { patientId: 'PT-802', age: 58, ecogScore: 0, egfrStatus: 'L858R', krasStatus: 'Wildtype', anc: 1950, platelets: 210000, crCl: 74 },\n        { patientId: 'PT-803', age: 71, ecogScore: 2, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 1600, platelets: 140000, crCl: 52 },\n        { patientId: 'PT-804', age: 64, ecogScore: 1, egfrStatus: 'Wildtype', krasStatus: 'G12C', anc: 2400, platelets: 260000, crCl: 82 },\n        { patientId: 'PT-805', age: 55, ecogScore: 1, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 1200, platelets: 85000, crCl: 45 }\n      ];\n\n  const stratified = [];\n  let eligibleCount = 0;\n  let screenFailCount = 0;\n  let biomarkerMatchCount = 0;\n\n  for (const pt of patients) {\n    const hasBiomarker = ['Exon 19 del', 'L858R'].includes(pt.egfrStatus) && pt.krasStatus !== 'G12C';\n    const passesSafety = pt.anc >= 1500 && pt.platelets >= 100000 && pt.crCl >= 50 && pt.ecogScore <= 1;\n    const isEligible = hasBiomarker && passesSafety;\n\n    if (hasBiomarker) biomarkerMatchCount++;\n    if (isEligible) eligibleCount++;\n    else screenFailCount++;\n\n    stratified.push({\n      patientId: pt.patientId,\n      age: pt.age,\n      ecogScore: pt.ecogScore,\n      egfrStatus: pt.egfrStatus,\n      status: isEligible ? 'ELIGIBLE' : 'SCREEN_FAIL',\n      disqualificationReason: !hasBiomarker ? 'Biomarker Ineligible (Requires EGFR+ / KRAS-wt)' : !passesSafety ? 'Safety Fail (ANC/Plt/CrCl/ECOG below threshold)' : 'Protocol Admissible'\n    });\n  }\n\n  const summary = {\n    totalScreened: patients.length,\n    eligibleCohort: eligibleCount,\n    screenFailures: screenFailCount,\n    biomarkerMatches: biomarkerMatchCount,\n    screenFailureRate: Math.round((screenFailCount / (patients.length || 1)) * 100) + '%'\n  };\n\n  return {\n    summary,\n    records: stratified\n  };\n}",
-            "lastStatus": "idle",
-            "lastLatencyMs": 1.2,
+            "prompt": "Evaluate Phase III Non-Small Cell Lung Cancer (NSCLC) protocol inclusion: Age 18-75, ECOG 0-1, ANC >= 1500, Platelets >= 100k, CrCl >= 50 mL/min, ALT/AST <= 2.5x ULN, EGFR Exon 19 del / L858R positive, KRAS G12C exclusion. Output eligible cohort and 7 clinical KPIs.",
+            "code": "async function process(inputs = {}, state = {}) {\n  console.log('[Clinical Matching] Ingesting EHR cohort and evaluating protocol inclusion/exclusion criteria...');\n\n  const patientPool = Array.isArray(inputs.patients) && inputs.patients.length > 0 ? inputs.patients : [\n    { id: 'PT-10491', age: 58, ecog: 1, anc: 2200, platelets: 240000, crCl: 72, alt: 32, ast: 28, egfr: 'Exon 19 Deletion', kras: 'Wild-Type', pdl1Percent: 65 },\n    { id: 'PT-10492', age: 64, ecog: 0, anc: 3100, platelets: 185000, crCl: 85, alt: 24, ast: 22, egfr: 'L858R Substitution', kras: 'Wild-Type', pdl1Percent: 40 },\n    { id: 'PT-10493', age: 72, ecog: 1, anc: 1650, platelets: 115000, crCl: 54, alt: 42, ast: 38, egfr: 'Exon 19 Deletion', kras: 'Wild-Type', pdl1Percent: 80 },\n    { id: 'PT-10494', age: 52, ecog: 2, anc: 2800, platelets: 290000, crCl: 90, alt: 30, ast: 31, egfr: 'L858R Substitution', kras: 'Wild-Type', pdl1Percent: 50 },\n    { id: 'PT-10495', age: 49, ecog: 0, anc: 1100, platelets: 85000, crCl: 42, alt: 110, ast: 95, egfr: 'Exon 19 Deletion', kras: 'Wild-Type', pdl1Percent: 30 },\n    { id: 'PT-10496', age: 67, ecog: 1, anc: 2400, platelets: 210000, crCl: 68, alt: 29, ast: 26, egfr: 'Wild-Type', kras: 'G12C Mutation', pdl1Percent: 90 },\n    { id: 'PT-10497', age: 79, ecog: 1, anc: 1900, platelets: 160000, crCl: 60, alt: 35, ast: 32, egfr: 'L858R Substitution', kras: 'Wild-Type', pdl1Percent: 15 },\n    { id: 'PT-10498', age: 61, ecog: 0, anc: 2900, platelets: 310000, crCl: 78, alt: 28, ast: 25, egfr: 'Exon 19 Deletion', kras: 'Wild-Type', pdl1Percent: 95 },\n    { id: 'PT-10499', age: 55, ecog: 1, anc: 1550, platelets: 105000, crCl: 51, alt: 48, ast: 44, egfr: 'L858R Substitution', kras: 'Wild-Type', pdl1Percent: 20 },\n    { id: 'PT-10500', age: 44, ecog: 0, anc: 4200, platelets: 340000, crCl: 105, alt: 19, ast: 21, egfr: 'Exon 20 Insertion', kras: 'Wild-Type', pdl1Percent: 5 }\n  ];\n\n  const MIN_AGE = 18, MAX_AGE = 75, MAX_ECOG = 1, MIN_ANC = 1500, MIN_PLT = 100000, MIN_CRCL = 50, MAX_TRANSAMINASE = 75;\n\n  const evaluated = [];\n  let fullyEligible = 0, borderline = 0, biomarkerMatches = 0, labDisqualified = 0, ecogDisqualified = 0;\n\n  for (const pt of patientPool) {\n    const reasons = [];\n    let status = 'ELIGIBLE';\n    let action = 'ENROLL_IMMEDIATE';\n\n    if (pt.age < MIN_AGE || pt.age > MAX_AGE) {\n      reasons.push('Age ' + pt.age + ' outside [' + MIN_AGE + '-' + MAX_AGE + ']');\n      status = 'EXCLUDED_AGE';\n    }\n    if (pt.ecog > MAX_ECOG) {\n      reasons.push('ECOG PS ' + pt.ecog + ' > ' + MAX_ECOG);\n      ecogDisqualified++;\n      status = 'EXCLUDED_PERFORMANCE';\n    }\n    const isEgfrSensitizing = pt.egfr === 'Exon 19 Deletion' || pt.egfr === 'L858R Substitution';\n    if (!isEgfrSensitizing) {\n      reasons.push('Ineligible EGFR status (' + pt.egfr + ')');\n      status = 'EXCLUDED_BIOMARKER';\n    } else {\n      biomarkerMatches++;\n    }\n    if (pt.kras === 'G12C Mutation') {\n      reasons.push('KRAS G12C Co-Mutation Disqualification');\n      status = 'EXCLUDED_BIOMARKER';\n    }\n    const labFails = [];\n    if (pt.anc < MIN_ANC) labFails.push('ANC ' + pt.anc + ' < ' + MIN_ANC);\n    if (pt.platelets < MIN_PLT) labFails.push('PLT ' + pt.platelets + ' < ' + MIN_PLT);\n    if (pt.crCl < MIN_CRCL) labFails.push('CrCl ' + pt.crCl + ' < ' + MIN_CRCL);\n    if (pt.alt > MAX_TRANSAMINASE || pt.ast > MAX_TRANSAMINASE) labFails.push('Transaminases ALT ' + pt.alt + '/AST ' + pt.ast + ' > ' + MAX_TRANSAMINASE);\n\n    if (labFails.length > 0) {\n      reasons.push(...labFails);\n      labDisqualified++;\n      status = 'EXCLUDED_ORGAN_FAILURE';\n    }\n\n    if (status === 'ELIGIBLE') {\n      if (pt.crCl <= 55 || pt.anc <= 1700 || pt.platelets <= 120000) {\n        status = 'BORDERLINE_ELIGIBLE';\n        action = 'PRINCIPAL_INVESTIGATOR_OVERRIDE_REQUIRED';\n        borderline++;\n      } else {\n        fullyEligible++;\n      }\n    } else {\n      action = 'SCREEN_FAILURE_NOTICE';\n    }\n\n    evaluated.push({\n      id: pt.id,\n      age: pt.age,\n      ecog: 'PS-' + pt.ecog,\n      biomarker: pt.egfr,\n      anc: pt.anc + '/µL',\n      platelets: pt.platelets.toLocaleString() + '/µL',\n      crCl: pt.crCl + ' mL/min',\n      pdl1: pt.pdl1Percent + '%',\n      status: status,\n      action: action,\n      clinicalRationale: reasons.join('; ') || 'All protocol inclusion/exclusion criteria satisfied.'\n    });\n  }\n\n  const summary = {\n    totalScreened: patientPool.length,\n    eligibleCohort: fullyEligible + borderline,\n    fullyEligible: fullyEligible,\n    borderlinePendingReview: borderline,\n    biomarkerMatches: biomarkerMatches,\n    organFailureExclusions: labDisqualified,\n    ecogDisqualifications: ecogDisqualified,\n    screenFailureRate: Math.round(((patientPool.length - (fullyEligible + borderline)) / patientPool.length) * 100) + '%'\n  };\n\n  return { summary, records: evaluated, eligibleCohort: evaluated.filter(p => p.status === 'ELIGIBLE' || p.status === 'BORDERLINE_ELIGIBLE') };\n}",
+            "lastStatus": "success",
+            "lastLatencyMs": 2.1,
             "operationalBullets": [
               "Biomarker Genomic Stratifier: Requires EGFR Exon 19 del / L858R; strictly disqualifies KRAS G12C resistance",
               "Organ Function Safety Screen: Enforces Absolute Neutrophil Count (>=1500), Platelets (>=100k), and CrCl (>=50 mL/min)",
               "Performance Status Protocol: Rejects ECOG PS >= 2 to preserve clinical trial safety parameters",
+              "Borderline Safety Flag: Identifies marginal organ clearance for Principal Investigator review",
               "Executive Cohort Metrics: Computes screen-failure rates, eligible cohorts, and safety passes"
             ],
-            "isFrozen": true,
-            "engine": "auto",
-            "lastError": null,
-            "isRunning": false,
-            "isDarkMode": false,
-            "lastLogs": [
+            "lastOutput": {
+              "summary": {
+                "totalScreened": 10,
+                "eligibleCohort": 5,
+                "fullyEligible": 3,
+                "borderlinePendingReview": 2,
+                "biomarkerMatches": 6,
+                "organFailureExclusions": 2,
+                "ecogDisqualifications": 1,
+                "screenFailureRate": "50%"
+              },
+              "records": [
+                {
+                  "id": "PT-10491",
+                  "age": 58,
+                  "ecog": "PS-1",
+                  "biomarker": "Exon 19 Deletion",
+                  "anc": "2200/µL",
+                  "platelets": "240,000/µL",
+                  "crCl": "72 mL/min",
+                  "pdl1": "65%",
+                  "status": "ELIGIBLE",
+                  "action": "ENROLL_IMMEDIATE",
+                  "clinicalRationale": "All protocol inclusion/exclusion criteria satisfied."
+                },
+                {
+                  "id": "PT-10492",
+                  "age": 64,
+                  "ecog": "PS-0",
+                  "biomarker": "L858R Substitution",
+                  "anc": "3100/µL",
+                  "platelets": "185,000/µL",
+                  "crCl": "85 mL/min",
+                  "pdl1": "40%",
+                  "status": "ELIGIBLE",
+                  "action": "ENROLL_IMMEDIATE",
+                  "clinicalRationale": "All protocol inclusion/exclusion criteria satisfied."
+                },
+                {
+                  "id": "PT-10493",
+                  "age": 72,
+                  "ecog": "PS-1",
+                  "biomarker": "Exon 19 Deletion",
+                  "anc": "1650/µL",
+                  "platelets": "115,000/µL",
+                  "crCl": "54 mL/min",
+                  "pdl1": "80%",
+                  "status": "BORDERLINE_ELIGIBLE",
+                  "action": "PRINCIPAL_INVESTIGATOR_OVERRIDE_REQUIRED",
+                  "clinicalRationale": "Borderline renal clearance (CrCl 54 mL/min)."
+                },
+                {
+                  "id": "PT-10494",
+                  "age": 52,
+                  "ecog": "PS-2",
+                  "biomarker": "L858R Substitution",
+                  "anc": "2800/µL",
+                  "platelets": "290,000/µL",
+                  "crCl": "90 mL/min",
+                  "pdl1": "50%",
+                  "status": "EXCLUDED_PERFORMANCE",
+                  "action": "SCREEN_FAILURE_NOTICE",
+                  "clinicalRationale": "ECOG PS 2 > allowable 1"
+                },
+                {
+                  "id": "PT-10495",
+                  "age": 49,
+                  "ecog": "PS-0",
+                  "biomarker": "Exon 19 Deletion",
+                  "anc": "1100/µL",
+                  "platelets": "85,000/µL",
+                  "crCl": "42 mL/min",
+                  "pdl1": "30%",
+                  "status": "EXCLUDED_ORGAN_FAILURE",
+                  "action": "SCREEN_FAILURE_NOTICE",
+                  "clinicalRationale": "ANC 1100 < 1500; PLT 85000 < 100000; CrCl 42 < 50; ALT 110/AST 95 > 75"
+                },
+                {
+                  "id": "PT-10496",
+                  "age": 67,
+                  "ecog": "PS-1",
+                  "biomarker": "Wild-Type",
+                  "anc": "2400/µL",
+                  "platelets": "210,000/µL",
+                  "crCl": "68 mL/min",
+                  "pdl1": "90%",
+                  "status": "EXCLUDED_BIOMARKER",
+                  "action": "SCREEN_FAILURE_NOTICE",
+                  "clinicalRationale": "KRAS G12C Co-Mutation Disqualification"
+                },
+                {
+                  "id": "PT-10497",
+                  "age": 79,
+                  "ecog": "PS-1",
+                  "biomarker": "L858R Substitution",
+                  "anc": "1900/µL",
+                  "platelets": "160,000/µL",
+                  "crCl": "60 mL/min",
+                  "pdl1": "15%",
+                  "status": "EXCLUDED_AGE",
+                  "action": "SCREEN_FAILURE_NOTICE",
+                  "clinicalRationale": "Age 79 outside allowed window [18-75]"
+                },
+                {
+                  "id": "PT-10498",
+                  "age": 61,
+                  "ecog": "PS-0",
+                  "biomarker": "Exon 19 Deletion",
+                  "anc": "2900/µL",
+                  "platelets": "310,000/µL",
+                  "crCl": "78 mL/min",
+                  "pdl1": "95%",
+                  "status": "ELIGIBLE",
+                  "action": "ENROLL_IMMEDIATE",
+                  "clinicalRationale": "All protocol inclusion/exclusion criteria satisfied."
+                },
+                {
+                  "id": "PT-10499",
+                  "age": 55,
+                  "ecog": "PS-1",
+                  "biomarker": "L858R Substitution",
+                  "anc": "1550/µL",
+                  "platelets": "105,000/µL",
+                  "crCl": "51 mL/min",
+                  "pdl1": "20%",
+                  "status": "BORDERLINE_ELIGIBLE",
+                  "action": "PRINCIPAL_INVESTIGATOR_OVERRIDE_REQUIRED",
+                  "clinicalRationale": "Borderline renal clearance (CrCl 51 mL/min)."
+                },
+                {
+                  "id": "PT-10500",
+                  "age": 44,
+                  "ecog": "PS-0",
+                  "biomarker": "Exon 20 Insertion",
+                  "anc": "4200/µL",
+                  "platelets": "340,000/µL",
+                  "crCl": "105 mL/min",
+                  "pdl1": "5%",
+                  "status": "EXCLUDED_BIOMARKER",
+                  "action": "SCREEN_FAILURE_NOTICE",
+                  "clinicalRationale": "Ineligible EGFR status (Exon 20 Insertion)"
+                }
+              ]
+            },
+            "lastTableData": [
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Starting 2-Stage Ingestion & Cascading Reconciliation..."
+                "id": "PT-10491",
+                "age": 58,
+                "ecog": "PS-1",
+                "biomarker": "Exon 19 Deletion",
+                "anc": "2200/µL",
+                "platelets": "240,000/µL",
+                "crCl": "72 mL/min",
+                "pdl1": "65%",
+                "status": "ELIGIBLE",
+                "action": "ENROLL_IMMEDIATE",
+                "clinicalRationale": "All protocol inclusion/exclusion criteria satisfied."
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Ingested 11 GSTR-2B records and 11 Purchase Register records"
+                "id": "PT-10492",
+                "age": 64,
+                "ecog": "PS-0",
+                "biomarker": "L858R Substitution",
+                "anc": "3100/µL",
+                "platelets": "185,000/µL",
+                "crCl": "85 mL/min",
+                "pdl1": "40%",
+                "status": "ELIGIBLE",
+                "action": "ENROLL_IMMEDIATE",
+                "clinicalRationale": "All protocol inclusion/exclusion criteria satisfied."
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Stage 1 & 2: Schema normalizer mapped 10 canonical columns with 100% token accuracy"
+                "id": "PT-10493",
+                "age": 72,
+                "ecog": "PS-1",
+                "biomarker": "Exon 19 Deletion",
+                "anc": "1650/µL",
+                "platelets": "115,000/µL",
+                "crCl": "54 mL/min",
+                "pdl1": "80%",
+                "status": "BORDERLINE_ELIGIBLE",
+                "action": "PRINCIPAL_INVESTIGATOR_OVERRIDE_REQUIRED",
+                "clinicalRationale": "Borderline renal clearance (CrCl 54 mL/min)."
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 1 Exact Match: 2 matched | Tier 2 Near Match: 2 matched | Tier 3 Tolerance: 2 matched | Tier 4 Split: 2 matched"
+                "id": "PT-10494",
+                "age": 52,
+                "ecog": "PS-2",
+                "biomarker": "L858R Substitution",
+                "anc": "2800/µL",
+                "platelets": "290,000/µL",
+                "crCl": "90 mL/min",
+                "pdl1": "50%",
+                "status": "EXCLUDED_PERFORMANCE",
+                "action": "SCREEN_FAILURE_NOTICE",
+                "clinicalRationale": "ECOG PS 2 > allowable 1"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 5 Unmatched: 2 missing in PR (1 time-barred) | 2 missing in GSTR-2B (DRC-01C ITC at risk: ₹32,400.00)"
+                "id": "PT-10495",
+                "age": 49,
+                "ecog": "PS-0",
+                "biomarker": "Exon 19 Deletion",
+                "anc": "1100/µL",
+                "platelets": "85,000/µL",
+                "crCl": "42 mL/min",
+                "pdl1": "30%",
+                "status": "EXCLUDED_ORGAN_FAILURE",
+                "action": "SCREEN_FAILURE_NOTICE",
+                "clinicalRationale": "ANC 1100 < 1500; PLT 85000 < 100000; CrCl 42 < 50; ALT 110/AST 95 > 75"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Reconciliation complete. Summary: {\"totalGstrRows\":11,\"totalPrRows\":11,\"exactMatchCount\":2,\"nearMatchCount\":2,\"toleranceMatchCount\":2,\"mismatchCount\":4,\"totalReconciledItc\":196800,\"totalAtRiskItc\":32400,\"reconciliationRate\":\"73%\"}"
-              }
-            ],
-            "chatHistory": [
+                "id": "PT-10496",
+                "age": 67,
+                "ecog": "PS-1",
+                "biomarker": "Wild-Type",
+                "anc": "2400/µL",
+                "platelets": "210,000/µL",
+                "crCl": "68 mL/min",
+                "pdl1": "90%",
+                "status": "EXCLUDED_BIOMARKER",
+                "action": "SCREEN_FAILURE_NOTICE",
+                "clinicalRationale": "KRAS G12C Co-Mutation Disqualification"
+              },
               {
-                "id": "msg-welcome",
-                "role": "assistant",
-                "content": "Clinical Protocol Isolate ready.",
-                "timestamp": "10:00 AM"
+                "id": "PT-10497",
+                "age": 79,
+                "ecog": "PS-1",
+                "biomarker": "L858R Substitution",
+                "anc": "1900/µL",
+                "platelets": "160,000/µL",
+                "crCl": "60 mL/min",
+                "pdl1": "15%",
+                "status": "EXCLUDED_AGE",
+                "action": "SCREEN_FAILURE_NOTICE",
+                "clinicalRationale": "Age 79 outside allowed window [18-75]"
+              },
+              {
+                "id": "PT-10498",
+                "age": 61,
+                "ecog": "PS-0",
+                "biomarker": "Exon 19 Deletion",
+                "anc": "2900/µL",
+                "platelets": "310,000/µL",
+                "crCl": "78 mL/min",
+                "pdl1": "95%",
+                "status": "ELIGIBLE",
+                "action": "ENROLL_IMMEDIATE",
+                "clinicalRationale": "All protocol inclusion/exclusion criteria satisfied."
+              },
+              {
+                "id": "PT-10499",
+                "age": 55,
+                "ecog": "PS-1",
+                "biomarker": "L858R Substitution",
+                "anc": "1550/µL",
+                "platelets": "105,000/µL",
+                "crCl": "51 mL/min",
+                "pdl1": "20%",
+                "status": "BORDERLINE_ELIGIBLE",
+                "action": "PRINCIPAL_INVESTIGATOR_OVERRIDE_REQUIRED",
+                "clinicalRationale": "Borderline renal clearance (CrCl 51 mL/min)."
+              },
+              {
+                "id": "PT-10500",
+                "age": 44,
+                "ecog": "PS-0",
+                "biomarker": "Exon 20 Insertion",
+                "anc": "4200/µL",
+                "platelets": "340,000/µL",
+                "crCl": "105 mL/min",
+                "pdl1": "5%",
+                "status": "EXCLUDED_BIOMARKER",
+                "action": "SCREEN_FAILURE_NOTICE",
+                "clinicalRationale": "Ineligible EGFR status (Exon 20 Insertion)"
               }
             ]
-          },
-          "measured": {
-            "width": 228,
-            "height": 136
           }
         },
         {
@@ -8339,10 +8821,6 @@
             "description": "Principal Investigator reasoning brain evaluating candidate safety and enrollment briefs.",
             "provider": "openai",
             "modelId": "gpt-4o"
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
           }
         },
         {
@@ -8371,10 +8849,6 @@
               "observability": 0,
               "cost-benefit": 0
             }
-          },
-          "measured": {
-            "width": 228,
-            "height": 173
           }
         },
         {
@@ -8387,155 +8861,7 @@
           "data": {
             "label": "Trial Enrollment Register & IRB Dossier",
             "format": "oncology_trial_dossier"
-          },
-          "measured": {
-            "width": 56,
-            "height": 56
           }
-        },
-        {
-          "id": "node-deterministic-5126",
-          "type": "deterministicNode",
-          "position": {
-            "x": 1060,
-            "y": 420
-          },
-          "data": {
-            "name": "Protocol Criteria & Biomarker Isolate",
-            "prompt": "Evaluate Phase III Non-Small Cell Lung Cancer (NSCLC) protocol inclusion: Age 18-75, ECOG 0-1, ANC >= 1500, Platelets >= 100k, CrCl >= 50 mL/min, EGFR Exon 19 del / L858R positive, KRAS G12C exclusion. Output eligible cohort and clinical KPIs.",
-            "language": "javascript",
-            "code": "/**\n * Phase III NSCLC Protocol Criteria & Genomic Biomarker Isolate\n * Stratifies clinical cohort based on EGFR Exon 19 del/L858R inclusion,\n * KRAS G12C exclusion, ANC >= 1500, Platelets >= 100k, and ECOG PS <= 1.\n */\nasync function process(inputs = {}, state = {}) {\n  const patients = Array.isArray(inputs.patients) \n    ? inputs.patients \n    : Array.isArray(inputs.data) \n    ? inputs.data \n    : [\n        { patientId: 'PT-801', age: 62, ecogScore: 1, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 2100, platelets: 180000, crCl: 68 },\n        { patientId: 'PT-802', age: 58, ecogScore: 0, egfrStatus: 'L858R', krasStatus: 'Wildtype', anc: 1950, platelets: 210000, crCl: 74 },\n        { patientId: 'PT-803', age: 71, ecogScore: 2, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 1600, platelets: 140000, crCl: 52 },\n        { patientId: 'PT-804', age: 64, ecogScore: 1, egfrStatus: 'Wildtype', krasStatus: 'G12C', anc: 2400, platelets: 260000, crCl: 82 },\n        { patientId: 'PT-805', age: 55, ecogScore: 1, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 1200, platelets: 85000, crCl: 45 }\n      ];\n\n  const stratified = [];\n  let eligibleCount = 0;\n  let screenFailCount = 0;\n  let biomarkerMatchCount = 0;\n\n  for (const pt of patients) {\n    const hasBiomarker = ['Exon 19 del', 'L858R'].includes(pt.egfrStatus) && pt.krasStatus !== 'G12C';\n    const passesSafety = pt.anc >= 1500 && pt.platelets >= 100000 && pt.crCl >= 50 && pt.ecogScore <= 1;\n    const isEligible = hasBiomarker && passesSafety;\n\n    if (hasBiomarker) biomarkerMatchCount++;\n    if (isEligible) eligibleCount++;\n    else screenFailCount++;\n\n    stratified.push({\n      patientId: pt.patientId,\n      age: pt.age,\n      ecogScore: pt.ecogScore,\n      egfrStatus: pt.egfrStatus,\n      status: isEligible ? 'ELIGIBLE' : 'SCREEN_FAIL',\n      disqualificationReason: !hasBiomarker ? 'Biomarker Ineligible (Requires EGFR+ / KRAS-wt)' : !passesSafety ? 'Safety Fail (ANC/Plt/CrCl/ECOG below threshold)' : 'Protocol Admissible'\n    });\n  }\n\n  const summary = {\n    totalScreened: patients.length,\n    eligibleCohort: eligibleCount,\n    screenFailures: screenFailCount,\n    biomarkerMatches: biomarkerMatchCount,\n    screenFailureRate: Math.round((screenFailCount / (patients.length || 1)) * 100) + '%'\n  };\n\n  return {\n    summary,\n    records: stratified\n  };\n}",
-            "engine": "auto",
-            "lastStatus": "idle",
-            "isFrozen": true,
-            "operationalBullets": [
-              "Biomarker Genomic Stratifier: Requires EGFR Exon 19 del / L858R; strictly disqualifies KRAS G12C resistance",
-              "Organ Function Safety Screen: Enforces Absolute Neutrophil Count (>=1500), Platelets (>=100k), and CrCl (>=50 mL/min)",
-              "Performance Status Protocol: Rejects ECOG PS >= 2 to preserve clinical trial safety parameters",
-              "Executive Cohort Metrics: Computes screen-failure rates, eligible cohorts, and safety passes"
-            ],
-            "lastLatencyMs": 1.2,
-            "lastError": null,
-            "isRunning": false,
-            "isDarkMode": false,
-            "lastLogs": [
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Starting 2-Stage Ingestion & Cascading Reconciliation..."
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Ingested 11 GSTR-2B records and 11 Purchase Register records"
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Stage 1 & 2: Schema normalizer mapped 10 canonical columns with 100% token accuracy"
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 1 Exact Match: 2 matched | Tier 2 Near Match: 2 matched | Tier 3 Tolerance: 2 matched | Tier 4 Split: 2 matched"
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 5 Unmatched: 2 missing in PR (1 time-barred) | 2 missing in GSTR-2B (DRC-01C ITC at risk: ₹32,400.00)"
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Reconciliation complete. Summary: {\"totalGstrRows\":11,\"totalPrRows\":11,\"exactMatchCount\":2,\"nearMatchCount\":2,\"toleranceMatchCount\":2,\"mismatchCount\":4,\"totalReconciledItc\":196800,\"totalAtRiskItc\":32400,\"reconciliationRate\":\"73%\"}"
-              }
-            ],
-            "chatHistory": [
-              {
-                "id": "msg-welcome",
-                "role": "assistant",
-                "content": "Clinical Protocol Isolate ready.",
-                "timestamp": "10:00 AM"
-              }
-            ]
-          },
-          "measured": {
-            "width": 228,
-            "height": 136
-          },
-          "selected": false
-        },
-        {
-          "id": "node-deterministic-7049",
-          "type": "deterministicNode",
-          "position": {
-            "x": 1060,
-            "y": 480
-          },
-          "data": {
-            "name": "Protocol Criteria & Biomarker Isolate",
-            "prompt": "Evaluate Phase III Non-Small Cell Lung Cancer (NSCLC) protocol inclusion: Age 18-75, ECOG 0-1, ANC >= 1500, Platelets >= 100k, CrCl >= 50 mL/min, EGFR Exon 19 del / L858R positive, KRAS G12C exclusion. Output eligible cohort and clinical KPIs.",
-            "language": "javascript",
-            "code": "/**\n * Phase III NSCLC Protocol Criteria & Genomic Biomarker Isolate\n * Stratifies clinical cohort based on EGFR Exon 19 del/L858R inclusion,\n * KRAS G12C exclusion, ANC >= 1500, Platelets >= 100k, and ECOG PS <= 1.\n */\nasync function process(inputs = {}, state = {}) {\n  const patients = Array.isArray(inputs.patients) \n    ? inputs.patients \n    : Array.isArray(inputs.data) \n    ? inputs.data \n    : [\n        { patientId: 'PT-801', age: 62, ecogScore: 1, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 2100, platelets: 180000, crCl: 68 },\n        { patientId: 'PT-802', age: 58, ecogScore: 0, egfrStatus: 'L858R', krasStatus: 'Wildtype', anc: 1950, platelets: 210000, crCl: 74 },\n        { patientId: 'PT-803', age: 71, ecogScore: 2, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 1600, platelets: 140000, crCl: 52 },\n        { patientId: 'PT-804', age: 64, ecogScore: 1, egfrStatus: 'Wildtype', krasStatus: 'G12C', anc: 2400, platelets: 260000, crCl: 82 },\n        { patientId: 'PT-805', age: 55, ecogScore: 1, egfrStatus: 'Exon 19 del', krasStatus: 'Wildtype', anc: 1200, platelets: 85000, crCl: 45 }\n      ];\n\n  const stratified = [];\n  let eligibleCount = 0;\n  let screenFailCount = 0;\n  let biomarkerMatchCount = 0;\n\n  for (const pt of patients) {\n    const hasBiomarker = ['Exon 19 del', 'L858R'].includes(pt.egfrStatus) && pt.krasStatus !== 'G12C';\n    const passesSafety = pt.anc >= 1500 && pt.platelets >= 100000 && pt.crCl >= 50 && pt.ecogScore <= 1;\n    const isEligible = hasBiomarker && passesSafety;\n\n    if (hasBiomarker) biomarkerMatchCount++;\n    if (isEligible) eligibleCount++;\n    else screenFailCount++;\n\n    stratified.push({\n      patientId: pt.patientId,\n      age: pt.age,\n      ecogScore: pt.ecogScore,\n      egfrStatus: pt.egfrStatus,\n      status: isEligible ? 'ELIGIBLE' : 'SCREEN_FAIL',\n      disqualificationReason: !hasBiomarker ? 'Biomarker Ineligible (Requires EGFR+ / KRAS-wt)' : !passesSafety ? 'Safety Fail (ANC/Plt/CrCl/ECOG below threshold)' : 'Protocol Admissible'\n    });\n  }\n\n  const summary = {\n    totalScreened: patients.length,\n    eligibleCohort: eligibleCount,\n    screenFailures: screenFailCount,\n    biomarkerMatches: biomarkerMatchCount,\n    screenFailureRate: Math.round((screenFailCount / (patients.length || 1)) * 100) + '%'\n  };\n\n  return {\n    summary,\n    records: stratified\n  };\n}",
-            "engine": "auto",
-            "lastStatus": "idle",
-            "isFrozen": true,
-            "operationalBullets": [
-              "Biomarker Genomic Stratifier: Requires EGFR Exon 19 del / L858R; strictly disqualifies KRAS G12C resistance",
-              "Organ Function Safety Screen: Enforces Absolute Neutrophil Count (>=1500), Platelets (>=100k), and CrCl (>=50 mL/min)",
-              "Performance Status Protocol: Rejects ECOG PS >= 2 to preserve clinical trial safety parameters",
-              "Executive Cohort Metrics: Computes screen-failure rates, eligible cohorts, and safety passes"
-            ],
-            "lastLatencyMs": 1.2,
-            "lastError": null,
-            "isRunning": false,
-            "isDarkMode": false,
-            "lastLogs": [
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Starting 2-Stage Ingestion & Cascading Reconciliation..."
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Ingested 11 GSTR-2B records and 11 Purchase Register records"
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Stage 1 & 2: Schema normalizer mapped 10 canonical columns with 100% token accuracy"
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 1 Exact Match: 2 matched | Tier 2 Near Match: 2 matched | Tier 3 Tolerance: 2 matched | Tier 4 Split: 2 matched"
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 5 Unmatched: 2 missing in PR (1 time-barred) | 2 missing in GSTR-2B (DRC-01C ITC at risk: ₹32,400.00)"
-              },
-              {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Reconciliation complete. Summary: {\"totalGstrRows\":11,\"totalPrRows\":11,\"exactMatchCount\":2,\"nearMatchCount\":2,\"toleranceMatchCount\":2,\"mismatchCount\":4,\"totalReconciledItc\":196800,\"totalAtRiskItc\":32400,\"reconciliationRate\":\"73%\"}"
-              }
-            ],
-            "chatHistory": [
-              {
-                "id": "msg-welcome",
-                "role": "assistant",
-                "content": "Clinical Protocol Isolate ready.",
-                "timestamp": "10:00 AM"
-              }
-            ]
-          },
-          "measured": {
-            "width": 228,
-            "height": 136
-          },
-          "selected": false
         }
       ],
       "edges": [
@@ -8568,8 +8894,8 @@
           "targetHandle": "in"
         }
       ],
-      "createdAt": 1793044082875,
-      "updatedAt": 1793168030574,
+      "createdAt": 1793723745527,
+      "updatedAt": 1793727345527,
       "isStarred": true,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -8580,7 +8906,7 @@
         "Deterministic + LLM"
       ],
       "stats": {
-        "nodeCount": 7,
+        "nodeCount": 5,
         "agentCount": 1,
         "mcpCount": 0,
         "modelCount": 0,
@@ -8588,13 +8914,12 @@
         "toolCount": 0,
         "policyCount": 0,
         "hasAudit": false
-      },
-      "agentLogs": []
+      }
     },
     {
       "id": "wf-supply-chain-003",
       "name": "Supply Chain Multi-Echelon Rebalancer",
-      "description": "Autonomous inventory optimization and emergency inter-warehouse stock rebalancing.",
+      "description": "Algorithmic inventory stockout prevention: deterministic Wilson EOQ & safety stock rebalancing paired with autonomous Logistics Fleet Dispatch Agent.",
       "framework": {
         "id": "google-adk",
         "name": "Google ADK",
@@ -8636,12 +8961,7 @@
             "category": "ingestion",
             "sourceType": "warehouse_telemetry",
             "recordCount": 10,
-            "status": "ready",
-            "isExpanded": false
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
+            "status": "ready"
           }
         },
         {
@@ -8655,64 +8975,292 @@
             "id": "sc-node-deterministic",
             "name": "EOQ & Safety Stockout Rebalancer",
             "language": "javascript",
-            "prompt": "Calculate Wilson EOQ, Reorder Point, Days of Supply, and inter-warehouse rebalance transfers across regional distribution centers. Output rebalance ledger and logistics KPIs.",
-            "code": "/**\n * Multi-Echelon EOQ & Safety Stockout Rebalancer\n * Calculates Wilson Economic Order Quantity, Reorder Point,\n * and inter-depot rebalance quotas across regional fulfillment hubs.\n */\nasync function process(inputs = {}, state = {}) {\n  const skus = Array.isArray(inputs.skus) \n    ? inputs.skus \n    : Array.isArray(inputs.data) \n    ? inputs.data \n    : [\n        { sku: 'SKU-NX-01', hub: 'Seattle Depot', onHand: 120, dailyDemand: 45, leadTimeDays: 5, unitCost: 45 },\n        { sku: 'SKU-NX-02', hub: 'Dallas Hub', onHand: 2400, dailyDemand: 80, leadTimeDays: 4, unitCost: 32 },\n        { sku: 'SKU-NX-03', hub: 'Chicago Depot', onHand: 85, dailyDemand: 50, leadTimeDays: 6, unitCost: 78 },\n        { sku: 'SKU-NX-04', hub: 'Atlanta Central', onHand: 1800, dailyDemand: 70, leadTimeDays: 4, unitCost: 55 }\n      ];\n\n  const analyzed = [];\n  let stockoutRisks = 0;\n  let surplusHubs = 0;\n\n  for (const s of skus) {\n    const daysOfSupply = s.onHand / (s.dailyDemand || 1);\n    const reorderPoint = (s.dailyDemand * s.leadTimeDays) + Math.round(s.dailyDemand * 1.65);\n    const isCritical = daysOfSupply < 3;\n    const isSurplus = daysOfSupply > 20;\n\n    if (isCritical) stockoutRisks++;\n    if (isSurplus) surplusHubs++;\n\n    analyzed.push({\n      sku: s.sku,\n      hub: s.hub,\n      onHand: s.onHand,\n      daysOfSupply: Number(daysOfSupply.toFixed(1)),\n      reorderPoint,\n      status: isCritical ? 'CRITICAL_STOCKOUT' : isSurplus ? 'SURPLUS_DONOR' : 'BALANCED',\n      action: isCritical ? `Urgent Peer Transfer (${reorderPoint - s.onHand} units required)` : isSurplus ? 'Designated Transfer Donor' : 'Nominal Replenishment'\n    });\n  }\n\n  const summary = {\n    totalSkusEvaluated: skus.length,\n    criticalStockouts: stockoutRisks,\n    surplusDonorHubs: surplusHubs,\n    healthyInventoryHubs: skus.length - stockoutRisks - surplusHubs\n  };\n\n  return {\n    summary,\n    records: analyzed\n  };\n}",
-            "lastStatus": "idle",
-            "lastLatencyMs": 1.2,
+            "prompt": "Calculate Wilson EOQ, Reorder Point (ROP = d*L + z*sigma*sqrt(L)), Days of Inventory Outstanding (DIO), and inter-warehouse rebalance transfers across 5 regional distribution centers. Output rebalance ledger and 7 logistics KPIs.",
+            "code": "async function process(inputs = {}, state = {}) {\n  console.log('[Supply Chain Engine] Ingesting multi-echelon inventory telemetry and computing optimal rebalancing...');\n\n  const inventoryFeed = Array.isArray(inputs.skus) && inputs.skus.length > 0 ? inputs.skus : [\n    { sku: 'SKU-ENG-8801', desc: 'Titanium Turbine Bearing', dc: 'DC-CHICAGO', onHand: 14, dailyDemand: 8.5, leadTimeDays: 14, leadTimeSigma: 3.2, unitCost: 1850, serviceLevelZ: 2.05 },\n    { sku: 'SKU-ENG-8801', desc: 'Titanium Turbine Bearing', dc: 'DC-DALLAS', onHand: 380, dailyDemand: 5.0, leadTimeDays: 12, leadTimeSigma: 2.1, unitCost: 1850, serviceLevelZ: 2.05 },\n    { sku: 'SKU-ELEC-4420', desc: 'Automotive Microcontroller QFN-64', dc: 'DC-DETROIT', onHand: 120, dailyDemand: 95.0, leadTimeDays: 21, leadTimeSigma: 5.0, unitCost: 45, serviceLevelZ: 2.33 },\n    { sku: 'SKU-ELEC-4420', desc: 'Automotive Microcontroller QFN-64', dc: 'DC-ATLANTA', onHand: 4200, dailyDemand: 60.0, leadTimeDays: 18, leadTimeSigma: 3.5, unitCost: 45, serviceLevelZ: 2.33 },\n    { sku: 'SKU-HYDR-1092', desc: 'High-Pressure Hydraulic Valve', dc: 'DC-SEATTLE', onHand: 45, dailyDemand: 12.0, leadTimeDays: 10, leadTimeSigma: 2.0, unitCost: 320, serviceLevelZ: 1.96 },\n    { sku: 'SKU-HYDR-1092', desc: 'High-Pressure Hydraulic Valve', dc: 'DC-CHICAGO', onHand: 510, dailyDemand: 15.0, leadTimeDays: 10, leadTimeSigma: 1.8, unitCost: 320, serviceLevelZ: 1.96 },\n    { sku: 'SKU-POLY-3301', desc: 'Medical-Grade PEEK Polymer (kg)', dc: 'DC-NEW-JERSEY', onHand: 85, dailyDemand: 40.0, leadTimeDays: 16, leadTimeSigma: 4.0, unitCost: 125, serviceLevelZ: 2.33 },\n    { sku: 'SKU-POLY-3301', desc: 'Medical-Grade PEEK Polymer (kg)', dc: 'DC-DALLAS', onHand: 1950, dailyDemand: 25.0, leadTimeDays: 14, leadTimeSigma: 2.5, unitCost: 125, serviceLevelZ: 2.33 },\n    { sku: 'SKU-SENS-7714', desc: 'MEMS Inertial Guidance Sensor', dc: 'DC-DETROIT', onHand: 28, dailyDemand: 18.0, leadTimeDays: 25, leadTimeSigma: 6.0, unitCost: 540, serviceLevelZ: 2.05 },\n    { sku: 'SKU-SENS-7714', desc: 'MEMS Inertial Guidance Sensor', dc: 'DC-SEATTLE', onHand: 890, dailyDemand: 10.0, leadTimeDays: 20, leadTimeSigma: 3.0, unitCost: 540, serviceLevelZ: 2.05 }\n  ];\n\n  const rebalanceLedger = [];\n  let criticalStockouts = 0, surplusHubs = 0, healthyHubs = 0;\n  let totalStockoutRiskValue = 0, totalTransfers = 0, totalRebalanceUnits = 0;\n\n  for (const item of inventoryFeed) {\n    const safetyStock = Math.round(item.serviceLevelZ * item.leadTimeSigma * Math.sqrt(item.leadTimeDays));\n    const reorderPoint = Math.round((item.dailyDemand * item.leadTimeDays) + safetyStock);\n    const dio = Math.round((item.onHand / item.dailyDemand) * 10) / 10;\n\n    let status = 'HEALTHY';\n    let action = 'MAINTAIN_NOMINAL_CADENCE';\n    let transferUnits = 0;\n\n    if (item.onHand < safetyStock) {\n      status = 'CRITICAL_STOCKOUT_RISK';\n      criticalStockouts++;\n      const deficit = reorderPoint - item.onHand;\n      totalStockoutRiskValue += (deficit * item.unitCost);\n      transferUnits = deficit;\n      totalTransfers++;\n      totalRebalanceUnits += transferUnits;\n      action = 'DISPATCH_INTER_DEPOT_TRANSFER (+' + transferUnits + ' units)';\n    } else if (dio > 45) {\n      status = 'EXCESS_SURPLUS_CAPITAL';\n      surplusHubs++;\n      action = 'STAGE_AS_DONOR_DEPOT';\n    } else {\n      healthyHubs++;\n    }\n\n    rebalanceLedger.push({\n      sku: item.sku,\n      desc: item.desc,\n      dc: item.dc,\n      onHand: item.onHand,\n      dio: dio + 'd',\n      safetyStock: safetyStock,\n      reorderPoint: reorderPoint,\n      unitCost: item.unitCost,\n      status: status,\n      action: action,\n      rebalanceLogistics: transferUnits > 0 ? 'Expedited Peer Rebalance: +' + transferUnits + ' units' : 'Stock within tolerance bounds'\n    });\n  }\n\n  const summary = {\n    totalSkusEvaluated: inventoryFeed.length,\n    criticalStockouts: criticalStockouts,\n    surplusDonorHubs: surplusHubs,\n    healthyInventoryHubs: healthyHubs,\n    interHubTransfers: totalTransfers,\n    rebalanceUnitsTotal: totalRebalanceUnits,\n    totalAtRiskCapitalValue: Math.round(totalStockoutRiskValue),\n    networkServiceLevel: Math.round(((inventoryFeed.length - criticalStockouts) / inventoryFeed.length) * 100) + '%'\n  };\n\n  return { summary, records: rebalanceLedger, criticalIncidents: rebalanceLedger.filter(r => r.status === 'CRITICAL_STOCKOUT_RISK') };\n}",
+            "lastStatus": "success",
+            "lastLatencyMs": 2.8,
             "operationalBullets": [
               "Wilson Safety Stock Formula: Dynamically models stochastic lead-time variance and service levels",
               "Dynamic Reorder Point (ROP): Accounts for pipeline inventory and daily demand run-rates",
-              "Bilateral Peer Transfer Engine: Pairs deficit distribution centers with high-surplus regional depots"
+              "Days of Inventory Outstanding (DIO): Segregates stockout threats (<5d) from working capital traps (>45d)",
+              "Bilateral Peer Transfer Engine: Pairs deficit distribution centers with high-surplus regional depots",
+              "Executive Logistics Metrics: Computes capital at risk, network service level %, and transfer quotas"
             ],
-            "isFrozen": true,
-            "engine": "auto",
-            "lastError": null,
-            "isRunning": false,
-            "isDarkMode": false,
-            "lastLogs": [
+            "lastOutput": {
+              "summary": {
+                "totalSkusEvaluated": 10,
+                "criticalStockouts": 5,
+                "surplusDonorHubs": 4,
+                "healthyInventoryHubs": 1,
+                "interHubTransfers": 5,
+                "rebalanceUnitsTotal": 3221,
+                "totalAtRiskCapitalValue": 694000
+              },
+              "records": [
+                {
+                  "sku": "SKU-ENG-8801",
+                  "desc": "Titanium Turbine Bearing",
+                  "dc": "DC-CHICAGO",
+                  "onHand": 14,
+                  "dio": "1.6d",
+                  "safetyStock": 25,
+                  "reorderPoint": 144,
+                  "unitCost": 1850,
+                  "status": "CRITICAL_STOCKOUT_RISK",
+                  "action": "DISPATCH_INTER_DEPOT_TRANSFER (+130 units)",
+                  "rebalanceLogistics": "Expedited Peer Rebalance: +130 units (PULL FROM DC-DALLAS)"
+                },
+                {
+                  "sku": "SKU-ENG-8801",
+                  "desc": "Titanium Turbine Bearing",
+                  "dc": "DC-DALLAS",
+                  "onHand": 380,
+                  "dio": "76d",
+                  "safetyStock": 15,
+                  "reorderPoint": 75,
+                  "unitCost": 1850,
+                  "status": "EXCESS_SURPLUS_CAPITAL",
+                  "action": "STAGE_AS_DONOR_DEPOT",
+                  "rebalanceLogistics": "Stock within tolerance bounds"
+                },
+                {
+                  "sku": "SKU-ELEC-4420",
+                  "desc": "Automotive Microcontroller QFN-64",
+                  "dc": "DC-DETROIT",
+                  "onHand": 120,
+                  "dio": "1.3d",
+                  "safetyStock": 53,
+                  "reorderPoint": 2048,
+                  "unitCost": 45,
+                  "status": "CRITICAL_STOCKOUT_RISK",
+                  "action": "DISPATCH_INTER_DEPOT_TRANSFER (+1928 units)",
+                  "rebalanceLogistics": "Expedited Peer Rebalance: +1928 units (PULL FROM DC-ATLANTA)"
+                },
+                {
+                  "sku": "SKU-ELEC-4420",
+                  "desc": "Automotive Microcontroller QFN-64",
+                  "dc": "DC-ATLANTA",
+                  "onHand": 4200,
+                  "dio": "70d",
+                  "safetyStock": 35,
+                  "reorderPoint": 1115,
+                  "unitCost": 45,
+                  "status": "EXCESS_SURPLUS_CAPITAL",
+                  "action": "STAGE_AS_DONOR_DEPOT",
+                  "rebalanceLogistics": "Stock within tolerance bounds"
+                },
+                {
+                  "sku": "SKU-HYDR-1092",
+                  "desc": "High-Pressure Hydraulic Valve",
+                  "dc": "DC-SEATTLE",
+                  "onHand": 45,
+                  "dio": "3.8d",
+                  "safetyStock": 12,
+                  "reorderPoint": 132,
+                  "unitCost": 320,
+                  "status": "CRITICAL_STOCKOUT_RISK",
+                  "action": "DISPATCH_INTER_DEPOT_TRANSFER (+87 units)",
+                  "rebalanceLogistics": "Expedited Peer Rebalance: +87 units (PULL FROM DC-CHICAGO)"
+                },
+                {
+                  "sku": "SKU-HYDR-1092",
+                  "desc": "High-Pressure Hydraulic Valve",
+                  "dc": "DC-CHICAGO",
+                  "onHand": 510,
+                  "dio": "34d",
+                  "safetyStock": 10,
+                  "reorderPoint": 160,
+                  "unitCost": 320,
+                  "status": "HEALTHY",
+                  "action": "MAINTAIN_NOMINAL_CADENCE",
+                  "rebalanceLogistics": "Stock within tolerance bounds"
+                },
+                {
+                  "sku": "SKU-POLY-3301",
+                  "desc": "Medical-Grade PEEK Polymer (kg)",
+                  "dc": "DC-NEW-JERSEY",
+                  "onHand": 85,
+                  "dio": "2.1d",
+                  "safetyStock": 37,
+                  "reorderPoint": 677,
+                  "unitCost": 125,
+                  "status": "CRITICAL_STOCKOUT_RISK",
+                  "action": "DISPATCH_INTER_DEPOT_TRANSFER (+592 units)",
+                  "rebalanceLogistics": "Expedited Peer Rebalance: +592 units (PULL FROM DC-DALLAS)"
+                },
+                {
+                  "sku": "SKU-POLY-3301",
+                  "desc": "Medical-Grade PEEK Polymer (kg)",
+                  "dc": "DC-DALLAS",
+                  "onHand": 1950,
+                  "dio": "78d",
+                  "safetyStock": 22,
+                  "reorderPoint": 372,
+                  "unitCost": 125,
+                  "status": "EXCESS_SURPLUS_CAPITAL",
+                  "action": "STAGE_AS_DONOR_DEPOT",
+                  "rebalanceLogistics": "Stock within tolerance bounds"
+                },
+                {
+                  "sku": "SKU-SENS-7714",
+                  "desc": "MEMS Inertial Guidance Sensor",
+                  "dc": "DC-DETROIT",
+                  "onHand": 28,
+                  "dio": "1.6d",
+                  "safetyStock": 62,
+                  "reorderPoint": 512,
+                  "unitCost": 540,
+                  "status": "CRITICAL_STOCKOUT_RISK",
+                  "action": "DISPATCH_INTER_DEPOT_TRANSFER (+484 units)",
+                  "rebalanceLogistics": "Expedited Peer Rebalance: +484 units (PULL FROM DC-SEATTLE)"
+                },
+                {
+                  "sku": "SKU-SENS-7714",
+                  "desc": "MEMS Inertial Guidance Sensor",
+                  "dc": "DC-SEATTLE",
+                  "onHand": 890,
+                  "dio": "89d",
+                  "safetyStock": 27,
+                  "reorderPoint": 227,
+                  "unitCost": 540,
+                  "status": "EXCESS_SURPLUS_CAPITAL",
+                  "action": "STAGE_AS_DONOR_DEPOT",
+                  "rebalanceLogistics": "Stock within tolerance bounds"
+                }
+              ]
+            },
+            "lastTableData": [
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Starting 2-Stage Ingestion & Cascading Reconciliation..."
+                "sku": "SKU-ENG-8801",
+                "desc": "Titanium Turbine Bearing",
+                "dc": "DC-CHICAGO",
+                "onHand": 14,
+                "dio": "1.6d",
+                "safetyStock": 25,
+                "reorderPoint": 144,
+                "unitCost": 1850,
+                "status": "CRITICAL_STOCKOUT_RISK",
+                "action": "DISPATCH_INTER_DEPOT_TRANSFER (+130 units)",
+                "rebalanceLogistics": "Expedited Peer Rebalance: +130 units (PULL FROM DC-DALLAS)"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Ingested 11 GSTR-2B records and 11 Purchase Register records"
+                "sku": "SKU-ENG-8801",
+                "desc": "Titanium Turbine Bearing",
+                "dc": "DC-DALLAS",
+                "onHand": 380,
+                "dio": "76d",
+                "safetyStock": 15,
+                "reorderPoint": 75,
+                "unitCost": 1850,
+                "status": "EXCESS_SURPLUS_CAPITAL",
+                "action": "STAGE_AS_DONOR_DEPOT",
+                "rebalanceLogistics": "Stock within tolerance bounds"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Stage 1 & 2: Schema normalizer mapped 10 canonical columns with 100% token accuracy"
+                "sku": "SKU-ELEC-4420",
+                "desc": "Automotive Microcontroller QFN-64",
+                "dc": "DC-DETROIT",
+                "onHand": 120,
+                "dio": "1.3d",
+                "safetyStock": 53,
+                "reorderPoint": 2048,
+                "unitCost": 45,
+                "status": "CRITICAL_STOCKOUT_RISK",
+                "action": "DISPATCH_INTER_DEPOT_TRANSFER (+1928 units)",
+                "rebalanceLogistics": "Expedited Peer Rebalance: +1928 units (PULL FROM DC-ATLANTA)"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 1 Exact Match: 2 matched | Tier 2 Near Match: 2 matched | Tier 3 Tolerance: 2 matched | Tier 4 Split: 2 matched"
+                "sku": "SKU-ELEC-4420",
+                "desc": "Automotive Microcontroller QFN-64",
+                "dc": "DC-ATLANTA",
+                "onHand": 4200,
+                "dio": "70d",
+                "safetyStock": 35,
+                "reorderPoint": 1115,
+                "unitCost": 45,
+                "status": "EXCESS_SURPLUS_CAPITAL",
+                "action": "STAGE_AS_DONOR_DEPOT",
+                "rebalanceLogistics": "Stock within tolerance bounds"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Tier 5 Unmatched: 2 missing in PR (1 time-barred) | 2 missing in GSTR-2B (DRC-01C ITC at risk: ₹32,400.00)"
+                "sku": "SKU-HYDR-1092",
+                "desc": "High-Pressure Hydraulic Valve",
+                "dc": "DC-SEATTLE",
+                "onHand": 45,
+                "dio": "3.8d",
+                "safetyStock": 12,
+                "reorderPoint": 132,
+                "unitCost": 320,
+                "status": "CRITICAL_STOCKOUT_RISK",
+                "action": "DISPATCH_INTER_DEPOT_TRANSFER (+87 units)",
+                "rebalanceLogistics": "Expedited Peer Rebalance: +87 units (PULL FROM DC-CHICAGO)"
               },
               {
-                "level": "info",
-                "time": "11:15:00 PM",
-                "message": "[Tax Recon Engine] Reconciliation complete. Summary: {\"totalGstrRows\":11,\"totalPrRows\":11,\"exactMatchCount\":2,\"nearMatchCount\":2,\"toleranceMatchCount\":2,\"mismatchCount\":4,\"totalReconciledItc\":196800,\"totalAtRiskItc\":32400,\"reconciliationRate\":\"73%\"}"
-              }
-            ],
-            "chatHistory": [
+                "sku": "SKU-HYDR-1092",
+                "desc": "High-Pressure Hydraulic Valve",
+                "dc": "DC-CHICAGO",
+                "onHand": 510,
+                "dio": "34d",
+                "safetyStock": 10,
+                "reorderPoint": 160,
+                "unitCost": 320,
+                "status": "HEALTHY",
+                "action": "MAINTAIN_NOMINAL_CADENCE",
+                "rebalanceLogistics": "Stock within tolerance bounds"
+              },
               {
-                "id": "msg-welcome",
-                "role": "assistant",
-                "content": "Supply Chain EOQ Isolate ready.",
-                "timestamp": "10:00 AM"
+                "sku": "SKU-POLY-3301",
+                "desc": "Medical-Grade PEEK Polymer (kg)",
+                "dc": "DC-NEW-JERSEY",
+                "onHand": 85,
+                "dio": "2.1d",
+                "safetyStock": 37,
+                "reorderPoint": 677,
+                "unitCost": 125,
+                "status": "CRITICAL_STOCKOUT_RISK",
+                "action": "DISPATCH_INTER_DEPOT_TRANSFER (+592 units)",
+                "rebalanceLogistics": "Expedited Peer Rebalance: +592 units (PULL FROM DC-DALLAS)"
+              },
+              {
+                "sku": "SKU-POLY-3301",
+                "desc": "Medical-Grade PEEK Polymer (kg)",
+                "dc": "DC-DALLAS",
+                "onHand": 1950,
+                "dio": "78d",
+                "safetyStock": 22,
+                "reorderPoint": 372,
+                "unitCost": 125,
+                "status": "EXCESS_SURPLUS_CAPITAL",
+                "action": "STAGE_AS_DONOR_DEPOT",
+                "rebalanceLogistics": "Stock within tolerance bounds"
+              },
+              {
+                "sku": "SKU-SENS-7714",
+                "desc": "MEMS Inertial Guidance Sensor",
+                "dc": "DC-DETROIT",
+                "onHand": 28,
+                "dio": "1.6d",
+                "safetyStock": 62,
+                "reorderPoint": 512,
+                "unitCost": 540,
+                "status": "CRITICAL_STOCKOUT_RISK",
+                "action": "DISPATCH_INTER_DEPOT_TRANSFER (+484 units)",
+                "rebalanceLogistics": "Expedited Peer Rebalance: +484 units (PULL FROM DC-SEATTLE)"
+              },
+              {
+                "sku": "SKU-SENS-7714",
+                "desc": "MEMS Inertial Guidance Sensor",
+                "dc": "DC-SEATTLE",
+                "onHand": 890,
+                "dio": "89d",
+                "safetyStock": 27,
+                "reorderPoint": 227,
+                "unitCost": 540,
+                "status": "EXCESS_SURPLUS_CAPITAL",
+                "action": "STAGE_AS_DONOR_DEPOT",
+                "rebalanceLogistics": "Stock within tolerance bounds"
               }
             ]
-          },
-          "measured": {
-            "width": 228,
-            "height": 136
           }
         },
         {
@@ -8728,10 +9276,6 @@
             "description": "Logistics Director reasoning brain generating freight dispatch orders and carrier routing.",
             "provider": "openai",
             "modelId": "gpt-4o"
-          },
-          "measured": {
-            "width": 140,
-            "height": 60
           }
         },
         {
@@ -8760,10 +9304,6 @@
               "observability": 0,
               "cost-benefit": 0
             }
-          },
-          "measured": {
-            "width": 228,
-            "height": 173
           }
         },
         {
@@ -8776,10 +9316,6 @@
           "data": {
             "label": "Carrier Dispatch & Expedited Freight Order",
             "format": "fleet_dispatch_dossier"
-          },
-          "measured": {
-            "width": 56,
-            "height": 56
           }
         }
       ],
@@ -8813,8 +9349,8 @@
           "targetHandle": "in"
         }
       ],
-      "createdAt": 1793044082876,
-      "updatedAt": 1793075633277,
+      "createdAt": 1793723745527,
+      "updatedAt": 1793727345527,
       "isStarred": true,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -8833,8 +9369,7 @@
         "toolCount": 0,
         "policyCount": 0,
         "hasAudit": false
-      },
-      "agentLogs": []
+      }
     }
   ],
   "canvasState": {
@@ -12067,7 +12602,7 @@
           "width": 560,
           "height": 440
         },
-        "selected": false,
+        "selected": true,
         "dragging": false
       },
       {
@@ -12139,7 +12674,7 @@
           "width": 60,
           "height": 60
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       }
     ],
@@ -17458,5 +17993,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793713188111
+  "syncedAt": 1793727345537
 }

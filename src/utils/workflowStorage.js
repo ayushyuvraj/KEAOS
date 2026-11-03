@@ -11,6 +11,50 @@ import { OUTLOOK_OFFICIAL_ACTIONS } from '../constants/mcpOfficialCatalogs';
 
 export const WORKFLOWS_REGISTRY_KEY = 'keaos_workflows_registry';
 export const ACTIVE_WORKFLOW_ID_KEY = 'keaos_active_workflow_id';
+export const DELETED_WORKFLOW_IDS_KEY = 'keaos_deleted_workflow_ids';
+
+/**
+ * Returns a Set of workflow IDs that have been explicitly deleted by the user.
+ * Prevents accidental resurrection from sync, templates, or background processes.
+ */
+export function getDeletedWorkflowIds() {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(DELETED_WORKFLOW_IDS_KEY) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to load deleted workflow IDs:', err);
+  }
+  return new Set();
+}
+
+/**
+ * Permanently registers a workflow ID as deleted in the tombstone ledger.
+ */
+export function markWorkflowAsDeleted(id) {
+  if (!id) return;
+  try {
+    const set = getDeletedWorkflowIds();
+    set.add(id);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DELETED_WORKFLOW_IDS_KEY, JSON.stringify(Array.from(set)));
+    }
+  } catch (err) {
+    console.warn('Failed to persist deleted workflow ID:', err);
+  }
+}
+
+/**
+ * Checks if a workflow ID has been explicitly deleted by the user.
+ */
+export function isWorkflowDeleted(id) {
+  if (!id) return false;
+  return getDeletedWorkflowIds().has(id);
+}
 
 /**
  * Computes architectural topology stats from graph nodes.
@@ -275,7 +319,7 @@ export function createMeetingIntelligenceWorkflow() {
     edges: initialEdges,
     createdAt: Date.now() - 86400000,
     updatedAt: Date.now(),
-    isStarred: true,
+    isStarred: false,
     isLocked: false,
     isWorkflowLocked: false,
     tags: ['Meeting Intelligence', 'Audio Ingestion', 'Summarizer', 'PII Redactor'],
@@ -535,7 +579,7 @@ export function createOutlookStreamWorkflow() {
     edges: initialEdges,
     createdAt: Date.now() - 3600000,
     updatedAt: Date.now(),
-    isStarred: true,
+    isStarred: false,
     isLocked: false,
     isWorkflowLocked: false,
     tags: ['Outlook MCP', 'Attachment Decoding', 'Stream Ingress', 'Tabular Rows'],
@@ -794,7 +838,7 @@ export function createOutlookIntelligenceWorkflow() {
     edges: initialEdges,
     createdAt: Date.now() - 1800000,
     updatedAt: Date.now(),
-    isStarred: true,
+    isStarred: false,
     isLocked: false,
     isWorkflowLocked: false,
     tags: ['Outlook Intelligence', 'MCP Stream', 'Zero-Token Ingress', 'Gateway Enforced'],
@@ -1034,7 +1078,7 @@ export function createAmlSurveillanceWorkflow() {
     edges: initialEdges,
     createdAt: Date.now() - 3600000,
     updatedAt: Date.now(),
-    isStarred: true,
+    isStarred: false,
     isLocked: false,
     isWorkflowLocked: false,
     tags: ['FinTech', 'AML Surveillance', 'Sanctions Screening', 'Deterministic + LLM'],
@@ -1274,7 +1318,7 @@ export function createClinicalBiomarkerWorkflow() {
     edges: initialEdges,
     createdAt: Date.now() - 3600000,
     updatedAt: Date.now(),
-    isStarred: true,
+    isStarred: false,
     isLocked: false,
     isWorkflowLocked: false,
     tags: ['HealthTech', 'Precision Oncology', 'Genomic Biomarkers', 'Deterministic + LLM'],
@@ -1489,7 +1533,7 @@ export function createSupplyChainRebalancerWorkflow() {
     edges: initialEdges,
     createdAt: Date.now() - 3600000,
     updatedAt: Date.now(),
-    isStarred: true,
+    isStarred: false,
     isLocked: false,
     isWorkflowLocked: false,
     tags: ['Logistics', 'Supply Chain Rebalancing', 'Wilson EOQ', 'Deterministic + LLM'],
@@ -1532,7 +1576,7 @@ function createInitialDefaultWorkflow() {
       edges: existingCanvas.edges || [],
       createdAt: Date.now() - 86400000,
       updatedAt: Date.now(),
-      isStarred: true,
+      isStarred: false,
       isLocked: initialLock,
       isWorkflowLocked: initialLock,
       tags: ['Meeting Intelligence', 'Audio Ingestion', 'Summarizer'],
@@ -1614,6 +1658,7 @@ export function getNextUniqueWorkflowName(baseName = 'Untitled Workflow', exclud
  * Cleans legacy placeholder descriptions to blank and enforces case-insensitive name uniqueness.
  */
 export function loadAllWorkflows() {
+  const deletedIds = getDeletedWorkflowIds();
   try {
     const raw = localStorage.getItem(WORKFLOWS_REGISTRY_KEY);
     if (raw) {
@@ -1621,7 +1666,16 @@ export function loadAllWorkflows() {
       if (Array.isArray(parsed) && parsed.length > 0) {
         let registryMutated = false;
 
-        // 1. Clean legacy placeholder descriptions and sanitize node positions & types
+        // 1. Purge any workflow that is marked as deleted in tombstones
+        if (deletedIds.size > 0) {
+          const countBefore = parsed.length;
+          parsed = parsed.filter((w) => w && w.id && !deletedIds.has(w.id));
+          if (parsed.length !== countBefore) {
+            registryMutated = true;
+          }
+        }
+
+        // 2. Clean legacy placeholder descriptions and sanitize node positions & types
         parsed.forEach((w) => {
           if (
             w.description === 'Pristine blank canvas. Connect models, skills, tools, and gateways.' ||
@@ -1655,7 +1709,7 @@ export function loadAllWorkflows() {
           }
         });
 
-        // 2. Enforce case-insensitive name uniqueness across existing registry
+        // 3. Enforce case-insensitive name uniqueness across existing registry
         const seenNames = new Set();
         parsed.forEach((w) => {
           const norm = normalizeWorkflowName(w.name || 'Untitled Workflow');
@@ -1673,40 +1727,8 @@ export function loadAllWorkflows() {
           }
         });
 
-        // 3. Ensure the official Outlook Stream Intelligence template workflow is available in registry
-        if (!parsed.some((w) => w.id === 'wf-outlook-stream-intelligence')) {
-          const outlookWf = createOutlookStreamWorkflow();
-          parsed.push(outlookWf);
-          registryMutated = true;
-        }
-
-        // 4. Ensure the new Outlook Intelligence workflow is available in registry
-        if (!parsed.some((w) => w.id === 'wf-outlook-intelligence')) {
-          const outlookIntelWf = createOutlookIntelligenceWorkflow();
-          parsed.push(outlookIntelWf);
-          registryMutated = true;
-        }
-
-        // 5. Ensure AML Surveillance workflow is available in registry
-        if (!parsed.some((w) => w.id === 'wf-aml-surveillance-001')) {
-          const amlWf = createAmlSurveillanceWorkflow();
-          parsed.push(amlWf);
-          registryMutated = true;
-        }
-
-        // 6. Ensure Clinical Biomarker Matching workflow is available in registry
-        if (!parsed.some((w) => w.id === 'wf-clinical-matching-002')) {
-          const clinWf = createClinicalBiomarkerWorkflow();
-          parsed.push(clinWf);
-          registryMutated = true;
-        }
-
-        // 7. Ensure Supply Chain Rebalancer workflow is available in registry
-        if (!parsed.some((w) => w.id === 'wf-supply-chain-003')) {
-          const scWf = createSupplyChainRebalancerWorkflow();
-          parsed.push(scWf);
-          registryMutated = true;
-        }
+        // NOTE: Auto-resurrection checks for standard workflows (outlook, aml, clinical, supply-chain)
+        // have been permanently removed. If a user deletes a workflow, it stays deleted!
 
         if (registryMutated) {
           try {
@@ -1729,10 +1751,12 @@ export function loadAllWorkflows() {
   const amlWf = createAmlSurveillanceWorkflow();
   const clinWf = createClinicalBiomarkerWorkflow();
   const scWf = createSupplyChainRebalancerWorkflow();
-  const initialList = [initialWf, amlWf, clinWf, scWf, outlookWf, outlookIntelWf];
+  const initialList = [initialWf, amlWf, clinWf, scWf, outlookWf, outlookIntelWf].filter(
+    (w) => w && w.id && !deletedIds.has(w.id)
+  );
   try {
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(initialList));
-    localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, initialWf.id);
+    localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, initialList[0]?.id || initialWf.id);
   } catch (err) {
     console.warn('Failed to seed initial workflow in localStorage:', err);
   }
@@ -1791,6 +1815,10 @@ export function getWorkflowById(id) {
  */
 export function saveWorkflow(workflow) {
   if (!workflow || !workflow.id) return;
+  if (isWorkflowDeleted(workflow.id)) {
+    console.warn(`[saveWorkflow] Blocked saving deleted workflow: ${workflow.id}`);
+    return;
+  }
   const all = loadAllWorkflows();
   const index = all.findIndex((w) => w.id === workflow.id);
   const isLocked = Boolean(workflow.isLocked ?? workflow.isWorkflowLocked ?? false);
@@ -2032,6 +2060,8 @@ export function updateWorkflowMetadata(id, updates = {}) {
  * Deletes a workflow by ID. Safely ensures at least one workflow remains.
  */
 export function deleteWorkflow(id) {
+  if (!id) return { success: false, reason: 'Invalid workflow ID.' };
+
   const all = loadAllWorkflows();
   const target = all.find((w) => w.id === id);
   if (target && (target.isLocked || target.isWorkflowLocked)) {
@@ -2045,15 +2075,24 @@ export function deleteWorkflow(id) {
     return { success: false, reason: 'Cannot delete the only remaining workflow.' };
   }
 
+  // 1. Permanently register in tombstone ledger so it can NEVER be resurrected
+  markWorkflowAsDeleted(id);
+
+  // 2. Filter from the active list
   const filtered = all.filter((w) => w.id !== id);
+
   try {
     localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(filtered));
     const activeId = getActiveWorkflowId();
+    let nextActiveId = activeId;
     if (activeId === id) {
-      setActiveWorkflowId(filtered[0].id);
+      nextActiveId = filtered[0].id;
+      setActiveWorkflowId(nextActiveId);
     }
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('keaos:workspace-changed'));
+      window.dispatchEvent(new CustomEvent('keaos:workspace-changed', {
+        detail: { deletedId: id, nextActiveId }
+      }));
     }
   } catch (err) {
     console.warn('Failed to delete workflow from registry:', err);

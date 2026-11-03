@@ -27,7 +27,8 @@ import {
   setActiveWorkflowId,
   getWorkflowById,
   saveWorkflow,
-  setWorkflowLock
+  setWorkflowLock,
+  isWorkflowDeleted
 } from './utils/workflowStorage';
 import { initWorkspaceSync, initAuditLedgerSync, initAudit2LedgerSync } from './services/workspaceSyncService';
 import { getActiveApiKey } from './services/geminiService';
@@ -986,8 +987,31 @@ export default function App() {
       }
     };
 
+    const handleWorkspaceChanged = (e) => {
+      const deletedId = e?.detail?.deletedId;
+      const nextActiveId = e?.detail?.nextActiveId;
+      if (deletedId) {
+        const targetId = nextActiveId || getActiveWorkflowId();
+        if (targetId && !isWorkflowDeleted(targetId)) {
+          const nextWf = getWorkflowById(targetId);
+          if (nextWf) {
+            setIsWorkflowLockedState(Boolean(nextWf.isLocked ?? nextWf.isWorkflowLocked ?? false));
+            if (nextWf.activeUseCase) {
+              setActiveUseCase(nextWf.activeUseCase);
+              setNodes(nextWf.nodes || []);
+              setEdges(nextWf.edges || []);
+            }
+          }
+        }
+      }
+    };
+
     window.addEventListener('keaos:workspace-synced', handleSynced);
-    return () => window.removeEventListener('keaos:workspace-synced', handleSynced);
+    window.addEventListener('keaos:workspace-changed', handleWorkspaceChanged);
+    return () => {
+      window.removeEventListener('keaos:workspace-synced', handleSynced);
+      window.removeEventListener('keaos:workspace-changed', handleWorkspaceChanged);
+    };
   }, [setNodes, setEdges, setActiveUseCase]);
 
   // Wrapped State Setters with localStorage Persistence
@@ -1187,7 +1211,7 @@ export default function App() {
     const activeId = getActiveWorkflowId();
     if (activeId) {
       const currentWf = getWorkflowById(activeId);
-      if (currentWf) {
+      if (currentWf && !isWorkflowDeleted(currentWf.id)) {
         saveWorkflow({
           ...currentWf,
           name: activeUseCase?.name || currentWf.name,

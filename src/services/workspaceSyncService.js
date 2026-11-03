@@ -7,7 +7,7 @@
  * and browser reloads while preserving all user work.
  */
 
-import { loadAllWorkflows, getActiveWorkflowId, WORKFLOWS_REGISTRY_KEY, ACTIVE_WORKFLOW_ID_KEY, createAmlSurveillanceWorkflow, createClinicalBiomarkerWorkflow, createSupplyChainRebalancerWorkflow } from '../utils/workflowStorage';
+import { loadAllWorkflows, getActiveWorkflowId, WORKFLOWS_REGISTRY_KEY, ACTIVE_WORKFLOW_ID_KEY, getDeletedWorkflowIds } from '../utils/workflowStorage';
 import { loadUIState, loadCanvasState } from '../utils/persistentState';
 import { getRegisteredMcpServers } from './mcpClientService';
 
@@ -30,44 +30,39 @@ export async function initWorkspaceSync() {
       const serverState = await res.json();
 
       if (serverState && Array.isArray(serverState.workflows) && serverState.workflows.length > 0) {
+        const deletedIds = getDeletedWorkflowIds();
+
         // Sanitize all workflow nodes to guarantee valid coordinates and valid pillar types
-        const sanitizedWorkflows = serverState.workflows.map(wf => {
-          if (!wf || !Array.isArray(wf.nodes)) return wf;
-          return {
-            ...wf,
-            nodes: wf.nodes.map((n, idx) => {
-              let nodeType = n.type;
-              if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
-                nodeType = 'pillar';
-              }
-              const safePos = (n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y))
-                ? n.position
-                : { x: 420 + (idx * 40), y: 160 + (idx * 30) };
-              return {
-                ...n,
-                type: nodeType,
-                position: safePos
-              };
-            })
-          };
-        });
+        // AND ensure any workflow marked as deleted by the user is NEVER resurrected
+        const sanitizedWorkflows = serverState.workflows
+          .filter(wf => wf && wf.id && !deletedIds.has(wf.id))
+          .map(wf => {
+            if (!wf || !Array.isArray(wf.nodes)) return wf;
+            return {
+              ...wf,
+              nodes: wf.nodes.map((n, idx) => {
+                let nodeType = n.type;
+                if (nodeType === 'tools' || nodeType === 'model' || nodeType === 'skills' || nodeType === 'policies' || nodeType === 'memory' || nodeType === 'mcp' || nodeType === 'gateway') {
+                  nodeType = 'pillar';
+                }
+                const safePos = (n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number' && !isNaN(n.position.x) && !isNaN(n.position.y))
+                  ? n.position
+                  : { x: 420 + (idx * 40), y: 160 + (idx * 30) };
+                return {
+                  ...n,
+                  type: nodeType,
+                  position: safePos
+                };
+              })
+            };
+          });
 
-        // Ensure all 3 complex agentic workflows are present in workspace
-        try {
-          const amlWf = createAmlSurveillanceWorkflow();
-          const clinWf = createClinicalBiomarkerWorkflow();
-          const scWf = createSupplyChainRebalancerWorkflow();
-          if (!sanitizedWorkflows.some(w => w.id === amlWf.id)) sanitizedWorkflows.push(amlWf);
-          if (!sanitizedWorkflows.some(w => w.id === clinWf.id)) sanitizedWorkflows.push(clinWf);
-          if (!sanitizedWorkflows.some(w => w.id === scWf.id)) sanitizedWorkflows.push(scWf);
-        } catch (e) {
-          console.warn('[Sync] Error ensuring agentic workflows:', e);
-        }
-
-        // Hydrate this browser instance from server disk file
+        // Hydrate this browser instance from server disk file (deleted workflows permanently excluded)
         localStorage.setItem(WORKFLOWS_REGISTRY_KEY, JSON.stringify(sanitizedWorkflows));
-        if (serverState.activeWorkflowId) {
+        if (serverState.activeWorkflowId && !deletedIds.has(serverState.activeWorkflowId)) {
           localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, serverState.activeWorkflowId);
+        } else if (sanitizedWorkflows.length > 0) {
+          localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, sanitizedWorkflows[0].id);
         }
         if (serverState.uiState) {
           localStorage.setItem('keaos_ui_state', JSON.stringify(serverState.uiState));
