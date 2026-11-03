@@ -1,6 +1,94 @@
 [
   {
     "version": "2.0",
+    "runId": "RUN-073730",
+    "traceId": "31b9fbbba836b97be4b86f9853890a28",
+    "rootSpanId": "5f906cbd5641dfb8",
+    "workflowId": "wf-remote-node-remote-3490",
+    "workflowName": "Direct Execution: AP Tester",
+    "frameworkId": "standard",
+    "frameworkName": "Enterprise Agent Framework",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-03T13:37:53.730Z",
+    "completedAt": "2026-11-03T13:39:21.685Z",
+    "durationMs": 87955,
+    "initiator": {
+      "name": "Studio Operator",
+      "role": "Lead Architect",
+      "ingressChannel": "Visual Canvas Editor"
+    },
+    "cryptography": {
+      "rootSha256": "03e35c1cd1b5c9d1ddf70f51c97854beef89300dea9bf28edd78ba6af10889bb",
+      "inputSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "outputSha256": "1cddf94d6f1840cbd39b6512937adef4c5cc2c5b9efff9345959d542ee290aab",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 4684,
+      "promptTokens": 1639,
+      "completionTokens": 3045,
+      "totalCostUsd": 0.0081,
+      "currency": "USD",
+      "spansCount": 1,
+      "componentsCount": 1,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 94,
+      "laborValueSavedUsd": 101.83,
+      "netRoiMultiplier": 12572
+    },
+    "spans": [
+      {
+        "spanId": "cb9dccc8c7fbb5cf",
+        "traceId": "31b9fbbba836b97be4b86f9853890a28",
+        "parentSpanId": "5f906cbd5641dfb8",
+        "name": "FASTAPI: AP Tester",
+        "kind": "CLIENT",
+        "componentType": "remote_agent",
+        "componentId": "node-remote-3490",
+        "componentName": "AP Tester",
+        "startTime": 1793713073731,
+        "endTime": 1793713161681,
+        "durationMs": 87950,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "remote_agent",
+          "component.id": "node-remote-3490",
+          "component.name": "AP Tester",
+          "remote.endpoint": "http://127.0.0.1:8000/api/invoices",
+          "remote.framework": "fastapi",
+          "remote.method": "POST",
+          "remote.host": "Localhost",
+          "input.snippet": "{\"file\":\"IMG-20261103-WA0002.jpg\",\"size\":275451}",
+          "output.snippet": "{\"id\":\"b69a9cec93c1453b9e3efec3cf6a5575\",\"txnId\":\"TXN-2026-004010\",\"caseId\":\"AP-2026-001310\",\"status\":\"Exception\",\"stage\":\"validation\",\"channel\":\"upload\",\"fileName\":\"IMG-20261103-WA0002.jpg\",\"pages\":1,\"receivedAt\":\"03 Nov 2026, 19:07\",\"pipeline\":{\"state\":\"done\",\"step\":10,\"steps\":[\"Reading invoice st",
+          "audit.input_sha256": "f650f6e3ec688c75769ab973d81b5d67d41abcaaaaa52933627f8b91cdddfe8f",
+          "audit.output_sha256": "1cddf94d6f1840cbd39b6512937adef4c5cc2c5b9efff9345959d542ee290aab",
+          "llm.model_name": "gemini-2.5-flash",
+          "llm.provider": "fastapi",
+          "llm.token_count.total": 4684,
+          "llm.token_count.prompt": 1639,
+          "llm.token_count.completion": 3045,
+          "llm.cost_usd": 0.0081,
+          "http.status_code": 202,
+          "http.retries": 0,
+          "telemetry.tier": "tier3_decomposed",
+          "telemetry.stages": "[{\"id\":\"stage-vision-intake\",\"name\":\"Document Vision & OCR Intake (1 Page)\",\"nature\":\"generative\",\"tokens\":1828,\"promptTokens\":1828,\"completionTokens\":0,\"cachedTokens\":0,\"latencyMs\":59805,\"isInput\":true,\"description\":\"Gemini Vision Multimodal tiling: 1 pages × 258 tok + system schema\",\"costUsd\":0.00055,\"pctOfTotal\":7},{\"id\":\"stage-extraction\",\"name\":\"Structured Schema Extraction\",\"nature\":\"generative\",\"tokens\":2776,\"promptTokens\":0,\"completionTokens\":2776,\"cachedTokens\":0,\"latencyMs\":15831,\"isInput\":false,\"description\":\"Structured output: 37 line items, header fields\",\"costUsd\":0.00694,\"pctOfTotal\":91},{\"id\":\"stage-deterministic-rules\",\"name\":\"Compliance & Math Validation Rules (9 Checks)\",\"nature\":\"deterministic\",\"tokens\":0,\"promptTokens\":0,\"completionTokens\":0,\"cachedTokens\":0,\"latencyMs\":3518,\"isInput\":false,\"description\":\"Zero-token algorithmic verification (Duplicate SHA check, GST math, vendor registration)\",\"costUsd\":0,\"pctOfTotal\":0},{\"id\":\"stage-advisory-copilot\",\"name\":\"Decision & Advisory Copilot\",\"nature\":\"generative\",\"tokens\":80,\"promptTokens\":32,\"completionTokens\":48,\"cachedTokens\":0,\"latencyMs\":7036,\"isInput\":false,\"description\":\"Generative advisory narrative & exception recommendation\",\"costUsd\":0.00013,\"pctOfTotal\":2},{\"id\":\"stage-gateway-integration\",\"name\":\"System Ledger & ERP Integration\",\"nature\":\"deterministic\",\"tokens\":0,\"promptTokens\":0,\"completionTokens\":0,\"cachedTokens\":0,\"latencyMs\":1759,\"isInput\":false,\"description\":\"Zero-token gateway transaction (SQLite / Zoho Books staging & timeline mark)\",\"costUsd\":0,\"pctOfTotal\":0}]",
+          "llm.cost.total_usd": 0.00762
+        },
+        "events": []
+      }
+    ],
+    "payload": {
+      "inputSnippet": "{}",
+      "outputSnippet": "{\"id\":\"b69a9cec93c1453b9e3efec3cf6a5575\",\"txnId\":\"TXN-2026-004010\",\"caseId\":\"AP-2026-001310\",\"status\":\"Exception\",\"stage\":\"validation\",\"channel\":\"upload\",\"fileName\":\"IMG-20261103-WA0002.jpg\",\"pages\":1,\"receivedAt\":\"03 Nov 2026, 19:07\",\"pipeline\":{\"state\":\"done\",\"step\":10,\"steps\":[\"Reading invoice structure…\",\"Identifying supplier…\",\"Validating GSTIN…\",\"Inter..."
+    }
+  },
+  {
+    "version": "2.0",
     "runId": "RUN-542365",
     "traceId": "c383f60e847af810e4edee9951f592c1",
     "rootSpanId": "9f52d09e7e38aa67",
