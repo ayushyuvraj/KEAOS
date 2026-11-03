@@ -98,10 +98,13 @@ function getInitialNodesAndEdges(framework = FRAMEWORKS[0]) {
       type: 'ingestionNode',
       position: { x: 474, y: 55 },
       data: {
-        title: 'Universal File & Audio Ingest',
+        title: 'Universal Ingestion Port',
+        files: [],
+        maxFiles: 1,
+        enforceUniformType: false,
+        ingestMode: 'files',
         content: '',
-        status: 'idle',
-        fileType: 'auto',
+        status: 'empty',
         isExpanded: false
       }
     },
@@ -1785,13 +1788,15 @@ export default function App() {
           type: 'ingestionNode',
           position: { x: xPos, y: yPos },
           data: {
-            title: item.name || 'Universal Enterprise Dataset Ingestion',
+            title: item.name || 'Universal Ingestion Port',
+            files: [],
+            maxFiles: item?.config?.maxFiles ?? 1,
+            enforceUniformType: Boolean(item?.config?.enforceUniformType),
+            ingestMode: item?.config?.ingestMode || 'files',
             fileName: '',
             fileSize: '',
-            fileType,
             content: '',
             status: 'empty',
-            ingestMode: item?.config?.ingestMode || (fileType === 'audio' ? 'audio' : fileType === 'text' ? 'text' : 'bilateral'),
             slotA: null,
             slotB: null,
             isExpanded: false

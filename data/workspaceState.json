@@ -3184,7 +3184,7 @@
             "sourceNodeType": null,
             "sourceNodeId": null,
             "sourceNodeName": null,
-            "isExpanded": true,
+            "isExpanded": false,
             "persistenceStrategy": "overwrite",
             "filenamePrefix": "",
             "tokens": 4684,
@@ -3271,86 +3271,53 @@
                   "pctOfTotal": 0
                 }
               ]
-            }
-          },
-          "measured": {
-            "width": 560,
-            "height": 440
-          },
-          "selected": true,
-          "dragging": false
-        },
-        {
-          "id": "node-ingest-5098",
-          "type": "ingestionNode",
-          "position": {
-            "x": 789.451731338344,
-            "y": 393.6356901245371
-          },
-          "data": {
-            "title": "Universal Enterprise Dataset Ingestion",
-            "fileName": "",
-            "fileSize": "",
-            "fileType": "auto",
-            "content": "[DATASET INGESTION: Slot A Loaded]\n\"IMG-20261103-WA0002.jpg\" (1 rows, 1 columns). Awaiting Slot B.",
-            "status": "ready",
-            "ingestMode": "bilateral",
-            "slotA": {
-              "name": "IMG-20261103-WA0002.jpg",
-              "size": "0.26 MB",
-              "rowCount": 1,
-              "columnCount": 1,
-              "columns": [
-                {
-                  "name": "document_binary",
-                  "type": "binary"
-                }
-              ],
-              "sample": [
-                {
-                  "file": "IMG-20261103-WA0002.jpg",
-                  "size": "269.0 KB",
-                  "type": "JPG"
-                }
-              ],
-              "format": "jpg",
-              "key": "img_20261103_wa0002",
-              "isSniffed": false,
-              "rawFile": {}
             },
-            "slotB": null,
-            "isExpanded": false,
-            "rawFile": {},
-            "lastOutput": {
-              "slotA": [
-                {
-                  "file": "IMG-20261103-WA0002.jpg",
-                  "size": "269.0 KB",
-                  "type": "JPG"
-                }
-              ],
-              "img_20261103_wa0002": [
-                {
-                  "file": "IMG-20261103-WA0002.jpg",
-                  "size": "269.0 KB",
-                  "type": "JPG"
-                }
-              ],
-              "data": [
-                {
-                  "file": "IMG-20261103-WA0002.jpg",
-                  "size": "269.0 KB",
-                  "type": "JPG"
-                }
-              ]
-            }
+            "isDarkMode": false
           },
           "measured": {
-            "width": 60,
-            "height": 60
+            "width": 56,
+            "height": 56
           },
           "selected": false,
           "dragging": false
+        },
+        {
+          "id": "node-ingest-7798",
+          "type": "ingestionNode",
+          "position": {
+            "x": 1142.0894175636392,
+            "y": 214.89136209009501
+          },
+          "data": {
+            "title": "Universal Ingestion Port",
+            "files": [],
+            "maxFiles": 1,
+            "enforceUniformType": false,
+            "ingestMode": "bilateral",
+            "fileName": "",
+            "fileSize": "",
+            "content": "",
+            "status": "empty",
+            "slotA": null,
+            "slotB": null,
+            "isExpanded": false,
+            "lastOutput": {
+              "files": [],
+              "count": 0,
+              "slotA": null,
+              "data": null,
+              "slotB": null
+            }
+          },
+          "measured": {
+            "width": 460,
+            "height": 460
+          },
+          "selected": false,
+          "dragging": false,
+          "width": 460,
+          "height": 460,
+          "resizing": false
         }
       ],
       "edges": [
@@ -3373,26 +3340,26 @@
           }
         },
         {
-          "animated": true,
+          "id": "edge-node-ingest-7798-data-out-to-node-remote-3490-policy-in-7800",
+          "source": "node-ingest-7798",
+          "sourceHandle": "data-out",
+          "target": "node-remote-3490",
+          "targetHandle": "policy-in",
           "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#0091DA",
+            "strokeWidth": 2,
+            "strokeDasharray": "4 4"
+          },
           "data": {
             "isToolBinding": false,
             "isBidirectional": false
-          },
-          "source": "node-ingest-5098",
-          "sourceHandle": "tools-out",
-          "target": "node-remote-3490",
-          "targetHandle": "in",
-          "style": {
-            "stroke": "#0091DA",
-            "strokeWidth": 1.8,
-            "strokeDasharray": "4 4"
-          },
-          "id": "xy-edge__node-ingest-5098tools-out-node-remote-3490in"
+          }
         }
       ],
       "createdAt": 1793691016884,
-      "updatedAt": 1793727344717,
+      "updatedAt": 1793734749180,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -8438,8 +8405,8 @@
           "targetHandle": "in"
         }
       ],
-      "createdAt": 1793723745527,
-      "updatedAt": 1793727345527,
+      "createdAt": 1793731149990,
+      "updatedAt": 1793734749990,
       "isStarred": true,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -8894,8 +8861,8 @@
           "targetHandle": "in"
         }
       ],
-      "createdAt": 1793723745527,
-      "updatedAt": 1793727345527,
+      "createdAt": 1793731149990,
+      "updatedAt": 1793734749990,
       "isStarred": true,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -9349,8 +9316,8 @@
           "targetHandle": "in"
         }
       ],
-      "createdAt": 1793723745527,
-      "updatedAt": 1793727345527,
+      "createdAt": 1793731149990,
+      "updatedAt": 1793734749990,
       "isStarred": true,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -12596,86 +12563,53 @@
                 "pctOfTotal": 0
               }
             ]
-          }
-        },
-        "measured": {
-          "width": 560,
-          "height": 440
-        },
-        "selected": true,
-        "dragging": false
-      },
-      {
-        "id": "node-ingest-5098",
-        "type": "ingestionNode",
-        "position": {
-          "x": 789.451731338344,
-          "y": 393.6356901245371
-        },
-        "data": {
-          "title": "Universal Enterprise Dataset Ingestion",
-          "fileName": "",
-          "fileSize": "",
-          "fileType": "auto",
-          "content": "[DATASET INGESTION: Slot A Loaded]\n\"IMG-20261103-WA0002.jpg\" (1 rows, 1 columns). Awaiting Slot B.",
-          "status": "ready",
-          "ingestMode": "bilateral",
-          "slotA": {
-            "name": "IMG-20261103-WA0002.jpg",
-            "size": "0.26 MB",
-            "rowCount": 1,
-            "columnCount": 1,
-            "columns": [
-              {
-                "name": "document_binary",
-                "type": "binary"
-              }
-            ],
-            "sample": [
-              {
-                "file": "IMG-20261103-WA0002.jpg",
-                "size": "269.0 KB",
-                "type": "JPG"
-              }
-            ],
-            "format": "jpg",
-            "key": "img_20261103_wa0002",
-            "isSniffed": false,
-            "rawFile": {}
           },
-          "slotB": null,
-          "isExpanded": false,
-          "rawFile": {},
-          "lastOutput": {
-            "slotA": [
-              {
-                "file": "IMG-20261103-WA0002.jpg",
-                "size": "269.0 KB",
-                "type": "JPG"
-              }
-            ],
-            "img_20261103_wa0002": [
-              {
-                "file": "IMG-20261103-WA0002.jpg",
-                "size": "269.0 KB",
-                "type": "JPG"
-              }
-            ],
-            "data": [
-              {
-                "file": "IMG-20261103-WA0002.jpg",
-                "size": "269.0 KB",
-                "type": "JPG"
-              }
-            ]
-          }
+          "isDarkMode": false
         },
         "measured": {
-          "width": 60,
-          "height": 60
+          "width": 56,
+          "height": 56
         },
         "selected": false,
         "dragging": false
+      },
+      {
+        "id": "node-ingest-7798",
+        "type": "ingestionNode",
+        "position": {
+          "x": 1142.0894175636392,
+          "y": 214.89136209009501
+        },
+        "data": {
+          "title": "Universal Ingestion Port",
+          "files": [],
+          "maxFiles": 1,
+          "enforceUniformType": false,
+          "ingestMode": "bilateral",
+          "fileName": "",
+          "fileSize": "",
+          "content": "",
+          "status": "empty",
+          "slotA": null,
+          "slotB": null,
+          "isExpanded": false,
+          "lastOutput": {
+            "files": [],
+            "count": 0,
+            "slotA": null,
+            "data": null,
+            "slotB": null
+          }
+        },
+        "measured": {
+          "width": 460,
+          "height": 460
+        },
+        "selected": false,
+        "dragging": false,
+        "width": 460,
+        "height": 460,
+        "resizing": false
       }
     ],
     "edges": [
@@ -12698,22 +12632,22 @@
         }
       },
       {
-        "animated": false,
+        "id": "edge-node-ingest-7798-data-out-to-node-remote-3490-policy-in-7800",
+        "source": "node-ingest-7798",
+        "sourceHandle": "data-out",
+        "target": "node-remote-3490",
+        "targetHandle": "policy-in",
         "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#0091DA",
+          "strokeWidth": 2,
+          "strokeDasharray": "4 4"
+        },
         "data": {
           "isToolBinding": false,
           "isBidirectional": false
-        },
-        "source": "node-ingest-5098",
-        "sourceHandle": "tools-out",
-        "target": "node-remote-3490",
-        "targetHandle": "in",
-        "style": {
-          "stroke": "#0091DA",
-          "strokeWidth": 1.8,
-          "strokeDasharray": "4 4"
-        },
-        "id": "xy-edge__node-ingest-5098tools-out-node-remote-3490in"
+        }
       }
     ],
     "activeUseCase": {
@@ -17993,5 +17927,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793727345537
+  "syncedAt": 1793734750000
 }

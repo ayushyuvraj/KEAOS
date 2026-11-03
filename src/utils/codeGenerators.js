@@ -3,7 +3,7 @@ export function generateFrameworkCode(frameworkId, agentConfig, attachments) {
   const modelName = modelNode?.config?.modelId || modelNode?.name || attachments.model?.name || 'gpt-4o';
   const modelTemperature = modelNode?.config?.temperature !== undefined ? modelNode.config.temperature : (agentConfig?.temperature ?? 0.2);
   const systemPrompt = agentConfig.prompt || 'You are an enterprise Meeting Intelligence Assistant.';
-  const hasAudioTool = attachments.tools?.some(t => t.id === 'tool-audio-transcribe' || t.id === 'ingest-audio-stream' || t.id === 'ingest-universal-file' || t.fileType === 'audio');
+  const hasAudioTool = attachments.tools?.some(t => t.id === 'tool-audio-transcribe' || t.id === 'ingest-audio-stream' || t.id === 'ingest-universal-file' || t.fileType === 'audio' || t.ingestMode === 'audio');
   const hasDocTool = attachments.tools?.some(t => t.id === 'tool-doc-parser' || t.id === 'ingest-universal-file' || t.id === 'ingest-raw-text' || t.fileType === 'auto' || t.fileType === 'text');
   const hasPii = attachments.policies?.some(p => p.id === 'pol-pii-masker');
   const connectedMcpServers = Array.isArray(attachments.mcp) ? attachments.mcp : (attachments.mcp ? [attachments.mcp] : []);

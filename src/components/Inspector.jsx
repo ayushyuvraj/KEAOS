@@ -731,9 +731,9 @@ export default function Inspector({
             </div>
           </div>
         ) : isIngest ? (
-          /* Universal Enterprise Dataset Ingestion Port Inspector */
+          /* Universal Ingestion Port Inspector */
           <div className="space-y-4">
-            {/* Top: Status & Mode Selector */}
+            {/* Top: Status, Mode & Limits */}
             <div className={`p-4 ${t.card} space-y-3`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -745,40 +745,49 @@ export default function Inspector({
                       Enterprise Ingestion Port
                     </span>
                     <h5 className={`text-xs font-bold ${t.title}`}>
-                      {nodeData.title || 'Universal Ingestion Engine'}
+                      {nodeData.title || 'Universal Ingestion Port'}
                     </h5>
                   </div>
                 </div>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
-                  nodeData.status === 'ready' || (nodeData.slotA && nodeData.slotB)
-                    ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                    : nodeData.status === 'incomplete' || nodeData.slotA || nodeData.slotB
-                      ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                      : 'bg-blue-500/15 text-[#0091DA] border border-[#0091DA]/30'
-                }`}>
-                  {nodeData.slotA && nodeData.slotB ? '2/2 READY' : (nodeData.slotA || nodeData.slotB) ? '1/2 INCOMPLETE' : (nodeData.status || '0/2 EMPTY')}
-                </span>
+                {(() => {
+                  const currentFiles = nodeData.files || ([nodeData.slotA, nodeData.slotB].filter(Boolean));
+                  const count = currentFiles.length;
+                  const limit = nodeData.maxFiles !== undefined ? nodeData.maxFiles : 1;
+                  const target = limit === 'unlimited' ? '∞' : limit;
+                  const isReady = limit === 'unlimited' ? count >= 1 : count >= limit;
+                  return (
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
+                      isReady
+                        ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                        : count > 0
+                          ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                          : 'bg-blue-500/15 text-[#0091DA] border border-[#0091DA]/30'
+                    }`}>
+                      {nodeData.ingestMode === 'text'
+                        ? (nodeData.content ? 'TEXT READY' : 'EMPTY TEXT')
+                        : `${count}/${target} ${isReady ? 'READY' : count > 0 ? 'PARTIAL' : 'EMPTY'}`}
+                    </span>
+                  );
+                })()}
               </div>
 
-              {/* Mode Selector Tabs */}
+              {/* Mode Selector Tabs (Files & Media vs Raw Direct Text) */}
               <div>
                 <label className={`text-[10px] font-mono ${t.subText} block mb-1.5 uppercase tracking-wider`}>
-                  Ingestion Mode
+                  Intake Stream Type
                 </label>
                 <div className="grid grid-cols-2 gap-1 p-1 bg-black/20 border border-slate-700/30">
                   {[
-                    { id: 'bilateral', label: 'Bilateral (2 Files)' },
-                    { id: 'single', label: 'Single Stream' },
-                    { id: 'audio', label: 'Audio Meeting' },
+                    { id: 'files', label: 'Files & Media' },
                     { id: 'text', label: 'Raw Direct Text' }
                   ].map(m => {
-                    const active = (nodeData.ingestMode || 'bilateral') === m.id;
+                    const active = (nodeData.ingestMode || 'files') === m.id || (nodeData.ingestMode !== 'text' && m.id === 'files');
                     return (
                       <button
                         key={m.id}
                         type="button"
                         onClick={() => onUpdateNodeData(selectedNode.id, { ingestMode: m.id })}
-                        className={`py-1 px-2 text-[10px] font-mono font-medium transition-all cursor-pointer text-center ${
+                        className={`py-1.5 px-2 text-[10px] font-mono font-medium transition-all cursor-pointer text-center ${
                           active
                             ? 'bg-[#0091DA] text-white shadow-xs font-bold'
                             : `${t.subText} hover:text-white hover:bg-white/5`
@@ -791,7 +800,125 @@ export default function Inspector({
                 </div>
               </div>
 
-              {/* Launch Full Surface Button */}
+              {/* Max Files Limit: Stepper + Custom Number Input + Presets */}
+              {(nodeData.ingestMode || 'files') !== 'text' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className={`text-[10px] font-mono ${t.subText} uppercase tracking-wider`}>
+                      Max Files Intake Limit
+                    </label>
+                    <span className="text-[10px] font-mono text-[#0091DA] font-bold">
+                      {(nodeData.maxFiles !== undefined ? nodeData.maxFiles : 1) === 'unlimited' ? 'Unlimited (∞)' : `${nodeData.maxFiles || 1} file(s)`}
+                    </span>
+                  </div>
+
+                  {/* Stepper + Custom Input Row */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center border border-slate-700/50 bg-black/20 overflow-hidden">
+                      <button
+                        type="button"
+                        title="Decrease limit"
+                        disabled={(nodeData.maxFiles !== undefined ? nodeData.maxFiles : 1) === 'unlimited' || Number(nodeData.maxFiles || 1) <= 1}
+                        onClick={() => {
+                          const curr = Number(nodeData.maxFiles || 1);
+                          const next = Math.max(1, curr - 1);
+                          onUpdateNodeData(selectedNode.id, { maxFiles: next });
+                        }}
+                        className="w-7 h-7 flex items-center justify-center text-xs font-bold text-slate-300 hover:bg-white/10 active:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max="500"
+                        value={(nodeData.maxFiles !== undefined ? nodeData.maxFiles : 1) === 'unlimited' ? '' : (nodeData.maxFiles || 1)}
+                        placeholder="∞"
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          if (val === '') {
+                            onUpdateNodeData(selectedNode.id, { maxFiles: 'unlimited' });
+                          } else {
+                            const parsed = parseInt(val, 10);
+                            if (!isNaN(parsed) && parsed >= 1) {
+                              onUpdateNodeData(selectedNode.id, { maxFiles: Math.min(parsed, 500) });
+                            }
+                          }
+                        }}
+                        className={`w-14 h-7 text-center font-mono text-xs font-bold ${t.input} border-0 rounded-none focus:ring-0 focus:outline-none`}
+                      />
+                      <button
+                        type="button"
+                        title="Increase limit"
+                        onClick={() => {
+                          const curr = (nodeData.maxFiles !== undefined ? nodeData.maxFiles : 1) === 'unlimited' ? 1 : Number(nodeData.maxFiles || 1);
+                          const next = Math.min(500, curr + 1);
+                          onUpdateNodeData(selectedNode.id, { maxFiles: next });
+                        }}
+                        className="w-7 h-7 flex items-center justify-center text-xs font-bold text-slate-300 hover:bg-white/10 active:bg-white/20 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Presets */}
+                    <div className="flex items-center gap-1 flex-1">
+                      {[1, 2, 5, 10].map(cnt => {
+                        const isCurrent = Number(nodeData.maxFiles || 1) === cnt && (nodeData.maxFiles !== 'unlimited');
+                        return (
+                          <button
+                            key={cnt}
+                            type="button"
+                            onClick={() => onUpdateNodeData(selectedNode.id, { maxFiles: cnt })}
+                            className={`flex-1 py-1 text-[10px] font-mono font-semibold transition-all cursor-pointer ${
+                              isCurrent
+                                ? 'bg-[#0091DA] text-white shadow-xs font-bold'
+                                : 'bg-black/20 text-slate-400 hover:text-white border border-slate-700/40'
+                            }`}
+                          >
+                            {cnt}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        title="Unlimited intake"
+                        onClick={() => onUpdateNodeData(selectedNode.id, { maxFiles: 'unlimited' })}
+                        className={`px-2 py-1 text-[10px] font-mono font-semibold transition-all cursor-pointer ${
+                          nodeData.maxFiles === 'unlimited'
+                            ? 'bg-[#0091DA] text-white shadow-xs font-bold'
+                            : 'bg-black/20 text-slate-400 hover:text-white border border-slate-700/40'
+                        }`}
+                      >
+                        ∞
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Uniform File Type Enforcement Toggle */}
+              {(nodeData.ingestMode || 'files') !== 'text' && (
+                <div className="pt-1 flex items-center justify-between border-t border-slate-700/30">
+                  <div>
+                    <span className="text-[10px] font-mono text-slate-300 block font-bold">Enforce Uniform File Type</span>
+                    <span className="text-[9px] text-slate-400 block">Require all uploaded files to match the first file type</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateNodeData(selectedNode.id, { enforceUniformType: !nodeData.enforceUniformType })}
+                    className={`px-2 py-1 text-[10px] font-mono font-bold transition-all border cursor-pointer ${
+                      nodeData.enforceUniformType
+                        ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                        : 'bg-black/20 text-slate-400 border-slate-700/40 hover:text-white'
+                    }`}
+                  >
+                    {nodeData.enforceUniformType ? 'UNIFORM: ON' : 'UNIFORM: OFF'}
+                  </button>
+                </div>
+              )}
+
+              {/* Launch Ingestion Studio Button */}
               <button
                 type="button"
                 onClick={() => onUpdateNodeData(selectedNode.id, { isExpanded: true })}
@@ -802,205 +929,102 @@ export default function Inspector({
               </button>
             </div>
 
-            {/* Bilateral Mode Details */}
-            {(nodeData.ingestMode || 'bilateral') === 'bilateral' && (
-              <div className="space-y-3">
-                {/* Slot A Card */}
-                <div className={`p-3.5 ${t.card} space-y-2 border-l-2 ${nodeData.slotA ? 'border-l-emerald-500' : 'border-l-slate-600'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#0091DA]/15 text-[#0091DA] font-bold">
-                        SLOT A
-                      </span>
-                      <span className="text-xs font-bold">Primary Target</span>
-                    </div>
-                    {nodeData.slotA ? (
-                      <button
-                        type="button"
-                        onClick={() => onUpdateNodeData(selectedNode.id, { slotA: null, status: nodeData.slotB ? 'incomplete' : 'empty' })}
-                        className="text-[10px] text-red-400 hover:text-red-300 font-mono hover:underline cursor-pointer"
-                      >
-                        Clear
-                      </button>
-                    ) : (
-                      <span className="text-[10px] font-mono text-slate-500">Unloaded</span>
-                    )}
-                  </div>
-
-                  {nodeData.slotA ? (
-                    <div className="space-y-1.5 text-xs">
-                      <div className="font-mono font-semibold truncate text-[#0091DA]">
-                        {nodeData.slotA.name}
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                        <span>{nodeData.slotA.sizeFormatted || `${Math.round((nodeData.slotA.size || 0) / 1024)} KB`}</span>
-                        <span>•</span>
-                        <span>{nodeData.slotA.rowCount?.toLocaleString()} rows</span>
-                        <span>•</span>
-                        <span>{nodeData.slotA.columnCount} cols</span>
-                      </div>
-                      {nodeData.slotA.isSniffed && (
-                        <div className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Zero-RAM Chunk Sniffed (1M+ row scale ready)</span>
-                        </div>
-                      )}
-                      {nodeData.slotA.columns && nodeData.slotA.columns.length > 0 && (
-                        <div className="pt-1">
-                          <span className="text-[9px] font-mono text-slate-500 block mb-1">
-                            Discovered Schema ({nodeData.slotA.columns.length} columns):
-                          </span>
-                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                            {nodeData.slotA.columns.slice(0, 10).map((col, idx) => (
-                              <span key={idx} className="text-[9px] font-mono px-1.5 py-0.5 bg-black/40 text-slate-300 border border-slate-700/50">
-                                {typeof col === 'string' ? col : col.name}
-                              </span>
-                            ))}
-                            {nodeData.slotA.columns.length > 10 && (
-                              <span className="text-[9px] font-mono text-slate-500 px-1 py-0.5">
-                                +{nodeData.slotA.columns.length - 10} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className={`text-[11px] ${t.subText}`}>
-                      Drop first dataset (.csv, .xlsx) onto canvas node to populate Slot A.
-                    </p>
+            {/* Files & Media Mode: Loaded Files Summary */}
+            {(nodeData.ingestMode || 'files') !== 'text' && (
+              <div className={`p-4 ${t.card} space-y-3`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
+                    Loaded Files Registry ({nodeData.files ? nodeData.files.length : (nodeData.slotA || nodeData.slotB ? [nodeData.slotA, nodeData.slotB].filter(Boolean).length : 0)})
+                  </span>
+                  {(nodeData.files?.length > 0 || nodeData.slotA || nodeData.slotB) && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdateNodeData(selectedNode.id, { files: [], slotA: null, slotB: null, status: 'empty' })}
+                      className="text-[10px] text-red-400 hover:text-red-300 font-mono hover:underline cursor-pointer"
+                    >
+                      Clear All
+                    </button>
                   )}
                 </div>
 
-                {/* Slot B Card */}
-                <div className={`p-3.5 ${t.card} space-y-2 border-l-2 ${nodeData.slotB ? 'border-l-emerald-500' : 'border-l-slate-600'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#6D2077]/15 text-[#6D2077] font-bold">
-                        SLOT B
-                      </span>
-                      <span className="text-xs font-bold">Counterparty Comparison</span>
-                    </div>
-                    {nodeData.slotB ? (
-                      <button
-                        type="button"
-                        onClick={() => onUpdateNodeData(selectedNode.id, { slotB: null, status: nodeData.slotA ? 'incomplete' : 'empty' })}
-                        className="text-[10px] text-red-400 hover:text-red-300 font-mono hover:underline cursor-pointer"
-                      >
-                        Clear
-                      </button>
-                    ) : (
-                      <span className="text-[10px] font-mono text-slate-500">Unloaded</span>
-                    )}
-                  </div>
-
-                  {nodeData.slotB ? (
-                    <div className="space-y-1.5 text-xs">
-                      <div className="font-mono font-semibold truncate text-[#6D2077]">
-                        {nodeData.slotB.name}
+                {(() => {
+                  const filesList = nodeData.files || ([nodeData.slotA, nodeData.slotB].filter(Boolean));
+                  if (!filesList || filesList.length === 0) {
+                    return (
+                      <div className="p-3 bg-black/20 border border-dashed border-slate-700/50 text-center text-xs text-slate-400 font-mono">
+                        No files currently ingested into this port.
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                        <span>{nodeData.slotB.sizeFormatted || `${Math.round((nodeData.slotB.size || 0) / 1024)} KB`}</span>
-                        <span>•</span>
-                        <span>{nodeData.slotB.rowCount?.toLocaleString()} rows</span>
-                        <span>•</span>
-                        <span>{nodeData.slotB.columnCount} cols</span>
-                      </div>
-                      {nodeData.slotB.isSniffed && (
-                        <div className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Zero-RAM Chunk Sniffed (1M+ row scale ready)</span>
-                        </div>
-                      )}
-                      {nodeData.slotB.columns && nodeData.slotB.columns.length > 0 && (
-                        <div className="pt-1">
-                          <span className="text-[9px] font-mono text-slate-500 block mb-1">
-                            Discovered Schema ({nodeData.slotB.columns.length} columns):
-                          </span>
-                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                            {nodeData.slotB.columns.slice(0, 10).map((col, idx) => (
-                              <span key={idx} className="text-[9px] font-mono px-1.5 py-0.5 bg-black/40 text-slate-300 border border-slate-700/50">
-                                {typeof col === 'string' ? col : col.name}
+                    );
+                  }
+                  return (
+                    <div className="space-y-2">
+                      {filesList.map((f, idx) => (
+                        <div key={f.id || idx} className="p-2.5 bg-black/20 border border-slate-700/40 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[9px] font-mono px-1 py-0.5 bg-[#0091DA]/20 text-[#0091DA] font-bold shrink-0">
+                                #{idx + 1}
                               </span>
-                            ))}
-                            {nodeData.slotB.columns.length > 10 && (
-                              <span className="text-[9px] font-mono text-slate-500 px-1 py-0.5">
-                                +{nodeData.slotB.columns.length - 10} more
+                              <span className="text-xs font-mono font-bold truncate text-slate-200">
+                                {f.name}
                               </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newFiles = filesList.filter((_, i) => i !== idx);
+                                onUpdateNodeData(selectedNode.id, {
+                                  files: newFiles,
+                                  slotA: newFiles[0] || null,
+                                  slotB: newFiles[1] || null,
+                                  status: newFiles.length === 0 ? 'empty' : 'ready'
+                                });
+                              }}
+                              className="text-slate-400 hover:text-red-400 transition-colors p-0.5 shrink-0"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                            <span>{f.sizeFormatted || `${Math.round((f.size || 0) / 1024)} KB`}</span>
+                            {f.rowCount !== undefined && (
+                              <>
+                                <span>•</span>
+                                <span>{f.rowCount.toLocaleString()} rows</span>
+                              </>
+                            )}
+                            {f.columnCount !== undefined && (
+                              <>
+                                <span>•</span>
+                                <span>{f.columnCount} cols</span>
+                              </>
+                            )}
+                            {f.category && (
+                              <>
+                                <span>•</span>
+                                <span className="uppercase text-[#0091DA]">{f.category}</span>
+                              </>
                             )}
                           </div>
+                          {f.isSniffed && (
+                            <div className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 shrink-0" />
+                              <span>Zero-RAM Chunk Sniffed (1M+ row scale ready)</span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ) : (
-                    <p className={`text-[11px] ${t.subText}`}>
-                      Drop second dataset (.csv, .xlsx) onto canvas node to populate Slot B.
-                    </p>
-                  )}
-                </div>
-
-                {/* Bilateral Intake Guarantee Note */}
-                <div className="p-3 bg-blue-500/5 border border-blue-500/20 text-[10px] font-mono text-slate-400 space-y-1">
-                  <div className="text-[#0091DA] font-bold flex items-center gap-1">
-                    <Check className="w-3 h-3" />
-                    <span>Bilateral Pipeline Contract Active</span>
-                  </div>
-                  <p>
-                    Reconciliation requires exactly 2 files. Over-intake (&gt;2 files) is rejected with an instant alert. Downstream deterministic scripts receive <code className="text-white">inputs.slotA</code> and <code className="text-white">inputs.slotB</code>.
-                  </p>
-                </div>
+                  );
+                })()}
               </div>
             )}
 
-            {/* Single Stream Mode Details */}
-            {nodeData.ingestMode === 'single' && (
-              <div className={`p-4 ${t.card} space-y-3`}>
-                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
-                  Single Stream Configuration
-                </span>
-                <div>
-                  <label className={`text-[10px] font-mono ${t.subText} block mb-1`}>Source Name</label>
-                  <input
-                    type="text"
-                    value={nodeData.fileName || nodeData.title || 'Dataset Stream'}
-                    onChange={(e) => onUpdateNodeData(selectedNode.id, { fileName: e.target.value })}
-                    className={`w-full px-3 py-2 text-xs font-sans transition-all ${t.input}`}
-                  />
-                </div>
-                {nodeData.slotA && (
-                  <div className="text-xs space-y-1">
-                    <span className={t.subText}>Active File:</span>
-                    <div className="font-mono text-emerald-400 font-semibold">{nodeData.slotA.name}</div>
-                    <div className="text-[10px] font-mono text-slate-400">
-                      {nodeData.slotA.rowCount?.toLocaleString()} rows • {nodeData.slotA.columnCount} cols
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Audio Mode Details */}
-            {nodeData.ingestMode === 'audio' && (
-              <div className={`p-4 ${t.card} space-y-3`}>
-                <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
-                  Meeting Audio Stream
-                </span>
-                <p className={`text-xs ${t.subText}`}>
-                  Direct audio intake for recorded executive meetings, earnings calls, and interviews.
-                </p>
-                {nodeData.audioFile && (
-                  <div className="text-xs font-mono text-[#0091DA] bg-black/30 p-2 border border-slate-700/50">
-                    {nodeData.audioFile.name} ({(nodeData.audioFile.size / 1024 / 1024).toFixed(2)} MB)
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Raw Text Mode Details */}
+            {/* Raw Direct Text Mode Details */}
             {nodeData.ingestMode === 'text' && (
               <div className={`p-4 ${t.card} space-y-2`}>
                 <span className={`text-[10px] font-semibold uppercase tracking-wider ${t.label} block font-mono`}>
-                  Raw Text Input
+                  Raw Direct Text Input
                 </span>
                 <textarea
                   value={nodeData.content || ''}
@@ -1012,7 +1036,7 @@ export default function Inspector({
               </div>
             )}
 
-            {/* Remove Node Button */}
+            {/* Remove Ingestion Node from Canvas */}
             <div className={`p-4 ${t.card} flex items-center justify-between`}>
               <span className={`text-xs ${t.subText}`}>Remove from Canvas</span>
               <button

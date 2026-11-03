@@ -492,37 +492,28 @@ export default function DeterministicWorkspaceModal({
     return { sources, payload, schemaMap };
   }, [nodeId, nodes, edges]);
 
-  // Bilateral slots formatted for UI and Co-Pilot context
+  // Multi-file and bilateral slots formatted for UI and Co-Pilot context
   const ingestionSlots = useMemo(() => {
     const slots = [];
     (upstreamInfo.sources || []).forEach(s => {
       if (s.type === 'ingestionNode' && s.srcNodeData) {
-        if (s.srcNodeData.slotA) {
+        const fileList = s.srcNodeData.files && s.srcNodeData.files.length > 0
+          ? s.srcNodeData.files
+          : [s.srcNodeData.slotA, s.srcNodeData.slotB].filter(Boolean);
+
+        fileList.forEach((f, idx) => {
           slots.push({
-            key: 'slotA',
-            isSlotA: true,
-            label: 'Slot A: Primary',
-            name: s.srcNodeData.slotA.name,
-            size: s.srcNodeData.slotA.sizeFormatted || `${Math.round((s.srcNodeData.slotA.size || 0) / 1024)} KB`,
-            rowCount: s.srcNodeData.slotA.rowCount || 0,
-            columnCount: s.srcNodeData.slotA.columnCount || s.srcNodeData.slotA.columns?.length || 0,
-            columns: s.srcNodeData.slotA.columns || [],
-            sample: s.srcNodeData.slotA.sample || []
+            key: f.key || (idx === 0 ? 'slotA' : idx === 1 ? 'slotB' : `file_${idx + 1}`),
+            isSlotA: idx === 0,
+            label: idx === 0 ? 'File 1 (Primary / slotA)' : idx === 1 ? 'File 2 (Secondary / slotB)' : `File ${idx + 1}`,
+            name: f.name,
+            size: f.size || f.sizeFormatted || `${Math.round((f.sizeBytes || 0) / 1024)} KB`,
+            rowCount: f.rowCount || 0,
+            columnCount: f.columnCount || f.columns?.length || 0,
+            columns: f.columns || [],
+            sample: f.sample || []
           });
-        }
-        if (s.srcNodeData.slotB) {
-          slots.push({
-            key: 'slotB',
-            isSlotA: false,
-            label: 'Slot B: Counterparty',
-            name: s.srcNodeData.slotB.name,
-            size: s.srcNodeData.slotB.sizeFormatted || `${Math.round((s.srcNodeData.slotB.size || 0) / 1024)} KB`,
-            rowCount: s.srcNodeData.slotB.rowCount || 0,
-            columnCount: s.srcNodeData.slotB.columnCount || s.srcNodeData.slotB.columns?.length || 0,
-            columns: s.srcNodeData.slotB.columns || [],
-            sample: s.srcNodeData.slotB.sample || []
-          });
-        }
+        });
       }
     });
     return slots;

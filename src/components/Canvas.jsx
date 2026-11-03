@@ -450,9 +450,10 @@ function CanvasInner({
               ...n,
               data: {
                 ...n.data,
+                files: detail.files || n.data?.files,
                 slotA: detail.slotA || n.data?.slotA,
                 slotB: detail.slotB || n.data?.slotB,
-                rawFile: detail.slotA?.rawFile || detail.slotB?.rawFile || detail.rawFile || n.data?.rawFile,
+                rawFile: detail.files?.[0]?.rawFile || detail.slotA?.rawFile || detail.slotB?.rawFile || detail.rawFile || n.data?.rawFile,
                 content: detail.content || n.data?.content,
                 lastOutput: detail.output || n.data?.lastOutput,
                 status: detail.status || n.data?.status
@@ -968,13 +969,15 @@ function CanvasInner({
           const ingestNode = (nodes || []).find(n => incomingEdges.some(ed => ed.source === n.id) && (n.type === 'ingestionNode' || n.type === 'outputNode' || n.type === 'outputNodeV2'));
           if (ingestNode) {
             const cachedFromWindow = (typeof window !== 'undefined' && window.__KEAOS_FILES__)
-              ? (window.__KEAOS_FILES__[ingestNode.id]?.rawFile 
+              ? (window.__KEAOS_FILES__[ingestNode.id]?.files?.[0]?.rawFile
+                 || window.__KEAOS_FILES__[ingestNode.id]?.rawFile 
                  || window.__KEAOS_FILES__[ingestNode.id]?.slotA?.rawFile 
                  || window.__KEAOS_FILES__[ingestNode.id]?.slotB?.rawFile
                  || window.__KEAOS_FILES__['latest'])
               : null;
 
             upstreamInput = cachedFromWindow
+              || ingestNode.data?.files?.[0]?.rawFile
               || ingestNode.data?.slotA?.rawFile 
               || ingestNode.data?.slotB?.rawFile 
               || ingestNode.data?.rawFile 
@@ -987,9 +990,9 @@ function CanvasInner({
 
           // Fallback: Check if any ingestion node on canvas or global cache has a file
           if (!upstreamInput) {
-            const anyIngestNode = (nodes || []).find(n => n.type === 'ingestionNode' && (n.data?.slotA?.rawFile || n.data?.slotB?.rawFile || n.data?.rawFile));
+            const anyIngestNode = (nodes || []).find(n => n.type === 'ingestionNode' && (n.data?.files?.[0]?.rawFile || n.data?.slotA?.rawFile || n.data?.slotB?.rawFile || n.data?.rawFile));
             if (anyIngestNode) {
-              upstreamInput = anyIngestNode.data?.slotA?.rawFile || anyIngestNode.data?.slotB?.rawFile || anyIngestNode.data?.rawFile;
+              upstreamInput = anyIngestNode.data?.files?.[0]?.rawFile || anyIngestNode.data?.slotA?.rawFile || anyIngestNode.data?.slotB?.rawFile || anyIngestNode.data?.rawFile;
             } else if (typeof window !== 'undefined' && window.__KEAOS_FILES__?.['latest']) {
               upstreamInput = window.__KEAOS_FILES__['latest'];
             }

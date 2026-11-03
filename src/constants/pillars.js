@@ -345,26 +345,10 @@ export const PILLARS = {
     items: [
       {
         id: 'ingest-universal-file',
-        name: 'Universal Enterprise Dataset Ingestion',
-        description: 'Bilateral high-throughput dataset & document ingestion supporting 1,000,000+ rows, multi-slot enforcement (Slot A & Slot B), and zero-RAM chunk sniffing.',
+        name: 'Universal Ingestion Port',
+        description: 'Universal multimodal intake for datasets (CSV, Excel, Parquet), documents (PDF), images, and audio with configurable file limits and zero-RAM chunk sniffing.',
         section: 'Ingestion',
-        config: { fileType: 'auto', ingestMode: 'bilateral' },
-        isIngestionNode: true
-      },
-      {
-        id: 'ingest-audio-stream',
-        name: 'Dedicated Audio Ingestion Port',
-        description: 'Optimized for recorded executive meetings, phone calls, and earnings calls with speaker diarization.',
-        section: 'Ingestion',
-        config: { fileType: 'audio' },
-        isIngestionNode: true
-      },
-      {
-        id: 'ingest-raw-text',
-        name: 'Raw Direct Text Stream',
-        description: 'Instant manual text paste area for immediate prompts, policies, or quick test payloads.',
-        section: 'Ingestion',
-        config: { fileType: 'text' },
+        config: { maxFiles: 1, enforceUniformType: false, ingestMode: 'files' },
         isIngestionNode: true
       }
     ]

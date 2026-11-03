@@ -5,31 +5,45 @@ import {
   FileAudio, 
   FileText, 
   FileSpreadsheet, 
-  FileCode,
+  Image as ImageIcon,
   Check, 
   Trash2, 
   Sparkles, 
   Minimize2, 
   Maximize2, 
-  Play, 
-  Pause,
-  AlertCircle,
-  Loader2, 
+  AlertTriangle,
   CheckCircle2,
   Copy,
-  ExternalLink,
   Layers,
-  ArrowRight,
-  RefreshCw,
-  FolderOpen,
-  X,
-  AlertTriangle,
   Database,
-  FileCheck2
+  FileCheck2,
+  Plus,
+  Lock,
+  Unlock,
+  X
 } from 'lucide-react';
-import { transcribeAudioUniversal, getProviderCredential } from '../../services/llmService';
 import { persistBinaryFile, getPersistedBinaryFile } from '../../services/fileStorageService';
 import NodeActionToolbar from '../common/NodeActionToolbar';
+
+/**
+ * Categorize a file based on its name and mime type
+ */
+export function getFileCategory(fileName = '', mimeType = '') {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  if (['csv', 'tsv', 'xlsx', 'xls', 'parquet', 'json'].includes(ext) || mimeType.includes('spreadsheet') || mimeType.includes('csv') || mimeType.includes('excel')) {
+    return 'tabular';
+  }
+  if (['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac', 'webm'].includes(ext) || mimeType.startsWith('audio/')) {
+    return 'audio';
+  }
+  if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext) || mimeType.startsWith('image/')) {
+    return 'image';
+  }
+  if (['pdf', 'docx', 'doc', 'txt', 'md'].includes(ext) || mimeType.includes('pdf') || mimeType.startsWith('text/')) {
+    return 'document';
+  }
+  return 'other';
+}
 
 /**
  * Universal Zero-RAM Chunk Sniffer for Massive Files (CSV, TSV, XLSX, JSON)
@@ -41,19 +55,6 @@ async function sniffDatasetChunk(file) {
   const fileName = file.name || 'dataset.csv';
   const fileSize = file.size || 0;
   const ext = fileName.split('.').pop().toLowerCase();
-
-  // PDF / Image handling (Binary Documents)
-  if (['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
-    return {
-      format: ext,
-      delimiter: null,
-      columns: [{ name: 'document_binary', type: 'binary' }],
-      columnCount: 1,
-      rowCount: 1,
-      sample: [{ file: fileName, size: (fileSize / 1024).toFixed(1) + ' KB', type: ext.toUpperCase() }],
-      isSniffed: false
-    };
-  }
 
   // Excel (.xlsx, .xls) handling
   if (['xlsx', 'xls'].includes(ext)) {
@@ -129,7 +130,7 @@ async function sniffDatasetChunk(file) {
 }
 
 // Generate clean JS identifier key from file name
-function sanitizeKey(name, defaultKey = 'slot') {
+function sanitizeKey(name, defaultKey = 'file') {
   if (!name) return defaultKey;
   let key = name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
   if (!key || /^[0-9]/.test(key)) {
@@ -140,14 +141,14 @@ function sanitizeKey(name, defaultKey = 'slot') {
 
 export default function IngestionNode({ id, data = {}, selected }) {
   const {
-    title = 'Universal Enterprise Dataset Ingestion',
+    title = 'Universal Ingestion Port',
     isDarkMode = true,
     onDelete
   } = data;
 
   const isDeactivated = Boolean(data?.isDeactivated);
   const isLocked = Boolean(data?.isLocked);
-  const [nodeTitle, setNodeTitle] = useState(data?.title || 'Universal Enterprise Dataset Ingestion');
+  const [nodeTitle, setNodeTitle] = useState(data?.title || 'Universal Ingestion Port');
 
   useEffect(() => {
     if (data?.title) {
@@ -155,30 +156,33 @@ export default function IngestionNode({ id, data = {}, selected }) {
     }
   }, [data?.title]);
 
-  // Ingestion Mode: 'bilateral' (Exactly 2 files) | 'single' (1 file) | 'audio' (meeting) | 'text' (raw text)
-  const [ingestMode, setIngestMode] = useState(data.ingestMode || 'bilateral');
+  // Ingestion Mode: 'files' (Unified Files & Media) | 'text' (Raw Direct Text)
+  const [ingestMode, setIngestMode] = useState(
+    data.ingestMode === 'text' ? 'text' : 'files'
+  );
 
-  // Bilateral Slots
-  const [slotA, setSlotA] = useState(data.slotA || null);
-  const [slotB, setSlotB] = useState(data.slotB || null);
+  // Configurable Max Files limit: 1 (default), 2, 5, 10, or 'unlimited'
+  const [maxFiles, setMaxFiles] = useState(data.maxFiles !== undefined ? data.maxFiles : 1);
 
-  // Audio / Text Legacy Support
-  const [audioFile, setAudioFile] = useState(data.audioFile || null);
+  // Optional constraint toggle: Enforce Uniform File Type
+  const [enforceUniformType, setEnforceUniformType] = useState(Boolean(data.enforceUniformType));
+
+  // Multi-File List: array of processed file descriptors
+  const [filesList, setFilesList] = useState(data.files || []);
+
+  // Raw Direct Text Content
   const [textContent, setTextContent] = useState(data.content || '');
-  const [isTranscribing, setIsTranscribing] = useState(false);
 
   // UI state
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(Boolean(data.isExpanded));
   const [errorAlert, setErrorAlert] = useState(null);
   const [copiedKey, setCopiedKey] = useState(null);
   const [customSize, setCustomSize] = useState({
-    width: data.width || 560,
-    height: data.height || 420
+    width: data.width || 680,
+    height: data.height || 460
   });
 
-  const fileInputRefA = useRef(null);
-  const fileInputRefB = useRef(null);
-  const audioInputRef = useRef(null);
+  const multiFileInputRef = useRef(null);
 
   // Synchronize when data.isExpanded explicitly changes from Canvas
   useEffect(() => {
@@ -187,25 +191,43 @@ export default function IngestionNode({ id, data = {}, selected }) {
     }
   }, [data.isExpanded]);
 
+  // Synchronize maxFiles & enforceUniformType if updated from Inspector
+  useEffect(() => {
+    if (data.maxFiles !== undefined && data.maxFiles !== maxFiles) {
+      setMaxFiles(data.maxFiles);
+    }
+    if (data.enforceUniformType !== undefined && data.enforceUniformType !== enforceUniformType) {
+      setEnforceUniformType(Boolean(data.enforceUniformType));
+    }
+    if (data.ingestMode && data.ingestMode !== ingestMode) {
+      setIngestMode(data.ingestMode === 'text' ? 'text' : 'files');
+    }
+  }, [data.maxFiles, data.enforceUniformType, data.ingestMode]);
+
   // Rehydrate binary File/Blob from IndexedDB if lost after page refresh
   useEffect(() => {
     let isCancelled = false;
     const rehydrateFromDB = async () => {
       try {
-        if (slotA && !slotA.rawFile) {
-          const persistedA = await getPersistedBinaryFile(`ingest-${id}-slotA`) || await getPersistedBinaryFile('latest-invoice-binary');
-          if (persistedA && !isCancelled) {
-            const rehydratedA = { ...slotA, rawFile: persistedA };
-            setSlotA(rehydratedA);
-            broadcastBilateralUpdate(rehydratedA, slotB);
-          }
-        }
-        if (slotB && !slotB.rawFile) {
-          const persistedB = await getPersistedBinaryFile(`ingest-${id}-slotB`);
-          if (persistedB && !isCancelled) {
-            const rehydratedB = { ...slotB, rawFile: persistedB };
-            setSlotB(rehydratedB);
-            broadcastBilateralUpdate(slotA, rehydratedB);
+        if (filesList.length > 0) {
+          let updated = false;
+          const rehydrated = await Promise.all(
+            filesList.map(async (fileObj, idx) => {
+              if (!fileObj.rawFile) {
+                const persisted = await getPersistedBinaryFile(`ingest-${id}-file-${idx}`) ||
+                  (idx === 0 ? (await getPersistedBinaryFile(`ingest-${id}-slotA`) || await getPersistedBinaryFile('latest-invoice-binary')) : null) ||
+                  (idx === 1 ? await getPersistedBinaryFile(`ingest-${id}-slotB`) : null);
+                if (persisted) {
+                  updated = true;
+                  return { ...fileObj, rawFile: persisted };
+                }
+              }
+              return fileObj;
+            })
+          );
+          if (updated && !isCancelled) {
+            setFilesList(rehydrated);
+            broadcastFilesUpdate(rehydrated, maxFiles, enforceUniformType);
           }
         }
       } catch (err) {
@@ -218,124 +240,132 @@ export default function IngestionNode({ id, data = {}, selected }) {
 
   // Overall Status Calculation
   const statusInfo = useMemo(() => {
-    if (ingestMode === 'bilateral') {
-      if (slotA && slotB) {
-        return {
-          status: 'ready',
-          label: '2/2 READY',
-          desc: 'Both datasets verified. Zero-token downstream execution ready.',
-          color: '#009A44',
-          isReady: true
-        };
-      }
-      if (slotA || slotB) {
-        return {
-          status: 'incomplete',
-          label: '1/2 INCOMPLETE',
-          desc: slotA ? 'Slot A loaded. Awaiting Slot B comparison dataset.' : 'Slot B loaded. Awaiting Slot A target dataset.',
-          color: '#EAAA00',
-          isReady: false
-        };
-      }
+    if (ingestMode === 'text') {
+      const isReady = Boolean(textContent && textContent.trim());
       return {
-        status: 'empty',
-        label: '0/2 EMPTY',
-        desc: 'Bilateral Pipeline: Requires exactly 2 datasets (Slot A & Slot B).',
-        color: '#0091DA',
+        status: isReady ? 'ready' : 'empty',
+        label: isReady ? 'TEXT READY' : 'EMPTY TEXT',
+        desc: isReady ? `${textContent.length} chars loaded` : 'Enter or paste raw text.',
+        color: isReady ? '#009A44' : '#0091DA',
+        isReady
+      };
+    }
+
+    const count = filesList.length;
+    const target = maxFiles === 'unlimited' ? '∞' : maxFiles;
+    const isTargetMet = maxFiles === 'unlimited' ? count >= 1 : count >= maxFiles;
+
+    if (isTargetMet) {
+      return {
+        status: 'ready',
+        label: `${count}/${target} READY`,
+        desc: `Intake complete (${count} file${count === 1 ? '' : 's'}). Downstream execution ready.`,
+        color: '#009A44',
+        isReady: true
+      };
+    }
+    if (count > 0) {
+      return {
+        status: 'incomplete',
+        label: `${count}/${target} PARTIAL`,
+        desc: `Loaded ${count} file${count === 1 ? '' : 's'}, awaiting ${maxFiles - count} more.`,
+        color: '#EAAA00',
         isReady: false
       };
     }
-
-    if (ingestMode === 'single') {
-      if (slotA) {
-        return {
-          status: 'ready',
-          label: '1/1 READY',
-          desc: 'Dataset loaded and verified.',
-          color: '#009A44',
-          isReady: true
-        };
-      }
-      return {
-        status: 'empty',
-        label: '0/1 EMPTY',
-        desc: 'Single Stream: Drop a CSV, Excel, or Parquet dataset.',
-        color: '#0091DA',
-        isReady: false
-      };
-    }
-
-    // Audio or Text
-    if (ingestMode === 'audio') {
-      return {
-        status: audioFile ? 'ready' : 'empty',
-        label: audioFile ? 'AUDIO READY' : 'NO AUDIO',
-        desc: audioFile ? `Audio loaded: ${audioFile.name}` : 'Drop MP3/WAV meeting recording.',
-        color: '#0091DA',
-        isReady: Boolean(audioFile)
-      };
-    }
-
     return {
-      status: textContent ? 'ready' : 'empty',
-      label: textContent ? 'TEXT READY' : 'EMPTY TEXT',
-      desc: textContent ? `${textContent.length} chars loaded` : 'Enter or paste raw text.',
+      status: 'empty',
+      label: `0/${target} EMPTY`,
+      desc: `Awaiting file upload (Max: ${target}).`,
       color: '#0091DA',
-      isReady: Boolean(textContent)
+      isReady: false
     };
-  }, [ingestMode, slotA, slotB, audioFile, textContent]);
+  }, [ingestMode, filesList, maxFiles, textContent]);
 
   // Broadcast updates to canvas DAG & downstream Deterministic Boxes
-  const broadcastBilateralUpdate = (newSlotA, newSlotB) => {
-    const keyA = newSlotA ? sanitizeKey(newSlotA.name, 'slotA') : 'slotA';
-    const keyB = newSlotB ? sanitizeKey(newSlotB.name, 'slotB') : 'slotB';
+  const broadcastFilesUpdate = (newFilesList, currentLimit = maxFiles, currentUniform = enforceUniformType) => {
+    const outputPayload = {
+      files: newFilesList.map(f => f.sample || f.columns || f.name),
+      count: newFilesList.length
+    };
 
-    // Structured output for downstream agents & deterministic boxes
-    const outputPayload = {};
-    if (newSlotA) {
-      outputPayload.slotA = newSlotA.sample || newSlotA.columns;
-      outputPayload[keyA] = newSlotA.sample || newSlotA.columns;
-      outputPayload.data = newSlotA.sample || newSlotA.columns;
+    // Expose type-scoped groupings
+    const datasets = newFilesList.filter(f => f.category === 'tabular');
+    const audios = newFilesList.filter(f => f.category === 'audio');
+    const images = newFilesList.filter(f => f.category === 'image');
+    const documents = newFilesList.filter(f => f.category === 'document');
+
+    if (datasets.length) outputPayload.datasets = datasets.map(d => d.sample || d.columns);
+    if (audios.length) outputPayload.audio = audios.map(a => a.name);
+    if (images.length) outputPayload.images = images.map(i => i.name);
+    if (documents.length) outputPayload.documents = documents.map(d => d.name);
+
+    // Expose by sanitized file key and file index
+    newFilesList.forEach((f, idx) => {
+      const k = f.key || `file_${idx + 1}`;
+      outputPayload[k] = f.sample || f.columns || f.name;
+      outputPayload[`file_${idx + 1}`] = f.sample || f.columns || f.name;
+    });
+
+    // Backward compatibility: slotA & slotB
+    if (newFilesList.length > 0) {
+      outputPayload.slotA = newFilesList[0].sample || newFilesList[0].columns || newFilesList[0].name;
+      outputPayload.data = outputPayload.slotA;
+    } else {
+      outputPayload.slotA = null;
+      outputPayload.data = null;
     }
-    if (newSlotB) {
-      outputPayload.slotB = newSlotB.sample || newSlotB.columns;
-      outputPayload[keyB] = newSlotB.sample || newSlotB.columns;
+    if (newFilesList.length > 1) {
+      outputPayload.slotB = newFilesList[1].sample || newFilesList[1].columns || newFilesList[1].name;
+    } else {
+      outputPayload.slotB = null;
     }
 
     // Summary description for LLM text context
     let textSummary = '';
-    if (newSlotA && newSlotB) {
-      textSummary = `[BILATERAL DATASET INGESTION COMPLETED]\n` +
-        `• Slot A (${keyA}): "${newSlotA.name}" (${newSlotA.rowCount?.toLocaleString()} rows, ${newSlotA.columnCount} columns)\n` +
-        `  Fields: [${newSlotA.columns?.map(c => c.name).slice(0, 15).join(', ')}]\n` +
-        `• Slot B (${keyB}): "${newSlotB.name}" (${newSlotB.rowCount?.toLocaleString()} rows, ${newSlotB.columnCount} columns)\n` +
-        `  Fields: [${newSlotB.columns?.map(c => c.name).slice(0, 15).join(', ')}]\n` +
-        `Both datasets loaded. Ready for deterministic reconciliation on primary keys.`;
-    } else if (newSlotA) {
-      textSummary = `[DATASET INGESTION: Slot A Loaded]\n"${newSlotA.name}" (${newSlotA.rowCount?.toLocaleString()} rows, ${newSlotA.columnCount} columns). Awaiting Slot B.`;
+    if (newFilesList.length > 0) {
+      textSummary = `[UNIVERSAL INGESTION COMPLETED: ${newFilesList.length} FILE(S)]\n` +
+        newFilesList.map((f, i) => {
+          if (f.category === 'tabular') {
+            return `• File ${i + 1} (${f.key}): "${f.name}" (${f.rowCount?.toLocaleString() || 0} rows, ${f.columnCount || 0} cols)\n  Fields: [${f.columns?.slice(0, 10).map(c => typeof c === 'string' ? c : c.name).join(', ')}]`;
+          }
+          if (f.category === 'audio') {
+            return `• File ${i + 1} (${f.key}): "${f.name}" (Audio, ${f.size})`;
+          }
+          if (f.category === 'image') {
+            return `• File ${i + 1} (${f.key}): "${f.name}" (Image, ${f.size})`;
+          }
+          return `• File ${i + 1} (${f.key}): "${f.name}" (Document, ${f.size})`;
+        }).join('\n');
     }
 
     // Mutate ReactFlow node data
-    data.slotA = newSlotA;
-    data.slotB = newSlotB;
-    data.rawFile = newSlotA?.rawFile || newSlotB?.rawFile || null;
+    data.files = newFilesList;
+    data.maxFiles = currentLimit;
+    data.enforceUniformType = currentUniform;
     data.ingestMode = ingestMode;
+    data.slotA = newFilesList[0] || null;
+    data.slotB = newFilesList[1] || null;
+    data.rawFile = newFilesList[0]?.rawFile || null;
+    data.fileName = newFilesList.map(f => f.name).join(', ');
+    data.fileSize = newFilesList.map(f => f.size).join(' + ');
     data.lastOutput = outputPayload;
     data.content = textSummary;
-    data.status = statusInfo.status;
-    data.fileName = newSlotA ? (newSlotB ? `${newSlotA.name}, ${newSlotB.name}` : newSlotA.name) : (newSlotB?.name || '');
-    data.fileSize = newSlotA ? `${newSlotA.size}${newSlotB ? ` + ${newSlotB.size}` : ''}` : (newSlotB?.size || '');
+    data.status = (currentLimit === 'unlimited' ? newFilesList.length >= 1 : newFilesList.length >= currentLimit)
+      ? 'ready'
+      : newFilesList.length > 0 ? 'incomplete' : 'empty';
 
     // Global in-memory cache to guarantee zero-loss file retrieval across canvas
     if (typeof window !== 'undefined') {
       window.__KEAOS_FILES__ = window.__KEAOS_FILES__ || {};
       window.__KEAOS_FILES__[id] = {
-        slotA: newSlotA,
-        slotB: newSlotB,
-        rawFile: newSlotA?.rawFile || newSlotB?.rawFile || null
+        files: newFilesList,
+        slotA: newFilesList[0] || null,
+        slotB: newFilesList[1] || null,
+        rawFile: newFilesList[0]?.rawFile || null
       };
-      if (newSlotA?.rawFile || newSlotB?.rawFile) {
-        window.__KEAOS_FILES__['latest'] = newSlotA?.rawFile || newSlotB?.rawFile;
+      if (newFilesList[0]?.rawFile) {
+        window.__KEAOS_FILES__['latest'] = newFilesList[0].rawFile;
       }
     }
 
@@ -346,10 +376,11 @@ export default function IngestionNode({ id, data = {}, selected }) {
           nodeId: id,
           content: textSummary,
           output: outputPayload,
-          slotA: newSlotA,
-          slotB: newSlotB,
-          rawFile: newSlotA?.rawFile || newSlotB?.rawFile || null,
-          status: statusInfo.status
+          files: newFilesList,
+          slotA: newFilesList[0] || null,
+          slotB: newFilesList[1] || null,
+          rawFile: newFilesList[0]?.rawFile || null,
+          status: data.status
         }
       }));
     } catch (e) {
@@ -357,45 +388,98 @@ export default function IngestionNode({ id, data = {}, selected }) {
     }
   };
 
-  // Process and ingest file into a specific slot
-  const handleIngestFile = async (file, targetSlot = 'slotA') => {
-    if (!file) return;
+  // Process incoming files with strict limit and uniform type enforcement
+  const processIncomingFiles = async (newRawFiles) => {
+    if (!newRawFiles || !newRawFiles.length) return;
     setErrorAlert(null);
 
-    try {
-      const sniffed = await sniffDatasetChunk(file);
-      const displaySize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-      const slotObject = {
-        name: file.name,
-        size: displaySize,
-        rowCount: sniffed?.rowCount || 0,
-        columnCount: sniffed?.columnCount || 0,
-        columns: sniffed?.columns || [],
-        sample: sniffed?.sample || [],
-        format: sniffed?.format || 'csv',
-        key: sanitizeKey(file.name, targetSlot),
-        isSniffed: sniffed?.isSniffed || false,
-        rawFile: file
-      };
+    const isUnlimited = maxFiles === 'unlimited' || maxFiles === null;
+    const currentCount = filesList.length;
+    const capacity = isUnlimited ? Infinity : Math.max(0, maxFiles - currentCount);
 
-      if (targetSlot === 'slotA') {
-        setSlotA(slotObject);
-        broadcastBilateralUpdate(slotObject, slotB);
-        persistBinaryFile(`ingest-${id}-slotA`, file);
-        persistBinaryFile('latest-invoice-binary', file);
-      } else {
-        setSlotB(slotObject);
-        broadcastBilateralUpdate(slotA, slotObject);
-        persistBinaryFile(`ingest-${id}-slotB`, file);
+    // Strict Limit Enforcement Rule
+    if (newRawFiles.length > capacity) {
+      setErrorAlert(
+        `Intake Limit Exceeded: Limit is set to ${maxFiles} file(s) (${currentCount} already loaded). You dropped/selected ${newRawFiles.length} file(s). Please increase the Max Files limit or select at most ${capacity} file(s).`
+      );
+      return;
+    }
+
+    // Uniform Type Enforcement Rule
+    if (enforceUniformType && filesList.length > 0) {
+      const requiredCategory = filesList[0].category;
+      const mismatch = newRawFiles.find(f => getFileCategory(f.name, f.type) !== requiredCategory);
+      if (mismatch) {
+        setErrorAlert(
+          `Uniform Type Violation: Node is configured to require all files to be ${requiredCategory.toUpperCase()}. "${mismatch.name}" is of a different category.`
+        );
+        return;
       }
+    }
+
+    if (enforceUniformType && newRawFiles.length > 1) {
+      const firstCat = getFileCategory(newRawFiles[0].name, newRawFiles[0].type);
+      const mismatch = newRawFiles.find(f => getFileCategory(f.name, f.type) !== firstCat);
+      if (mismatch) {
+        setErrorAlert(
+          `Uniform Type Violation: All selected files must share the same category. "${mismatch.name}" does not match "${firstCat.toUpperCase()}".`
+        );
+        return;
+      }
+    }
+
+    try {
+      const processedObjects = await Promise.all(
+        newRawFiles.map(async (file, idx) => {
+          const cat = getFileCategory(file.name, file.type);
+          const ext = file.name.split('.').pop()?.toLowerCase() || '';
+          let sniffed = null;
+          if (cat === 'tabular') {
+            sniffed = await sniffDatasetChunk(file);
+          }
+          const displaySize = file.size > 1024 * 1024
+            ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+            : (file.size / 1024).toFixed(1) + ' KB';
+
+          const fileIndex = currentCount + idx;
+          persistBinaryFile(`ingest-${id}-file-${fileIndex}`, file);
+          if (fileIndex === 0) {
+            persistBinaryFile(`ingest-${id}-slotA`, file);
+            persistBinaryFile('latest-invoice-binary', file);
+          } else if (fileIndex === 1) {
+            persistBinaryFile(`ingest-${id}-slotB`, file);
+          }
+
+          return {
+            id: `f-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name: file.name,
+            size: displaySize,
+            sizeBytes: file.size,
+            type: file.type || ext,
+            category: cat,
+            format: sniffed?.format || ext,
+            rowCount: sniffed?.rowCount || (cat === 'tabular' ? 1 : null),
+            columnCount: sniffed?.columnCount || (sniffed?.columns?.length || null),
+            columns: sniffed?.columns || [],
+            sample: sniffed?.sample || [],
+            isSniffed: Boolean(sniffed?.isSniffed),
+            previewUrl: cat === 'image' ? URL.createObjectURL(file) : null,
+            key: sanitizeKey(file.name, `file_${fileIndex + 1}`),
+            rawFile: file
+          };
+        })
+      );
+
+      const updatedList = [...filesList, ...processedObjects];
+      setFilesList(updatedList);
+      broadcastFilesUpdate(updatedList, maxFiles, enforceUniformType);
     } catch (err) {
       console.error('File ingestion error:', err);
-      setErrorAlert(`Failed to ingest ${file.name}: ${err.message}`);
+      setErrorAlert(`Failed to ingest files: ${err.message}`);
     }
   };
 
-  // Multi-File Drop Interceptor: Strict File-Count Enforcement
-  const handleMultiFileDrop = async (e, forcedSlot = null) => {
+  const handleMultiFileDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setErrorAlert(null);
@@ -403,55 +487,65 @@ export default function IngestionNode({ id, data = {}, selected }) {
     const files = Array.from(e.dataTransfer.files || []);
     if (!files.length) return;
 
-    // Strict Enforcement Rule 1: Reject >2 files in bilateral mode
-    if (ingestMode === 'bilateral') {
-      if (files.length > 2) {
-        setErrorAlert(
-          `Intake Limit Violation: Bilateral Pipeline strictly requires exactly 2 files (Slot A & Slot B). You selected ${files.length} files. Please select only 2 files.`
-        );
-        return;
-      }
-
-      // If user dropped 2 files simultaneously: map files[0] -> Slot A, files[1] -> Slot B
-      if (files.length === 2) {
-        await handleIngestFile(files[0], 'slotA');
-        await handleIngestFile(files[1], 'slotB');
-        return;
-      }
-
-      // If user dropped 1 file
-      if (files.length === 1) {
-        if (forcedSlot) {
-          await handleIngestFile(files[0], forcedSlot);
-        } else if (!slotA) {
-          await handleIngestFile(files[0], 'slotA');
-        } else if (!slotB) {
-          await handleIngestFile(files[0], 'slotB');
-        } else {
-          setErrorAlert('Slots Full: Both Slot A and Slot B are already loaded. Click [✕] to remove a dataset before uploading a new one.');
-        }
-        return;
-      }
+    if (ingestMode === 'text') {
+      files[0].text().then(text => {
+        handleTextChange(text);
+      }).catch(err => {
+        setErrorAlert(`Failed to read text file: ${err.message}`);
+      });
+      return;
     }
 
-    // Single mode: exactly 1 file allowed
-    if (ingestMode === 'single') {
-      if (files.length > 1) {
-        setErrorAlert(`Intake Limit Violation: Single Stream mode accepts only 1 file. You selected ${files.length} files.`);
-        return;
-      }
-      await handleIngestFile(files[0], 'slotA');
+    processIncomingFiles(files);
+  };
+
+  const handleFilesSelected = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) {
+      processIncomingFiles(files);
+      e.target.value = '';
     }
   };
 
-  const handleClearSlot = (targetSlot) => {
-    if (targetSlot === 'slotA') {
-      setSlotA(null);
-      broadcastBilateralUpdate(null, slotB);
-    } else {
-      setSlotB(null);
-      broadcastBilateralUpdate(slotA, null);
-    }
+  const handleRemoveFile = (fileId) => {
+    const updated = filesList.filter(f => f.id !== fileId);
+    setFilesList(updated);
+    broadcastFilesUpdate(updated, maxFiles, enforceUniformType);
+  };
+
+  const handleClearAll = () => {
+    setFilesList([]);
+    broadcastFilesUpdate([], maxFiles, enforceUniformType);
+  };
+
+  const handleLimitChange = (newLimit) => {
+    const val = newLimit === 'unlimited' ? 'unlimited' : Math.max(1, parseInt(newLimit, 10) || 1);
+    setMaxFiles(val);
+    data.maxFiles = val;
+    broadcastFilesUpdate(filesList, val, enforceUniformType);
+  };
+
+  const handleToggleUniform = () => {
+    const nextVal = !enforceUniformType;
+    setEnforceUniformType(nextVal);
+    data.enforceUniformType = nextVal;
+    broadcastFilesUpdate(filesList, maxFiles, nextVal);
+  };
+
+  const handleTextChange = (newText) => {
+    setTextContent(newText);
+    data.content = newText;
+    data.status = newText?.trim() ? 'ready' : 'empty';
+    data.lastOutput = { text: newText, content: newText };
+
+    window.dispatchEvent(new CustomEvent('keaos:ingestion-updated', {
+      detail: {
+        nodeId: id,
+        content: newText,
+        output: { text: newText, content: newText },
+        status: newText?.trim() ? 'ready' : 'empty'
+      }
+    }));
   };
 
   const handleCopyVar = (key) => {
@@ -460,10 +554,15 @@ export default function IngestionNode({ id, data = {}, selected }) {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const isUnlimited = maxFiles === 'unlimited';
+  const remainingCapacity = isUnlimited ? Infinity : Math.max(0, maxFiles - filesList.length);
+  const canAddMore = isUnlimited || filesList.length < maxFiles;
+
   // -------------------------------------------------------------
   // 1. COMPACT ORIGIN DISC VIEW (Rule 13 Origin Token Invariant)
   // -------------------------------------------------------------
   if (!isExpanded) {
+    const displayTarget = isUnlimited ? '∞' : maxFiles;
     return (
       <div 
         onWheel={(e) => e.stopPropagation()}
@@ -471,7 +570,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
           isDeactivated ? 'opacity-40 grayscale pointer-events-none' : ''
         }`}>
         
-        {/* Floating Action Toolbar on Hover (Circular Disc Flank) */}
+        {/* Floating Action Toolbar on Hover */}
         <NodeActionToolbar
           nodeId={id}
           nodeName={nodeTitle}
@@ -494,7 +593,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
         {/* Precision Micro Typography Header */}
         <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-center pointer-events-none whitespace-nowrap z-10">
           <span className="text-[10px] font-mono uppercase tracking-wider font-bold block text-slate-400">
-            {ingestMode === 'bilateral' ? 'BILATERAL INGEST' : 'UNIVERSAL INGEST'}
+            {ingestMode === 'text' ? 'TEXT INGEST' : `FILES INGEST (${filesList.length}/${displayTarget})`}
           </span>
           <span className="text-[9px] font-mono block -mt-0.5 truncate" style={{ color: statusInfo.color }}>
             {statusInfo.label}
@@ -508,23 +607,19 @@ export default function IngestionNode({ id, data = {}, selected }) {
             e.preventDefault();
             e.stopPropagation();
           }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleMultiFileDrop(e, 'slotA');
-          }}
-          title="Click to expand Ingestion Panel, or drop an invoice PDF/image directly here"
+          onDrop={handleMultiFileDrop}
+          title="Click to expand Ingestion Studio, or drop files directly here"
           className={`w-[60px] h-[60px] rounded-full flex flex-col items-center justify-center border-2 transition-all duration-200 cursor-pointer shadow-lg relative active:scale-95 ${
             statusInfo.isReady
               ? 'border-[#009A44] ring-2 ring-[#009A44]/30 shadow-[0_0_16px_rgba(0,154,68,0.3)]'
-              : slotA || slotB
+              : filesList.length > 0
                 ? 'border-[#EAAA00] ring-2 ring-[#EAAA00]/30 shadow-[0_0_16px_rgba(234,170,0,0.3)]'
                 : 'border-[#0091DA]/70 ring-2 ring-[#0091DA]/20'
           } ${
             isDarkMode ? 'bg-[#181920] text-white hover:border-[#0091DA]' : 'bg-white text-slate-800 hover:border-[#0091DA]'
           } ${selected ? 'ring-4 ring-[#0091DA]' : ''}`}
         >
-          {/* Bottom Sockets */}
+          {/* Bottom Socket */}
           <Handle
             type="source"
             position={Position.Bottom}
@@ -567,7 +662,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
           {/* Central Icon */}
           {statusInfo.isReady ? (
             <FileCheck2 className="w-6 h-6 text-[#009A44] transition-transform group-hover:scale-110" />
-          ) : (slotA || slotB) ? (
+          ) : filesList.length > 0 ? (
             <Layers className="w-6 h-6 text-[#EAAA00] animate-pulse" />
           ) : (
             <UploadCloud className="w-6 h-6 text-[#0091DA] transition-transform group-hover:scale-110" />
@@ -581,7 +676,9 @@ export default function IngestionNode({ id, data = {}, selected }) {
               color: statusInfo.color 
             }}
           >
-            {ingestMode === 'bilateral' ? (statusInfo.isReady ? '2/2 OK' : (slotA || slotB) ? '1/2 IN' : 'INGEST') : 'PORT'}
+            {ingestMode === 'text' 
+              ? (textContent ? 'TEXT' : 'EMPTY') 
+              : `${filesList.length}/${displayTarget}`}
           </span>
         </div>
       </div>
@@ -597,8 +694,8 @@ export default function IngestionNode({ id, data = {}, selected }) {
       style={{
         width: `${customSize.width}px`,
         height: `${customSize.height}px`,
-        minWidth: '420px',
-        minHeight: '360px'
+        minWidth: '460px',
+        minHeight: '380px'
       }}
       className={`nowheel relative group flex flex-col rounded-none border-2 transition-colors duration-200 shadow-2xl select-none font-sans ${
         isDeactivated ? 'opacity-40 grayscale pointer-events-none' : ''
@@ -611,7 +708,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
       } ${selected ? 'ring-2 ring-[#0091DA]' : ''}`}
     >
       
-      {/* Floating Action Toolbar on Hover (Card Top Rim) */}
+      {/* Floating Action Toolbar on Hover */}
       <NodeActionToolbar
         nodeId={id}
         nodeName={nodeTitle}
@@ -633,8 +730,8 @@ export default function IngestionNode({ id, data = {}, selected }) {
 
       {/* Node Resizer */}
       <NodeResizer 
-        minWidth={420}
-        minHeight={340}
+        minWidth={460}
+        minHeight={360}
         maxWidth={1200}
         maxHeight={950}
         isVisible={true}
@@ -648,19 +745,13 @@ export default function IngestionNode({ id, data = {}, selected }) {
         }}
       />
 
-      {/* Hidden File Inputs for Manual File Dialogs */}
+      {/* Hidden Multi-File Input */}
       <input
-        ref={fileInputRefA}
+        ref={multiFileInputRef}
         type="file"
-        accept=".csv,.tsv,.xlsx,.xls,.json,.parquet,.txt,.md,.pdf,.docx,.png,.jpg,.jpeg,.webp"
-        onChange={(e) => e.target.files?.[0] && handleIngestFile(e.target.files[0], 'slotA')}
-        className="hidden"
-      />
-      <input
-        ref={fileInputRefB}
-        type="file"
-        accept=".csv,.tsv,.xlsx,.xls,.json,.parquet,.txt,.md,.pdf,.docx,.png,.jpg,.jpeg,.webp"
-        onChange={(e) => e.target.files?.[0] && handleIngestFile(e.target.files[0], 'slotB')}
+        multiple
+        accept=".csv,.tsv,.xlsx,.xls,.json,.parquet,.txt,.md,.pdf,.docx,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.aac,.flac"
+        onChange={handleFilesSelected}
         className="hidden"
       />
 
@@ -674,8 +765,10 @@ export default function IngestionNode({ id, data = {}, selected }) {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white truncate">
-                Universal Dataset Ingestion Engine
+              <h4 className={`text-xs font-mono font-bold uppercase tracking-wider truncate ${
+                isDarkMode ? 'text-white' : 'text-slate-900'
+              }`}>
+                Universal Ingestion Port
               </h4>
               <span 
                 className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold uppercase border shrink-0"
@@ -688,36 +781,188 @@ export default function IngestionNode({ id, data = {}, selected }) {
                 {statusInfo.label}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
-              Zero-RAM 64KB Sniffing • Up to 1,000,000+ Rows • 500 Columns
+            <p className={`text-[10px] font-mono truncate mt-0.5 ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
+              Multimodal Multi-File Intake • Zero-RAM Chunk Sniffing
             </p>
           </div>
         </div>
 
-        {/* Header Controls */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Header Controls (nodrag nopan prevents ReactFlow canvas interception) */}
+        <div 
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          className="nodrag nopan flex items-center gap-2 shrink-0 select-none"
+        >
           {/* Intake Mode Switcher */}
           <select
             value={ingestMode}
             onChange={(e) => {
               setIngestMode(e.target.value);
+              data.ingestMode = e.target.value;
               setErrorAlert(null);
             }}
             className={`px-2 py-1 text-[10px] font-mono rounded-none border outline-none cursor-pointer ${
               isDarkMode ? 'bg-[#0E131F] border-[#1E2638] text-slate-300' : 'bg-white border-slate-300 text-slate-800'
             }`}
           >
-            <option value="bilateral">Bilateral (2 Files - Reconciliation)</option>
-            <option value="single">Single Stream (1 File)</option>
-            <option value="audio">Audio Meeting (MP3 / WAV)</option>
-            <option value="text">Direct Text</option>
+            <option value="files">Files & Media</option>
+            <option value="text">Raw Direct Text</option>
           </select>
+
+          {/* Max Files Controller: Stepper + Custom Number Input + Presets + Unlimited */}
+          {ingestMode === 'files' && (
+            <div className={`flex items-center border p-0.5 gap-1 ${
+              isDarkMode ? 'bg-[#0E131F] border-[#1E2638]' : 'bg-white border-slate-300 shadow-xs'
+            }`}>
+              <span className={`text-[9px] font-mono px-1 font-bold uppercase ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                Max:
+              </span>
+
+              {/* Stepper Controls & Custom Number Input */}
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const cur = isUnlimited ? 1 : Math.max(1, (Number(maxFiles) || 1) - 1);
+                    handleLimitChange(cur);
+                  }}
+                  disabled={!isUnlimited && Number(maxFiles) <= 1}
+                  className={`w-4 h-5 flex items-center justify-center text-[10px] font-mono font-bold transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                    isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                  title="Decrease file limit"
+                >
+                  -
+                </button>
+
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={isUnlimited ? '' : maxFiles}
+                  placeholder={isUnlimited ? '∞' : '1'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      handleLimitChange(1);
+                    } else {
+                      const num = Math.max(1, parseInt(val, 10) || 1);
+                      handleLimitChange(num);
+                    }
+                  }}
+                  className={`w-9 h-5 text-center text-[10px] font-mono font-bold border-x outline-none transition-all ${
+                    isDarkMode 
+                      ? 'bg-[#141A29] border-[#1E2638] text-cyan-400 focus:border-[#0091DA]' 
+                      : 'bg-slate-50 border-slate-200 text-[#00338D] focus:border-[#0091DA]'
+                  }`}
+                  title="Type custom number of files (e.g. 1, 2, 3, 4, 7, 20...)"
+                />
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const cur = isUnlimited ? 2 : (Number(maxFiles) || 1) + 1;
+                    handleLimitChange(cur);
+                  }}
+                  className={`w-4 h-5 flex items-center justify-center text-[10px] font-mono font-bold transition-colors cursor-pointer ${
+                    isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                  title="Increase file limit"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Quick Preset Shortcut Chips */}
+              <div className={`flex items-center border-l pl-1 gap-0.5 ${
+                isDarkMode ? 'border-[#1E2638]' : 'border-slate-200'
+              }`}>
+                {[1, 2, 5, 10].map((presetVal) => {
+                  const isPresetActive = !isUnlimited && Number(maxFiles) === presetVal;
+                  return (
+                    <button
+                      key={presetVal}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLimitChange(presetVal);
+                      }}
+                      className={`px-1.5 py-0.5 text-[9px] font-mono transition-colors cursor-pointer ${
+                        isPresetActive
+                          ? 'bg-[#0091DA] text-white font-bold shadow-xs'
+                          : isDarkMode 
+                            ? 'text-slate-400 hover:text-white hover:bg-white/5' 
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                      title={`Quick preset: ${presetVal} file(s)`}
+                    >
+                      {presetVal}
+                    </button>
+                  );
+                })}
+
+                {/* Unlimited Chip */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLimitChange('unlimited');
+                  }}
+                  className={`px-1.5 py-0.5 text-[9px] font-mono transition-colors cursor-pointer ${
+                    isUnlimited
+                      ? 'bg-[#0091DA] text-white font-bold shadow-xs'
+                      : isDarkMode 
+                        ? 'text-slate-400 hover:text-white hover:bg-white/5' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                  title="Allow unlimited files"
+                >
+                  ∞
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Enforce Uniform Type Toggle */}
+          {ingestMode === 'files' && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleUniform();
+              }}
+              className={`px-2 py-1 text-[9px] font-mono border flex items-center gap-1 transition-all cursor-pointer ${
+                enforceUniformType
+                  ? 'bg-[#6D2077]/20 border-[#6D2077] text-pink-400'
+                  : isDarkMode
+                    ? 'bg-[#0E131F] border-[#1E2638] text-slate-400 hover:text-slate-200'
+                    : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+              }`}
+              title="When enabled, requires all uploaded files in this node to share the same category (e.g. only datasets or only audio)"
+            >
+              {enforceUniformType ? <Lock className="w-2.5 h-2.5 text-pink-400" /> : <Unlock className="w-2.5 h-2.5 opacity-60" />}
+              <span>{enforceUniformType ? 'Uniform: ON' : 'Uniform: OFF'}</span>
+            </button>
+          )}
 
           {/* Minimize / Collapse */}
           <button
             type="button"
-            onClick={() => setIsExpanded(false)}
-            className="p-1 hover:bg-white/10 text-slate-400 hover:text-white rounded-none cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(false);
+            }}
+            className={`p-1 rounded-none cursor-pointer ${
+              isDarkMode 
+                ? 'hover:bg-white/10 text-slate-400 hover:text-white' 
+                : 'hover:bg-slate-200 text-slate-600 hover:text-slate-900'
+            }`}
             title="Minimize to Origin Disc"
           >
             <Minimize2 className="w-3.5 h-3.5" />
@@ -725,7 +970,7 @@ export default function IngestionNode({ id, data = {}, selected }) {
         </div>
       </div>
 
-      {/* Interactive Error Alert Banner (When >2 files dropped or invalid actions) */}
+      {/* Interactive Error Alert Banner */}
       {errorAlert && (
         <div className="px-3 py-2 bg-red-500/15 border-b border-red-500/30 flex items-center justify-between text-xs font-mono text-red-300 shrink-0">
           <div className="flex items-center gap-2">
@@ -742,217 +987,262 @@ export default function IngestionNode({ id, data = {}, selected }) {
         </div>
       )}
 
-      {/* Main Body: Bilateral Dual-Slot Ingestion */}
+      {/* Main Body */}
       <div 
         onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => handleMultiFileDrop(e)}
+        onDrop={handleMultiFileDrop}
         className="flex-1 p-3.5 overflow-y-auto space-y-3 bg-[#0B0F19]"
       >
-        {ingestMode === 'bilateral' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 h-full">
-            
-            {/* ---------------- SLOT A (Target / Base Dataset) ---------------- */}
-            <div 
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleMultiFileDrop(e, 'slotA')}
-              className={`p-3 border rounded-none flex flex-col justify-between transition-all ${
-                slotA
-                  ? 'bg-[#101524] border-[#0091DA]/60 shadow-inner'
-                  : 'bg-[#0E131F] border-dashed border-[#1E2638] hover:border-[#0091DA]/80'
-              }`}
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0091DA] flex items-center gap-1.5">
-                    <Database className="w-3 h-3" />
-                    Slot A: Primary Register
-                  </span>
-                  {slotA && (
-                    <button
-                      type="button"
-                      onClick={() => handleClearSlot('slotA')}
-                      className="p-1 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-none cursor-pointer"
-                      title="Remove Slot A File"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
+        {/* 1. Files & Media Mode */}
+        {ingestMode === 'files' && (
+          <div className="h-full flex flex-col justify-between">
+            {filesList.length === 0 ? (
+              /* Empty State: Large tactile dropzone */
+              <div 
+                onClick={() => multiFileInputRef.current?.click()}
+                className="h-full min-h-[220px] border-2 border-dashed border-[#1E2638] hover:border-[#0091DA] p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-[#0E131F] transition-all group"
+              >
+                <div className="w-14 h-14 bg-[#0091DA]/10 text-[#0091DA] border border-[#0091DA]/30 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <UploadCloud className="w-8 h-8" />
                 </div>
-
-                {slotA ? (
-                  <div className="space-y-2 pt-1 font-mono">
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet className="w-5 h-5 text-emerald-400 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold text-white block truncate" title={slotA.name}>
-                          {slotA.name}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">
-                          {slotA.rowCount?.toLocaleString()} rows • {slotA.columnCount} columns ({slotA.size})
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Columns Preview Chips */}
-                    {slotA.columns && slotA.columns.length > 0 && (
-                      <div className="pt-1">
-                        <span className="text-[9px] text-slate-500 block mb-1">SNIFFED SCHEMA (500+ COMPATIBLE):</span>
-                        <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                          {slotA.columns.slice(0, 10).map((col, i) => (
-                            <span key={i} className="px-1.5 py-0.5 bg-[#141A29] text-[#0091DA] border border-[#2B354D] text-[9px]">
-                              {col.name}
-                            </span>
-                          ))}
-                          {slotA.columns.length > 10 && (
-                            <span className="px-1.5 py-0.5 bg-[#141A29] text-slate-400 border border-[#2B354D] text-[9px]">
-                              +{slotA.columns.length - 10} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                <span className="text-sm font-mono font-bold text-white tracking-tight">
+                  Drop Files Here or Click to Browse
+                </span>
+                <span className="text-xs text-slate-400 font-mono mt-1">
+                  Supports CSV, Excel, Parquet, PDF, Images (PNG/JPG), and Audio (MP3/WAV)
+                </span>
+                <div className="flex items-center gap-2 mt-3 text-[10px] font-mono text-slate-500">
+                  <span className="px-2 py-0.5 bg-[#141A29] border border-[#2B354D] text-[#0091DA]">
+                    Limit: {isUnlimited ? 'Unlimited' : `${maxFiles} File${maxFiles === 1 ? '' : 's'}`}
+                  </span>
+                  <span>•</span>
+                  <span>Zero-RAM 64KB Sniffing</span>
+                  <span>•</span>
+                  <span>1,000,000+ Rows</span>
+                </div>
+              </div>
+            ) : (
+              /* Populated State: Responsive File Cards Grid */
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                      Uploaded Files ({filesList.length} of {isUnlimited ? '∞' : maxFiles})
+                    </span>
+                    {enforceUniformType && filesList[0] && (
+                      <span className="text-[9px] font-mono px-1.5 py-0.2 bg-[#6D2077]/20 text-pink-300 border border-[#6D2077]/40 uppercase">
+                        Type: {filesList[0].category}
+                      </span>
                     )}
                   </div>
-                ) : (
-                  <div 
-                    onClick={() => fileInputRefA.current?.click()}
-                    className="py-8 flex flex-col items-center justify-center text-center cursor-pointer space-y-1.5 group"
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="text-[10px] text-red-400 hover:text-red-300 font-mono hover:underline cursor-pointer"
                   >
-                    <UploadCloud className="w-7 h-7 text-slate-500 group-hover:text-[#0091DA] transition-colors" />
-                    <span className="text-xs font-mono font-bold text-slate-300 group-hover:text-white">
-                      Drop Target Register Here
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-mono">
-                      e.g. Government GST (CSV, XLSX, Parquet)
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Slot A Footer Variable Pill */}
-              <div className="pt-2 border-t border-[#182030] flex items-center justify-between text-[10px] font-mono">
-                <button
-                  type="button"
-                  onClick={() => handleCopyVar(slotA?.key || 'slotA')}
-                  className="px-2 py-0.5 rounded-none bg-black/40 hover:bg-black/70 text-[#0091DA] border border-[#1E2638] flex items-center gap-1 cursor-pointer"
-                >
-                  <span>inputs.{slotA?.key || 'slotA'}</span>
-                  {copiedKey === (slotA?.key || 'slotA') ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-60" />}
-                </button>
-                <span className="text-slate-500 text-[9px]">
-                  {slotA?.isSniffed ? '⚡ Zero-RAM Mode' : slotA ? 'In-Memory' : 'Awaiting File'}
-                </span>
-              </div>
-            </div>
-
-            {/* ---------------- SLOT B (Counterparty Dataset) ---------------- */}
-            <div 
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleMultiFileDrop(e, 'slotB')}
-              className={`p-3 border rounded-none flex flex-col justify-between transition-all ${
-                slotB
-                  ? 'bg-[#101524] border-[#009A44]/60 shadow-inner'
-                  : 'bg-[#0E131F] border-dashed border-[#1E2638] hover:border-[#009A44]/80'
-              }`}
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#009A44] flex items-center gap-1.5">
-                    <Database className="w-3 h-3" />
-                    Slot B: Counterparty Register
-                  </span>
-                  {slotB && (
-                    <button
-                      type="button"
-                      onClick={() => handleClearSlot('slotB')}
-                      className="p-1 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-none cursor-pointer"
-                      title="Remove Slot B File"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
+                    Clear All
+                  </button>
                 </div>
 
-                {slotB ? (
-                  <div className="space-y-2 pt-1 font-mono">
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet className="w-5 h-5 text-[#009A44] shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold text-white block truncate" title={slotB.name}>
-                          {slotB.name}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">
-                          {slotB.rowCount?.toLocaleString()} rows • {slotB.columnCount} columns ({slotB.size})
-                        </span>
-                      </div>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {filesList.map((file, idx) => {
+                    const isTabular = file.category === 'tabular';
+                    const isAudio = file.category === 'audio';
+                    const isImage = file.category === 'image';
 
-                    {/* Columns Preview Chips */}
-                    {slotB.columns && slotB.columns.length > 0 && (
-                      <div className="pt-1">
-                        <span className="text-[9px] text-slate-500 block mb-1">SNIFFED SCHEMA (500+ COMPATIBLE):</span>
-                        <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                          {slotB.columns.slice(0, 10).map((col, i) => (
-                            <span key={i} className="px-1.5 py-0.5 bg-[#141A29] text-[#009A44] border border-[#2B354D] text-[9px]">
-                              {col.name}
+                    const badgeColor = isTabular
+                      ? '#009A44'
+                      : isAudio
+                        ? '#0091DA'
+                        : isImage
+                          ? '#FD349C'
+                          : '#7213EA';
+
+                    const FileIcon = isTabular
+                      ? FileSpreadsheet
+                      : isAudio
+                        ? FileAudio
+                        : isImage
+                          ? ImageIcon
+                          : FileText;
+
+                    return (
+                      <div
+                        key={file.id || idx}
+                        className="p-3 border bg-[#101524] border-[#1E2638] hover:border-[#0091DA]/60 transition-all flex flex-col justify-between space-y-2 relative group"
+                      >
+                        {/* Card Top: Category Badge, Size & Delete */}
+                        <div className="flex items-center justify-between">
+                          <span 
+                            className="text-[9px] font-mono px-1.5 py-0.2 font-bold uppercase border"
+                            style={{
+                              backgroundColor: `${badgeColor}15`,
+                              color: badgeColor,
+                              borderColor: `${badgeColor}40`
+                            }}
+                          >
+                            {file.category}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-mono text-slate-400">
+                              {file.size}
                             </span>
-                          ))}
-                          {slotB.columns.length > 10 && (
-                            <span className="px-1.5 py-0.5 bg-[#141A29] text-slate-400 border border-[#2B354D] text-[9px]">
-                              +{slotB.columns.length - 10} more
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFile(file.id)}
+                              className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Remove file"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Card Body: Icon, Title & Dynamic Metadata */}
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <div 
+                            className="w-8 h-8 flex items-center justify-center shrink-0 border mt-0.5"
+                            style={{
+                              backgroundColor: `${badgeColor}10`,
+                              borderColor: `${badgeColor}30`,
+                              color: badgeColor
+                            }}
+                          >
+                            <FileIcon className="w-4 h-4" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs font-mono font-bold text-white block truncate" title={file.name}>
+                              {file.name}
                             </span>
-                          )}
+
+                            {isTabular && (
+                              <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                                {file.rowCount?.toLocaleString()} rows • {file.columnCount} cols
+                              </span>
+                            )}
+
+                            {isAudio && (
+                              <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                                Audio Recording • Multimodal Ready
+                              </span>
+                            )}
+
+                            {isImage && (
+                              <div className="mt-1">
+                                {file.previewUrl ? (
+                                  <img 
+                                    src={file.previewUrl} 
+                                    alt={file.name} 
+                                    className="w-full h-16 object-cover border border-[#1E2638]" 
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 font-mono block">Image Binary</span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Schema Preview Chips for Datasets */}
+                            {isTabular && file.columns && file.columns.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1.5 max-h-12 overflow-y-auto">
+                                {file.columns.slice(0, 4).map((c, i) => (
+                                  <span key={i} className="px-1 py-0.2 bg-[#141A29] text-[#0091DA] border border-[#2B354D] text-[8px] font-mono">
+                                    {typeof c === 'string' ? c : c.name}
+                                  </span>
+                                ))}
+                                {file.columns.length > 4 && (
+                                  <span className="px-1 py-0.2 bg-[#141A29] text-slate-500 border border-[#2B354D] text-[8px] font-mono">
+                                    +{file.columns.length - 4}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Card Footer: Variable Copy Pill */}
+                        <div className="pt-2 border-t border-[#182030] flex items-center justify-between text-[10px] font-mono">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyVar(file.key)}
+                            className="px-2 py-0.5 bg-black/40 hover:bg-black/70 text-[#0091DA] border border-[#1E2638] flex items-center gap-1 cursor-pointer"
+                            title={`Click to copy inputs.${file.key}`}
+                          >
+                            <span>inputs.{file.key}</span>
+                            {copiedKey === file.key ? (
+                              <Check className="w-2.5 h-2.5 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-2.5 h-2.5 opacity-60" />
+                            )}
+                          </button>
+
+                          <span className="text-slate-500 text-[9px]">
+                            {idx === 0 ? 'Primary (slotA)' : idx === 1 ? 'Secondary (slotB)' : `Index [${idx}]`}
+                          </span>
                         </div>
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => fileInputRefB.current?.click()}
-                    className="py-8 flex flex-col items-center justify-center text-center cursor-pointer space-y-1.5 group"
-                  >
-                    <UploadCloud className="w-7 h-7 text-slate-500 group-hover:text-[#009A44] transition-colors" />
-                    <span className="text-xs font-mono font-bold text-slate-300 group-hover:text-white">
-                      Drop Comparison Register Here
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-mono">
-                      e.g. ERP Purchase Register (CSV, XLSX, Parquet)
-                    </span>
-                  </div>
-                )}
-              </div>
+                    );
+                  })}
 
-              {/* Slot B Footer Variable Pill */}
-              <div className="pt-2 border-t border-[#182030] flex items-center justify-between text-[10px] font-mono">
-                <button
-                  type="button"
-                  onClick={() => handleCopyVar(slotB?.key || 'slotB')}
-                  className="px-2 py-0.5 rounded-none bg-black/40 hover:bg-black/70 text-[#009A44] border border-[#1E2638] flex items-center gap-1 cursor-pointer"
-                >
-                  <span>inputs.{slotB?.key || 'slotB'}</span>
-                  {copiedKey === (slotB?.key || 'slotB') ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-60" />}
-                </button>
-                <span className="text-slate-500 text-[9px]">
-                  {slotB?.isSniffed ? '⚡ Zero-RAM Mode' : slotB ? 'In-Memory' : 'Awaiting File'}
-                </span>
+                  {/* Add File Tile (if below capacity) */}
+                  {canAddMore && (
+                    <div 
+                      onClick={() => multiFileInputRef.current?.click()}
+                      className="min-h-[120px] p-4 border-2 border-dashed border-[#1E2638] hover:border-[#0091DA] flex flex-col items-center justify-center text-center cursor-pointer bg-[#0E131F] transition-all group"
+                    >
+                      <Plus className="w-6 h-6 text-slate-500 group-hover:text-[#0091DA] transition-colors mb-1" />
+                      <span className="text-xs font-mono font-bold text-slate-300 group-hover:text-white">
+                        + Add File
+                      </span>
+                      <span className="text-[9px] text-slate-500 font-mono mt-0.5">
+                        {isUnlimited ? 'Unlimited files' : `${remainingCapacity} more slot${remainingCapacity === 1 ? '' : 's'}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-
+            )}
           </div>
         )}
 
-        {/* Single Stream Mode Fallback */}
-        {ingestMode === 'single' && (
-          <div 
-            onClick={() => fileInputRefA.current?.click()}
-            className="h-full border-2 border-dashed border-[#1E2638] hover:border-[#0091DA] p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-[#0E131F]"
-          >
-            <UploadCloud className="w-10 h-10 text-[#0091DA] mb-2" />
-            <span className="text-xs font-mono font-bold text-white">
-              {slotA ? slotA.name : 'Drop Single File Here (CSV, Excel, Parquet, JSON)'}
-            </span>
-            <span className="text-[10px] text-slate-500 font-mono mt-1">
-              {slotA ? `${slotA.rowCount?.toLocaleString()} rows • ${slotA.columnCount} columns` : 'Supports massive enterprise datasets with zero RAM blowup'}
-            </span>
+        {/* 2. Raw Direct Text Stream Mode */}
+        {ingestMode === 'text' && (
+          <div className="h-full flex flex-col justify-between p-3.5 bg-[#0E131F] border border-[#1E2638] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0091DA] flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
+                Raw Direct Text Stream
+              </span>
+              <span className="text-[9px] font-mono text-slate-400">
+                {textContent.length} chars • {textContent.split(/\s+/).filter(Boolean).length} words
+              </span>
+            </div>
+
+            <textarea
+              value={textContent}
+              onChange={(e) => handleTextChange(e.target.value)}
+              placeholder="Paste raw meeting transcript, executive directives, policy instructions, or tabular text lines..."
+              className="flex-1 w-full p-2.5 bg-[#101524] border border-[#1E2638] focus:border-[#0091DA] text-slate-200 text-xs font-mono resize-none outline-none leading-relaxed"
+            />
+
+            <div className="pt-2 border-t border-[#182030] flex items-center justify-between text-[10px] font-mono">
+              <button
+                type="button"
+                onClick={() => handleCopyVar('text')}
+                className="px-2 py-0.5 bg-black/40 hover:bg-black/70 text-[#0091DA] border border-[#1E2638] flex items-center gap-1 cursor-pointer"
+              >
+                <span>inputs.text</span>
+                {copiedKey === 'text' ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 opacity-60" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTextChange('')}
+                className="text-[9px] text-slate-500 hover:text-red-400 cursor-pointer"
+              >
+                Clear text
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -966,7 +1256,11 @@ export default function IngestionNode({ id, data = {}, selected }) {
           <span className="text-slate-300">{statusInfo.desc}</span>
         </div>
         <span className="text-slate-500 hidden sm:inline">
-          Emits: inputs.slotA & inputs.slotB
+          {ingestMode === 'text'
+            ? 'Emits: inputs.text'
+            : filesList.length >= 2
+              ? 'Emits: inputs.files, inputs.slotA & inputs.slotB'
+              : 'Emits: inputs.files & inputs[keys]'}
         </span>
       </div>
 

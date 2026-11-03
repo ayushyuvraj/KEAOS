@@ -437,10 +437,10 @@ function findByKeywords(raw, list) {
 
   // Tool / Ingest Keywords
   if (raw.includes('audio') || raw.includes('speech') || raw.includes('transcri')) {
-    return list.find(i => i.id === 'ingest-audio-stream') || null;
+    return list.find(i => i.id === 'ingest-universal-file') || list.find(i => i.id === 'ingest-audio-stream') || null;
   }
   if (raw.includes('text') || raw.includes('paste')) {
-    return list.find(i => i.id === 'ingest-raw-text') || null;
+    return list.find(i => i.id === 'ingest-universal-file') || list.find(i => i.id === 'ingest-raw-text') || null;
   }
   if (raw.includes('file') || raw.includes('doc') || raw.includes('pdf') || raw.includes('ingest')) {
     return list.find(i => i.id === 'ingest-universal-file') || null;
