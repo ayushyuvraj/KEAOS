@@ -281,7 +281,7 @@ export default function ClusterDiagnosticsModal({ isOpen, onClose, isDarkMode = 
                       : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-[#0B0F19]'
                   }`}
                 >
-                  Tier 1: JS / V8 Isolate (&lt;5ms)
+                  Tier 1: JS / V8 Isolate (&lt;0.01s)
                 </button>
                 <button
                   onClick={() => handleLanguageChange('python')}

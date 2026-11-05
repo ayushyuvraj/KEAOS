@@ -709,7 +709,7 @@ export function executeTokenObservabilityEvaluation(inputData, startTime = perfo
 
   const tableData = [
     { 'Metric': 'Total Tokens', 'Value': `${tokens.toLocaleString()} tok`, 'Threshold': '< 4,000 tok', 'Status': status },
-    { 'Metric': 'Reasoning Latency', 'Value': `${upstreamLatency} ms`, 'Threshold': '< 2,000 ms', 'Status': upstreamLatency > 2000 ? 'ELEVATED' : 'NOMINAL' }
+    { 'Metric': 'Reasoning Latency', 'Value': `${(upstreamLatency / 1000).toFixed(upstreamLatency < 1000 ? 2 : 1)}s`, 'Threshold': '< 2.0s', 'Status': upstreamLatency > 2000 ? 'ELEVATED' : 'NOMINAL' }
   ];
 
   if (userAskedForCost) {

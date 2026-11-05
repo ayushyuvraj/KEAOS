@@ -527,7 +527,7 @@ export default function MeetingSimulator({
                 >
                   <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 mb-1">
                     <span className="font-bold text-[#00338D]">Pillar {idx + 1}</span>
-                    <span>{step.latencyMs}ms</span>
+                    <span>{step.latencyMs >= 1000 ? `${(step.latencyMs / 1000).toFixed(1)}s` : `${(step.latencyMs / 1000).toFixed(2)}s`}</span>
                   </div>
                   <h5 className="font-bold text-[#0B0F19] truncate tracking-tight">{step.step}</h5>
                   <p className="text-[11px] text-slate-600 mt-1 line-clamp-2 leading-relaxed">{step.detail}</p>

@@ -2,17 +2,17 @@
   "activeWorkflowId": "wf-1793691016883-kzezt",
   "uiState": {
     "isDarkMode": false,
-    "isSidebarCollapsed": false,
-    "isSidebarClosed": true,
+    "isSidebarCollapsed": true,
+    "isSidebarClosed": false,
     "isDrawerExpanded": false,
     "showMiniMap": false,
     "miniMapPos": {
       "x": 0,
       "y": 0
     },
-    "isInspectorOpen": true,
+    "isInspectorOpen": false,
     "isEnforcerActive": true,
-    "viewMode": "canvas",
+    "viewMode": "audit-2",
     "isWorkflowLocked": false
   },
   "workflows": [
@@ -3393,11 +3393,41 @@
             "width": 619,
             "height": 360
           },
-          "selected": true,
+          "selected": false,
           "dragging": false,
           "width": 619,
           "height": 360,
           "resizing": false
+        },
+        {
+          "id": "node-policies-3842",
+          "type": "pillar",
+          "position": {
+            "x": 878.6581439273556,
+            "y": 232.88539702447935
+          },
+          "data": {
+            "pillarType": "policies",
+            "toolId": "pol-pii-masker",
+            "name": "PII & Confidentiality Redactor",
+            "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "redactSalaries": true,
+              "maskEmails": true,
+              "regexRules": "strict"
+            },
+            "tools": null,
+            "itemId": "pol-pii-masker",
+            "isDarkMode": false
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": true,
+          "dragging": false
         }
       ],
       "edges": [
@@ -3436,10 +3466,42 @@
             "isToolBinding": false,
             "isBidirectional": false
           }
+        },
+        {
+          "id": "edge-policies-3844",
+          "source": "node-policies-3842",
+          "sourceHandle": "out",
+          "target": "agent-core",
+          "targetHandle": "policy-in",
+          "type": "deletable",
+          "animated": false,
+          "style": {
+            "stroke": "#470A68",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          }
+        },
+        {
+          "animated": true,
+          "type": "deletable",
+          "data": {
+            "isToolBinding": false,
+            "isBidirectional": false
+          },
+          "source": "node-policies-3842",
+          "sourceHandle": "out",
+          "target": "node-remote-3490",
+          "targetHandle": "policy-in",
+          "style": {
+            "stroke": "#470A68",
+            "strokeWidth": 1.8,
+            "strokeDasharray": "4 4"
+          },
+          "id": "xy-edge__node-policies-3842out-node-remote-3490policy-in"
         }
       ],
       "createdAt": 1793691016884,
-      "updatedAt": 1793739779095,
+      "updatedAt": 1793867276346,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -3447,13 +3509,13 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 3,
+        "nodeCount": 4,
         "agentCount": 0,
         "mcpCount": 0,
         "modelCount": 0,
         "skillCount": 0,
         "toolCount": 0,
-        "policyCount": 0,
+        "policyCount": 1,
         "hasAudit": false
       },
       "agentLogs": []
@@ -11372,11 +11434,41 @@
           "width": 619,
           "height": 360
         },
-        "selected": true,
+        "selected": false,
         "dragging": false,
         "width": 619,
         "height": 360,
         "resizing": false
+      },
+      {
+        "id": "node-policies-3842",
+        "type": "pillar",
+        "position": {
+          "x": 878.6581439273556,
+          "y": 232.88539702447935
+        },
+        "data": {
+          "pillarType": "policies",
+          "toolId": "pol-pii-masker",
+          "name": "PII & Confidentiality Redactor",
+          "description": "Detects and redacts salaries, personal phones, SSNs, and passwords.",
+          "customDirective": null,
+          "referenceDoc": null,
+          "config": {
+            "redactSalaries": true,
+            "maskEmails": true,
+            "regexRules": "strict"
+          },
+          "tools": null,
+          "itemId": "pol-pii-masker",
+          "isDarkMode": false
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": true,
+        "dragging": false
       }
     ],
     "edges": [
@@ -11415,6 +11507,38 @@
           "isToolBinding": false,
           "isBidirectional": false
         }
+      },
+      {
+        "id": "edge-policies-3844",
+        "source": "node-policies-3842",
+        "sourceHandle": "out",
+        "target": "agent-core",
+        "targetHandle": "policy-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#470A68",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        }
+      },
+      {
+        "animated": false,
+        "type": "deletable",
+        "data": {
+          "isToolBinding": false,
+          "isBidirectional": false
+        },
+        "source": "node-policies-3842",
+        "sourceHandle": "out",
+        "target": "node-remote-3490",
+        "targetHandle": "policy-in",
+        "style": {
+          "stroke": "#470A68",
+          "strokeWidth": 1.8,
+          "strokeDasharray": "4 4"
+        },
+        "id": "xy-edge__node-policies-3842out-node-remote-3490policy-in"
       }
     ],
     "activeUseCase": {
@@ -16694,5 +16818,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793739779910
+  "syncedAt": 1793868712446
 }

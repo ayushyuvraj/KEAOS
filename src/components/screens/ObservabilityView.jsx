@@ -104,7 +104,7 @@ export default function ObservabilityView({ activeUseCase, nodes = [] }) {
               <span>Total Inference Latency</span>
               <Activity className="w-3.5 h-3.5 text-[#00338D]" />
             </div>
-            <div className="text-2xl font-bold text-[#0B0F19] tracking-tight font-mono">{totalLatency} ms</div>
+            <div className="text-2xl font-bold text-[#0B0F19] tracking-tight font-mono">{totalLatency >= 1000 ? `${(totalLatency / 1000).toFixed(1)}s` : `${(totalLatency / 1000).toFixed(2)}s`}</div>
             <span className="text-[11px] text-[#009A44] font-medium flex items-center gap-1 mt-1 font-mono">
               <TrendingDown className="w-3 h-3" /> Within 2.0s SLA target
             </span>
@@ -158,7 +158,7 @@ export default function ObservabilityView({ activeUseCase, nodes = [] }) {
               </p>
             </div>
             <span className="text-xs font-mono font-bold text-[#00338D]">
-              Total Span: {totalLatency}ms
+              Total Span: {totalLatency >= 1000 ? `${(totalLatency / 1000).toFixed(1)}s` : `${(totalLatency / 1000).toFixed(2)}s`}
             </span>
           </div>
 
@@ -170,7 +170,7 @@ export default function ObservabilityView({ activeUseCase, nodes = [] }) {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-[#0B0F19]">{span.name}</span>
                     <span className="font-mono text-slate-500 text-[11px]">
-                      {span.latencyMs}ms ({span.cost})
+                      {span.latencyMs >= 1000 ? `${(span.latencyMs / 1000).toFixed(1)}s` : `${(span.latencyMs / 1000).toFixed(2)}s`} ({span.cost})
                     </span>
                   </div>
                   <div className="w-full h-2.5 bg-[#F8F9FB] border border-[#E0E0E0]">

@@ -409,8 +409,8 @@ export async function endTrace(traceContext, {
     },
     spans: traceContext.spans,
     payload: {
-      inputSnippet: inputStr.slice(0, 280) + (inputStr.length > 280 ? '...' : ''),
-      outputSnippet: outputStr.slice(0, 360) + (outputStr.length > 360 ? '...' : '')
+      inputSnippet: inputStr.slice(0, 5000),
+      outputSnippet: outputStr.slice(0, 10000)
     }
   };
 

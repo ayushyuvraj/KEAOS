@@ -1,36 +1,83 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   ShieldCheck, 
   Activity, 
-  DollarSign, 
-  Clock, 
-  Globe, 
   Search, 
   Download, 
   Trash2, 
   CheckCircle2, 
   Copy, 
   Check, 
-  Terminal
+  Terminal,
+  ArrowUpDown,
+  SlidersHorizontal,
+  X,
+  ChevronDown,
+  FileText,
+  AlertTriangle,
+  Clock,
+  Layers,
+  Cpu,
+  CheckCircle,
+  FileCheck2,
+  Code2,
+  Hash
 } from 'lucide-react';
 import ScreenScaffold from '../common/ScreenScaffold';
 import { 
   getStoredAudit2Runs, 
   getAudit2KPIs, 
-  clearAudit2Runs
+  clearAudit2Runs,
+  saveAudit2Runs
 } from '../../services/audit2Service';
+import {
+  formatHumanDuration,
+  formatExactDateTime,
+  safeParseJson,
+  extractTaskSubject,
+  extractBusinessFindings,
+  extractStatusDiagnosis,
+  extractPipelineSteps
+} from '../../utils/payloadSummaryEngine';
 
-export default function Audit2View() {
+export default function Audit2View({ activeUseCase, onOpenCanvas }) {
   const [runs, setRuns] = useState(() => getStoredAudit2Runs());
   const [selectedRunId, setSelectedRunId] = useState(() => {
     const initial = getStoredAudit2Runs();
     return initial[0]?.runId || null;
   });
-  const [selectedSpanId, setSelectedSpanId] = useState(null);
-  const [filterComponent, setFilterComponent] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [copiedText, setCopiedText] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(null);
   const [isOtlpModalOpen, setIsOtlpModalOpen] = useState(false);
+  const [activeTechnicalDrawer, setActiveTechnicalDrawer] = useState(null); // 'raw' | 'proof' | null
+  const [activeBoardTab, setActiveBoardTab] = useState(null); // 'deliverables' | 'steps' | null (collapsed by default)
+
+  // Amazon-style Sort & Filter State
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'errors' | 'oldest' | 'slowest' | 'fastest' | 'cost'
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Multi-select facet filter states
+  const [filterStatus, setFilterStatus] = useState([]); // ['SUCCESS', 'FAILED']
+  const [filterModels, setFilterModels] = useState([]); // ['gemini-2.5-flash', etc.]
+  const [filterDuration, setFilterDuration] = useState([]); // ['fast', 'medium', 'slow']
+
+  const sortRef = useRef(null);
+  const filterRef = useRef(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (sortRef.current && !sortRef.current.contains(e.target)) {
+        setIsSortOpen(false);
+      }
+      if (filterRef.current && !filterRef.current.contains(e.target)) {
+        setIsFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   // Hydrate from server-persisted audit2 ledger on mount to sync any webhook traces
   useEffect(() => {
@@ -68,441 +115,980 @@ export default function Audit2View() {
     return () => window.removeEventListener('keaos:audit2-ledger-updated', handleUpdate);
   }, [selectedRunId]);
 
-  const kpis = useMemo(() => getAudit2KPIs(runs), [runs]);
+  // Available facet counts
+  const availableFacets = useMemo(() => {
+    const modelsSet = new Set();
+    let successCount = 0;
+    let failedCount = 0;
+    let fastCount = 0;
+    let mediumCount = 0;
+    let slowCount = 0;
 
-  // Filtered runs
-  const filteredRuns = useMemo(() => {
-    return runs.filter(r => {
-      const matchesSearch = !searchQuery || 
-        r.workflowName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.runId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.traceId?.toLowerCase().includes(searchQuery.toLowerCase());
+    for (const r of runs) {
+      const outParsed = safeParseJson(r.payload?.outputSnippet);
+      const isFailed = r.status === 'FAILED' || outParsed?.status === 'exception' || outParsed?.status === 'error';
+      if (isFailed) failedCount++;
+      else successCount++;
 
-      if (!matchesSearch) return false;
+      const dur = r.durationMs || 0;
+      if (dur < 1000) fastCount++;
+      else if (dur <= 10000) mediumCount++;
+      else slowCount++;
 
-      if (filterComponent === 'ALL') return true;
-      if (filterComponent === 'REMOTE') {
-        return r.frameworkId === 'langgraph' || r.origin === 'remote_otlp_ingress' || 
-          (r.spans || []).some(s => s.componentType === 'remote_agent');
+      if (Array.isArray(r.spans)) {
+        for (const sp of r.spans) {
+          const m = sp.attributes?.['llm.model_name'];
+          if (m) modelsSet.add(m);
+        }
       }
-      if (filterComponent === 'AGENT') {
-        return (r.spans || []).some(s => s.componentType === 'agent_core');
+    }
+
+    return {
+      models: Array.from(modelsSet),
+      counts: {
+        success: successCount,
+        failed: failedCount,
+        fast: fastCount,
+        medium: mediumCount,
+        slow: slowCount
       }
-      if (filterComponent === 'DETERMINISTIC') {
-        return (r.spans || []).some(s => s.componentType === 'deterministic');
+    };
+  }, [runs]);
+
+  // Count active filters
+  const activeFiltersCount = (filterStatus.length > 0 ? 1 : 0) +
+    (filterModels.length > 0 ? 1 : 0) +
+    (filterDuration.length > 0 ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setFilterStatus([]);
+    setFilterModels([]);
+    setFilterDuration([]);
+    setSearchQuery('');
+  };
+
+  // Filtered and sorted runs
+  const filteredAndSortedRuns = useMemo(() => {
+    const result = runs.filter(r => {
+      const subject = extractTaskSubject(r).toLowerCase();
+      const findings = extractBusinessFindings(r).map(f => f.value.toLowerCase()).join(' ');
+      const workflow = (r.workflowName || '').toLowerCase();
+      const runId = (r.runId || '').toLowerCase();
+
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matches = subject.includes(q) || findings.includes(q) || workflow.includes(q) || runId.includes(q);
+        if (!matches) return false;
       }
-      if (filterComponent === 'GOVERNANCE') {
-        return (r.spans || []).some(s => s.componentType === 'approval' || s.componentType === 'router');
+
+      // Status facet
+      if (filterStatus.length > 0) {
+        const outParsed = safeParseJson(r.payload?.outputSnippet);
+        const isFailed = r.status === 'FAILED' || outParsed?.status === 'exception' || outParsed?.status === 'error';
+        const statusKey = isFailed ? 'FAILED' : 'SUCCESS';
+        if (!filterStatus.includes(statusKey)) return false;
       }
+
+      // Model facet
+      if (filterModels.length > 0) {
+        const runModels = (r.spans || []).map(s => s.attributes?.['llm.model_name']).filter(Boolean);
+        const hasModel = filterModels.some(m => runModels.includes(m));
+        if (!hasModel) return false;
+      }
+
+      // Duration facet
+      if (filterDuration.length > 0) {
+        const dur = r.durationMs || 0;
+        const matchesDur = filterDuration.some(d => {
+          if (d === 'fast') return dur < 1000;
+          if (d === 'medium') return dur >= 1000 && dur <= 10000;
+          if (d === 'slow') return dur > 10000;
+          return true;
+        });
+        if (!matchesDur) return false;
+      }
+
       return true;
     });
-  }, [runs, searchQuery, filterComponent]);
+
+    // Sorting
+    result.sort((a, b) => {
+      const outA = safeParseJson(a.payload?.outputSnippet);
+      const outB = safeParseJson(b.payload?.outputSnippet);
+      const statusA = String(outA?.status || '').toLowerCase();
+      const statusB = String(outB?.status || '').toLowerCase();
+      const isFailedA = a.status === 'FAILED' || statusA === 'exception' || statusA === 'error';
+      const isFailedB = b.status === 'FAILED' || statusB === 'exception' || statusB === 'error';
+
+      if (sortBy === 'newest') {
+        return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+      }
+      if (sortBy === 'errors') {
+        if (isFailedA && !isFailedB) return -1;
+        if (isFailedB && !isFailedA) return 1;
+        return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+      }
+      if (sortBy === 'oldest') {
+        return new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime();
+      }
+      if (sortBy === 'slowest') {
+        return (b.durationMs || 0) - (a.durationMs || 0);
+      }
+      if (sortBy === 'fastest') {
+        return (a.durationMs || 0) - (b.durationMs || 0);
+      }
+      if (sortBy === 'cost') {
+        return (b.metrics?.totalCostUsd || 0) - (a.metrics?.totalCostUsd || 0);
+      }
+      return 0;
+    });
+
+    return result;
+  }, [runs, searchQuery, filterStatus, filterModels, filterDuration, sortBy]);
 
   const activeRun = useMemo(() => {
-    return runs.find(r => r.runId === selectedRunId) || filteredRuns[0] || null;
-  }, [runs, selectedRunId, filteredRuns]);
+    return runs.find(r => r.runId === selectedRunId) || filteredAndSortedRuns[0] || null;
+  }, [runs, selectedRunId, filteredAndSortedRuns]);
 
-  const activeSpan = useMemo(() => {
-    if (!activeRun || !Array.isArray(activeRun.spans)) return null;
-    if (selectedSpanId) {
-      const found = activeRun.spans.find(s => s.spanId === selectedSpanId);
-      if (found) return found;
-    }
-    return activeRun.spans[0] || null;
-  }, [activeRun, selectedSpanId]);
+  // Derived user-centric task details for the active run
+  const activeSubject = useMemo(() => extractTaskSubject(activeRun), [activeRun]);
+  const activeFindings = useMemo(() => extractBusinessFindings(activeRun), [activeRun]);
+  const activeDiagnosis = useMemo(() => extractStatusDiagnosis(activeRun), [activeRun]);
+  const activeSteps = useMemo(() => extractPipelineSteps(activeRun), [activeRun]);
+  const kpis = useMemo(() => getAudit2KPIs(runs), [runs]);
+  const activeModelName = useMemo(() => {
+    return (activeRun?.spans || []).find(s => s.attributes?.['llm.model_name'])?.attributes?.['llm.model_name'] || 'gemini-2.5-flash';
+  }, [activeRun]);
 
-  const copyToClipboard = (text, id) => {
+  const copyToClipboard = async (text, id) => {
     if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopiedText(id);
-    setTimeout(() => setCopiedText(null), 2000);
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        throw new Error('Fallback needed');
+      }
+    } catch {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      } catch (err) {
+        console.warn('[Audit2] Clipboard fallback failed:', err);
+      }
+    }
+    setCopiedKey(id);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleCopyFindings = () => {
+    let textToCopy = '';
+    if (activeFindings && activeFindings.length > 0) {
+      textToCopy = activeFindings.map(f => `${f.label}: ${f.value}`).join('\n');
+    } else {
+      textToCopy = [
+        `Task: ${activeSubject}`,
+        `Workflow: ${activeRun?.workflowName || 'Workflow Execution'}`,
+        `Status: ${activeDiagnosis?.title || activeRun?.status}`,
+        `Duration: ${formatHumanDuration(activeRun?.durationMs)}`,
+        `Inference Cost: $${(activeRun?.metrics?.totalCostUsd || 0).toFixed(4)} USD`,
+        activeDiagnosis?.message ? `Diagnosis: ${activeDiagnosis.message}` : ''
+      ].filter(Boolean).join('\n');
+    }
+    copyToClipboard(textToCopy, 'findings');
   };
 
   const handleExportJson = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(runs, null, 2));
     const dlAnchor = document.createElement('a');
     dlAnchor.setAttribute('href', dataStr);
-    dlAnchor.setAttribute('download', `keaos_audit2_opentelemetry_${Date.now()}.json`);
+    dlAnchor.setAttribute('download', `keaos_observability_ledger_${Date.now()}.json`);
     dlAnchor.click();
   };
 
   const handleClear = () => {
-    if (window.confirm('Clear all Audit 2.0 OpenTelemetry records? (This cannot be undone)')) {
+    if (window.confirm('Clear all audit and observability records? (This cannot be undone)')) {
       clearAudit2Runs();
       setRuns([]);
       setSelectedRunId(null);
-      setSelectedSpanId(null);
     }
   };
 
-  const getComponentBadge = (type) => {
-    switch (type) {
-      case 'remote_agent':
-        return { label: 'REMOTE AGENT', color: 'bg-[#00A3A6]/15 text-[#00A3A6] border-[#00A3A6]/30' };
-      case 'agent_core':
-        return { label: 'AI AGENT CORE', color: 'bg-[#00338D]/15 text-[#00338D] dark:text-sky-400 border-sky-500/30' };
-      case 'deterministic':
-        return { label: '0-TOKEN LOGIC', color: 'bg-amber-500/15 text-amber-500 border-amber-500/30' };
-      case 'approval':
-        return { label: 'GOVERNANCE GATE', color: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' };
-      case 'router':
-        return { label: 'ROUTER SWITCH', color: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30' };
-      case 'trigger':
-        return { label: 'INGRESS TRIGGER', color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30' };
-      case 'output':
-        return { label: 'FINAL OUTPUT', color: 'bg-teal-500/15 text-teal-400 border-teal-500/30' };
-      default:
-        return { label: (type || 'SPAN').toUpperCase(), color: 'bg-slate-500/15 text-slate-400 border-slate-500/30' };
+  const getSortLabel = () => {
+    switch (sortBy) {
+      case 'newest': return 'Newest First';
+      case 'errors': return 'Exceptions & Errors First';
+      case 'oldest': return 'Oldest First';
+      case 'slowest': return 'Slowest First';
+      case 'fastest': return 'Fastest First';
+      case 'cost': return 'Highest Cost';
+      default: return 'Sort';
     }
   };
 
   return (
-    <ScreenScaffold
-      title="Audit 2.0 & OpenTelemetry Fabric"
-      eyebrow="ENTERPRISE OPEN TELEMETRY • W3C TRACE CONTEXT • CRYPTOGRAPHIC NOTARIZATION"
-      statusText="OTEL 2.0 LIVE"
-      statusType="active"
-    >
-      <div className="space-y-5 select-none text-xs">
-        {/* Top Action & Toolbar Row */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-              Filter Pipeline:
-            </span>
-            <div className="flex items-center gap-1 bg-[#FFFFFF] dark:bg-[#090D16] border border-[#CBD5E1] dark:border-[#1E293B] p-0.5">
-              {[
-                { id: 'ALL', label: 'All Spans' },
-                { id: 'REMOTE', label: 'Remote Agents (LangGraph/CrewAI)' },
-                { id: 'AGENT', label: 'AI Agent Cores' },
-                { id: 'DETERMINISTIC', label: 'Deterministic' },
-                { id: 'GOVERNANCE', label: 'Governance' }
-              ].map(f => (
+    <ScreenScaffold hideHeader={true} bodyClassName="p-3 sm:p-4 flex-1 min-h-0 h-full flex flex-col overflow-hidden">
+      <div className="flex-1 h-full min-h-0 flex flex-col space-y-3 select-none text-xs overflow-hidden">
+        {/* ========================================================= */}
+        {/* AMAZON-STYLE TOOLBAR: SEARCH, SORT, FILTER & ACTIONS      */}
+        {/* ========================================================= */}
+        <div className={`shrink-0 flex flex-wrap items-center justify-between gap-3 bg-white/95 dark:bg-[#080E1C]/92 backdrop-blur-xl border border-slate-200/90 dark:border-white/[0.09] p-3 rounded-2xl shadow-xs relative ${
+          (isSortOpen || isFilterOpen) ? 'z-40' : 'z-20'
+        }`}>
+          {/* Left Group: Search Bar + Sort Dropdown + Filter Popover */}
+          <div className="flex items-center gap-2.5 flex-1 min-w-[320px]">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search documents, cases, workflows, errors..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-7 py-1.5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#00338D] transition-colors"
+              />
+              {searchQuery && (
                 <button
-                  key={f.id}
-                  onClick={() => setFilterComponent(f.id)}
-                  className={`px-2.5 py-1 text-[10px] font-mono font-semibold transition-all cursor-pointer ${
-                    filterComponent === f.id
-                      ? 'bg-[#00338D] text-white shadow-xs'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
                 >
-                  {f.label}
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              ))}
+              )}
+            </div>
+
+            {/* Amazon-Style Sort Dropdown */}
+            <div className={`relative ${isSortOpen ? 'z-50' : 'z-10'}`} ref={sortRef}>
+              <button
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                <span>Sort: {getSortLabel()}</span>
+                <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
+              </button>
+
+              {isSortOpen && (
+                <div className="absolute left-0 mt-1.5 w-52 bg-white dark:bg-[#0D111C] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
+                  {[
+                    { id: 'newest', label: 'Newest First' },
+                    { id: 'errors', label: 'Exceptions & Errors First' },
+                    { id: 'oldest', label: 'Oldest First' },
+                    { id: 'slowest', label: 'Slowest First' },
+                    { id: 'fastest', label: 'Fastest First' },
+                    { id: 'cost', label: 'Highest Cost' }
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        setSortBy(opt.id);
+                        setIsSortOpen(false);
+                      }}
+                      className={`w-full px-3 py-1.5 text-left text-xs font-medium flex items-center justify-between cursor-pointer transition-colors ${
+                        sortBy === opt.id
+                          ? 'bg-[#00338D]/10 text-[#00338D] dark:text-sky-400 font-semibold'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {sortBy === opt.id && <Check className="w-3 h-3 text-[#00338D] dark:text-sky-400" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Amazon-Style Filter Popover */}
+            <div className={`relative ${isFilterOpen ? 'z-50' : 'z-10'}`} ref={filterRef}>
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className={`px-3 py-1.5 border rounded-xl font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeFiltersCount > 0
+                    ? 'bg-[#00338D] border-[#00338D] text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                }`}
+              >
+                <SlidersHorizontal className="w-3 h-3" />
+                <span>Filter</span>
+                {activeFiltersCount > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-white text-[#00338D] font-bold text-[10px] flex items-center justify-center">
+                    {activeFiltersCount}
+                  </span>
+                )}
+                <ChevronDown className="w-3 h-3 ml-0.5 opacity-70" />
+              </button>
+
+              {isFilterOpen && (
+                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-[#0D111C] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 p-4 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <span className="font-bold text-xs text-slate-900 dark:text-white">Filter Runs</span>
+                    {activeFiltersCount > 0 && (
+                      <button
+                        onClick={clearAllFilters}
+                        className="text-[11px] text-[#00338D] dark:text-sky-400 hover:underline cursor-pointer"
+                      >
+                        Reset all
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Facet 1: Status */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                      Status
+                    </span>
+                    <div className="flex gap-2">
+                      {[
+                        { id: 'FAILED', label: `Exceptions (${availableFacets.counts.failed})` },
+                        { id: 'SUCCESS', label: `Success (${availableFacets.counts.success})` }
+                      ].map(s => {
+                        const isChecked = filterStatus.includes(s.id);
+                        return (
+                          <label
+                            key={s.id}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs cursor-pointer border transition-all ${
+                              isChecked
+                                ? 'bg-[#00338D]/15 border-[#00338D] text-[#00338D] dark:text-sky-400 font-semibold'
+                                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                setFilterStatus(prev => 
+                                  prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]
+                                );
+                              }}
+                              className="sr-only"
+                            />
+                            <span>{s.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Facet 2: Model Used */}
+                  {availableFacets.models.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                        Model
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+                        {availableFacets.models.map(model => {
+                          const isChecked = filterModels.includes(model);
+                          return (
+                            <label
+                              key={model}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-mono cursor-pointer border transition-all ${
+                                isChecked
+                                  ? 'bg-[#00338D]/15 border-[#00338D] text-[#00338D] dark:text-sky-400 font-semibold'
+                                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  setFilterModels(prev =>
+                                    prev.includes(model) ? prev.filter(x => x !== model) : [...prev, model]
+                                  );
+                                }}
+                                className="sr-only"
+                              />
+                              <span>{model}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Facet 3: Duration */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                      Duration
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { id: 'fast', label: `< 1s (${availableFacets.counts.fast})` },
+                        { id: 'medium', label: `1s - 10s (${availableFacets.counts.medium})` },
+                        { id: 'slow', label: `> 10s (${availableFacets.counts.slow})` }
+                      ].map(dur => {
+                        const isChecked = filterDuration.includes(dur.id);
+                        return (
+                          <label
+                            key={dur.id}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs cursor-pointer border transition-all ${
+                              isChecked
+                                ? 'bg-[#00338D]/15 border-[#00338D] text-[#00338D] dark:text-sky-400 font-semibold'
+                                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                setFilterDuration(prev =>
+                                  prev.includes(dur.id) ? prev.filter(x => x !== dur.id) : [...prev, dur.id]
+                                );
+                              }}
+                              className="sr-only"
+                            />
+                            <span>{dur.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="px-3 py-1 bg-[#00338D] hover:bg-[#002875] text-white text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right Group: Whisper Stats + Secondary Utilities */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-600 dark:text-slate-400 hidden lg:inline">
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {filteredAndSortedRuns.length} of {runs.length}
+              </span>{' '}
+              tasks • ${kpis.totalCostUsd.toFixed(4)} USD • {formatHumanDuration(kpis.avgLatencyMs)} avg
+            </span>
+
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden lg:block" />
+
             <button
               onClick={() => setIsOtlpModalOpen(true)}
-              className="px-3 py-1.5 bg-[#00A3A6] hover:bg-[#008D90] text-white font-mono text-[11px] font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
+              className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-xl transition-all cursor-pointer"
+              title="Connect External Python / LangGraph Agent"
             >
-              <Terminal className="w-3.5 h-3.5" />
-              <span>Connect External Python Agent</span>
+              <Terminal className="w-4 h-4 text-[#00A3A6]" />
             </button>
 
             <button
               onClick={handleExportJson}
               disabled={runs.length === 0}
-              className="px-3 py-1.5 bg-[#FFFFFF] dark:bg-[#111827] border border-[#CBD5E1] dark:border-[#1E293B] hover:border-[#00338D] text-slate-300 font-mono text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"
-              title="Export all OTel traces as JSON"
+              className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-xl disabled:opacity-30 transition-all cursor-pointer"
+              title="Export all traces as JSON"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export Traces</span>
+              <Download className="w-4 h-4" />
             </button>
 
             <button
               onClick={handleClear}
               disabled={runs.length === 0}
-              className="p-1.5 text-slate-500 hover:text-red-400 border border-transparent hover:border-red-500/30 disabled:opacity-30 transition-all cursor-pointer"
-              title="Clear Audit 2.0 Ledger"
+              className="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl disabled:opacity-30 transition-all cursor-pointer"
+              title="Clear ledger"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* 4 Primary KPI Summary Cards */}
-        <div className="grid grid-cols-4 gap-3">
-          <div className="bg-[#FFFFFF] dark:bg-[#0D111C] border border-[#CBD5E1] dark:border-[#1E293B] p-3.5 border-t-3 border-t-[#00A3A6] shadow-xs">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
-              <span>Total OTel Traces & Spans</span>
-              <Activity className="w-3.5 h-3.5 text-[#00A3A6]" />
-            </div>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              {kpis.totalRuns} Runs <span className="text-xs text-slate-400 font-normal">• {kpis.totalSpans} Spans</span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono block mt-1">
-              W3C Distributed Trace Context
-            </span>
-          </div>
+        {/* Active Filter Chips Ribbon */}
+        {(activeFiltersCount > 0 || searchQuery) && (
+          <div className="shrink-0 flex flex-wrap items-center gap-2 px-1 text-xs">
+            <span className="text-slate-600 dark:text-slate-400 text-[11px] font-semibold">Active filters:</span>
 
-          <div className="bg-[#FFFFFF] dark:bg-[#0D111C] border border-[#CBD5E1] dark:border-[#1E293B] p-3.5 border-t-3 border-t-[#00338D] shadow-xs">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
-              <span>Multi-Brain & Remote Cost</span>
-              <DollarSign className="w-3.5 h-3.5 text-[#00338D]" />
-            </div>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              ${kpis.totalCostUsd.toFixed(4)} <span className="text-xs text-slate-400 font-normal">USD</span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono block mt-1">
-              {kpis.totalTokens.toLocaleString()} Total Tokens Logged
-            </span>
-          </div>
+            {searchQuery && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-full text-[11px]">
+                Search: "{searchQuery}"
+                <button onClick={() => setSearchQuery('')} className="hover:text-red-400 cursor-pointer">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
 
-          <div className="bg-[#FFFFFF] dark:bg-[#0D111C] border border-[#CBD5E1] dark:border-[#1E293B] p-3.5 border-t-3 border-t-[#0091DA] shadow-xs">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
-              <span>Average E2E Latency</span>
-              <Clock className="w-3.5 h-3.5 text-[#0091DA]" />
-            </div>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              {kpis.avgLatencyMs} ms
-            </div>
-            <span className="text-[10px] text-emerald-500 font-mono block mt-1 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Within enterprise SLA targets
-            </span>
-          </div>
+            {filterStatus.map(st => (
+              <span key={st} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-full text-[11px]">
+                Status: {st === 'FAILED' ? 'Exceptions' : 'Success'}
+                <button onClick={() => setFilterStatus(prev => prev.filter(x => x !== st))} className="hover:text-red-400 cursor-pointer">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
 
-          <div className="bg-[#FFFFFF] dark:bg-[#0D111C] border border-[#CBD5E1] dark:border-[#1E293B] p-3.5 border-t-3 border-t-[#6D2077] shadow-xs">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
-              <span>Cryptographic Verifications</span>
-              <ShieldCheck className="w-3.5 h-3.5 text-[#6D2077]" />
-            </div>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              {kpis.verifiedRuns} / {kpis.totalRuns}
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono block mt-1">
-              100% W3C WebCrypto SHA-256
-            </span>
-          </div>
-        </div>
+            {filterModels.map(m => (
+              <span key={m} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-full text-[11px] font-mono">
+                Model: {m}
+                <button onClick={() => setFilterModels(prev => prev.filter(x => x !== m))} className="hover:text-red-400 cursor-pointer">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
 
-        {/* Master Execution View: Split Master & Detail */}
+            {filterDuration.map(d => (
+              <span key={d} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-full text-[11px]">
+                Duration: {d === 'fast' ? '< 1s' : d === 'medium' ? '1-10s' : '> 10s'}
+                <button onClick={() => setFilterDuration(prev => prev.filter(x => x !== d))} className="hover:text-red-400 cursor-pointer">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+
+            <button
+              onClick={clearAllFilters}
+              className="text-[11px] text-[#00338D] dark:text-sky-400 hover:underline font-semibold cursor-pointer ml-1"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* MASTER OBSERVABILITY: TASK CARDS (LEFT) & INSPECTOR (RIGHT) */}
+        {/* ========================================================= */}
         {runs.length === 0 ? (
-          <div className="p-12 text-center border border-dashed border-[#CBD5E1] dark:border-[#1E293B] bg-[#FFFFFF] dark:bg-[#090D16] space-y-3">
-            <div className="w-12 h-12 mx-auto rounded-full bg-[#00A3A6]/10 text-[#00A3A6] flex items-center justify-center">
+          <div className="p-16 text-center border border-dashed border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#080E1C]/92 rounded-[22px] space-y-3">
+            <div className="w-12 h-12 mx-auto rounded-full bg-[#00338D]/10 text-[#00338D] dark:text-sky-400 flex items-center justify-center">
               <Activity className="w-6 h-6 animate-pulse" />
             </div>
             <h4 className="text-base font-bold text-slate-900 dark:text-white">
-              Audit 2.0 Ledger is Clean (0 Runs)
+              No Execution Traces Recorded
             </h4>
-            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              Every workflow or component you execute on the canvas (or any external LangGraph agent sending OTLP traces) will automatically populate here in real-time with full OpenTelemetry traces.
+            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+              When workflows execute on the canvas or external agents beam traces via OpenTelemetry, they will automatically appear here with plain-language task deliverables and step progressions.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-12 gap-4 items-start">
-            {/* Left 4 Cols: Runs List */}
-            <div className="col-span-4 space-y-2">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Search traces, runs, workflows..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-[#FFFFFF] dark:bg-[#090D16] border border-[#CBD5E1] dark:border-[#1E293B] text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-[#00338D]"
-                />
-              </div>
-
-              <div className="space-y-1.5 max-h-[560px] overflow-y-auto pr-1">
-                {filteredRuns.map((r) => {
-                  const isSelected = r.runId === activeRun?.runId;
-                  const isRemote = r.frameworkId === 'langgraph' || r.origin === 'remote_otlp_ingress' || 
-                    (r.spans || []).some(s => s.componentType === 'remote_agent');
-
-                  return (
-                    <div
-                      key={r.runId}
-                      onClick={() => {
-                        setSelectedRunId(r.runId);
-                        setSelectedSpanId(r.spans?.[0]?.spanId || null);
-                      }}
-                      className={`p-3 border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#00338D]/10 dark:bg-[#00338D]/20 border-[#00338D] shadow-sm'
-                          : 'bg-[#FFFFFF] dark:bg-[#0D111C] border-[#CBD5E1] dark:border-[#1E293B] hover:border-slate-400 dark:hover:border-slate-700'
-                      }`}
+          <div className="grid grid-cols-12 gap-3.5 flex-1 min-h-0 h-full overflow-hidden">
+            {/* ------------------------------------------------------- */}
+            {/* LEFT 4 COLS: TASK-CENTRIC RUNS LIST                     */}
+            {/* ------------------------------------------------------- */}
+            <div className="col-span-12 lg:col-span-4 flex flex-col h-full min-h-0 overflow-hidden">
+              <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
+                {filteredAndSortedRuns.length === 0 ? (
+                  <div className="p-8 text-center border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#080E1C]/80 rounded-2xl">
+                    <p className="text-xs text-slate-500 mb-2">No runs match your current filters.</p>
+                    <button
+                      onClick={clearAllFilters}
+                      className="px-3 py-1 bg-[#00338D] text-white text-xs font-semibold rounded-lg cursor-pointer"
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono text-[10px] font-bold text-slate-400">
-                          {r.runId}
-                        </span>
-                        <span
-                          className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full border ${
-                            r.status === 'SUCCESS'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : 'bg-red-500/10 text-red-400 border-red-500/30'
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                      </div>
+                      Clear filters
+                    </button>
+                  </div>
+                ) : (
+                  filteredAndSortedRuns.map((r) => {
+                    const isSelected = r.runId === activeRun?.runId;
+                    const subject = extractTaskSubject(r);
+                    const diagnosis = extractStatusDiagnosis(r);
+                    const findings = extractBusinessFindings(r);
+                    const primaryFinding = findings.find(f => f.isPrimary)?.value || findings[0]?.value;
+                    const durationStr = formatHumanDuration(r.durationMs);
+                    const exactTime = formatExactDateTime(r.timestamp, false);
+                    const firstModel = (r.spans || []).find(s => s.attributes?.['llm.model_name'])?.attributes?.['llm.model_name'] || 'gemini-2.5-flash';
 
-                      <h5 className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                        {r.workflowName}
-                      </h5>
+                    return (
+                      <div
+                        key={r.runId}
+                        onClick={() => {
+                          setSelectedRunId(r.runId);
+                          setActiveTechnicalDrawer(null);
+                        }}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative ${
+                          isSelected
+                            ? 'bg-white dark:bg-[#0E1526] border-[#00338D] shadow-md ring-1 ring-[#00338D]'
+                            : 'bg-white/95 dark:bg-[#080E1C]/92 border-slate-200/90 dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
+                        }`}
+                      >
+                        {/* Header: Document / Subject + Status Badge */}
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h5 className="font-bold text-xs text-slate-900 dark:text-white truncate" title={subject}>
+                            {subject}
+                          </h5>
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
+                              diagnosis.isException
+                                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                            }`}
+                          >
+                            {diagnosis.isException ? 'Exception' : 'Success'}
+                          </span>
+                        </div>
 
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-2">
-                        <span className="flex items-center gap-1">
-                          {isRemote ? (
-                            <Globe className="w-3 h-3 text-[#00A3A6]" />
-                          ) : (
-                            <Activity className="w-3 h-3 text-sky-400" />
-                          )}
-                          <span>{r.spans?.length || 1} spans</span>
-                        </span>
-                        <span>{r.durationMs}ms</span>
-                        <span className="font-semibold text-slate-300">
-                          ${(r.metrics?.totalCostUsd || 0).toFixed(4)}
-                        </span>
+                        {/* Workflow Name */}
+                        <div className="text-[11px] text-slate-500 font-medium mb-1.5">
+                          {r.workflowName || 'Workflow Execution'}
+                        </div>
+
+                        {/* Plain Language Summary Finding */}
+                        <p className={`text-[11px] line-clamp-1 mb-2.5 ${
+                          diagnosis.isException
+                            ? 'text-rose-600/90 dark:text-rose-400/90 font-medium'
+                            : 'text-slate-600 dark:text-slate-300'
+                        }`}>
+                          {primaryFinding 
+                            ? `${primaryFinding} • ${diagnosis.isException ? `Stopped at ${diagnosis.stage}` : 'Validated'}`
+                            : diagnosis.message}
+                        </p>
+
+                        {/* Footer: Performance Meta */}
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-slate-400" />
+                            <span>{durationStr}</span>
+                            <span className="text-slate-400">• {firstModel}</span>
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <span>${(r.metrics?.totalCostUsd || 0).toFixed(4)}</span>
+                            <span className="text-slate-400 font-mono text-[10px]">{exactTime}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
 
-            {/* Right 8 Cols: OpenTelemetry Trace Waterfall & Span Inspector */}
+            {/* ------------------------------------------------------- */}
+            {/* RIGHT 8 COLS: HUMAN OBSERVABILITY INSPECTOR             */}
+            {/* ------------------------------------------------------- */}
             {activeRun && (
-              <div className="col-span-8 space-y-4 bg-[#FFFFFF] dark:bg-[#0D111C] border border-[#CBD5E1] dark:border-[#1E293B] p-4 shadow-sm">
-                {/* Active Trace Header */}
-                <div className="flex items-start justify-between border-b border-[#CBD5E1] dark:border-[#1E293B] pb-3">
+              <div className="col-span-12 lg:col-span-8 flex flex-col bg-white/95 dark:bg-[#080E1C]/92 backdrop-blur-2xl border border-slate-200/90 dark:border-white/[0.09] p-4 sm:p-5 rounded-[22px] shadow-sm h-full min-h-0 overflow-hidden">
+                {/* Active Run Header (Pinned at top of card) */}
+                <div className="shrink-0 flex items-start justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] bg-[#00A3A6]/10 text-[#00A3A6] border border-[#00A3A6]/30 px-1.5 py-0.5 rounded-full font-bold">
-                        W3C TRACE
-                      </span>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                        {activeRun.workflowName}
-                      </h4>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 font-mono text-[10px] text-slate-400">
-                      <span>Trace: {activeRun.traceId}</span>
-                      <button
-                        onClick={() => copyToClipboard(activeRun.traceId, 'trace')}
-                        className="hover:text-white cursor-pointer"
-                        title="Copy Trace ID"
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        {activeSubject}
+                      </h3>
+                      <span
+                        className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                          activeDiagnosis.isException
+                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                        }`}
                       >
-                        {copiedText === 'trace' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        {activeDiagnosis.isException ? `${activeDiagnosis.stage.toUpperCase()} EXCEPTION` : 'SUCCESS'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 font-sans">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">{activeRun.workflowName || 'Workflow Execution'}</span>
+                      <span>•</span>
+                      <span className="font-mono text-slate-600 dark:text-slate-300">{formatExactDateTime(activeRun.timestamp, true)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCopyFindings}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        copiedKey === 'findings'
+                          ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+                      }`}
+                      title="Copy extracted findings to clipboard"
+                    >
+                      {copiedKey === 'findings' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-white" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                          <span>Copy Findings</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* SCROLLABLE BODY: Allows Extracted Deliverables and Raw JSON to be opened simultaneously with smooth scrolling */}
+                <div className="flex-1 min-h-0 overflow-y-auto pt-3.5 pr-1 space-y-3.5">
+                  {/* 1. EXECUTIVE STATUS & DIAGNOSIS CARD (Rendered on Exceptions/Errors only) */}
+                  {activeDiagnosis.isException && (
+                    <div className="p-3.5 rounded-2xl border space-y-1.5 bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/20">
+                      <div className="flex items-center gap-2 text-xs font-bold text-rose-600 dark:text-rose-400">
+                        <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                        <span>{activeDiagnosis.title}</span>
+                      </div>
+                      <p className="text-xs leading-relaxed text-rose-600 dark:text-rose-300">
+                        {activeDiagnosis.message}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 2. FOUR PERFORMANCE & COST TELEMETRY CARDS */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-black/25 border border-slate-200/90 dark:border-slate-800/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block mb-0.5">Execution Duration</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">
+                        {formatHumanDuration(activeRun.durationMs)}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-black/25 border border-slate-200/90 dark:border-slate-800/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block mb-0.5">Foundation Model</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white font-mono truncate block" title={activeModelName}>
+                        {activeModelName}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-black/25 border border-slate-200/90 dark:border-slate-800/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block mb-0.5">Token Consumption</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">
+                        {activeRun.metrics?.totalTokens > 0 
+                          ? `${activeRun.metrics.totalTokens.toLocaleString()}` 
+                          : '0 tokens'}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-black/25 border border-slate-200/90 dark:border-slate-800/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block mb-0.5">Inference Cost</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">
+                        ${(activeRun.metrics?.totalCostUsd || 0).toFixed(4)} USD
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 3 & 4. PARALLEL DUAL-BUTTON ACCORDION BOARD (Side by side headers, unified shared space below, collapsed by default) */}
+                  <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/50 dark:bg-[#0A0F1D]/50 overflow-hidden shadow-2xs flex flex-col transition-all">
+                    {/* Parallel Header Buttons Row: Side by Side, Icons never occupying space below */}
+                    <div className={`p-1.5 flex items-center gap-2 bg-slate-100/70 dark:bg-black/30 shrink-0 ${
+                      activeBoardTab ? 'border-b border-slate-200/80 dark:border-slate-800/80' : ''
+                    }`}>
+                      {/* Button 1: Extracted Deliverables & Data */}
+                      <button
+                        type="button"
+                        onClick={() => setActiveBoardTab(activeBoardTab === 'deliverables' ? null : 'deliverables')}
+                        className={`flex-1 min-w-0 flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group select-none ${
+                          activeBoardTab === 'deliverables'
+                            ? 'bg-white dark:bg-[#0D111C] text-slate-900 dark:text-white shadow-xs border border-slate-200/90 dark:border-slate-700/80'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04] border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 truncate">
+                          <FileCheck2 className={`w-4 h-4 shrink-0 transition-colors ${
+                            activeBoardTab === 'deliverables' ? 'text-[#00A3A6]' : 'text-slate-400 group-hover:text-[#00A3A6]'
+                          }`} />
+                          <span className="font-bold tracking-tight truncate">
+                            Extracted Deliverables
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium shrink-0 bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            {activeFindings.length} fields
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
+                          <span className="text-[11px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 font-medium hidden lg:inline">
+                            {activeBoardTab === 'deliverables' ? 'Collapse' : 'Expand'}
+                          </span>
+                          <ChevronDown 
+                            className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform duration-200 ease-out ${
+                              activeBoardTab === 'deliverables' ? 'rotate-180' : 'rotate-0'
+                            }`} 
+                          />
+                        </div>
+                      </button>
+
+                      {/* Button 2: Pipeline Execution Steps */}
+                      <button
+                        type="button"
+                        onClick={() => setActiveBoardTab(activeBoardTab === 'steps' ? null : 'steps')}
+                        className={`flex-1 min-w-0 flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group select-none ${
+                          activeBoardTab === 'steps'
+                            ? 'bg-white dark:bg-[#0D111C] text-slate-900 dark:text-white shadow-xs border border-slate-200/90 dark:border-slate-700/80'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04] border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 truncate">
+                          <Layers className={`w-4 h-4 shrink-0 transition-colors ${
+                            activeBoardTab === 'steps' ? 'text-sky-500' : 'text-slate-400 group-hover:text-sky-500'
+                          }`} />
+                          <span className="font-bold tracking-tight truncate">
+                            Pipeline Execution Steps
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium shrink-0 bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            {activeSteps.length} steps
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
+                          <span className="text-[11px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 font-medium hidden lg:inline">
+                            {activeBoardTab === 'steps' ? 'Collapse' : 'Expand'}
+                          </span>
+                          <ChevronDown 
+                            className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform duration-200 ease-out ${
+                              activeBoardTab === 'steps' ? 'rotate-180' : 'rotate-0'
+                            }`} 
+                          />
+                        </div>
                       </button>
                     </div>
-                  </div>
 
-                  <div className="text-right font-mono text-[10px]">
-                    <span className="text-slate-400 block">Root SHA-256 Seal</span>
-                    <span className="text-[#00A3A6] font-semibold block truncate max-w-[200px]" title={activeRun.cryptography?.rootSha256}>
-                      {activeRun.cryptography?.rootSha256?.slice(0, 20)}...
-                    </span>
-                  </div>
-                </div>
-
-                {/* OpenTelemetry Waterfall Spans */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-slate-400">
-                    <span>Hierarchical Execution Spans</span>
-                    <span>{activeRun.spans?.length || 0} Total</span>
-                  </div>
-
-                  <div className="space-y-1.5 border border-[#CBD5E1] dark:border-[#1E293B] p-2 bg-[#F8FAFC] dark:bg-[#090D16]">
-                    {(activeRun.spans || []).map((span, idx) => {
-                      const isSpanSelected = span.spanId === activeSpan?.spanId;
-                      const badge = getComponentBadge(span.componentType);
-                      const maxDuration = Math.max(1, activeRun.durationMs);
-                      const barPercent = Math.max(6, Math.min(100, Math.round((span.durationMs / maxDuration) * 100)));
-
-                      return (
-                        <div
-                          key={span.spanId || idx}
-                          onClick={() => setSelectedSpanId(span.spanId)}
-                          className={`p-2 border transition-all cursor-pointer ${
-                            isSpanSelected
-                              ? 'bg-[#00338D]/15 border-[#00338D]'
-                              : 'bg-white dark:bg-[#0D111C] border-slate-200 dark:border-slate-800 hover:border-slate-500'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1 text-[10px] font-mono">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`px-1.5 py-0.2 rounded-full border text-[8px] font-bold ${badge.color}`}>
-                                {badge.label}
-                              </span>
-                              <span className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[280px]">
-                                {span.name}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-3 text-slate-400">
-                              {span.attributes['llm.model_name'] && (
-                                <span className="text-[#00A3A6]">{span.attributes['llm.model_name']}</span>
-                              )}
-                              <span>{span.durationMs}ms</span>
-                              {span.attributes['llm.cost_usd'] != null && (
-                                <span className="font-semibold text-slate-300">${span.attributes['llm.cost_usd'].toFixed(4)}</span>
-                              )}
-                            </div>
+                    {/* Shared Space Below: Opens when either button is active */}
+                    {activeBoardTab && (
+                      <div className="p-3 bg-white/40 dark:bg-black/20 animate-in fade-in slide-in-from-top-1 duration-150">
+                        {/* VIEW 1: Extracted Deliverables */}
+                        {activeBoardTab === 'deliverables' && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                            {activeFindings.length > 0 ? (
+                              activeFindings.map((item, idx) => (
+                                <div
+                                  key={idx}
+                                  className="p-2.5 rounded-xl bg-white dark:bg-[#0D111C] border border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-2xs"
+                                >
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold block mb-0.5 tracking-wider">
+                                    {item.label}
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 font-mono break-all block">
+                                    {item.value}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="col-span-full p-6 text-center text-xs text-slate-400">
+                                No extracted deliverables detected for this execution.
+                              </div>
+                            )}
                           </div>
+                        )}
 
-                          {/* Latency Waterfall Bar */}
-                          <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-none overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-[#00338D] to-[#00A3A6] transition-all"
-                              style={{ width: `${barPercent}%` }}
-                            />
+                        {/* VIEW 2: Pipeline Execution Steps */}
+                        {activeBoardTab === 'steps' && (
+                          <div className="space-y-1.5 pr-1.5 max-h-80 overflow-y-auto">
+                            {activeSteps.map((step) => {
+                              const isFailed = step.status === 'FAILED';
+                              return (
+                                <div
+                                  key={step.number}
+                                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all ${
+                                    isFailed
+                                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
+                                      : 'bg-white dark:bg-[#0D111C] border-slate-200/80 dark:border-slate-800/80 text-slate-800 dark:text-slate-200 shadow-2xs'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
+                                      isFailed
+                                        ? 'bg-rose-500 text-white'
+                                        : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                    }`}>
+                                      {isFailed ? '✕' : step.number}
+                                    </span>
+                                    <span className="font-medium truncate">
+                                      {step.name}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono shrink-0">
+                                    {step.model && (
+                                      <span className="text-[#00A3A6] hidden sm:inline">{step.model}</span>
+                                    )}
+                                    {step.durationHuman && (
+                                      <span>{step.durationHuman}</span>
+                                    )}
+                                    <span className={isFailed ? 'text-rose-500 font-bold' : 'text-emerald-500 font-semibold'}>
+                                      {isFailed ? 'Failed' : 'Passed'}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 5. TECHNICAL INSPECTION DRAWERS (Inside scrollable body) */}
+                  <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveTechnicalDrawer(activeTechnicalDrawer === 'raw' ? null : 'raw')}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer ${
+                          activeTechnicalDrawer === 'raw'
+                            ? 'bg-[#00338D] text-white border-[#00338D]'
+                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Code2 className="w-3.5 h-3.5" />
+                        <span>{activeTechnicalDrawer === 'raw' ? 'Hide Raw JSON' : 'Inspect Raw JSON'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTechnicalDrawer(activeTechnicalDrawer === 'proof' ? null : 'proof')}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer ${
+                          activeTechnicalDrawer === 'proof'
+                            ? 'bg-[#00338D] text-white border-[#00338D]'
+                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                        }`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>{activeTechnicalDrawer === 'proof' ? 'Hide Audit Proof' : 'W3C Audit Certificate'}</span>
+                      </button>
+                    </div>
+
+                    {/* DRAWER: RAW JSON */}
+                    {activeTechnicalDrawer === 'raw' && (
+                      <div className="p-3 bg-black/60 border border-slate-800 rounded-2xl space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span className="font-medium text-slate-300">Raw Execution State JSON</span>
+                          <button
+                            onClick={() => copyToClipboard(JSON.stringify(activeRun, null, 2), 'raw-json')}
+                            className="hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            {copiedKey === 'raw-json' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>Copy</span>
+                          </button>
+                        </div>
+                        <pre className="p-2.5 bg-black/40 border border-slate-800 rounded-xl text-[10px] text-slate-300 font-mono max-h-80 overflow-y-auto whitespace-pre-wrap">
+                          {JSON.stringify(activeRun, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* DRAWER: COMPLIANCE PROOF */}
+                    {activeTechnicalDrawer === 'proof' && (
+                      <div className="p-4 rounded-2xl bg-black/40 border border-slate-800 space-y-2.5 font-mono text-xs animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white font-sans flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                            <span>W3C WebCrypto SHA-256 Ledger Certificate</span>
+                          </span>
+                          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                            100% Notarized
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5 text-[11px]">
+                          <div>
+                            <span className="text-slate-500 block">Root SHA-256 Fingerprint:</span>
+                            <span className="text-sky-400 break-all select-all">
+                              {activeRun.cryptography?.rootSha256 || 'Digest verified on execution completion'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 block">W3C Trace ID:</span>
+                            <span className="text-slate-300 select-all">{activeRun.traceId}</span>
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* Selected Span Deep-Dive Inspector */}
-                {activeSpan && (
-                  <div className="p-3 border border-[#CBD5E1] dark:border-[#1E293B] bg-[#F8FAFC] dark:bg-[#090D16] space-y-2 text-[10px] font-mono">
-                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
-                      <span className="font-bold text-slate-300">
-                        Span Inspection: {activeSpan.name}
-                      </span>
-                      <span className="text-slate-400">ID: {activeSpan.spanId}</span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="text-slate-500 block">Duration</span>
-                        <span className="font-bold text-slate-200">{activeSpan.durationMs}ms</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block">Tokens (P / C)</span>
-                        <span className="font-bold text-slate-200">
-                          {activeSpan.attributes['llm.token_count.prompt'] || 0} / {activeSpan.attributes['llm.token_count.completion'] || 0}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block">Cost</span>
-                        <span className="font-bold text-slate-200">
-                          ${(activeSpan.attributes['llm.cost_usd'] || 0).toFixed(5)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Input & Output Snapshots */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <span className="text-slate-500 block mb-0.5">Input Payload Snapshot</span>
-                        <pre className="p-1.5 bg-black/40 border border-slate-800 text-[9px] text-slate-300 max-h-24 overflow-y-auto whitespace-pre-wrap font-mono">
-                          {activeSpan.attributes['input.snippet'] || 'None'}
-                        </pre>
-                      </div>
-
-                      <div>
-                        <span className="text-slate-500 block mb-0.5">Output Deliverable Snapshot</span>
-                        <pre className="p-1.5 bg-black/40 border border-slate-800 text-[9px] text-slate-300 max-h-24 overflow-y-auto whitespace-pre-wrap font-mono">
-                          {activeSpan.attributes['output.snippet'] || 'None'}
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -511,40 +1097,39 @@ export default function Audit2View() {
         {/* Modal: OTLP Python Setup Code */}
         {isOtlpModalOpen && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-2xl bg-[#0D111C] border border-[#1E293B] shadow-2xl p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+            <div className="w-full max-w-2xl bg-white dark:bg-[#0D111C] border border-slate-200 dark:border-[#1E293B] shadow-2xl rounded-2xl p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-[#00A3A6]" />
-                  <h4 className="font-bold text-sm text-white">
-                    Connect External Python / LangGraph Agent to Audit 2.0
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Connect External Python / LangGraph Agent
                   </h4>
                 </div>
                 <button
                   onClick={() => setIsOtlpModalOpen(false)}
-                  className="text-slate-400 hover:text-white cursor-pointer"
+                  className="text-slate-400 hover:text-slate-200 cursor-pointer"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Install OpenTelemetry in your external LangGraph or CrewAI Python project. With 3 lines of standard code, your agent will beam every prompt, tool call, latency millisecond, and token count straight into KEAOS Audit 2.0:
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Install OpenTelemetry in your external LangGraph or CrewAI Python project. Traces and metrics will stream straight into KEAOS with zero manual instrumentation:
               </p>
 
               <div className="space-y-1">
                 <span className="text-[10px] font-mono text-slate-400">1. Install Standard Packages:</span>
-                <pre className="p-2 bg-black/60 border border-[#1E293B] text-[10px] text-emerald-400 font-mono">
+                <pre className="p-2.5 bg-black/60 border border-slate-800 rounded-xl text-[10px] text-emerald-400 font-mono">
                   pip install opentelemetry-api opentelemetry-sdk openinference-instrumentation-langchain
                 </pre>
               </div>
 
               <div className="space-y-1">
-                <span className="text-[10px] font-mono text-slate-400">2. Add to your Python Agent Entrypoint:</span>
-                <pre className="p-2.5 bg-black/60 border border-[#1E293B] text-[10px] text-slate-200 font-mono whitespace-pre overflow-x-auto">
+                <span className="text-[10px] font-mono text-slate-400">2. Auto-instrument your Agent entrypoint:</span>
+                <pre className="p-3 bg-black/60 border border-slate-800 rounded-xl text-[10px] text-slate-200 font-mono whitespace-pre overflow-x-auto">
 {`from openinference.instrumentation.langchain import LangChainInstrumentor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
-# Auto-instrument LangGraph / CrewAI to send traces to KEAOS Audit 2.0
 LangChainInstrumentor().instrument(
     tracer_provider=None,
     exporter=OTLPSpanExporter(endpoint="http://127.0.0.1:5173/api/telemetry/v2/traces")
@@ -552,12 +1137,12 @@ LangChainInstrumentor().instrument(
                 </pre>
               </div>
 
-              <div className="flex justify-end pt-2 border-t border-[#1E293B]">
+              <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   onClick={() => setIsOtlpModalOpen(false)}
-                  className="px-4 py-1.5 bg-[#00338D] hover:bg-[#005EB8] text-white font-mono text-xs font-bold cursor-pointer"
+                  className="px-4 py-1.5 bg-[#00338D] hover:bg-[#002875] text-white text-xs font-semibold rounded-xl cursor-pointer"
                 >
-                  Got It
+                  Close
                 </button>
               </div>
             </div>

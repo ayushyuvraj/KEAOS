@@ -107,7 +107,7 @@ export default function Header({
           <PanelLeft className="w-4 h-4" />
         </button>
 
-        {viewMode === 'unified-audit' || viewMode === 'audit' ? (
+        {viewMode === 'unified-audit' || viewMode === 'audit' || viewMode === 'audit-2' ? (
           <div className="flex items-center gap-2">
             <span className={`font-mono text-xs font-bold tracking-widest uppercase ${
               isDarkMode ? 'text-white' : 'text-slate-900'

@@ -267,7 +267,7 @@ export const WIDGET_CATALOG = [
     defaultProps: {
       metrics: [
         { id: 'm1', label: 'Alignment Confidence', value: '98.4%', delta: '+4.2%', status: 'success' },
-        { id: 'm2', label: 'Processing Latency', value: '412ms', delta: '-18ms', status: 'neutral' },
+        { id: 'm2', label: 'Processing Latency', value: '0.41s', delta: '-0.02s', status: 'neutral' },
         { id: 'm3', label: 'Policy Adherence', value: '100%', delta: 'Zero Violations', status: 'success' }
       ]
     }
@@ -436,7 +436,7 @@ export const createDefaultShowroomApp = (useCaseName = 'Executive Agent Showcase
               metrics: [
                 { id: 'm1', label: 'Synthesis Confidence', value: '98.9%', delta: '+3.1% vs baseline', status: 'success' },
                 { id: 'm2', label: 'Deterministic Gate', value: '100% PASS', delta: 'Zero violations', status: 'success' },
-                { id: 'm3', label: 'Processing Time', value: '620ms', delta: 'Sub-second', status: 'neutral' }
+                { id: 'm3', label: 'Processing Time', value: '0.62s', delta: 'Sub-second', status: 'neutral' }
               ]
             }
           },

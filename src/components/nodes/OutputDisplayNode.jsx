@@ -1131,7 +1131,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
                 <span className="opacity-30">•</span>
               </>
             )}
-            <span title="Latency">{activeLatencyMs ? `${activeLatencyMs}ms` : '--'}</span>
+            <span title="Latency">{activeLatencyMs ? `${activeLatencyMs >= 1000 ? (activeLatencyMs / 1000).toFixed(1) : (activeLatencyMs / 1000).toFixed(2)}s` : '--'}</span>
             <span className="opacity-30">•</span>
             <span title="Inference Tokens">{activeTokens ? `${activeTokens.toLocaleString()} tok` : '0 tok'}</span>
             <span className="opacity-30">•</span>
