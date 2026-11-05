@@ -18,30 +18,7 @@ export const REGISTRY_EVENT_NAME = 'keaos_registry_updated';
 // Default initial state
 function getDefaultRegistryState() {
   return {
-    customSpecializedAgents: [
-      {
-        id: 'agent-tax-reconciliation',
-        name: 'Tax Reconciliation Specialist',
-        role: 'Financial Compliance & Tax Audit',
-        prompt: 'You are an institutional Tax Reconciliation Specialist. Audit purchase registers against supplier GSTR-2A/2B filings, identify invoice number variations, date mismatches, and tax discrepancy tolerances.',
-        defaultModel: 'gpt-4o',
-        temperature: 0.1,
-        topP: 0.9,
-        isCustom: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'agent-contract-auditor',
-        name: 'Legal Contract Governance Agent',
-        role: 'Contract Risk & Clause Analysis',
-        prompt: 'You are an institutional Legal Contract Governance Agent. Scrutinize NDAs, MSAs, and licensing agreements for non-standard indemnification, liability caps, governing law conflicts, and GDPR/PII adherence.',
-        defaultModel: 'claude-3-5-sonnet-20241022',
-        temperature: 0.2,
-        topP: 0.95,
-        isCustom: true,
-        createdAt: new Date().toISOString()
-      }
-    ],
+    customSpecializedAgents: [],
     customItems: {
       skills: [],
       policies: [],
@@ -72,8 +49,14 @@ export function getRegistryState() {
       return initial;
     }
     const parsed = JSON.parse(raw);
+    const sanitizedAgents = (Array.isArray(parsed.customSpecializedAgents) ? parsed.customSpecializedAgents : [])
+      .filter(a => a && a.id !== 'agent-tax-reconciliation' && a.id !== 'agent-contract-auditor');
+    if (parsed.customSpecializedAgents && parsed.customSpecializedAgents.length !== sanitizedAgents.length) {
+      parsed.customSpecializedAgents = sanitizedAgents;
+      try { window.localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(parsed)); } catch (e) {}
+    }
     return {
-      customSpecializedAgents: Array.isArray(parsed.customSpecializedAgents) ? parsed.customSpecializedAgents : [],
+      customSpecializedAgents: sanitizedAgents,
       customItems: parsed.customItems && typeof parsed.customItems === 'object' ? parsed.customItems : {
         skills: [],
         policies: [],
@@ -202,6 +185,11 @@ export function isComponentDecommissioned(itemOrId, providerId = null) {
   const state = getRegistryState();
   const itemId = typeof itemOrId === 'string' ? itemOrId : itemOrId?.id;
   
+  // The Autonomous Agent Core is an immutable platform foundation beyond the scope of decommissioning
+  if (itemId === 'agent-core-primary' || itemOrId?.isDefault) {
+    return false;
+  }
+  
   // 1. Direct component check
   if (itemId && state.decommissionedComponents.includes(itemId)) {
     return true;
@@ -223,7 +211,7 @@ export function isProviderDecommissioned(providerId) {
 }
 
 export function decommissionComponent(itemId) {
-  if (!itemId) return;
+  if (!itemId || itemId === 'agent-core-primary') return;
   const state = getRegistryState();
   if (!state.decommissionedComponents.includes(itemId)) {
     state.decommissionedComponents.push(itemId);

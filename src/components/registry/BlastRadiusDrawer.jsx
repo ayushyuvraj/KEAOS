@@ -281,13 +281,19 @@ export default function BlastRadiusDrawer({
             Close
           </button>
 
-          <button
-            type="button"
-            onClick={handleConfirmDecommission}
-            className="px-4 py-1.5 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
-          >
-            Confirm Decommission
-          </button>
+          {targetItem?.isDefault || targetItem?.id === 'agent-core-primary' ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold text-slate-400 bg-slate-800/40 rounded-lg border border-slate-700/50" title="The Autonomous Agent Core is protected from decommissioning">
+              <span>PROTECTED SYSTEM CORE</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConfirmDecommission}
+              className="px-4 py-1.5 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
+            >
+              Confirm Decommission
+            </button>
+          )}
         </div>
       </div>
     </div>

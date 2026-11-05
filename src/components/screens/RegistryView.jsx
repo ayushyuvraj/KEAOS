@@ -522,13 +522,20 @@ export default function RegistryView({ onNavigateToWorkflow, isDarkMode = true }
                     <div>
                       {/* Top Badges */}
                       <div className="flex items-center justify-between mb-2">
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                          isDecom
-                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        }`}>
-                          {isDecom ? 'DECOMMISSIONED' : 'ACTIVE'}
-                        </span>
+                        {item.isDefault ? (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border bg-blue-500/10 text-[#0091DA] border-[#0091DA]/30 flex items-center gap-1">
+                            <Lock className="w-2.5 h-2.5" />
+                            <span>CORE ENGINE · ACTIVE</span>
+                          </span>
+                        ) : (
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                            isDecom
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}>
+                            {isDecom ? 'DECOMMISSIONED' : 'ACTIVE'}
+                          </span>
+                        )}
 
                         <div className="flex items-center gap-1.5">
                           {item.isSpecialized && (
@@ -580,7 +587,12 @@ export default function RegistryView({ onNavigateToWorkflow, isDarkMode = true }
                       </button>
 
                       <div className="flex items-center gap-1.5">
-                        {isDecom ? (
+                        {item.isDefault ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-mono font-bold text-slate-400 bg-slate-800/40 rounded-lg border border-slate-700/50" title="The Autonomous Agent Core is an immutable platform foundation and is beyond the scope of decommissioning">
+                            <Lock className="w-3 h-3 text-slate-400" />
+                            <span>IMMUTABLE CORE</span>
+                          </div>
+                        ) : isDecom ? (
                           <button
                             type="button"
                             onClick={() => setCalibrationTarget(item)}
