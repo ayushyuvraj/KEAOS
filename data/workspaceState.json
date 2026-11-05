@@ -12,7 +12,7 @@
     },
     "isInspectorOpen": false,
     "isEnforcerActive": true,
-    "viewMode": "registry",
+    "viewMode": "home",
     "isWorkflowLocked": false
   },
   "workflows": [
@@ -3974,7 +3974,7 @@
         }
       ],
       "createdAt": 1792162747408,
-      "updatedAt": 1793875395802,
+      "updatedAt": 1793876380169,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -13328,5 +13328,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793875399156
+  "syncedAt": 1793876380984
 }

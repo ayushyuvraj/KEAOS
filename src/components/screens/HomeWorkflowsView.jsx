@@ -925,18 +925,27 @@ export default function HomeWorkflowsView({
                   const isLocked = Boolean(wf.isLocked ?? wf.isWorkflowLocked);
                   const nodeCount = wf.nodes?.length || 0;
                   const rowPaddingClass = cardSize === 'small' ? 'py-2 px-4' : cardSize === 'large' ? 'py-4 px-4' : 'py-3 px-4';
+                  const decomItems = workflowsDecomMap[wf.id] || [];
+                  const hasDecom = decomItems.length > 0;
 
                   return (
                     <tr
                       key={wf.id}
                       onClick={() => onOpenWorkflow && onOpenWorkflow(wf)}
                       className={`group cursor-pointer transition-colors ${
-                        isActive
-                          ? isDarkMode ? 'bg-[#00338D]/20' : 'bg-blue-50/70'
-                          : isDarkMode ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50'
+                        hasDecom
+                          ? isDarkMode
+                            ? 'bg-rose-950/20 hover:bg-rose-950/30'
+                            : 'bg-rose-50/70 hover:bg-rose-100/60'
+                          : isActive
+                            ? isDarkMode ? 'bg-[#00338D]/20' : 'bg-blue-50/70'
+                            : isDarkMode ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50'
                       }`}
                     >
-                      <td className="py-2 px-3">
+                      <td className="py-2 px-3 relative">
+                        {hasDecom && (
+                          <span className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500 rounded-r" />
+                        )}
                         <button
                           onClick={(e) => handleToggleStar(wf.id, wf.isStarred, e)}
                           className={`p-1 rounded-full transition-colors ${
@@ -947,10 +956,16 @@ export default function HomeWorkflowsView({
                         </button>
                       </td>
                       <td className={rowPaddingClass}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-[#001E50]'}`}>
                             {wf.name}
                           </span>
+                          {hasDecom && (
+                            <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/40 text-rose-400 flex items-center gap-1 shadow-[0_0_8px_rgba(244,63,94,0.2)]">
+                              <AlertTriangle className="w-2.5 h-2.5 text-rose-400 shrink-0" />
+                              <span>NEEDS ATTENTION</span>
+                            </span>
+                          )}
                           {isActive && (
                             <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#00B8F5]/15 text-[#00B8F5] border border-[#00B8F5]/30">
                               ACTIVE
@@ -967,6 +982,12 @@ export default function HomeWorkflowsView({
                           <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
                             {wf.description}
                           </p>
+                        )}
+                        {hasDecom && (
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-rose-400 mt-1 truncate" title={`Decommissioned: ${decomItems.map(d => d.name).join(', ')}`}>
+                            <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0" />
+                            <span className="truncate font-semibold">Decommissioned: {decomItems.map(d => d.name).join(', ')}</span>
+                          </div>
                         )}
                       </td>
                       <td className={`${rowPaddingClass} font-mono text-[11px] text-slate-400`}>
