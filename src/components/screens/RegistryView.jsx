@@ -136,7 +136,7 @@ export default function RegistryView({ onNavigateToWorkflow, isDarkMode = true }
   const blastMap = useMemo(() => {
     const map = {};
     categoryItems.forEach(item => {
-      const blast = calculateBlastRadius(item.id, null, selectedCategoryId);
+      const blast = calculateBlastRadius(item, null, selectedCategoryId);
       map[item.id] = blast.totalWorkflowCount;
     });
     return map;

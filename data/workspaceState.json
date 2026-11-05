@@ -4735,7 +4735,7 @@
         }
       ],
       "createdAt": 1729080000000,
-      "updatedAt": 1793873783675,
+      "updatedAt": 1793874517022,
       "isStarred": false,
       "tags": [
         "Meeting Intelligence",
@@ -13700,5 +13700,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1793873789115
+  "syncedAt": 1793874517834
 }

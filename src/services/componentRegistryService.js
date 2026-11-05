@@ -10,7 +10,8 @@
 
 import { PILLARS } from '../constants/pillars';
 import { PROVIDERS } from './llmService';
-import { loadAllWorkflows, saveWorkflow } from '../utils/workflowStorage';
+import { loadAllWorkflows, saveWorkflow, getActiveWorkflowId } from '../utils/workflowStorage';
+import { loadCanvasState } from '../utils/persistentState';
 
 export const REGISTRY_STORAGE_KEY = 'keaos_component_registry_v1';
 export const REGISTRY_EVENT_NAME = 'keaos_registry_updated';
@@ -260,10 +261,34 @@ export function recommissionProvider(providerId) {
  * Calculates the exact blast radius of decommissioning a component or provider.
  * Pure read-only operation: inspects all workflows without mutating anything.
  */
-export function calculateBlastRadius(itemId, providerId = null, category = null) {
-  const workflows = loadAllWorkflows();
+export function calculateBlastRadius(itemOrId, providerId = null, category = null) {
+  const storedWorkflows = loadAllWorkflows() || [];
+  const activeCanvas = typeof loadCanvasState === 'function' ? loadCanvasState() : null;
+  const activeWfId = typeof getActiveWorkflowId === 'function' ? getActiveWorkflowId() : null;
+
+  // Harmonize stored workflows with active canvas state
+  const workflowsMap = new Map();
+  storedWorkflows.forEach(w => {
+    if (w && w.id) workflowsMap.set(w.id, w);
+  });
+  if (activeWfId && activeCanvas && Array.isArray(activeCanvas.nodes) && activeCanvas.nodes.length > 0) {
+    const existing = workflowsMap.get(activeWfId);
+    workflowsMap.set(activeWfId, {
+      id: activeWfId,
+      name: activeCanvas.activeUseCase?.name || existing?.name || 'Active Canvas Workflow',
+      nodes: activeCanvas.nodes
+    });
+  }
+  const workflows = Array.from(workflowsMap.values());
+
   const affectedWorkflows = [];
   let totalNodeCount = 0;
+
+  const item = typeof itemOrId === 'object' && itemOrId !== null ? itemOrId : { id: itemOrId, name: itemOrId };
+  const itemId = (item.id || '').toLowerCase().trim();
+  const itemName = (item.name || '').toLowerCase().trim();
+  const itemModelId = (item.modelId || item.config?.modelId || '').toLowerCase().trim();
+  const isDefaultAgent = Boolean(item.isDefault || itemId === 'agent-core-primary');
 
   workflows.forEach(wf => {
     if (!wf || !Array.isArray(wf.nodes)) return;
@@ -273,44 +298,73 @@ export function calculateBlastRadius(itemId, providerId = null, category = null)
       let isMatch = false;
       const nodeData = node.data || {};
       const nodeConfig = nodeData.config || {};
+      const nodeName = (nodeData.name || '').toLowerCase().trim();
+      const nodePillarType = nodeData.pillarType || (node.type === 'agentCore' ? 'agentCore' : null);
 
-      // 1. Check provider match (e.g. decommission OpenAI org-wide)
+      // 1. Provider match (e.g. OpenAI org-wide)
       if (providerId) {
+        const prov = providerId.toLowerCase().trim();
         if (
-          nodeData.provider === providerId ||
-          nodeConfig.provider === providerId ||
-          (nodeData.pillarType === 'model' && (nodeData.name?.toLowerCase().includes(providerId) || nodeConfig.provider === providerId))
+          nodeData.provider?.toLowerCase() === prov ||
+          nodeConfig.provider?.toLowerCase() === prov ||
+          nodeName.includes(prov)
         ) {
           isMatch = true;
         }
       }
 
-      // 2. Check item match (Model, Skill, Policy, MCP, Agent, etc.)
-      if (itemId) {
+      // 2. Autonomous Agent Core match: any standard agentCore node
+      else if (isDefaultAgent) {
+        if (node.type === 'agentCore' && !nodeData.isSpecialized && !nodeData.specializedAgentId) {
+          isMatch = true;
+        }
+      }
+
+      // 3. Specialized Agent match
+      else if (node.type === 'agentCore') {
+        if (nodeData.specializedAgentId === item.id || (nodeData.isSpecialized && nodeName === itemName)) {
+          isMatch = true;
+        }
+      }
+
+      // 4. Model match (modelId, id, provider, or name token)
+      else if (category === 'model' || nodePillarType === 'model' || item.pillarType === 'model') {
+        const nModel = (nodeConfig.modelId || nodeData.modelId || '').toLowerCase().trim();
+        if (itemModelId && nModel && (nModel === itemModelId || nModel.includes(itemModelId) || itemModelId.includes(nModel))) {
+          isMatch = true;
+        } else if (itemModelId && (nodeName.includes(itemModelId) || itemId.includes(nModel))) {
+          isMatch = true;
+        } else if (itemName && nodeName.includes(itemName)) {
+          isMatch = true;
+        }
+      }
+
+      // 5. Pillar items match (Skills, Policies, MCP, Gateway, Memory, Tools, Audit, Observability, Cost)
+      else {
         // Direct ID match
-        if (node.id === itemId || nodeData.id === itemId || nodeData.pillarId === itemId) {
+        if (node.id === item.id || nodeData.id === item.id || nodeData.pillarId === item.id) {
           isMatch = true;
         }
-        // Specialized agent match
-        else if (node.type === 'agentCore' && (nodeData.specializedAgentId === itemId || nodeData.name === itemId)) {
+        // Direct Name match
+        else if (itemName && nodeName && (nodeName === itemName || nodeName.includes(itemName) || itemName.includes(nodeName))) {
           isMatch = true;
         }
-        // Model ID match
-        else if (
-          nodeConfig.modelId === itemId ||
-          nodeData.modelId === itemId ||
-          nodeData.name === itemId
-        ) {
-          isMatch = true;
-        }
-        // Skill / Policy / MCP item match
-        else if (
-          nodeData.pillarType === category ||
-          node.type === 'pillar'
-        ) {
-          if (nodeData.name === itemId || nodeConfig.skillId === itemId || nodeConfig.policyId === itemId) {
+        // Word token overlap for skills/policies (e.g. "PII Redactor" <-> "PII & Confidentiality Redactor")
+        else if (itemName && nodeName && (category === 'skills' || category === 'policies' || nodePillarType === 'skills' || nodePillarType === 'policies')) {
+          const cleanItem = itemName.replace(/[^a-z0-9]/g, ' ');
+          const cleanNode = nodeName.replace(/[^a-z0-9]/g, ' ');
+          const itemWords = cleanItem.split(/\s+/).filter(w => w.length > 2);
+          const nodeWords = cleanNode.split(/\s+/).filter(w => w.length > 2);
+          const common = itemWords.filter(w => nodeWords.includes(w));
+          if (common.length >= 2 || (itemWords.length === 1 && common.length === 1)) {
             isMatch = true;
           }
+        }
+        // Config skillId or policyId match
+        else if (nodeConfig.skillId && (nodeConfig.skillId === item.id || nodeConfig.skillId === item.name)) {
+          isMatch = true;
+        } else if (nodeConfig.policyId && (nodeConfig.policyId === item.id || nodeConfig.policyId === item.name)) {
+          isMatch = true;
         }
       }
 
@@ -376,12 +430,23 @@ export function remapComponentAcrossWorkflows(targetItem, replacementItem) {
       let matches = false;
 
       // Check model match
-      if (targetItem.modelId && (nodeConfig.modelId === targetItem.modelId || nodeData.name === targetItem.name)) {
+      if (targetItem.modelId && (nodeConfig.modelId === targetItem.modelId || nodeData.name === targetItem.name || (nodeData.name && nodeData.name.toLowerCase().includes(targetItem.modelId.toLowerCase())))) {
         matches = true;
       }
       // Check general name or ID match
-      else if (nodeData.name === targetItem.name || nodeData.id === targetItem.id) {
+      else if (nodeData.name === targetItem.name || nodeData.id === targetItem.id || node.id === targetItem.id) {
         matches = true;
+      }
+      // Check keyword overlap for skills / policies
+      else if (targetItem.name && nodeData.name) {
+        const cleanTarget = targetItem.name.replace(/[^a-z0-9]/gi, ' ').toLowerCase();
+        const cleanNode = nodeData.name.replace(/[^a-z0-9]/gi, ' ').toLowerCase();
+        const targetWords = cleanTarget.split(/\s+/).filter(w => w.length > 2);
+        const nodeWords = cleanNode.split(/\s+/).filter(w => w.length > 2);
+        const common = targetWords.filter(w => nodeWords.includes(w));
+        if (common.length >= 2 || (targetWords.length === 1 && common.length === 1)) {
+          matches = true;
+        }
       }
 
       if (matches) {

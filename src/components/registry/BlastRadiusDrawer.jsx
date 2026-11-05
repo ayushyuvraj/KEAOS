@@ -40,7 +40,7 @@ export default function BlastRadiusDrawer({
     if (!targetItem && !providerId) {
       return { affectedWorkflows: [], totalWorkflowCount: 0, totalNodeCount: 0, riskLevel: 'LOW' };
     }
-    return calculateBlastRadius(targetItem?.id || targetItem?.name, providerId, category);
+    return calculateBlastRadius(targetItem, providerId, category);
   }, [targetItem, providerId, category]);
 
   if (!isOpen) return null;
