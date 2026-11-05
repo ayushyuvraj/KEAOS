@@ -253,6 +253,132 @@ export function recommissionProvider(providerId) {
   saveRegistryState(state);
 }
 
+// // ========================================================
+// WORKFLOW DECOMMISSIONED COMPONENTS DETECTOR
+// ========================================================
+
+/**
+ * Inspects a workflow for any decommissioned components or providers.
+ * Returns an array of matching decommissioned item descriptors:
+ * [{ id, name, type, nodeName, nodeId, pillarType }]
+ */
+export function getWorkflowDecommissionedComponents(workflow) {
+  if (!workflow || !Array.isArray(workflow.nodes) || workflow.nodes.length === 0) {
+    return [];
+  }
+  const state = getRegistryState();
+  if (state.decommissionedComponents.length === 0 && state.decommissionedProviders.length === 0) {
+    return [];
+  }
+
+  const matches = [];
+  const seenIds = new Set();
+
+  workflow.nodes.forEach(node => {
+    if (!node) return;
+    const nodeData = node.data || {};
+    const nodeConfig = nodeData.config || {};
+    const nodeName = (nodeData.name || node.id || '').trim();
+    const nodePillarType = nodeData.pillarType || (node.type === 'agentCore' ? 'agentCore' : null);
+
+    // 1. Check provider decommissioning
+    const provider = (nodeData.provider || nodeConfig.provider || '').toLowerCase();
+    if (provider && state.decommissionedProviders.includes(provider)) {
+      const provKey = `provider-${provider}`;
+      if (!seenIds.has(provKey)) {
+        seenIds.add(provKey);
+        matches.push({
+          id: provider,
+          name: `Provider: ${provider.toUpperCase()}`,
+          type: 'provider',
+          nodeName,
+          nodeId: node.id
+        });
+      }
+    }
+
+    // 2. Check component decommissioning
+    for (const decomId of state.decommissionedComponents) {
+      if (seenIds.has(decomId)) continue;
+
+      // Find item definition
+      let decomItem = null;
+      // Search custom items
+      for (const cat of Object.keys(state.customItems || {})) {
+        const found = state.customItems[cat]?.find(i => i.id === decomId);
+        if (found) { decomItem = { ...found, pillarType: cat }; break; }
+      }
+      // Search specialized agents
+      if (!decomItem) {
+        const foundAgent = state.customSpecializedAgents?.find(a => a.id === decomId);
+        if (foundAgent) decomItem = { ...foundAgent, pillarType: 'agentCore' };
+      }
+      // Search PILLARS
+      if (!decomItem) {
+        for (const cat of Object.keys(PILLARS)) {
+          const found = PILLARS[cat]?.items?.find(i => i.id === decomId);
+          if (found) { decomItem = { ...found, pillarType: cat }; break; }
+        }
+      }
+      if (!decomItem) {
+        decomItem = { id: decomId, name: decomId };
+      }
+
+      // Check match using multi-attribute rules
+      const itemId = (decomItem.id || '').toLowerCase().trim();
+      const itemName = (decomItem.name || '').toLowerCase().trim();
+      const itemModelId = (decomItem.modelId || decomItem.config?.modelId || '').toLowerCase().trim();
+      let isMatch = false;
+
+      // Model match
+      if (decomItem.pillarType === 'model' || nodePillarType === 'model') {
+        const nModel = (nodeConfig.modelId || nodeData.modelId || '').toLowerCase().trim();
+        if (itemModelId && nModel && (nModel === itemModelId || nModel.includes(itemModelId) || itemModelId.includes(nModel))) {
+          isMatch = true;
+        } else if (itemModelId && (nodeName.toLowerCase().includes(itemModelId) || itemId.includes(nModel))) {
+          isMatch = true;
+        } else if (itemName && nodeName.toLowerCase().includes(itemName)) {
+          isMatch = true;
+        }
+      }
+      // Direct ID match
+      else if (node.id === decomId || nodeData.id === decomId || nodeData.pillarId === decomId) {
+        isMatch = true;
+      }
+      // Exact name match
+      else if (itemName && nodeName.toLowerCase() === itemName) {
+        isMatch = true;
+      }
+      // Word token overlap for skills/policies
+      else if (itemName && nodeName && (decomItem.pillarType === 'skills' || decomItem.pillarType === 'policies' || nodePillarType === 'skills' || nodePillarType === 'policies')) {
+        const cleanItem = itemName.replace(/[^a-z0-9]/g, ' ');
+        const cleanNode = nodeName.toLowerCase().replace(/[^a-z0-9]/g, ' ');
+        const itemWords = cleanItem.split(/\s+/).filter(w => w.length > 2);
+        const nodeWords = cleanNode.split(/\s+/).filter(w => w.length > 2);
+        const common = itemWords.filter(w => nodeWords.includes(w));
+        if (common.length >= 2 || (itemWords.length === 1 && common.length === 1)) {
+          isMatch = true;
+        }
+      }
+
+      if (isMatch) {
+        seenIds.add(decomId);
+        matches.push({
+          id: decomId,
+          name: decomItem.name || decomId,
+          type: 'component',
+          nodeName,
+          nodeId: node.id,
+          pillarType: decomItem.pillarType
+        });
+        break;
+      }
+    }
+  });
+
+  return matches;
+}
+
 // ========================================================
 // READ-ONLY BLAST RADIUS & IMPACT ENGINE
 // ========================================================

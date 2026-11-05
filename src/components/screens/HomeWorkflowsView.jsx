@@ -35,6 +35,7 @@ import {
   getNextUniqueWorkflowName
 } from '../../utils/workflowStorage';
 import { FRAMEWORKS } from '../../constants/frameworks';
+import { getWorkflowDecommissionedComponents, subscribeToRegistry } from '../../services/componentRegistryService';
 
 export default function HomeWorkflowsView({
   activeUseCase,
@@ -44,6 +45,11 @@ export default function HomeWorkflowsView({
 }) {
   const [workflows, setWorkflows] = useState(() => loadAllWorkflows());
   const [searchQuery, setSearchQuery] = useState('');
+  const [registryTick, setRegistryTick] = useState(0);
+
+  useEffect(() => {
+    return subscribeToRegistry(() => setRegistryTick(t => t + 1));
+  }, []);
   const [selectedFrameworkFilter, setSelectedFrameworkFilter] = useState('all');
   const [sortBy, setSortBy] = useState('updated'); // 'updated' | 'alpha' | 'nodes' | 'created'
   
@@ -157,6 +163,18 @@ export default function HomeWorkflowsView({
   };
 
   // Filter and sort workflows
+  const workflowsDecomMap = useMemo(() => {
+    const map = {};
+    (workflows || []).forEach(w => {
+      map[w.id] = getWorkflowDecommissionedComponents(w);
+    });
+    return map;
+  }, [workflows, registryTick]);
+
+  const needsAttentionCount = useMemo(() => {
+    return Object.values(workflowsDecomMap).filter(arr => Array.isArray(arr) && arr.length > 0).length;
+  }, [workflowsDecomMap]);
+
   const filteredWorkflows = useMemo(() => {
     let result = [...workflows];
 
@@ -465,9 +483,29 @@ export default function HomeWorkflowsView({
               <div className={`absolute left-0 mt-2 w-56 rounded-2xl border shadow-2xl z-50 p-1.5 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150 ${
                 isDarkMode ? 'bg-[#080E1C]/95 border-white/10 text-slate-200' : 'bg-white/95 border-slate-200 text-slate-800'
               }`}>
-                <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-white/5 mb-1 font-bold">
-                  SDK Framework
+                <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-white/5 mb-1 font-bold flex items-center justify-between">
+                  <span>Governance & SDKs</span>
                 </div>
+                {needsAttentionCount > 0 && (
+                  <button
+                    onClick={() => {
+                      setSelectedFrameworkFilter('needs-attention');
+                      setIsFilterOpen(false);
+                    }}
+                    className={`w-full px-3 py-1.5 text-xs text-left rounded-lg flex items-center justify-between transition-colors mb-1 ${
+                      selectedFrameworkFilter === 'needs-attention'
+                        ? 'bg-rose-500/20 text-rose-400 font-semibold'
+                        : 'text-rose-400 hover:bg-rose-500/10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                      <span>Needs Attention</span>
+                      <span className="text-[10px] font-mono font-bold">({needsAttentionCount})</span>
+                    </div>
+                    {selectedFrameworkFilter === 'needs-attention' && <Check className="w-3.5 h-3.5 text-rose-400 shrink-0" />}
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setSelectedFrameworkFilter('all');
@@ -698,6 +736,8 @@ export default function HomeWorkflowsView({
               const isLocked = Boolean(wf.isLocked ?? wf.isWorkflowLocked);
               const nodeCount = wf.nodes?.length || 0;
               const fwBadgeClass = getFrameworkBadgeStyle(wf.framework?.name);
+              const decomItems = workflowsDecomMap[wf.id] || [];
+              const hasDecom = decomItems.length > 0;
 
               return (
                 <div
@@ -706,13 +746,17 @@ export default function HomeWorkflowsView({
                   className={`group relative rounded-[22px] border transition-all duration-300 flex flex-col justify-between cursor-pointer backdrop-blur-xl ${
                     cardSize === 'small' ? 'p-3.5 min-h-[120px]' : cardSize === 'large' ? 'p-5 min-h-[220px]' : 'p-4 min-h-[160px]'
                   } ${
-                    isActive
-                      ? isDarkMode 
-                        ? 'border-[#00B8F5]/60 bg-[#0A1224]/95 ring-2 ring-[#00B8F5] shadow-[0_0_26px_rgba(0,184,245,0.35),0_16px_40px_rgba(0,0,0,0.7)]' 
-                        : 'border-[#00338D] bg-white ring-2 ring-[#00338D] shadow-[0_16px_36px_rgba(0,51,141,0.15)]'
-                      : isDarkMode
-                        ? 'border-white/[0.08] bg-[#080E1C]/92 hover:border-[#00B8F5]/50 hover:bg-[#0C1428] shadow-[0_16px_36px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.1)] hover:scale-[1.01]'
-                        : 'border-slate-200/90 bg-white/95 hover:border-[#00338D]/40 shadow-[0_14px_32px_rgba(0,51,141,0.06),0_2px_6px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.9)] hover:shadow-[0_20px_40px_rgba(0,51,141,0.12)] hover:scale-[1.01]'
+                    hasDecom
+                      ? isDarkMode
+                        ? 'border-rose-500/70 bg-[#090C16] ring-1 ring-rose-500/40 shadow-[0_0_24px_rgba(244,63,94,0.22),0_16px_36px_rgba(0,0,0,0.7)] hover:border-rose-400 hover:scale-[1.01]'
+                        : 'border-rose-400 bg-white ring-1 ring-rose-400/40 shadow-[0_8px_24px_rgba(244,63,94,0.12)] hover:border-rose-500 hover:scale-[1.01]'
+                      : isActive
+                        ? isDarkMode 
+                          ? 'border-[#00B8F5]/60 bg-[#0A1224]/95 ring-2 ring-[#00B8F5] shadow-[0_0_26px_rgba(0,184,245,0.35),0_16px_40px_rgba(0,0,0,0.7)]' 
+                          : 'border-[#00338D] bg-white ring-2 ring-[#00338D] shadow-[0_16px_36px_rgba(0,51,141,0.15)]'
+                        : isDarkMode
+                          ? 'border-white/[0.08] bg-[#080E1C]/92 hover:border-[#00B8F5]/50 hover:bg-[#0C1428] shadow-[0_16px_36px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.1)] hover:scale-[1.01]'
+                          : 'border-slate-200/90 bg-white/95 hover:border-[#00338D]/40 shadow-[0_14px_32px_rgba(0,51,141,0.06),0_2px_6px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.9)] hover:shadow-[0_20px_40px_rgba(0,51,141,0.12)] hover:scale-[1.01]'
                   }`}
                 >
                   {/* Card Top: Framework, Status Badges & Star */}
@@ -723,6 +767,14 @@ export default function HomeWorkflowsView({
                         <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${fwBadgeClass}`}>
                           {wf.framework?.name || 'Google ADK'}
                         </span>
+
+                        {/* Needs Attention Badge */}
+                        {hasDecom && (
+                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/40 text-rose-400 flex items-center gap-1 shadow-[0_0_8px_rgba(244,63,94,0.2)]">
+                            <AlertTriangle className="w-2.5 h-2.5 text-rose-400 shrink-0" />
+                            <span>NEEDS ATTENTION</span>
+                          </span>
+                        )}
 
                         {/* Active Badge */}
                         {isActive && (
@@ -768,6 +820,14 @@ export default function HomeWorkflowsView({
                       }`}>
                         {wf.description || 'Enterprise agent workflow topology.'}
                       </p>
+                    )}
+
+                    {/* Decommissioned Component Warning Chip */}
+                    {hasDecom && cardSize !== 'small' && (
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-xl border border-rose-500/20 mb-2.5 truncate" title={`Decommissioned: ${decomItems.map(d => d.name).join(', ')}`}>
+                        <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0" />
+                        <span className="truncate font-semibold">Decommissioned: {decomItems.map(d => d.name).join(', ')}</span>
+                      </div>
                     )}
                   </div>
 
