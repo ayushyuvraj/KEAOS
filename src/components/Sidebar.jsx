@@ -10,7 +10,8 @@ import {
   Home, 
   X,
   Sparkles,
-  Activity
+  Activity,
+  SlidersHorizontal
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -36,6 +37,7 @@ export default function Sidebar({
 
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
+    { id: 'registry', label: 'Registry', icon: SlidersHorizontal },
     { id: 'unified-audit', label: 'Audit & Observability', icon: ShieldCheck },
     { id: 'audit-2', label: 'Audit 2.0', icon: Activity, badge: 'OTel' }
   ];

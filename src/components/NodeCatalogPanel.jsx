@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { PILLARS } from '../constants/pillars';
 import { isCatalogItemCompatible } from '../utils/socketValidator.js';
+import { getSpecializedAgents, subscribeToRegistry } from '../services/componentRegistryService';
 
 // Official Model Context Protocol (MCP) Icon
 function McpIcon({ className = 'w-4 h-4' }) {
@@ -649,6 +650,11 @@ export default function NodeCatalogPanel({
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [selectedToolSection, setSelectedToolSection] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [specializedAgents, setSpecializedAgents] = useState(getSpecializedAgents);
+
+  useEffect(() => {
+    return subscribeToRegistry(() => setSpecializedAgents(getSpecializedAgents()));
+  }, []);
   const [addedItemId, setAddedItemId] = useState(null);
 
   // Model Provider Selection & Live Dynamic Model Discovery State
@@ -893,6 +899,26 @@ export default function NodeCatalogPanel({
 
   const categoriesWithCustomSkills = useMemo(() => {
     return NODE_CATEGORIES.map(cat => {
+      if (cat.id === 'agentCore') {
+        const specItems = (specializedAgents || []).map(sa => ({
+          id: sa.id,
+          name: sa.name,
+          description: sa.role ? `${sa.role}: ${sa.prompt?.slice(0, 85)}...` : sa.prompt?.slice(0, 100),
+          prompt: sa.prompt,
+          role: sa.role,
+          config: {
+            framework: 'google-adk',
+            temperature: sa.temperature || 0.2,
+            topP: sa.topP || 0.95,
+            defaultModel: sa.defaultModel
+          },
+          isSpecialized: true
+        }));
+        return {
+          ...cat,
+          items: [...(cat.items || []), ...specItems]
+        };
+      }
       if (cat.id === 'skills') {
         return {
           ...cat,
@@ -2270,6 +2296,12 @@ export default function NodeCatalogPanel({
                           {isCustom && (
                             <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#009A44]/15 text-[#009A44] border border-[#009A44]/30 shrink-0">
                               CUSTOM
+                            </span>
+                          )}
+
+                          {item.isSpecialized && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold bg-[#7213EA]/15 text-[#A855F7] border border-[#7213EA]/30 shrink-0">
+                              SPECIALIZED
                             </span>
                           )}
                         </div>

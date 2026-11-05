@@ -21,6 +21,7 @@ import UnifiedAuditView from './components/screens/UnifiedAuditView';
 import Audit2View from './components/screens/Audit2View';
 import FrontendShowroomView from './components/screens/FrontendShowroomView';
 import HomeWorkflowsView from './components/screens/HomeWorkflowsView';
+import RegistryView from './components/screens/RegistryView';
 import {
   loadAllWorkflows,
   getActiveWorkflowId,
@@ -1595,7 +1596,7 @@ export default function App() {
               ? `${item.name} #${agentCount}`
               : `Autonomous Agent #${agentCount}`,
             framework: activeUseCase?.framework || { id: 'google-adk', name: 'Google ADK' },
-            prompt: activeUseCase?.agent?.prompt || 'You are an autonomous enterprise agent...',
+            prompt: item?.prompt || activeUseCase?.agent?.prompt || 'You are an autonomous enterprise agent...',
             temperature: 0.2,
             topP: 0.95
           }
@@ -2666,6 +2667,16 @@ export default function App() {
               activeUseCase={activeUseCase}
               nodes={nodes}
               edges={edges}
+            />
+          )}
+
+          {viewMode === 'registry' && (
+            <RegistryView
+              isDarkMode={isDarkMode}
+              onNavigateToWorkflow={(wfId) => {
+                setActiveWorkflowId(wfId);
+                setViewMode('canvas');
+              }}
             />
           )}
 

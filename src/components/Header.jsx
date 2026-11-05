@@ -123,6 +123,14 @@ export default function Header({
               OBSERVABILITY
             </span>
           </div>
+        ) : viewMode === 'registry' ? (
+          <div className="flex items-center gap-2">
+            <span className={`font-mono text-xs font-bold tracking-widest uppercase ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}>
+              REGISTRY
+            </span>
+          </div>
         ) : (
           <div className="relative flex items-center gap-2 text-xs font-medium">
             <button
