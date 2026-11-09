@@ -1,6 +1,118 @@
 [
   {
     "version": "2.0",
+    "runId": "RUN-338695",
+    "traceId": "0f8f30da9a540f3939aed8e6e0b22fd7",
+    "rootSpanId": "3dfa95256f65eb65",
+    "workflowId": "uc-wf-1794222040706-gk9gd",
+    "workflowName": "Output Testing",
+    "frameworkId": "google-adk",
+    "frameworkName": "Google ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-09T11:05:38.695Z",
+    "completedAt": "2026-11-09T11:05:38.710Z",
+    "durationMs": 13699,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "dfcfa7ca051d9eed100fc785582d3f98e7e461a2d0e20c60a5346de800f33d06",
+      "inputSha256": "b05429db61831fac3837664e818d2022a8f6c3296d9234e7242bd655336d9b77",
+      "outputSha256": "7fe25c044c8778e5d5b1143676818963a26c0bfd6bcb3b23b483519f8858f739",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 5423,
+      "promptTokens": 1898,
+      "completionTokens": 3525,
+      "totalCostUsd": 0.00938,
+      "currency": "USD",
+      "spansCount": 3,
+      "componentsCount": 3,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 108,
+      "laborValueSavedUsd": 117,
+      "netRoiMultiplier": 12473
+    },
+    "spans": [
+      {
+        "spanId": "4fd378942f0e63d3",
+        "traceId": "0f8f30da9a540f3939aed8e6e0b22fd7",
+        "parentSpanId": "3dfa95256f65eb65",
+        "name": "Ingress Validation",
+        "kind": "INTERNAL",
+        "componentType": "gateway",
+        "componentId": "Gateway Controller",
+        "componentName": "Ingress Validation",
+        "startTime": 1794222338700,
+        "endTime": 1794222338710,
+        "durationMs": 10,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "gateway",
+          "llm.cost_usd": 0,
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 135
+        }
+      },
+      {
+        "spanId": "7e3681a86fdfd6b6",
+        "traceId": "0f8f30da9a540f3939aed8e6e0b22fd7",
+        "parentSpanId": "3dfa95256f65eb65",
+        "name": "Agent 1 (Google: Gemini 2.5 Flash)",
+        "kind": "INTERNAL",
+        "componentType": "model",
+        "componentId": "gemini-2.5-flash",
+        "componentName": "Agent 1 (Google: Gemini 2.5 Flash)",
+        "startTime": 1794222325280,
+        "endTime": 1794222338710,
+        "durationMs": 13430,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "model",
+          "llm.cost_usd": 0.00938,
+          "promptTokens": 1898,
+          "completionTokens": 3525
+        }
+      },
+      {
+        "spanId": "63da51eecd335723",
+        "traceId": "0f8f30da9a540f3939aed8e6e0b22fd7",
+        "parentSpanId": "3dfa95256f65eb65",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "kind": "INTERNAL",
+        "componentType": "audit",
+        "componentId": "Cryptographic Audit Notary",
+        "componentName": "W3C SHA-256 Ledger Immutability Seal",
+        "startTime": 1794222338695,
+        "endTime": 1794222338710,
+        "durationMs": 15,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "audit",
+          "llm.cost_usd": 0,
+          "rootSha256": "dfcfa7ca051d9eed100fc785582d3f98e7e461a2d0e20c60a5346de800f33d06"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "[UNIVERSAL INGESTION COMPLETED: 1 FILE(S)]\n• File 1 (arc_5_minute_test_meeting_v2): \"ARC_5_Minute_Test_Meeting_v2.mp3\" (Audio, 3.52 MB)",
+      "outputSnippet": "**Meeting Intelligence Processing Report**\n\n**1. Ingestion Status**\nThe audio file \"ARC_5_Minute_Test_Meeting_v2.mp3\" (Audio, 3.52 MB) has been successfully ingested.\n\n**2. Processing Intent**\nAs an autonomous enterprise AI agent, I am now processing the ingested audio file to extract key intelligence, including confirmed actions, possible actions, and decis..."
+    }
+  },
+  {
+    "version": "2.0",
     "runId": "RUN-767734",
     "traceId": "ad9591ff978f0ad05f579e958292ad38",
     "rootSpanId": "8c2536ad3cb4e1af",

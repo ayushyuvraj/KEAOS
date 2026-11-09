@@ -1207,31 +1207,101 @@ function arrayBufferToBase64(buffer) {
 }
 
 /**
- * Universal Multi-LLM Audio Transcription
- * Uses Google Gemini 2.0 Flash Multimodal Audio or OpenAI Whisper
+ * Model Multimodal & Modality Capability Inspector
+ * Authoritatively determines if a provider/model can ingest raw audio or vision natively.
  */
-export async function transcribeAudioUniversal(audioFile) {
-  const googleKey = getProviderCredential('google');
-  const openAiKey = getProviderCredential('openai');
+export function getModelCapabilities(provider = 'google', modelId = '') {
+  const prov = (provider || '').toLowerCase();
+  const mod = (modelId || '').toLowerCase();
+
+  // Google Gemini natively supports audio, vision, video across all 1.5, 2.0, 2.5 models
+  const isGoogleGemini = prov === 'google' || mod.includes('gemini');
+  // Dedicated OpenAI Audio models (e.g. gpt-4o-audio-preview, whisper-1)
+  const isOpenAiAudio = prov === 'openai' && (mod.includes('audio') || mod.includes('whisper'));
+  // OpenRouter passthrough to Gemini models
+  const isOpenRouterGemini = prov === 'openrouter' && mod.includes('gemini');
+
+  const supportsNativeAudio = Boolean(isGoogleGemini || isOpenAiAudio || isOpenRouterGemini);
+
+  // Vision capabilities
+  const isAnthropicVision = prov === 'anthropic' && (mod.includes('claude-3') || mod.includes('claude-3-5'));
+  const isOpenAiVision = prov === 'openai' && (mod.includes('gpt-4') || mod.includes('o1') || mod.includes('o3') || mod.includes('o4'));
+  const supportsNativeVision = Boolean(isGoogleGemini || isAnthropicVision || isOpenAiVision);
+
+  return {
+    provider: prov,
+    modelId: mod,
+    supportsNativeAudio,
+    supportsNativeVision
+  };
+}
+
+/**
+ * Explicit Model-Directed Audio Transcription
+ * Transcribes audio using an explicitly specified model (primary attached model or visual fallback router).
+ * Never silently defaults or cascades across unconfigured providers.
+ */
+export async function transcribeAudioWithModel({
+  audioFile,
+  provider = 'google',
+  modelId = 'gemini-2.0-flash',
+  credential = null
+}) {
+  const cred = credential || getProviderCredential(provider);
+  if (!cred && provider !== 'ollama') {
+    throw new Error(`Missing API Key for transcription provider "${PROVIDERS[provider]?.name || provider}". Please configure your API key in Settings.`);
+  }
 
   const startTime = performance.now();
 
-  // 1. OpenAI Whisper
-  if (openAiKey) {
+  // 1. Google Gemini Native Multimodal Audio (Gemini 1.5 / 2.0 / 2.5)
+  if (provider === 'google' || (modelId && modelId.toLowerCase().includes('gemini'))) {
+    const ai = new GoogleGenAI({ apiKey: cred });
+    const arrayBuffer = await audioFile.arrayBuffer();
+    const base64Audio = arrayBufferToBase64(arrayBuffer);
+    const mimeType = audioFile.type || 'audio/mp3';
+
+    const targetModel = modelId && modelId.toLowerCase().includes('gemini') ? modelId : 'gemini-2.0-flash';
+    const response = await ai.models.generateContent({
+      model: targetModel,
+      contents: [
+        {
+          inlineData: {
+            mimeType,
+            data: base64Audio
+          }
+        },
+        {
+          text: 'Transcribe this entire audio meeting recording verbatim with speaker labels and bracketed timestamps in the format: [MM:SS] Speaker Name: verbatim speech. Maintain strict accuracy on numbers, budgets, decisions, and action items.'
+        }
+      ]
+    });
+
+    const durationMs = Math.round(performance.now() - startTime);
+    return {
+      transcript: response.text || '',
+      durationMs,
+      provider: `Google GenAI (${targetModel})`,
+      modelId: targetModel
+    };
+  }
+
+  // 2. OpenAI Speech / Whisper
+  if (provider === 'openai' || modelId === 'whisper-1' || (modelId && modelId.includes('audio'))) {
     const formData = new FormData();
     formData.append('file', audioFile);
-    formData.append('model', 'whisper-1');
+    formData.append('model', modelId && modelId !== 'gpt-4o' ? modelId : 'whisper-1');
     formData.append('response_format', 'text');
 
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${openAiKey}` },
+      headers: { Authorization: `Bearer ${cred}` },
       body: formData
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`OpenAI Whisper Error: ${err.error?.message || res.statusText}`);
+      throw new Error(`OpenAI Speech Transcription Error: ${err.error?.message || res.statusText}`);
     }
 
     const text = await res.text();
@@ -1239,40 +1309,28 @@ export async function transcribeAudioUniversal(audioFile) {
     return {
       transcript: text,
       durationMs,
-      provider: 'OpenAI Whisper'
+      provider: 'OpenAI Speech',
+      modelId: modelId || 'whisper-1'
     };
   }
 
-  // 2. Google Gemini 2.0 Flash Native Multimodal Audio
-  if (googleKey) {
-    const ai = new GoogleGenAI({ apiKey: googleKey });
-    const arrayBuffer = await audioFile.arrayBuffer();
-    const base64Audio = arrayBufferToBase64(arrayBuffer);
+  throw new Error(`The specified model "${modelId}" (${provider}) does not support audio transcription.`);
+}
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [
-        {
-          inlineData: {
-            mimeType: audioFile.type || 'audio/mp3',
-            data: base64Audio
-          }
-        },
-        {
-          text: 'Transcribe this entire audio meeting verbatim. Separate speakers with bracketed timestamps like [00:15] Speaker Name: verbatim speech. Maintain strict accuracy on numbers, budgets, and project names.'
-        }
-      ]
-    });
+/**
+ * Model-Aware Audio Transcription Entry Point
+ * Accepts audioFile and optional targetModel configuration.
+ */
+export async function transcribeAudioUniversal(audioFile, options = {}) {
+  const targetProvider = options.provider || (options.modelNode?.config?.provider) || (getProviderCredential('google') ? 'google' : 'openai');
+  const targetModelId = options.modelId || (options.modelNode?.config?.modelId) || (targetProvider === 'google' ? 'gemini-2.0-flash' : 'whisper-1');
 
-    const durationMs = Math.round(performance.now() - startTime);
-    return {
-      transcript: response.text,
-      durationMs,
-      provider: 'Google Gemini 2.0 Flash'
-    };
-  }
-
-  throw new Error('Please configure an OpenAI or Google API key in API Settings to transcribe live audio.');
+  return transcribeAudioWithModel({
+    audioFile,
+    provider: targetProvider,
+    modelId: targetModelId,
+    credential: options.credential || null
+  });
 }
 
 /**

@@ -1,5 +1,106 @@
 [
   {
+    "runId": "RUN-338695",
+    "workflowId": "uc-wf-1794222040706-gk9gd",
+    "workflowName": "Output Testing",
+    "frameworkId": "google-adk",
+    "frameworkName": "Google ADK",
+    "origin": "canvas",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-09T11:05:38.695Z",
+    "durationMs": 13699,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Multi-Agent Fleet Pipeline (1 Stages)"
+    },
+    "cryptography": {
+      "rootSha256": "dfcfa7ca051d9eed100fc785582d3f98e7e461a2d0e20c60a5346de800f33d06",
+      "inputSha256": "b05429db61831fac3837664e818d2022a8f6c3296d9234e7242bd655336d9b77",
+      "outputSha256": "7fe25c044c8778e5d5b1143676818963a26c0bfd6bcb3b23b483519f8858f739",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 5423,
+      "promptTokens": 1898,
+      "completionTokens": 3525,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.00938,
+      "currency": "USD",
+      "humanMinutesSaved": 108,
+      "laborValueSavedUsd": 117,
+      "netRoiMultiplier": 12473
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core-6716",
+        "agentName": "Agent 1",
+        "provider": "google",
+        "modelId": "gemini-2.5-flash",
+        "displayName": "Google: Gemini 2.5 Flash",
+        "promptTokens": 1898,
+        "completionTokens": 3525,
+        "totalTokens": 5423,
+        "ratePromptPerM": 0.3,
+        "rateCompletionPerM": 2.5,
+        "costUsd": 0.00938,
+        "latencyMs": 13430,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Multi-Agent Fleet Pipeline (1 Stages)",
+          "bytes": 135
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Agent 1 (Google: Gemini 2.5 Flash)",
+        "component": "gemini-2.5-flash",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 13430,
+        "costUsd": 0.00938,
+        "details": {
+          "promptTokens": 1898,
+          "completionTokens": 3525
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "dfcfa7ca051d9eed100fc785582d3f98e7e461a2d0e20c60a5346de800f33d06"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "[UNIVERSAL INGESTION COMPLETED: 1 FILE(S)]\n• File 1 (arc_5_minute_test_meeting_v2): \"ARC_5_Minute_Test_Meeting_v2.mp3\" (Audio, 3.52 MB)",
+      "outputSnippet": "**Meeting Intelligence Processing Report**\n\n**1. Ingestion Status**\nThe audio file \"ARC_5_Minute_Test_Meeting_v2.mp3\" (Audio, 3.52 MB) has been successfully ingested.\n\n**2. Processing Intent**\nAs an autonomous enterprise AI agent, I am now processing the ingested audio file to extract key intelligence, including confirmed actions, possible actions, and decis..."
+    }
+  },
+  {
     "runId": "RUN-767734",
     "workflowId": "uc-outlook-stream",
     "workflowName": "Outlook Mail & Attachment Intelligence",

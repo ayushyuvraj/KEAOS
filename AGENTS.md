@@ -456,5 +456,31 @@ All agents and developers writing code or designing output interfaces in KEAOS M
    - Never execute background regex scraping across output text to populate persistent memory stores.
    - Memory context injection must be opt-in, bounded, and relevant to the active task.
 
+---
+
+## 19. Strict Zero-Implicit Fallback & Visual Model Gateway/Router Invariant
+
+All agents and developers writing code or designing nodes in KEAOS MUST enforce this architectural invariant:
+
+1. **Absolute Ban on Invisible In-Code Model Fallbacks**:
+   - **FORBIDDEN**: Never write in-code fallback cascades that switch models, speech-to-text engines, or providers behind the scenes based on incidental credentials stored in the browser (e.g., silently defaulting audio transcription to `whisper-1` or `gemini-2.0-flash` without explicit canvas declaration).
+   - All inference and modality transformations MUST be driven exclusively by:
+     a) The **authoritative connected Foundation Model** on the agent's `model-in` socket, OR
+     b) An explicitly wired **Model Fallback Router** (`gw-fallback-router`) on the agent's `gateway-in` socket, OR
+     c) An explicit execution tool wired to the `tools-in` socket.
+
+2. **Strict Modality Capability Gatekeeper (Halt on Incompatibility)**:
+   - When a workflow ingress payload contains an unsupported modality (e.g., raw MP3/audio files fed to a text-only model like Anthropic Claude, text-only Ollama, or standard OpenAI text models):
+     - **If a Model Fallback Router or Audio Tool is wired**: The router/tool explicitly executes the modality conversion using its declared secondary model and passes the resulting text to the primary model.
+     - **If NO Router or Tool is wired**: The execution engine **MUST IMMEDIATELY HALT EXECUTION** with an institutional diagnostic error banner (`❌ Modality Incompatibility: Connected model [Model Name] does not support native audio ingestion. Please connect a Model Fallback Router (Gateway) or an Audio Transcriber tool, or switch to an audio-capable model (e.g. Gemini 2.0/2.5)`).
+     - **ABSOLUTELY FORBIDDEN**: Never continue execution with missing modalities, never feed raw file metadata descriptions as a substitute for real transcripts, and never generate synthetic or hallucinated outputs when a model lacks the necessary input modality.
+
+3. **Auditable Fallback Telemetry**:
+   - Every fallback switch MUST emit a distinct OpenTelemetry event (`GATEWAY_ROUTER_FAILOVER`) and be logged in the cryptographic W3C SHA-256 audit ledger, detailing:
+     - Primary Model attempted & reason code (`UNSUPPORTED_MODALITY`, `RATE_LIMIT_429`, or `TIMEOUT`).
+     - Fallback Model engaged & switch latency ($\Delta t$).
+     - Differential token economics and price per million tokens.
+
+
 
 

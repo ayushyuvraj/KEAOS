@@ -1,6 +1,9 @@
 import { 
   executeUniversalChat, 
-  PROVIDERS 
+  PROVIDERS,
+  getModelCapabilities,
+  transcribeAudioWithModel,
+  getProviderCredential
 } from '../services/llmService';
 import { getEpisodicMemoryStore } from './meetingSimulatorEngine';
 import { calculateInferenceCost } from '../services/modelPricingService';
@@ -733,6 +736,82 @@ You are participating in an institutional multi-agent workflow. Review all upstr
     'model',
     350
   );
+
+  // --- STRICT MODALITY CAPABILITY GATEKEEPER (Rule 19) ---
+  const isAudioMetadata = /Audio,\s*[\d.]+\s*(MB|KB)/i.test(processedInput) || /\.(mp3|wav|m4a|ogg|aac|flac|webm)\b/i.test(processedInput);
+  let rawAudioFile = null;
+  if (typeof window !== 'undefined' && window.__KEAOS_FILES__) {
+    const allCached = Object.values(window.__KEAOS_FILES__);
+    for (const cache of allCached) {
+      if (cache?.rawFile instanceof File && (cache.rawFile.type?.startsWith('audio/') || /\.(mp3|wav|m4a|ogg|aac|flac|webm)$/i.test(cache.rawFile.name))) {
+        rawAudioFile = cache.rawFile;
+        break;
+      }
+      if (cache?.files?.[0]?.rawFile instanceof File && (cache.files[0].category === 'audio' || cache.files[0].rawFile.type?.startsWith('audio/') || /\.(mp3|wav|m4a|ogg|aac|flac|webm)$/i.test(cache.files[0].rawFile.name))) {
+        rawAudioFile = cache.files[0].rawFile;
+        break;
+      }
+    }
+  }
+
+  if (isAudioMetadata || rawAudioFile) {
+    const modelCaps = getModelCapabilities(provider, modelId);
+    const isFallbackRouter = gatewayNode && (
+      gatewayNode.id?.includes('fallback') ||
+      gatewayNode.name?.toLowerCase().includes('fallback') ||
+      Boolean(gatewayNode.config?.fallbackModel) ||
+      Boolean(gatewayNode.config?.enableAudioBridge)
+    );
+    const audioToolNode = attachedPillars.find(p => p.type === 'tools' && (p.name?.toLowerCase().includes('transcrib') || p.name?.toLowerCase().includes('audio')));
+
+    if (modelCaps.supportsNativeAudio && rawAudioFile) {
+      await logStep('Native Audio Ingestion', `Transcribing "${rawAudioFile.name}" natively with ${modelId} (${provider})...`, 'tools', 320);
+      try {
+        const transResult = await transcribeAudioWithModel({
+          audioFile: rawAudioFile,
+          provider,
+          modelId,
+          credential: getProviderCredential(provider)
+        });
+        processedInput = transResult.transcript;
+        await logStep('Audio Transcription Verified', `Extracted dialogue (${transResult.durationMs}ms) via ${modelId}.`, 'tools', 200);
+      } catch (audioErr) {
+        throw new Error(`Native audio transcription failed via ${modelId}: ${audioErr.message}`);
+      }
+    } else if (isFallbackRouter && rawAudioFile) {
+      const fallbackProv = gatewayNode.config?.fallbackProvider || 'google';
+      const fallbackMod = gatewayNode.config?.fallbackModel || 'gemini-2.0-flash';
+      const fallbackCred = getProviderCredential(fallbackProv);
+
+      if (!fallbackCred) {
+        throw new Error(`Model Fallback Router: Missing API key for fallback provider "${PROVIDERS[fallbackProv]?.name || fallbackProv}". Configure it in API Settings.`);
+      }
+
+      await logStep('Gateway Modality Bridge', `Model Fallback Router engaged: Bridging audio via secondary model ${fallbackMod} (${fallbackProv}) for ${agentName}...`, 'gateway', 350);
+
+      try {
+        const transResult = await transcribeAudioWithModel({
+          audioFile: rawAudioFile,
+          provider: fallbackProv,
+          modelId: fallbackMod,
+          credential: fallbackCred
+        });
+        processedInput = transResult.transcript;
+        await logStep('Modality Bridge Complete', `Audio bridged successfully (${transResult.durationMs}ms). Handing transcript to ${modelId}...`, 'gateway', 220);
+      } catch (bridgeErr) {
+        throw new Error(`Fallback Router audio bridge failed via ${fallbackMod}: ${bridgeErr.message}`);
+      }
+    } else if (!modelCaps.supportsNativeAudio && !audioToolNode) {
+      const haltMsg = `❌ Modality Incompatibility: Connected model "${modelId}" (${provider}) for ${agentName} does not support native audio ingestion. Per Rule 19, execution is halted. Please connect a Model Fallback Router (Gateway) or an Audio Transcriber tool, or switch to an audio-capable model (e.g. Google Gemini 2.0/2.5).`;
+      await logStep('Modality Gatekeeper Halt', haltMsg, 'gateway', 0);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('keaos:toast', {
+          detail: { message: haltMsg, type: 'error', duration: 7500 }
+        }));
+      }
+      throw new Error(haltMsg);
+    }
+  }
 
   // 7. INFERENCE DISPATCH & AUTONOMOUS REACT TOOL LOOP
   let responseText = '';

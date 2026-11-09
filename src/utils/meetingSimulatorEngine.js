@@ -1,7 +1,9 @@
 import { 
   synthesizeMeetingUniversal, 
   getProviderCredential, 
-  PROVIDERS 
+  PROVIDERS,
+  getModelCapabilities,
+  transcribeAudioWithModel
 } from '../services/llmService';
 import { calculateInferenceCost } from '../services/modelPricingService';
 import { recordWorkflowExecution } from '../services/unifiedAuditService';
@@ -83,15 +85,124 @@ export async function runMeetingSimulation({
 
   const startTime = performance.now();
 
+  // Resolve Foundation Model early so modality compatibility can be evaluated immediately
+  const modelNode = attachedPillars.find(p => p.type === 'model');
+  if (!modelNode) {
+    await logStep('Model Check Failed', '❌ ERROR: No active Foundation Model node connected to agent canvas.', 0, 'model');
+    throw new Error('No active Foundation Model node connected on canvas. Please wire a Model pillar to the model-in socket.');
+  }
+
+  const provider = modelNode?.config?.provider || 
+    (modelNode?.name?.toLowerCase().includes('claude') ? 'anthropic' :
+     (modelNode?.name?.toLowerCase().includes('gpt') ||
+      modelNode?.name?.toLowerCase().includes('openai') ||
+      modelNode?.name?.toLowerCase().includes('o1') ||
+      modelNode?.name?.toLowerCase().includes('o3') ||
+      modelNode?.name?.toLowerCase().includes('o4')) ? 'openai' :
+     modelNode?.name?.toLowerCase().includes('ollama') ? 'ollama' :
+     modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' :
+     modelNode?.name?.toLowerCase().includes('gemini') ? 'google' : 'openai');
+
+  const modelId = modelNode?.config?.modelId || modelNode?.name || 'gpt-4o';
+  const modelDisplayName = modelNode.name || `${PROVIDERS[provider]?.name || provider} (${modelId})`;
+
+  const credential = getProviderCredential(provider);
+  if (!credential && provider !== 'ollama') {
+    await logStep('Model Authentication Failed', `❌ ERROR: No API Key found for ${PROVIDERS[provider]?.name || provider}.`, 0, 'model');
+    throw new Error(`No API key configured for ${PROVIDERS[provider]?.name || provider}. Please set your API credentials in API Settings modal.`);
+  }
+
   const effectiveTranscript = (transcript && transcript.trim())
     ? transcript.trim()
     : (agentConfig?.prompt || 'Enterprise agent mandate execution. Ingest context and synthesize conclusions.');
 
+  // --- STRICT MODALITY CAPABILITY GATEKEEPER (Rule 19) ---
+  const isAudioMetadata = /Audio,\s*[\d.]+\s*(MB|KB)/i.test(effectiveTranscript) || /\.(mp3|wav|m4a|ogg|aac|flac|webm)\b/i.test(effectiveTranscript);
+  let rawAudioFile = null;
+  if (typeof window !== 'undefined' && window.__KEAOS_FILES__) {
+    const allCached = Object.values(window.__KEAOS_FILES__);
+    for (const cache of allCached) {
+      if (cache?.rawFile instanceof File && (cache.rawFile.type?.startsWith('audio/') || /\.(mp3|wav|m4a|ogg|aac|flac|webm)$/i.test(cache.rawFile.name))) {
+        rawAudioFile = cache.rawFile;
+        break;
+      }
+      if (cache?.files?.[0]?.rawFile instanceof File && (cache.files[0].category === 'audio' || cache.files[0].rawFile.type?.startsWith('audio/') || /\.(mp3|wav|m4a|ogg|aac|flac|webm)$/i.test(cache.files[0].rawFile.name))) {
+        rawAudioFile = cache.files[0].rawFile;
+        break;
+      }
+    }
+  }
+
+  let finalTranscript = effectiveTranscript;
+
+  if (isAudioMetadata || rawAudioFile) {
+    const modelCaps = getModelCapabilities(provider, modelId);
+    const gatewayNode = attachedPillars.find(p => p.type === 'gateway');
+    const isFallbackRouter = gatewayNode && (
+      gatewayNode.id?.includes('fallback') ||
+      gatewayNode.name?.toLowerCase().includes('fallback') ||
+      Boolean(gatewayNode.config?.fallbackModel) ||
+      Boolean(gatewayNode.config?.enableAudioBridge)
+    );
+    const audioToolNode = attachedPillars.find(p => p.type === 'tools' && (p.name?.toLowerCase().includes('transcrib') || p.name?.toLowerCase().includes('audio')));
+
+    if (modelCaps.supportsNativeAudio && rawAudioFile) {
+      // Case A: Model supports native audio (e.g. Gemini 2.0 / 2.5 / 1.5)
+      await logStep('Native Audio Ingestion', `Ingesting audio "${rawAudioFile.name}" natively with ${modelDisplayName}...`, 320, 'tools');
+      try {
+        const transResult = await transcribeAudioWithModel({
+          audioFile: rawAudioFile,
+          provider,
+          modelId,
+          credential
+        });
+        finalTranscript = transResult.transcript;
+        await logStep('Transcription Verified', `Extracted verbatim dialogue (${transResult.durationMs}ms) via ${modelDisplayName}.`, 200, 'tools');
+      } catch (audioErr) {
+        throw new Error(`Native audio transcription failed via ${modelDisplayName}: ${audioErr.message}`);
+      }
+    } else if (isFallbackRouter && rawAudioFile) {
+      // Case B: Text-only model WITH a Model Fallback Router attached
+      const fallbackProv = gatewayNode.config?.fallbackProvider || 'google';
+      const fallbackMod = gatewayNode.config?.fallbackModel || 'gemini-2.0-flash';
+      const fallbackCred = getProviderCredential(fallbackProv);
+
+      if (!fallbackCred) {
+        throw new Error(`Model Fallback Router: Missing API key for fallback provider "${PROVIDERS[fallbackProv]?.name || fallbackProv}". Please configure in Settings.`);
+      }
+
+      await logStep('Gateway Modality Bridge', `Model Fallback Router engaged: Bridging audio via secondary model ${fallbackMod} (${fallbackProv}) for primary model ${modelDisplayName}...`, 350, 'gateway');
+
+      try {
+        const transResult = await transcribeAudioWithModel({
+          audioFile: rawAudioFile,
+          provider: fallbackProv,
+          modelId: fallbackMod,
+          credential: fallbackCred
+        });
+        finalTranscript = transResult.transcript;
+        await logStep('Modality Bridge Complete', `Audio bridged successfully (${transResult.durationMs}ms). Handing transcript to ${modelDisplayName}...`, 220, 'gateway');
+      } catch (bridgeErr) {
+        throw new Error(`Fallback Router audio bridge failed via ${fallbackMod}: ${bridgeErr.message}`);
+      }
+    } else if (!modelCaps.supportsNativeAudio && !audioToolNode) {
+      // Case C: Text-only model WITHOUT a Fallback Router or Audio Tool -> STRICT HALT!
+      const haltMsg = `❌ Modality Incompatibility: Connected model "${modelDisplayName}" does not support native audio ingestion. Per Rule 19, execution is halted. Please connect a Model Fallback Router (Gateway) or an Audio Transcriber tool, or switch to an audio-capable model (e.g. Google Gemini 2.0/2.5).`;
+      await logStep('Modality Gatekeeper Halt', haltMsg, 0, 'gateway');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('keaos:toast', {
+          detail: { message: haltMsg, type: 'error', duration: 7500 }
+        }));
+      }
+      throw new Error(haltMsg);
+    }
+  }
+
   // Step 1: Ingestion & Diarization
-  await logStep('Ingestion & Parsing', `Ingested context payload (${effectiveTranscript.length} characters). Input validated.`, 120, 'tools');
+  await logStep('Ingestion & Parsing', `Ingested context payload (${finalTranscript.length} characters). Input validated.`, 120, 'tools');
 
   // Step 2: Gateway & Policy Checks (PII Masking & Pre-Inference Sanitization)
-  let processedTranscript = effectiveTranscript;
+  let processedTranscript = finalTranscript;
   let redactedCount = 0;
   const policyNodes = attachedPillars.filter(p => p.type === 'policies');
   
@@ -154,31 +265,7 @@ export async function runMeetingSimulation({
   }
 
   // Step 4: Model Execution (LIVE Real Multi-LLM API)
-  const modelNode = attachedPillars.find(p => p.type === 'model');
-  if (!modelNode) {
-    await logStep('Model Check Failed', '❌ ERROR: No active Foundation Model node connected to agent canvas.', 0, 'model');
-    throw new Error('No active Foundation Model node connected on canvas. Please wire a Model pillar to the model-in socket.');
-  }
-
-  const provider = modelNode?.config?.provider || 
-    (modelNode?.name?.toLowerCase().includes('claude') ? 'anthropic' :
-     (modelNode?.name?.toLowerCase().includes('gpt') ||
-      modelNode?.name?.toLowerCase().includes('openai') ||
-      modelNode?.name?.toLowerCase().includes('o1') ||
-      modelNode?.name?.toLowerCase().includes('o3') ||
-      modelNode?.name?.toLowerCase().includes('o4')) ? 'openai' :
-     modelNode?.name?.toLowerCase().includes('ollama') ? 'ollama' :
-     modelNode?.name?.toLowerCase().includes('openrouter') ? 'openrouter' :
-     modelNode?.name?.toLowerCase().includes('gemini') ? 'google' : 'openai');
-
-  const modelId = modelNode?.config?.modelId || modelNode?.name || 'gpt-4o';
-  const modelDisplayName = modelNode.name || `${PROVIDERS[provider]?.name || provider} (${modelId})`;
-
-  const credential = getProviderCredential(provider);
-  if (!credential && provider !== 'ollama') {
-    await logStep('Model Authentication Failed', `❌ ERROR: No API Key found for ${PROVIDERS[provider]?.name || provider}.`, 0, 'model');
-    throw new Error(`No API key configured for ${PROVIDERS[provider]?.name || provider}. Please set your API credentials in API Settings modal.`);
-  }
+  await logStep('Model Ingress Check', `Connected Foundation Model: ${modelDisplayName}. Dispatched to live inference...`, 120, 'model');
 
   // Step 5: Compile Attached Policies & Guardrails Directives for the Foundation Model Prompt
   let policiesDirectiveText = '';

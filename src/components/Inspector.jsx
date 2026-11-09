@@ -1915,8 +1915,173 @@ export default function Inspector({
               );
             })()}
 
-            {/* MCP Egress Gateway Controller & Tool Route Table */}
+            {/* Gateway Pillar Inspector (Model Fallback Router vs MCP Egress Gateway) */}
             {nodeData.pillarType === 'gateway' && (() => {
+              const isFallbackRouter = nodeData.itemId === 'gw-fallback-router' ||
+                nodeData.toolId === 'gw-fallback-router' ||
+                (nodeData.name || '').toLowerCase().includes('fallback') ||
+                Boolean(nodeData.config?.fallbackModel);
+
+              if (isFallbackRouter) {
+                const routerConfig = nodeData.config || {};
+                const fallbackProvider = routerConfig.fallbackProvider || 'google';
+                const fallbackModel = routerConfig.fallbackModel || (fallbackProvider === 'google' ? 'gemini-2.0-flash' : 'whisper-1');
+                const enableAudioBridge = routerConfig.enableAudioBridge !== false;
+                const triggerOn429 = routerConfig.triggerOn429 !== false;
+                const triggerOnModalityMismatch = routerConfig.triggerOnModalityMismatch !== false;
+                const timeoutSeconds = routerConfig.timeoutSeconds || 15;
+
+                const updateRouterConfig = (updates) => {
+                  onUpdateNodeData(selectedNode.id, {
+                    config: {
+                      ...routerConfig,
+                      ...updates
+                    }
+                  });
+                };
+
+                const currentProviderDef = PROVIDERS[fallbackProvider] || PROVIDERS.google;
+                const availableModels = currentProviderDef?.models || [];
+
+                return (
+                  <div className={`p-4 ${t.card} rounded-[22px] border space-y-4 shadow-sm`}>
+                    <div className="flex items-center justify-between pb-3 border-b border-inherit">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-[#00A3A6]/15 text-[#00A3A6] flex items-center justify-center">
+                          <GitFork className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h6 className={`text-xs font-bold ${t.title}`}>
+                            Model Fallback & Modality Router
+                          </h6>
+                          <p className={`text-[10px] font-mono ${t.subText}`}>
+                            Visual Gateway Failover & Audio Bridge
+                          </p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 text-[9px] font-mono font-bold bg-[#00A3A6]/10 text-[#00A3A6] border border-[#00A3A6]/30 rounded-full">
+                        ACTIVE ROUTER
+                      </span>
+                    </div>
+
+                    {/* Secondary Fallback Provider */}
+                    <div className="space-y-1.5">
+                      <label className={`text-[10px] font-mono uppercase tracking-wider ${t.subText} block font-semibold`}>
+                        Secondary Failover Provider
+                      </label>
+                      <select
+                        value={fallbackProvider}
+                        onChange={(e) => {
+                          const newProv = e.target.value;
+                          const defModel = PROVIDERS[newProv]?.defaultModel || PROVIDERS[newProv]?.models?.[0] || 'gemini-2.0-flash';
+                          updateRouterConfig({
+                            fallbackProvider: newProv,
+                            fallbackModel: defModel
+                          });
+                        }}
+                        className={`w-full p-2.5 text-xs font-mono border rounded-xl ${t.select}`}
+                      >
+                        {Object.values(PROVIDERS).map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Secondary Fallback Model */}
+                    <div className="space-y-1.5">
+                      <label className={`text-[10px] font-mono uppercase tracking-wider ${t.subText} block font-semibold`}>
+                        Failover Model Target
+                      </label>
+                      <select
+                        value={fallbackModel}
+                        onChange={(e) => updateRouterConfig({ fallbackModel: e.target.value })}
+                        className={`w-full p-2.5 text-xs font-mono border rounded-xl ${t.select}`}
+                      >
+                        {availableModels.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                        {fallbackProvider === 'openai' && !availableModels.includes('whisper-1') && (
+                          <option value="whisper-1">whisper-1 (Speech-to-Text)</option>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Audio-to-Text Modality Bridge Switch */}
+                    <div className={`p-3 rounded-xl border ${enableAudioBridge ? 'bg-[#00A3A6]/10 border-[#00A3A6]/30' : t.subCard} space-y-1.5`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold flex items-center gap-1.5">
+                          <Radio className="w-3.5 h-3.5 text-[#00A3A6]" />
+                          Audio-to-Text Bridge
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={enableAudioBridge}
+                          onChange={(e) => updateRouterConfig({ enableAudioBridge: e.target.checked })}
+                          className="w-4 h-4 accent-[#00A3A6] cursor-pointer"
+                        />
+                      </div>
+                      <p className={`text-[10.5px] leading-relaxed ${t.subText}`}>
+                        Automatically converts incoming audio (MP3/WAV) using this fallback model when connected to a text-only agent (e.g. Claude 3.5 Sonnet).
+                      </p>
+                    </div>
+
+                    {/* Trigger Rules */}
+                    <div className="space-y-2 pt-1">
+                      <label className={`text-[10px] font-mono uppercase tracking-wider ${t.subText} block font-semibold`}>
+                        Failover Trigger Rules
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          checked={triggerOnModalityMismatch}
+                          onChange={(e) => updateRouterConfig({ triggerOnModalityMismatch: e.target.checked })}
+                          className="w-3.5 h-3.5 accent-[#00A3A6]"
+                        />
+                        <span className={t.title}>Unsupported Modality (Audio/Vision)</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          checked={triggerOn429}
+                          onChange={(e) => updateRouterConfig({ triggerOn429: e.target.checked })}
+                          className="w-3.5 h-3.5 accent-[#00A3A6]"
+                        />
+                        <span className={t.title}>HTTP 429 Quota Exceeded / Rate Limit</span>
+                      </label>
+
+                      <div className="flex items-center justify-between text-xs pt-1">
+                        <span className={t.subText}>Timeout Threshold</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="5"
+                            max="60"
+                            value={timeoutSeconds}
+                            onChange={(e) => updateRouterConfig({ timeoutSeconds: parseInt(e.target.value, 10) || 15 })}
+                            className={`w-16 p-1 text-center text-xs font-mono border rounded-lg ${t.input}`}
+                          />
+                          <span className={`text-[10px] font-mono ${t.subText}`}>sec</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Institutional Rule 19 Callout */}
+                    <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-2 text-[10.5px] text-amber-500 leading-relaxed font-mono">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span>
+                        Rule 19 Mandate: Text-only models receiving raw audio without this router or an audio tool will strictly halt with a diagnostic alert.
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
               // Find connected incoming MCP server nodes
               const incomingMcpEdges = (edges || []).filter(e => 
                 (e.target === selectedNode.id && nodes.find(n => n.id === e.source)?.data?.pillarType === 'mcp') ||

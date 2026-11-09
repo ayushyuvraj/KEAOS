@@ -220,8 +220,15 @@ export const PILLARS = {
       {
         id: 'gw-fallback-router',
         name: 'Model Fallback Router',
-        description: 'Reroutes traffic to secondary model if primary encounters 429/500.',
-        config: { fallbackModel: 'gemini-1.5-flash', timeoutSeconds: 15 }
+        description: 'Reroutes traffic to secondary model on 429/500, or bridges audio for text-only models.',
+        config: {
+          fallbackProvider: 'google',
+          fallbackModel: 'gemini-2.0-flash',
+          enableAudioBridge: true,
+          timeoutSeconds: 15,
+          triggerOn429: true,
+          triggerOnModalityMismatch: true
+        }
       }
     ]
   },
