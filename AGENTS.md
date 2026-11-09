@@ -439,4 +439,22 @@ All agents, subagents, and developers designing or modifying canvas nodes, exter
    - New feature requests must be strictly additive.
    - Never rename, alter, or remove existing Autonomous Agent components, labels, or configurations unless explicitly ordered by the user.
 
+---
+
+## 18. Universal Output Viewer Invariant & Memory Decoupling Standard
+
+All agents and developers writing code or designing output interfaces in KEAOS MUST enforce this standard:
+
+1. **Default General Document View**:
+   - All Canvas Output Viewers (`OutputDisplayNode`, `OutputDisplayNodeV2`) must default to **`General`** mode.
+   - **`General`** mode renders the verbatim LLM output faithfully as a clean executive document, preserving all upstream skills, custom topics, headers, and bullet points without forcing artificial JSON schemas or table slicing.
+   - It provides an auto-detected **Topic & Header Navigation Bar** (`#`, `##`, `###`, bold topics) allowing single-click smooth scrolling to sections.
+   - `Spreadsheet Table`, `Markdown (MD)`, and `Raw / JSON` must remain accessible via a single-click view selector dropdown without requiring separate canvas nodes.
+
+2. **Strict Output-Memory Decoupling**:
+   - Output presentation must remain strictly decoupled from episodic memory scrapers.
+   - Never execute background regex scraping across output text to populate persistent memory stores.
+   - Memory context injection must be opt-in, bounded, and relevant to the active task.
+
+
 

@@ -29,7 +29,8 @@ import {
   SlidersHorizontal,
   Activity,
   Database,
-  AlertTriangle
+  AlertTriangle,
+  Compass
 } from 'lucide-react';
 import MarkdownViewer from '../common/MarkdownViewer';
 import NodeActionToolbar from '../common/NodeActionToolbar';
@@ -131,7 +132,8 @@ export default function OutputDisplayNode({ id, data, selected }) {
 
   const [copied, setCopied] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
-  const [viewFormat, setViewFormat] = useState('formatted'); // 'formatted' | 'table' | 'raw'
+  const [viewFormat, setViewFormat] = useState(data.viewFormat || 'general'); // 'general' (default) | 'formatted' (MD) | 'table' | 'raw'
+  const [isViewModeMenuOpen, setIsViewModeMenuOpen] = useState(false);
   
   // Title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -163,6 +165,7 @@ export default function OutputDisplayNode({ id, data, selected }) {
   const contentAreaRef = useRef(null);
   const exportDropdownRef = useRef(null);
   const settingsPopoverRef = useRef(null);
+  const viewModeDropdownRef = useRef(null);
 
   const isExecuting = Boolean(data.isExecuting) || data.status === 'generating';
   const status = data.status || (isExecuting ? 'generating' : (data.outputContent ? 'ready' : 'idle'));
@@ -251,12 +254,15 @@ export default function OutputDisplayNode({ id, data, selected }) {
       if (settingsPopoverRef.current && !settingsPopoverRef.current.contains(e.target)) {
         setIsSettingsOpen(false);
       }
+      if (viewModeDropdownRef.current && !viewModeDropdownRef.current.contains(e.target)) {
+        setIsViewModeMenuOpen(false);
+      }
     };
-    if (isExportMenuOpen || isSettingsOpen) {
+    if (isExportMenuOpen || isSettingsOpen || isViewModeMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isExportMenuOpen, isSettingsOpen]);
+  }, [isExportMenuOpen, isSettingsOpen, isViewModeMenuOpen]);
 
   // Wheel listener to strictly isolate mouse scroll from zooming canvas
   useEffect(() => {
@@ -343,6 +349,63 @@ export default function OutputDisplayNode({ id, data, selected }) {
 
   // Auto-switch to table view if active content is structured table/CSV
   const hasTableData = Boolean(parsedTable && parsedTable.headers.length > 0);
+
+  // Extract topics and headings for General view
+  const extractedTopics = useMemo(() => {
+    if (!activeContent || typeof activeContent !== 'string') return [];
+    const lines = activeContent.split('\n');
+    const topics = [];
+    let topicIndex = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      // Markdown headings: #, ##, ###
+      const headerMatch = line.match(/^(#{1,3})\s+(.+)$/);
+      if (headerMatch) {
+        const level = headerMatch[1].length;
+        const title = headerMatch[2].replace(/[*_`]/g, '').trim();
+        if (title && !topics.some(t => t.title.toLowerCase() === title.toLowerCase())) {
+          topics.push({
+            id: `topic-${topicIndex++}`,
+            title,
+            level
+          });
+        }
+        continue;
+      }
+
+      // Bold topic headers: **Topic Name:**
+      const boldTopicMatch = line.match(/^\*\*([A-Za-z0-9\s—–\-_/&]+):\*\*\s*(.*)$/);
+      if (boldTopicMatch && boldTopicMatch[1].length < 40) {
+        const title = boldTopicMatch[1].trim();
+        if (title && !topics.some(t => t.title.toLowerCase() === title.toLowerCase())) {
+          topics.push({
+            id: `topic-${topicIndex++}`,
+            title,
+            level: 2
+          });
+        }
+      }
+    }
+
+    return topics.slice(0, 12);
+  }, [activeContent]);
+
+  const handleTopicClick = (topicTitle) => {
+    if (!contentAreaRef.current) return;
+    const cleanTarget = topicTitle.trim().toLowerCase();
+    const elements = contentAreaRef.current.querySelectorAll('h1, h2, h3, h4, h5, strong, b, span');
+    for (const el of elements) {
+      if (el.textContent.trim().toLowerCase().includes(cleanTarget)) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.add('transition-all', 'duration-300', 'ring-2', 'ring-[#0091DA]', 'ring-offset-2');
+        setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-[#0091DA]', 'ring-offset-2');
+        }, 1500);
+        break;
+      }
+    }
+  };
 
   const handleCopy = (e) => {
     if (e) e.stopPropagation();
@@ -779,50 +842,153 @@ export default function OutputDisplayNode({ id, data, selected }) {
         {/* Right: SEGREGATED VIEW, EXPORT, STRATEGY & ACTIONS */}
         <div className="flex items-center gap-1.5 shrink-0 nodrag">
           
-          {/* GROUP A: SEGMENTED VIEW MODE TOGGLE */}
-          <div className={`flex items-center p-0.5 border text-[11px] rounded-none ${
-            isDarkMode ? 'bg-[#0B0D14] border-white/[0.08]' : 'bg-slate-100 border-slate-200'
-          }`}>
+          {/* GROUP A: INSTITUTIONAL VIEW MODE DROPDOWN */}
+          <div className="relative" ref={viewModeDropdownRef}>
             <button
-              onClick={() => setViewFormat('formatted')}
-              className={`px-2 py-0.5 transition-all duration-150 cursor-pointer active:scale-95 flex items-center gap-1 text-[10px] font-medium ${
-                viewFormat === 'formatted' 
-                  ? 'bg-[#00338D] text-white font-semibold shadow-xs' 
-                  : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsViewModeMenuOpen(!isViewModeMenuOpen);
+                setIsExportMenuOpen(false);
+                setIsSettingsOpen(false);
+              }}
+              className={`px-2.5 py-1 text-[11px] font-medium flex items-center gap-1.5 transition-all duration-150 cursor-pointer active:scale-95 rounded-none border ${
+                isViewModeMenuOpen 
+                  ? 'bg-[#00338D] text-white border-[#00338D]' 
+                  : isDarkMode 
+                    ? 'bg-[#181D2A] hover:bg-[#202738] text-slate-100 border-white/[0.12] hover:border-[#00338D]' 
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-[#00338D]'
               }`}
-              title="Formatted Markdown View"
+              title="Select Output Presentation Mode"
             >
-              <FileText className="w-3 h-3" />
-              <span>MD</span>
+              {viewFormat === 'general' ? (
+                <Sparkles className="w-3 h-3 text-[#0091DA]" />
+              ) : viewFormat === 'formatted' ? (
+                <FileText className="w-3 h-3 text-purple-400" />
+              ) : viewFormat === 'table' ? (
+                <TableIcon className="w-3 h-3 text-emerald-400" />
+              ) : (
+                <Code2 className="w-3 h-3 text-amber-400" />
+              )}
+              <span className="font-semibold text-[11px]">
+                {viewFormat === 'general'
+                  ? 'General'
+                  : viewFormat === 'formatted'
+                    ? 'Markdown'
+                    : viewFormat === 'table'
+                      ? 'Table'
+                      : 'Raw / JSON'}
+              </span>
+              <ChevronDown className={`w-2.5 h-2.5 opacity-60 transition-transform ${isViewModeMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {hasTableData && (
-              <button
-                onClick={() => setViewFormat('table')}
-                className={`px-2 py-0.5 transition-all duration-150 cursor-pointer active:scale-95 flex items-center gap-1 text-[10px] font-medium ${
-                  viewFormat === 'table' 
-                    ? 'bg-[#00338D] text-white font-semibold shadow-xs' 
-                    : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+            {/* View Mode Popover Menu */}
+            {isViewModeMenuOpen && (
+              <div 
+                className={`absolute left-0 top-full mt-1.5 w-60 border shadow-2xl z-50 p-1 select-none rounded-none origin-top-left transition-all duration-150 animate-in fade-in zoom-in-95 ${
+                  isDarkMode ? 'bg-[#0B0D14] border-[#262D3D] text-slate-200 ring-1 ring-white/[0.06]' : 'bg-white border-slate-200 text-slate-800'
                 }`}
-                title="Spreadsheet Table Grid View"
               >
-                <TableIcon className="w-3 h-3" />
-                <span>TBL</span>
-              </button>
-            )}
+                <div className="px-2.5 py-1 text-[9px] uppercase tracking-wider text-slate-400 font-semibold border-b border-white/[0.08] mb-1 flex items-center justify-between">
+                  <span>View Presentation</span>
+                  <span className="text-[#0091DA] font-mono text-[8.5px]">ACTIVE: {viewFormat.toUpperCase()}</span>
+                </div>
 
-            <button
-              onClick={() => setViewFormat('raw')}
-              className={`px-2 py-0.5 transition-all duration-150 cursor-pointer active:scale-95 flex items-center gap-1 text-[10px] font-medium ${
-                viewFormat === 'raw' 
-                  ? 'bg-[#00338D] text-white font-semibold shadow-xs' 
-                  : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Raw Monospace / JSON Stream"
-            >
-              <Code2 className="w-3 h-3" />
-              <span>RAW</span>
-            </button>
+                {/* 1. General (Default) */}
+                <button
+                  onClick={() => {
+                    setViewFormat('general');
+                    setIsViewModeMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 flex items-start gap-2 text-xs transition-colors cursor-pointer active:scale-98 ${
+                    viewFormat === 'general'
+                      ? isDarkMode ? 'bg-[#00338D]/25 text-white' : 'bg-[#00338D]/10 text-[#00338D] font-semibold'
+                      : 'hover:bg-blue-500/10 hover:text-[#0091DA]'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#0091DA] shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-[11px]">General</span>
+                      <span className="text-[8px] font-mono px-1 py-0.5 bg-blue-500/20 text-[#0091DA] rounded-none">DEFAULT</span>
+                    </div>
+                    <div className="text-[9.5px] opacity-70 leading-tight mt-0.5">
+                      Verbatim LLM output & topic navigation
+                    </div>
+                  </div>
+                </button>
+
+                {/* 2. Markdown (MD) */}
+                <button
+                  onClick={() => {
+                    setViewFormat('formatted');
+                    setIsViewModeMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 flex items-start gap-2 text-xs transition-colors cursor-pointer active:scale-98 ${
+                    viewFormat === 'formatted'
+                      ? isDarkMode ? 'bg-purple-500/25 text-white' : 'bg-purple-500/10 text-purple-700 font-semibold'
+                      : 'hover:bg-purple-500/10 hover:text-purple-400'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-[11px]">Markdown (MD)</div>
+                    <div className="text-[9.5px] opacity-70 leading-tight mt-0.5">
+                      Standard linear document reader
+                    </div>
+                  </div>
+                </button>
+
+                {/* 3. Spreadsheet Table (TBL) */}
+                <button
+                  onClick={() => {
+                    if (hasTableData) {
+                      setViewFormat('table');
+                      setIsViewModeMenuOpen(false);
+                    }
+                  }}
+                  disabled={!hasTableData}
+                  className={`w-full text-left px-2.5 py-1.5 flex items-start gap-2 text-xs transition-colors ${
+                    !hasTableData
+                      ? 'opacity-40 cursor-not-allowed'
+                      : viewFormat === 'table'
+                        ? isDarkMode ? 'bg-emerald-500/25 text-white' : 'bg-emerald-500/10 text-emerald-700 font-semibold'
+                        : 'hover:bg-emerald-500/10 hover:text-emerald-400 cursor-pointer active:scale-98'
+                  }`}
+                >
+                  <TableIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-[11px]">Spreadsheet Table</span>
+                      {!hasTableData && <span className="text-[8px] opacity-60">(No table data)</span>}
+                    </div>
+                    <div className="text-[9.5px] opacity-70 leading-tight mt-0.5">
+                      Interactive columns & rows grid
+                    </div>
+                  </div>
+                </button>
+
+                {/* 4. Raw Monospace / JSON */}
+                <button
+                  onClick={() => {
+                    setViewFormat('raw');
+                    setIsViewModeMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 flex items-start gap-2 text-xs transition-colors cursor-pointer active:scale-98 ${
+                    viewFormat === 'raw'
+                      ? isDarkMode ? 'bg-amber-500/25 text-white' : 'bg-amber-500/10 text-amber-700 font-semibold'
+                      : 'hover:bg-amber-500/10 hover:text-amber-400'
+                  }`}
+                >
+                  <Code2 className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-[11px]">Raw Stream / JSON</div>
+                    <div className="text-[9.5px] opacity-70 leading-tight mt-0.5">
+                      Character-for-character raw stream
+                    </div>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="w-px h-3.5 bg-slate-500/20 mx-0.5" />
@@ -1331,9 +1497,45 @@ export default function OutputDisplayNode({ id, data, selected }) {
               </pre>
             </div>
           ) : (
-            /* Formatted Markdown View */
-            <div className="p-4 space-y-2 select-text">
-              <MarkdownViewer content={activeContent} isDarkMode={isDarkMode} />
+            /* General (Default) & Formatted Markdown View */
+            <div className="flex flex-col h-full min-h-full">
+              {/* Dynamic Topic Navigation Ribbon (Active in General mode when topics exist) */}
+              {viewFormat === 'general' && extractedTopics.length > 0 && (
+                <div className={`px-3 py-1.5 border-b flex items-center gap-2 overflow-x-auto select-none shrink-0 scrollbar-thin ${
+                  isDarkMode 
+                    ? 'bg-[#0E121D]/90 border-white/[0.06]' 
+                    : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="flex items-center gap-1.5 text-[9.5px] font-mono uppercase tracking-wider font-bold shrink-0 text-[#0091DA]">
+                    <Compass className="w-3 h-3 text-[#0091DA]" />
+                    <span>Topics:</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+                    {extractedTopics.map((topic) => (
+                      <button
+                        key={topic.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTopicClick(topic.title);
+                        }}
+                        className={`px-2 py-0.5 text-[9.5px] font-mono font-medium rounded-full border transition-all duration-150 cursor-pointer active:scale-95 whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                          isDarkMode
+                            ? 'bg-white/[0.04] hover:bg-[#0091DA]/20 hover:text-[#0091DA] border-white/[0.08] hover:border-[#0091DA]/40 text-slate-300'
+                            : 'bg-white hover:bg-[#00338D]/10 hover:text-[#00338D] border-slate-200 hover:border-[#00338D]/30 text-slate-700 shadow-xs'
+                        }`}
+                        title={`Jump to: ${topic.title}`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA]" />
+                        <span>{topic.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="p-4 space-y-2 select-text flex-1">
+                <MarkdownViewer content={activeContent} isDarkMode={isDarkMode} />
+              </div>
             </div>
           )
         ) : runsHistory.length > 0 ? (

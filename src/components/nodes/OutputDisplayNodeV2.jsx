@@ -34,7 +34,8 @@ import {
   ExternalLink,
   Flame,
   CheckCircle2,
-  Terminal
+  Terminal,
+  Compass
 } from 'lucide-react';
 import MarkdownViewer from '../common/MarkdownViewer';
 import NodeActionToolbar from '../common/NodeActionToolbar';
@@ -210,7 +211,7 @@ export default function OutputDisplayNodeV2({ id, data, selected }) {
 
   const [copied, setCopied] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
-  const [viewFormat, setViewFormat] = useState('formatted'); // 'formatted' | 'table' | 'json'
+  const [viewFormat, setViewFormat] = useState(data.viewFormat || 'general'); // 'general' (default) | 'formatted' | 'table' | 'json'
   const [tableSearch, setTableSearch] = useState('');
   const [sortConfig, setSortConfig] = useState({ colIndex: -1, direction: 'asc' });
 
@@ -445,6 +446,63 @@ export default function OutputDisplayNodeV2({ id, data, selected }) {
 
     return { headers, rows };
   }, [parsedTable, tableSearch, sortConfig]);
+
+  // Extract topics and headings for General view
+  const extractedTopics = useMemo(() => {
+    if (!activeContent || typeof activeContent !== 'string') return [];
+    const lines = activeContent.split('\n');
+    const topics = [];
+    let topicIndex = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      // Markdown headings: #, ##, ###
+      const headerMatch = line.match(/^(#{1,3})\s+(.+)$/);
+      if (headerMatch) {
+        const level = headerMatch[1].length;
+        const title = headerMatch[2].replace(/[*_`]/g, '').trim();
+        if (title && !topics.some(t => t.title.toLowerCase() === title.toLowerCase())) {
+          topics.push({
+            id: `v2-topic-${topicIndex++}`,
+            title,
+            level
+          });
+        }
+        continue;
+      }
+
+      // Bold topic headers: **Topic Name:**
+      const boldTopicMatch = line.match(/^\*\*([A-Za-z0-9\s—–\-_/&]+):\*\*\s*(.*)$/);
+      if (boldTopicMatch && boldTopicMatch[1].length < 40) {
+        const title = boldTopicMatch[1].trim();
+        if (title && !topics.some(t => t.title.toLowerCase() === title.toLowerCase())) {
+          topics.push({
+            id: `v2-topic-${topicIndex++}`,
+            title,
+            level: 2
+          });
+        }
+      }
+    }
+
+    return topics.slice(0, 12);
+  }, [activeContent]);
+
+  const handleTopicClick = (topicTitle) => {
+    if (!contentAreaRef.current) return;
+    const cleanTarget = topicTitle.trim().toLowerCase();
+    const elements = contentAreaRef.current.querySelectorAll('h1, h2, h3, h4, h5, strong, b, span');
+    for (const el of elements) {
+      if (el.textContent.trim().toLowerCase().includes(cleanTarget)) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.add('transition-all', 'duration-300', 'ring-2', 'ring-[#0091DA]', 'ring-offset-2');
+        setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-[#0091DA]', 'ring-offset-2');
+        }, 1500);
+        break;
+      }
+    }
+  };
 
   const handleSort = (colIndex) => {
     setSortConfig(curr => {
@@ -985,6 +1043,21 @@ export default function OutputDisplayNodeV2({ id, data, selected }) {
             isDarkMode ? 'bg-black/40 border-white/10' : 'bg-slate-200/60 border-slate-300/60'
           }`}>
             <button
+              onClick={() => setViewFormat('general')}
+              className={`px-2 py-0.5 rounded-lg text-[10px] font-medium transition-all duration-150 cursor-pointer flex items-center gap-1 active:scale-[0.93] ${
+                viewFormat === 'general'
+                  ? isDarkMode 
+                    ? 'bg-[#0091DA]/20 text-[#00B8F5] font-semibold shadow-xs border border-[#0091DA]/30' 
+                    : 'bg-white text-[#00338D] font-semibold shadow-xs border border-[#00338D]/20'
+                  : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="General: Verbatim LLM document & topic navigation"
+            >
+              <Sparkles className="w-3 h-3 text-[#0091DA]" />
+              <span>General</span>
+            </button>
+
+            <button
               onClick={() => setViewFormat('formatted')}
               className={`px-2 py-0.5 rounded-lg text-[10px] font-medium transition-all duration-150 cursor-pointer flex items-center gap-1 active:scale-[0.93] ${
                 viewFormat === 'formatted'
@@ -996,7 +1069,7 @@ export default function OutputDisplayNodeV2({ id, data, selected }) {
               title="Rendered Markdown View"
             >
               <FileText className="w-3 h-3" />
-              <span>Formatted</span>
+              <span>MD</span>
             </button>
 
             <button
@@ -1366,6 +1439,48 @@ export default function OutputDisplayNodeV2({ id, data, selected }) {
                   ? `Connected to ${data.sourceNodeName}. Execute the workflow to capture dedicated output.`
                   : 'Connect an Agent, Execution Tool, or Trigger node to stream real-time results into this studio.'}
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* View Mode 0: General Verbatim Document & Topic Navigation */}
+        {activeContent && viewFormat === 'general' && (
+          <div className="flex flex-col h-full min-h-full">
+            {extractedTopics.length > 0 && (
+              <div className={`px-3 py-1.5 border-b flex items-center gap-2 overflow-x-auto select-none shrink-0 scrollbar-thin mb-3 ${
+                isDarkMode 
+                  ? 'bg-[#0E121D]/90 border-white/[0.06]' 
+                  : 'bg-slate-100 border-slate-200'
+              }`}>
+                <div className="flex items-center gap-1.5 text-[9.5px] font-mono uppercase tracking-wider font-bold shrink-0 text-[#0091DA]">
+                  <Compass className="w-3 h-3 text-[#0091DA]" />
+                  <span>Topics:</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+                  {extractedTopics.map((topic) => (
+                    <button
+                      key={topic.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTopicClick(topic.title);
+                      }}
+                      className={`px-2 py-0.5 text-[9.5px] font-mono font-medium rounded-full border transition-all duration-150 cursor-pointer active:scale-95 whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                        isDarkMode
+                          ? 'bg-white/[0.04] hover:bg-[#0091DA]/20 hover:text-[#0091DA] border-white/[0.08] hover:border-[#0091DA]/40 text-slate-300'
+                          : 'bg-white hover:bg-[#00338D]/10 hover:text-[#00338D] border-slate-200 hover:border-[#00338D]/30 text-slate-700 shadow-xs'
+                      }`}
+                      title={`Jump to: ${topic.title}`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0091DA]" />
+                      <span>{topic.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed font-sans flex-1">
+              <MarkdownViewer content={activeContent} />
             </div>
           </div>
         )}
