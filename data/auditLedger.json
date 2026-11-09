@@ -1,5 +1,106 @@
 [
   {
+    "runId": "RUN-767734",
+    "workflowId": "uc-outlook-stream",
+    "workflowName": "Outlook Mail & Attachment Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "interactive_chat",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-06T07:39:27.734Z",
+    "durationMs": 7018,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Canvas Co-Pilot Drawer"
+    },
+    "cryptography": {
+      "rootSha256": "1d905c4d14cf32d3e146f405ad4d43bf69f2d77744d629e3ff3417b788479541",
+      "inputSha256": "d81960f8c5aa3c69b57e14c4cbb748caaa79a7ff88d1abe72297aa9084d1a3f0",
+      "outputSha256": "828304fd1885623a1329e848a4dff87b7c8b6681a43c3908e22e0034a320d859",
+      "complianceStandards": [
+        "SOC2 Type II / W3C SHA-256"
+      ],
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 4961,
+      "promptTokens": 1736,
+      "completionTokens": 3225,
+      "cachedTokens": 0,
+      "totalCostUsd": 0.03659,
+      "currency": "USD",
+      "humanMinutesSaved": 99,
+      "laborValueSavedUsd": 107.25,
+      "netRoiMultiplier": 2931
+    },
+    "multiBrainBreakdown": [
+      {
+        "agentId": "agent-core",
+        "agentName": "Enterprise Agent",
+        "provider": "openai",
+        "modelId": "gpt-4o",
+        "displayName": "OpenAI: GPT-4o",
+        "promptTokens": 1736,
+        "completionTokens": 3225,
+        "totalTokens": 4961,
+        "ratePromptPerM": 2.5,
+        "rateCompletionPerM": 10,
+        "costUsd": 0.03659,
+        "latencyMs": 7018,
+        "status": "COMPLETED"
+      }
+    ],
+    "activities": [
+      {
+        "spanId": "span-01",
+        "phase": "INGRESS",
+        "name": "Ingress Validation",
+        "component": "Gateway Controller",
+        "pillarType": "gateway",
+        "status": "PASSED",
+        "latencyMs": 10,
+        "costUsd": 0,
+        "details": {
+          "channel": "Canvas Co-Pilot Drawer",
+          "bytes": 16
+        }
+      },
+      {
+        "spanId": "span-agent-1",
+        "phase": "AGENT_EXECUTION",
+        "name": "Enterprise Agent (OpenAI: GPT-4o)",
+        "component": "gpt-4o",
+        "pillarType": "model",
+        "status": "PASSED",
+        "latencyMs": 7018,
+        "costUsd": 0.03659,
+        "details": {
+          "promptTokens": 1736,
+          "completionTokens": 3225
+        }
+      },
+      {
+        "spanId": "span-3",
+        "phase": "AUDIT_SEAL",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "component": "Cryptographic Audit Notary",
+        "pillarType": "audit",
+        "status": "PASSED",
+        "latencyMs": 15,
+        "costUsd": 0,
+        "details": {
+          "rootSha256": "1d905c4d14cf32d3e146f405ad4d43bf69f2d77744d629e3ff3417b788479541"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "what can you do?",
+      "outputSnippet": "I am equipped to handle a variety of tasks related to email and attachment processing. Here's what I can do:\n\n1. **Email Management**:\n   - List, read, and manage emails from your Outlook mailbox.\n   - Mark emails as read or unread.\n   - Move, copy, or delete emails.\n   - Flag emails for follow-up and set due dates.\n\n2. **Attachment Handling**:\n   - List and..."
+    }
+  },
+  {
     "runId": "RUN-696901",
     "workflowId": "uc-wf-1793175155405-hreve",
     "workflowName": "Sandbox Test",

@@ -12,6 +12,7 @@
 
 import { startSpan, endSpan } from './audit2Service.js';
 import { detectAndAttributeTelemetry } from './architectureDetector.js';
+import { evaluateGuardrails, resolveActivePoliciesForNode } from './policyEngine.js';
 
 // Global registry of in-flight AbortControllers for active remote agent dispatches
 const activeAbortControllers = new Map();
@@ -89,7 +90,11 @@ export async function executeRemoteAgentTask({
   nodeData = {},
   inputData = null,
   traceContext = null,
-  parentSpanId = null
+  parentSpanId = null,
+  policies = null,
+  memoryContext = null,
+  allNodes = [],
+  allEdges = []
 }) {
   const startTime = performance.now();
   const endpointUrl = nodeData.endpointUrl || 'http://127.0.0.1:8000/run';
@@ -126,6 +131,70 @@ export async function executeRemoteAgentTask({
   activeAbortControllers.set(nodeId, taskController);
 
   try {
+    // 1b. Resolve Active Policies (Direct and/or Inherited from Connected Agent Core)
+    const activePolicies = Array.isArray(policies) && policies.length > 0
+      ? policies
+      : resolveActivePoliciesForNode({
+          node: { id: nodeId, data: nodeData },
+          allNodes,
+          allEdges
+        });
+
+    // 1c. Inbound Guardrail Boundary Gate (Pre-dispatch Inspection)
+    let effectiveInput = inputData;
+    let inboundEvaluation = { passed: true, sanitizedPayload: inputData, redactionsCount: 0, violations: [] };
+
+    if (nodeData.enforceOnInput !== false && activePolicies.length > 0 && inputData) {
+      inboundEvaluation = evaluateGuardrails({
+        payload: inputData,
+        policies: activePolicies,
+        direction: 'inbound',
+        nodeData
+      });
+
+      if (!inboundEvaluation.passed) {
+        const violationMsg = inboundEvaluation.violations.map(v => v.message).join('; ');
+        const blockError = `[INBOUND GUARDRAIL BLOCKED]: ${violationMsg}`;
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('keaos:remote-agent-executed', {
+            detail: {
+              nodeId,
+              success: false,
+              latencyMs: 10,
+              error: blockError
+            }
+          }));
+        }
+
+        if (traceContext && span) {
+          await endSpan(traceContext, span, {
+            status: 'ERROR',
+            errorMessage: blockError,
+            inputData,
+            outputData: null,
+            customAttributes: {
+              'guardrail.blocked': true,
+              'guardrail.direction': 'inbound',
+              'guardrail.violations': JSON.stringify(inboundEvaluation.violations)
+            }
+          });
+        }
+
+        return {
+          success: false,
+          error: blockError,
+          latencyMs: 10,
+          nodeId,
+          blockedByGuardrail: true,
+          direction: 'inbound',
+          violations: inboundEvaluation.violations
+        };
+      }
+
+      effectiveInput = inboundEvaluation.sanitizedPayload;
+    }
+
     // 2. Emit Real-time Canvas Lighting Parity Event (Rule 14)
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('keaos:set-execution-state', {
@@ -151,26 +220,26 @@ export async function executeRemoteAgentTask({
       'Accept': 'application/json, text/plain, */*'
     };
 
-    const isFileInput = (typeof File !== 'undefined' && (inputData instanceof File || inputData?.rawFile instanceof File || inputData instanceof Blob)) ||
-                        (inputData && typeof inputData === 'object' && inputData.name && (inputData.size !== undefined || inputData.rawFile)) ||
+    const isFileInput = (typeof File !== 'undefined' && (effectiveInput instanceof File || effectiveInput?.rawFile instanceof File || effectiveInput instanceof Blob)) ||
+                        (effectiveInput && typeof effectiveInput === 'object' && effectiveInput.name && (effectiveInput.size !== undefined || effectiveInput.rawFile)) ||
                         requestMode === 'multipart';
 
     if (httpMethod !== 'GET') {
       if (!isFileInput) headers['Content-Type'] = 'application/json';
       if (isFileInput) {
         let fileToUpload = null;
-        if (typeof File !== 'undefined' && inputData instanceof File) {
-          fileToUpload = inputData;
-        } else if (inputData?.rawFile && (typeof File !== 'undefined' && inputData.rawFile instanceof File)) {
-          fileToUpload = inputData.rawFile;
-        } else if (inputData?.slotA?.rawFile && (typeof File !== 'undefined' && inputData.slotA.rawFile instanceof File)) {
-          fileToUpload = inputData.slotA.rawFile;
-        } else if (inputData?.slotB?.rawFile && (typeof File !== 'undefined' && inputData.slotB.rawFile instanceof File)) {
-          fileToUpload = inputData.slotB.rawFile;
-        } else if (typeof Blob !== 'undefined' && inputData instanceof Blob) {
-          fileToUpload = inputData;
-        } else if (inputData?.file && (typeof File !== 'undefined' && inputData.file instanceof File)) {
-          fileToUpload = inputData.file;
+        if (typeof File !== 'undefined' && effectiveInput instanceof File) {
+          fileToUpload = effectiveInput;
+        } else if (effectiveInput?.rawFile && (typeof File !== 'undefined' && effectiveInput.rawFile instanceof File)) {
+          fileToUpload = effectiveInput.rawFile;
+        } else if (effectiveInput?.slotA?.rawFile && (typeof File !== 'undefined' && effectiveInput.slotA.rawFile instanceof File)) {
+          fileToUpload = effectiveInput.slotA.rawFile;
+        } else if (effectiveInput?.slotB?.rawFile && (typeof File !== 'undefined' && effectiveInput.slotB.rawFile instanceof File)) {
+          fileToUpload = effectiveInput.slotB.rawFile;
+        } else if (typeof Blob !== 'undefined' && effectiveInput instanceof Blob) {
+          fileToUpload = effectiveInput;
+        } else if (effectiveInput?.file && (typeof File !== 'undefined' && effectiveInput.file instanceof File)) {
+          fileToUpload = effectiveInput.file;
         } else if (typeof window !== 'undefined' && window.__KEAOS_FILES__?.['latest'] instanceof File) {
           fileToUpload = window.__KEAOS_FILES__['latest'];
         }
@@ -191,16 +260,17 @@ export async function executeRemoteAgentTask({
         requestBody = formData;
       } else if (requestMode === 'json_envelope') {
         requestBody = JSON.stringify({
-          input: inputData,
+          input: effectiveInput,
           context: {
             nodeId,
             nodeName,
             framework,
+            memoryContext: (nodeData.shareAgentMemory && memoryContext) ? memoryContext : undefined,
             dispatchedAt: new Date().toISOString()
           }
         });
       } else {
-        requestBody = typeof inputData === 'string' ? inputData : JSON.stringify(inputData);
+        requestBody = typeof effectiveInput === 'string' ? effectiveInput : JSON.stringify(effectiveInput);
       }
     }
 
@@ -396,6 +466,59 @@ export async function executeRemoteAgentTask({
       }
     }
 
+    // 5b. Outbound Guardrail Boundary Gate (Post-dispatch Inspection)
+    let outboundEvaluation = { passed: true, sanitizedPayload: finalOutput, redactionsCount: 0, violations: [] };
+    if (nodeData.enforceOnOutput !== false && activePolicies.length > 0 && finalOutput !== undefined && finalOutput !== null) {
+      outboundEvaluation = evaluateGuardrails({
+        payload: finalOutput,
+        policies: activePolicies,
+        direction: 'outbound',
+        nodeData
+      });
+
+      if (!outboundEvaluation.passed) {
+        const violationMsg = outboundEvaluation.violations.map(v => v.message).join('; ');
+        const blockError = `[OUTBOUND GUARDRAIL BLOCKED]: ${violationMsg}`;
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('keaos:remote-agent-executed', {
+            detail: {
+              nodeId,
+              success: false,
+              latencyMs: Math.round(performance.now() - startTime),
+              error: blockError
+            }
+          }));
+        }
+
+        if (traceContext && span) {
+          await endSpan(traceContext, span, {
+            status: 'ERROR',
+            errorMessage: blockError,
+            inputData: effectiveInput,
+            outputData: null,
+            customAttributes: {
+              'guardrail.blocked': true,
+              'guardrail.direction': 'outbound',
+              'guardrail.violations': JSON.stringify(outboundEvaluation.violations)
+            }
+          });
+        }
+
+        return {
+          success: false,
+          error: blockError,
+          latencyMs: Math.round(performance.now() - startTime),
+          nodeId,
+          blockedByGuardrail: true,
+          direction: 'outbound',
+          violations: outboundEvaluation.violations
+        };
+      }
+
+      finalOutput = outboundEvaluation.sanitizedPayload;
+    }
+
     // 6. Multi-Tier Architecture & Multi-Stage Telemetry Engine
     const selectedModel = nodeData.underlyingModel || 'gemini-2.5-flash';
     const enterpriseDiscount = Number(nodeData.enterpriseDiscountPercent || 0);
@@ -479,7 +602,9 @@ export async function executeRemoteAgentTask({
       costUsd: effectiveCostUsd,
       modelId: effectiveModel,
       telemetryBreakdown: telemetry,
-      rawResponse: responseData
+      rawResponse: responseData,
+      redactionsCount: (inboundEvaluation?.redactionsCount || 0) + (outboundEvaluation?.redactionsCount || 0),
+      guardrailsApplied: activePolicies.length > 0
     };
   } finally {
     activeAbortControllers.delete(nodeId);

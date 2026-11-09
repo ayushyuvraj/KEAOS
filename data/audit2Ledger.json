@@ -1,6 +1,118 @@
 [
   {
     "version": "2.0",
+    "runId": "RUN-767734",
+    "traceId": "ad9591ff978f0ad05f579e958292ad38",
+    "rootSpanId": "8c2536ad3cb4e1af",
+    "workflowId": "uc-outlook-stream",
+    "workflowName": "Outlook Mail & Attachment Intelligence",
+    "frameworkId": "microsoft-adk",
+    "frameworkName": "Microsoft ADK",
+    "origin": "interactive_chat",
+    "status": "SUCCESS",
+    "timestamp": "2026-11-06T07:39:27.734Z",
+    "completedAt": "2026-11-06T07:39:27.750Z",
+    "durationMs": 7018,
+    "initiator": {
+      "name": "Lead Architect",
+      "role": "Studio Operator",
+      "ingressChannel": "Canvas Co-Pilot Drawer"
+    },
+    "cryptography": {
+      "rootSha256": "1d905c4d14cf32d3e146f405ad4d43bf69f2d77744d629e3ff3417b788479541",
+      "inputSha256": "d81960f8c5aa3c69b57e14c4cbb748caaa79a7ff88d1abe72297aa9084d1a3f0",
+      "outputSha256": "828304fd1885623a1329e848a4dff87b7c8b6681a43c3908e22e0034a320d859",
+      "standard": "W3C OpenTelemetry Trace Context / W3C SHA-256",
+      "piiSanitizedCount": 0,
+      "verified": true
+    },
+    "metrics": {
+      "totalTokens": 4961,
+      "promptTokens": 1736,
+      "completionTokens": 3225,
+      "totalCostUsd": 0.03659,
+      "currency": "USD",
+      "spansCount": 3,
+      "componentsCount": 3,
+      "activeModelsCount": 1,
+      "humanMinutesSaved": 99,
+      "laborValueSavedUsd": 107.25,
+      "netRoiMultiplier": 2931
+    },
+    "spans": [
+      {
+        "spanId": "c89b61c25b5b2535",
+        "traceId": "ad9591ff978f0ad05f579e958292ad38",
+        "parentSpanId": "8c2536ad3cb4e1af",
+        "name": "Ingress Validation",
+        "kind": "INTERNAL",
+        "componentType": "gateway",
+        "componentId": "Gateway Controller",
+        "componentName": "Ingress Validation",
+        "startTime": 1793950767740,
+        "endTime": 1793950767750,
+        "durationMs": 10,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "gateway",
+          "llm.cost_usd": 0,
+          "channel": "Canvas Co-Pilot Drawer",
+          "bytes": 16
+        }
+      },
+      {
+        "spanId": "4bf7d594f0317b28",
+        "traceId": "ad9591ff978f0ad05f579e958292ad38",
+        "parentSpanId": "8c2536ad3cb4e1af",
+        "name": "Enterprise Agent (OpenAI: GPT-4o)",
+        "kind": "INTERNAL",
+        "componentType": "model",
+        "componentId": "gpt-4o",
+        "componentName": "Enterprise Agent (OpenAI: GPT-4o)",
+        "startTime": 1793950760732,
+        "endTime": 1793950767750,
+        "durationMs": 7018,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "model",
+          "llm.cost_usd": 0.03659,
+          "promptTokens": 1736,
+          "completionTokens": 3225
+        }
+      },
+      {
+        "spanId": "323cfdcfbd09e9b1",
+        "traceId": "ad9591ff978f0ad05f579e958292ad38",
+        "parentSpanId": "8c2536ad3cb4e1af",
+        "name": "W3C SHA-256 Ledger Immutability Seal",
+        "kind": "INTERNAL",
+        "componentType": "audit",
+        "componentId": "Cryptographic Audit Notary",
+        "componentName": "W3C SHA-256 Ledger Immutability Seal",
+        "startTime": 1793950767735,
+        "endTime": 1793950767750,
+        "durationMs": 15,
+        "status": {
+          "code": "OK"
+        },
+        "attributes": {
+          "component.type": "audit",
+          "llm.cost_usd": 0,
+          "rootSha256": "1d905c4d14cf32d3e146f405ad4d43bf69f2d77744d629e3ff3417b788479541"
+        }
+      }
+    ],
+    "payload": {
+      "inputSnippet": "what can you do?",
+      "outputSnippet": "I am equipped to handle a variety of tasks related to email and attachment processing. Here's what I can do:\n\n1. **Email Management**:\n   - List, read, and manage emails from your Outlook mailbox.\n   - Mark emails as read or unread.\n   - Move, copy, or delete emails.\n   - Flag emails for follow-up and set due dates.\n\n2. **Attachment Handling**:\n   - List and..."
+    }
+  },
+  {
+    "version": "2.0",
     "runId": "RUN-073730",
     "traceId": "31b9fbbba836b97be4b86f9853890a28",
     "rootSpanId": "5f906cbd5641dfb8",

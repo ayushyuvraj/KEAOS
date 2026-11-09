@@ -17,6 +17,7 @@ import {
   OUTLOOK_OFFICIAL_ACTIONS
 } from '../constants/mcpOfficialCatalogs';
 import { executeDeterministicTask } from '../services/deterministicRunner';
+import { executeRemoteAgentTask } from '../services/remoteAgentRunner';
 
 /**
  * Universal SHA-256 Audit Fingerprint Generator (W3C WebCrypto)
@@ -68,14 +69,30 @@ export function extractRoutingTarget(upstreamOutputs = []) {
  * Parse Canvas Graph and Partition Agents into Topological Execution Tiers / Stages
  */
 export function buildMultiAgentDAG(nodes = [], edges = []) {
-  const agentNodes = nodes.filter(n => n.type === 'agentCore' && !n.data?.isDeactivated);
+  const agentNodes = nodes.filter(n => {
+    if (n.data?.isDeactivated) return false;
+    if (n.type === 'agentCore') return true;
+    if (n.type === 'remoteAgentNode') {
+      // If it only connects to an agent's tools-in socket, it acts as a tool, not a separate DAG stage
+      const isToolOnly = edges.some(e => 
+        (e.source === n.id || e.target === n.id) && 
+        (e.targetHandle === 'tools-in' || e.targetHandle === 'tool-in' || e.data?.isToolBinding)
+      ) && !edges.some(e => 
+        (e.source === n.id || e.target === n.id) && 
+        (e.targetHandle === 'agent-in' || e.targetHandle === 'in' || e.sourceHandle === 'out')
+      );
+      return !isToolOnly;
+    }
+    return false;
+  });
   if (agentNodes.length === 0) return [];
 
   const agentLookup = Object.fromEntries(agentNodes.map(n => [n.id, n]));
   
-  // A2A Edges: Edges from one active AgentCore to another active AgentCore
+  // A2A & External Agent Edges: Edges from one active agent/remoteAgent to another
   const a2aEdges = edges.filter(e => {
-    return agentLookup[e.source] && agentLookup[e.target] && (e.targetHandle === 'agent-in' || !e.targetHandle);
+    if (e.targetHandle === 'tools-in' || e.targetHandle === 'tool-in' || e.data?.isToolBinding) return false;
+    return agentLookup[e.source] && agentLookup[e.target];
   });
 
   // Calculate in-degree (number of upstream agents targeting each agent)
@@ -263,6 +280,57 @@ async function executeSingleAgentInPipeline({
 
     await delay(Math.min(450, Math.max(220, latencyMs)));
   };
+
+  // If this node is an External Service (remoteAgentNode) executing in pipeline flow
+  if (agentNode.type === 'remoteAgentNode') {
+    const raData = agentNode.data || {};
+    const raName = raData.name || 'Universal External Agent';
+    const raFramework = raData.framework || 'fastapi';
+
+    await logStep('External Ingress', `Starting External Service: ${raName} (${raFramework})`, 'gateway', 280);
+
+    const taskPayload = upstreamOutputs.length > 0
+      ? upstreamOutputs.map(u => `--- Output from ${u.agentName} ---\n${typeof u.output === 'object' ? JSON.stringify(u.output, null, 2) : u.output}`).join('\n\n')
+      : (initialRawInput || 'KEAOS Workflow Execution');
+
+    let remoteRes = null;
+    try {
+      remoteRes = await executeRemoteAgentTask({
+        nodeId: agentId,
+        nodeData: raData,
+        inputData: taskPayload,
+        policies: null,
+        allNodes,
+        allEdges
+      });
+    } catch (err) {
+      remoteRes = { success: false, error: err.message, output: null, latencyMs: 10 };
+    }
+
+    const outText = remoteRes.success
+      ? (typeof remoteRes.output === 'object' ? JSON.stringify(remoteRes.output, null, 2) : String(remoteRes.output))
+      : `[EXTERNAL SERVICE ERROR]: ${remoteRes.error || 'Execution failed'}`;
+
+    const auditHash = await generateSha256Fingerprint(`${taskPayload}::${outText}`);
+
+    await logStep('External Service Complete', `Executed ${raName} in ${remoteRes.latencyMs || 0}ms (${remoteRes.tokens || 0} tokens)`, 'audit', 240);
+
+    return {
+      agentId,
+      agentName: raName,
+      frameworkId: raFramework,
+      frameworkName: `External Service (${raFramework.toUpperCase()})`,
+      role: 'External Specialist',
+      output: outText,
+      auditHash,
+      tokens: remoteRes.tokens || 0,
+      latencyMs: remoteRes.latencyMs || 0,
+      costUsd: remoteRes.costUsd || 0,
+      provider: 'external',
+      modelId: raData.underlyingModel || 'external-api',
+      timestamp: new Date().toLocaleTimeString()
+    };
+  }
 
   await logStep('Ingress & Routing', `Starting ${agentName} (${frameworkName}${agentRole ? ` - ${agentRole.toUpperCase()}` : ''})`, 'gateway', 280);
 
@@ -460,6 +528,43 @@ async function executeSingleAgentInPipeline({
     await logStep('Deterministic Tools', `Bound ${deterministicPillars.length} deterministic tools (${deterministicPillars.map(d => d.name).join(', ')}).`, 'tools', 180);
   }
 
+  // Register all attached External Specialist Agents (remoteAgentNode) as callable tools
+  const externalAgentEdges = (allEdges || []).filter(e => 
+    (e.target === agentId && (e.targetHandle === 'tools-in' || e.targetHandle === 'tool-in')) ||
+    (e.source === agentId && (e.sourceHandle === 'tools-out' || e.sourceHandle === 'tools-in')) ||
+    (e.data?.isToolBinding && (e.source === agentId || e.target === agentId))
+  );
+  const nodeLookup = Object.fromEntries((allNodes || []).map(n => [n.id, n]));
+  const attachedRemoteAgents = externalAgentEdges
+    .map(e => nodeLookup[e.source === agentId ? e.target : e.source])
+    .filter(n => n && n.type === 'remoteAgentNode' && !n.data?.isDeactivated);
+
+  if (attachedRemoteAgents.length > 0) {
+    for (const ra of attachedRemoteAgents) {
+      const raData = ra.data || {};
+      const cleanToolName = (raData.customToolName || raData.name || 'external_agent')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+      const primaryTool = {
+        name: cleanToolName,
+        description: raData.customToolDescription || raData.description || `Invokes external autonomous service "${raData.name}" (${raData.framework || 'REST'})`
+      };
+
+      availableToolsMap.set(cleanToolName, {
+        tool: primaryTool,
+        toolName: cleanToolName,
+        isRemoteAgent: true,
+        remoteAgentNode: ra,
+        nodeData: raData,
+        isBlocked: false,
+        isServerDeactivated: false
+      });
+    }
+    await logStep('External Sub-Agents', `Bound ${attachedRemoteAgents.length} external agents as callable tools (${attachedRemoteAgents.map(r => r.data?.name || 'External Agent').join(', ')}).`, 'tools', 180);
+  }
+
   if (mcpNodes.length > 0) {
     await logStep('MCP Protocol Servers', `Connected ${mcpNodes.length} active MCP servers with ${availableToolsMap.size} capabilities (${mcpNodes.map(m => m.displayName || m.name).join(', ')}).`, 'mcp', 320);
   }
@@ -503,6 +608,28 @@ When you need to execute one of these deterministic tasks, output a tool call us
 }
 <<<END_TOOL_CALL>>>
 When the tool completes, its verified result will be provided back to you so you can conclude your task.`;
+  }
+
+  let externalAgentsInstruction = '';
+  if (attachedRemoteAgents.length > 0) {
+    externalAgentsInstruction = `\n[CONNECTED EXTERNAL SPECIALIST AGENTS & SERVICES]:
+The following external services are connected to your Tools port. You can delegate specialized tasks, API requests, computations, or remote reasoning to them:
+${attachedRemoteAgents.map((ra, idx) => {
+  const raData = ra.data || {};
+  const toolName = (raData.customToolName || raData.name || 'external_agent').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return `• Tool ${idx + 1}: \`${toolName}\` — ${raData.customToolDescription || raData.description || 'External autonomous service'}`;
+}).join('\n')}
+
+To invoke an external specialist agent, issue a tool call using:
+<<<TOOL_CALL>>>
+{
+  "tool": "<tool_name>",
+  "arguments": {
+    "payload": "<data or prompt to send to external agent>"
+  }
+}
+<<<END_TOOL_CALL>>>
+When the external service responds, its verified output will be provided back to you for synthesis.\n`;
   }
 
   const mcpContext = mcpNodes.length > 0
@@ -549,7 +676,7 @@ When summarizing or extracting data from incoming emails and attachments:
 
   const memoryPrompt = memoryContext ? `\n[HISTORICAL EPISODIC MEMORY]:\n${memoryContext}` : '';
 
-  const fullSystemPrompt = `${basePrompt}${roleContext}${skillsContext}${mcpContext}${deterministicToolsInstruction}${memoryPrompt}
+  const fullSystemPrompt = `${basePrompt}${roleContext}${skillsContext}${mcpContext}${deterministicToolsInstruction}${externalAgentsInstruction}${memoryPrompt}
 
 You are participating in an institutional multi-agent workflow. Review all upstream agent handoffs, execute your specific task thoroughly, and format your conclusions clearly with headers, key findings, and action items.`;
 
@@ -717,6 +844,60 @@ You are participating in an institutional multi-agent workflow. Review all upstr
         continue;
       }
 
+      // Check if this is a callable External Specialist Agent Tool!
+      if (toolEntry.isRemoteAgent) {
+        const raNode = toolEntry.remoteAgentNode;
+        const raData = raNode?.data || toolEntry.nodeData || {};
+        const raName = raData.name || toolName;
+        const raId = raNode?.id;
+
+        await logStep(
+          'External Agent Invocation',
+          `Calling external specialist "${raName}" (${raData.framework || 'REST'})...`,
+          'tools',
+          220
+        );
+
+        let remoteRes = null;
+        try {
+          const remoteInput = (args && typeof args === 'object' && args.payload !== undefined)
+            ? args.payload
+            : (args && typeof args === 'object' && Object.keys(args).length === 1 && args.prompt)
+              ? args.prompt
+              : args;
+
+          remoteRes = await executeRemoteAgentTask({
+            nodeId: raId || 'remote-agent',
+            nodeData: raData,
+            inputData: remoteInput,
+            policies: null,
+            memoryContext: memoryContext || null,
+            allNodes,
+            allEdges
+          });
+        } catch (err) {
+          remoteRes = { success: false, error: err.message, output: null, latencyMs: 10 };
+        }
+
+        const outText = remoteRes.success 
+          ? (typeof remoteRes.output === 'object' ? JSON.stringify(remoteRes.output, null, 2) : String(remoteRes.output))
+          : `[EXTERNAL AGENT ERROR]: ${remoteRes.error || 'Execution failed'}`;
+
+        await logStep(
+          'External Agent Result',
+          `Received response from "${raName}" (${remoteRes.latencyMs || 0}ms). Ingesting into reasoning context.`,
+          'tools',
+          180
+        );
+
+        currentMessages.push({ role: 'assistant', content: rawText });
+        currentMessages.push({
+          role: 'user',
+          content: `[EXTERNAL AGENT RESULT FROM "${toolName}"]:\n${outText}\n\nIngest this external specialist output and continue executing your workflow.`
+        });
+        continue;
+      }
+
       const { tool, mcpServer, isBlocked } = toolEntry;
 
       // Zero-Trust Gateway Perimeter Check
@@ -864,8 +1045,8 @@ export async function executeMultiAgentWorkflow({
 
     // Run agents in the same tier in parallel (Fan-out pattern)
     const tierPromises = currentTierAgents.map(async (agent) => {
-      // Find incoming upstream sources (Agents & Deterministic Boxes) for THIS specific agent
-      const incomingEdges = edges.filter(e => e.target === agent.id && (e.targetHandle === 'agent-in' || e.targetHandle === 'tools-in' || !e.targetHandle));
+      // Find incoming upstream sources (Agents, Remote Services & Deterministic Boxes) for THIS specific agent
+      const incomingEdges = edges.filter(e => e.target === agent.id && (e.targetHandle === 'agent-in' || e.targetHandle === 'in' || e.targetHandle === 'tools-in' || !e.targetHandle));
       const upstreamAgentOutputs = incomingEdges
         .map(e => {
           if (agentOutputs[e.source]) {

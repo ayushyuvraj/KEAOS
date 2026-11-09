@@ -2171,12 +2171,12 @@ function CanvasInner({
 
       // Remote Agent Connections (Multi-Product Mesh: chaining, fan-in, fan-out across external & internal agents)
       if (targetNode.type === 'remoteAgentNode') {
-        if (sourceNode.type === 'agentCore' || sourceNode.type === 'remoteAgentNode' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'routerNode' || sourceNode.type === 'approvalNode' || (sourceNode.data?.pillarType === 'policies' && targetHandle === 'policy-in')) {
+        if (sourceNode.type === 'agentCore' || sourceNode.type === 'remoteAgentNode' || sourceNode.type === 'deterministicNode' || sourceNode.type === 'ingestionNode' || sourceNode.type === 'triggerNode' || sourceNode.type === 'routerNode' || sourceNode.type === 'approvalNode' || (sourceNode.data?.pillarType === 'policies' && (targetHandle === 'policy-in' || !targetHandle))) {
           return true;
         }
       }
       if (sourceNode.type === 'remoteAgentNode') {
-        if (targetNode.type === 'agentCore' || targetNode.type === 'remoteAgentNode' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode') {
+        if (targetNode.type === 'agentCore' || targetNode.type === 'remoteAgentNode' || targetNode.type === 'deterministicNode' || targetNode.type === 'outputNode' || targetNode.type === 'outputNodeV2' || targetNode.type === 'routerNode' || targetNode.type === 'approvalNode' || targetNode.data?.pillarType === 'policies') {
           return true;
         }
       }
@@ -2382,6 +2382,37 @@ function CanvasInner({
           strokeWidth = 2.4;
           strokeDasharray = '5 4';
         }
+      } else if ((sourceNode?.type === 'agentCore' && targetNode?.type === 'remoteAgentNode') || (sourceNode?.type === 'remoteAgentNode' && targetNode?.type === 'agentCore')) {
+        // Check if connecting via Tools port
+        const isToolsSlot =
+          params.sourceHandle === 'tools-out' || params.sourceHandle === 'tools-in' || params.sourceHandle === 'tool-in' ||
+          params.targetHandle === 'tools-in' || params.targetHandle === 'tools-out' || params.targetHandle === 'tool-in';
+
+        if (isToolsSlot) {
+          isAgentToolsBinding = true;
+          if (sourceNode.type === 'agentCore') {
+            edgeSource = sourceNode.id;
+            edgeSourceHandle = 'tools-out';
+            edgeTarget = targetNode.id;
+            edgeTargetHandle = 'in'; // Anchors to the External Agent's Left INPUT socket
+          } else {
+            edgeSource = targetNode.id;
+            edgeSourceHandle = 'tools-out';
+            edgeTarget = sourceNode.id;
+            edgeTargetHandle = 'in'; // Anchors to the External Agent's Left INPUT socket
+          }
+          strokeColor = '#00B8F5'; // Vivid Cyan for External Agent Sub-agent / Tool binding
+          strokeWidth = 2.4;
+          strokeDasharray = '6 4';
+        } else {
+          strokeColor = '#00B8F5'; // Vivid Cyan for External Agent to Agent Core pipeline handoff
+          strokeWidth = 2.4;
+          strokeDasharray = '5 4';
+        }
+      } else if ((sourceNode?.type === 'remoteAgentNode' && targetNode?.data?.pillarType === 'policies') || (sourceNode?.data?.pillarType === 'policies' && targetNode?.type === 'remoteAgentNode')) {
+        strokeColor = '#FD349C'; // Vibrant Magenta for Policy Guardrails directly wired to External Agent
+        strokeWidth = 2.2;
+        strokeDasharray = '4 4';
       } else if (targetNode?.type === 'outputNode' || targetNode?.type === 'outputNodeV2' || sourceNode?.type === 'outputNode' || sourceNode?.type === 'outputNodeV2') {
         strokeColor = '#10B981'; // Emerald accent for data/output pipelines
       } else if (sourceNode?.type === 'ingestionNode' || params.targetHandle === 'tools-in' || params.targetHandle === 'tool-in' || sourceNode?.data?.pillarType === 'tools') {

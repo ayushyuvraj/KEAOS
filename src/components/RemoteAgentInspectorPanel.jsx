@@ -7,7 +7,11 @@ import {
   Loader2, 
   CheckCircle2, 
   AlertCircle, 
-  Activity
+  Activity,
+  Shield,
+  ShieldCheck,
+  BrainCircuit,
+  Wrench
 } from 'lucide-react';
 
 export default function RemoteAgentInspectorPanel({
@@ -33,6 +37,15 @@ export default function RemoteAgentInspectorPanel({
   const [underlyingModel, setUnderlyingModel] = useState(nodeData.underlyingModel || 'gemini-2.5-flash');
   const [enterpriseDiscountPercent, setEnterpriseDiscountPercent] = useState(nodeData.enterpriseDiscountPercent || 0);
   const [architectureTier, setArchitectureTier] = useState(nodeData.architectureTier || 'auto');
+
+  // Governance & Guardrail Boundary States
+  const [enforceOnInput, setEnforceOnInput] = useState(nodeData.enforceOnInput !== false);
+  const [enforceOnOutput, setEnforceOnOutput] = useState(nodeData.enforceOnOutput !== false);
+  const [applyDirectPolicies, setApplyDirectPolicies] = useState(nodeData.applyDirectPolicies !== false);
+  const [inheritAgentPolicies, setInheritAgentPolicies] = useState(nodeData.inheritAgentPolicies !== false);
+  const [shareAgentMemory, setShareAgentMemory] = useState(Boolean(nodeData.shareAgentMemory));
+  const [customToolName, setCustomToolName] = useState(nodeData.customToolName || '');
+  const [customToolDescription, setCustomToolDescription] = useState(nodeData.customToolDescription || '');
 
   // Live Ping Testing State
   const [isPinging, setIsPinging] = useState(false);
@@ -382,6 +395,177 @@ export default function RemoteAgentInspectorPanel({
               }}
               placeholder="auto, output, or result"
               className="w-full px-2 py-1 bg-[#090D16] border border-[#1E293B] text-slate-200 font-mono"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 4b. Governance & Guardrail Boundaries */}
+      <div className="pt-2 border-t border-[#1E293B] space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-mono font-bold uppercase text-[#FD349C] flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-[#FD349C]" />
+            <span>Governance & Guardrail Boundaries</span>
+          </span>
+          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[#FD349C]/10 text-[#FD349C] border border-[#FD349C]/30">
+            Bi-directional
+          </span>
+        </div>
+
+        {/* Boundary Checkpoints */}
+        <div className="space-y-2 bg-[#090D16] p-2.5 rounded-xl border border-[#1E293B]">
+          <span className="text-[9.5px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
+            Execution Checkpoints
+          </span>
+          
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="space-y-0.5">
+              <span className="text-xs font-semibold text-slate-200 block group-hover:text-white transition-colors">
+                Enforce on Inbound Input
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                Pre-sanitizes input & redacts sensitive data before network dispatch
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={enforceOnInput}
+              onChange={(e) => {
+                setEnforceOnInput(e.target.checked);
+                handleFieldChange('enforceOnInput', e.target.checked);
+              }}
+              className="w-4 h-4 accent-[#FD349C] rounded cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer group pt-1.5 border-t border-[#1E293B]/60">
+            <div className="space-y-0.5">
+              <span className="text-xs font-semibold text-slate-200 block group-hover:text-white transition-colors">
+                Enforce on Outbound Output
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                Validates response schema & redacts leaks before downstream handoff
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={enforceOnOutput}
+              onChange={(e) => {
+                setEnforceOnOutput(e.target.checked);
+                handleFieldChange('enforceOnOutput', e.target.checked);
+              }}
+              className="w-4 h-4 accent-[#FD349C] rounded cursor-pointer"
+            />
+          </label>
+        </div>
+
+        {/* Policy Source & Inheritance */}
+        <div className="space-y-2 bg-[#090D16] p-2.5 rounded-xl border border-[#1E293B]">
+          <span className="text-[9.5px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
+            Policy Source & Inheritance
+          </span>
+
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="space-y-0.5">
+              <span className="text-xs font-semibold text-slate-200 block group-hover:text-white transition-colors">
+                Apply Direct Policies
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                Enforce policies wired to this node's policy-in socket
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={applyDirectPolicies}
+              onChange={(e) => {
+                setApplyDirectPolicies(e.target.checked);
+                handleFieldChange('applyDirectPolicies', e.target.checked);
+              }}
+              className="w-4 h-4 accent-[#483698] rounded cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer group pt-1.5 border-t border-[#1E293B]/60">
+            <div className="space-y-0.5">
+              <span className="text-xs font-semibold text-slate-200 block group-hover:text-white transition-colors">
+                Inherit Autonomous Agent Policies
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                Inherit policies attached to the connected workflow Agent Core
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={inheritAgentPolicies}
+              onChange={(e) => {
+                setInheritAgentPolicies(e.target.checked);
+                handleFieldChange('inheritAgentPolicies', e.target.checked);
+              }}
+              className="w-4 h-4 accent-[#483698] rounded cursor-pointer"
+            />
+          </label>
+        </div>
+
+        {/* Memory Sharing Toggle */}
+        <div className="space-y-2 bg-[#090D16] p-2.5 rounded-xl border border-[#1E293B]">
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="space-y-0.5">
+              <span className="text-xs font-semibold text-slate-200 block flex items-center gap-1.5 group-hover:text-white transition-colors">
+                <BrainCircuit className="w-3.5 h-3.5 text-[#483698]" />
+                <span>Share Autonomous Agent Memory</span>
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                Inject relevant episodic memory context into dispatched payload
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={shareAgentMemory}
+              onChange={(e) => {
+                setShareAgentMemory(e.target.checked);
+                handleFieldChange('shareAgentMemory', e.target.checked);
+              }}
+              className="w-4 h-4 accent-[#483698] rounded cursor-pointer"
+            />
+          </label>
+        </div>
+
+        {/* Tool Signature Customization */}
+        <div className="space-y-2 bg-[#090D16] p-2.5 rounded-xl border border-[#1E293B]">
+          <span className="text-[9.5px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Wrench className="w-3 h-3 text-[#00B8F5]" />
+            <span>Autonomous Tool Signature (Sub-Agent Mode)</span>
+          </span>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-400 block">
+              Callable Tool Identifier
+            </label>
+            <input
+              type="text"
+              value={customToolName}
+              onChange={(e) => {
+                setCustomToolName(e.target.value);
+                handleFieldChange('customToolName', e.target.value);
+              }}
+              placeholder={(name || 'external_agent').toLowerCase().replace(/[^a-z0-9]+/g, '_')}
+              className="w-full px-2 py-1 bg-[#040813] border border-[#1E293B] text-slate-200 font-mono text-xs rounded-lg"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-400 block">
+              Tool Description for LLM Planner
+            </label>
+            <textarea
+              rows={2}
+              value={customToolDescription}
+              onChange={(e) => {
+                setCustomToolDescription(e.target.value);
+                handleFieldChange('customToolDescription', e.target.value);
+              }}
+              placeholder={`Invokes external autonomous service "${name}"`}
+              className="w-full px-2 py-1 bg-[#040813] border border-[#1E293B] text-slate-200 font-mono text-xs rounded-lg resize-none"
             />
           </div>
         </div>

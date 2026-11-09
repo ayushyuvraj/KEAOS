@@ -406,3 +406,37 @@ All agents, subagents, and developers working on KEAOS MUST strictly enforce thi
    - It is **STRICTLY FORBIDDEN** to interpret such instructions as a mandate to purge, delete, rename, or destroy existing components, features, or catalog entries unless the user explicitly and unmistakably says: *"Delete X from the system"*.
    - When in doubt about whether an existing component should remain or be removed: **ASK FOR CLARIFICATION BEFORE TOUCHING A SINGLE FILE.** This failure mode must never repeat.
 
+---
+
+## 17. Universal Cardinal Spatial Alignment & Connector Standards (North-South-East-West Invariant)
+
+All agents, subagents, and developers designing or modifying canvas nodes, external services, or components in KEAOS MUST enforce this universal spatial alignment rule across ALL components:
+
+1. **The Canonical Cardinal Socket Architecture**:
+   To ensure complete spatial harmony, eliminate user confusion, and prevent repetitive spatial corrections, every component on the KEAOS canvas strictly adheres to the Autonomous Agent Core's 4-cardinal orientation:
+   - **TOP (North) — Executive Capabilities & Reasoning**:
+     - `TOOLS` (Hands / Ingestion / Execution Tools)
+     - `MODEL` (Brain / Foundation Model)
+     - `REACH` (MCP Protocol / Gateway)
+   - **BOTTOM (South) — Governance, Context & Memory**:
+     - `GUARD` / `POLICY` (Policies, Guardrails, PII Redaction, Compliance)
+     - `MEMORY` (Episodic Memory, Vector Context)
+     - `SKILLS` (Directives, Behavioral Specifications)
+   - **LEFT (West) — Inflow / Input (`IN`)**:
+     - Upstream data inflow, task prompts, document ingestion, tool delegation wires entering the node.
+   - **RIGHT (East) — Outflow / Output (`OUT`)**:
+     - Completed deliverables, execution results, API responses exiting the node to downstream targets.
+
+2. **Strict Universal Enforcement Across All Peripheral & External Nodes**:
+   - Whenever any component (such as `RemoteAgentNode`, Deterministic Node, Router, Sub-Agent, or custom peripheral) connects to items governed by the Autonomous Agent's topology:
+     - **Policies & Guardrails MUST ALWAYS sit at the BOTTOM (South)**. Never place a Policy/Guardrail socket at the Top.
+     - **Tools & Models MUST ALWAYS sit at the TOP (North)**.
+     - **Data Inflow / Tool Inflow MUST ALWAYS enter from the LEFT (West)**.
+     - **Data Outflow / Results MUST ALWAYS exit from the RIGHT (East)**.
+   - All external and peripheral nodes MUST display clean, uppercase micro-labels adjacent to their active handles (`IN`, `GUARD`, `OUT`) matching this exact spatial convention.
+
+3. **Strict Additive-Only & Non-Destructive Invariant**:
+   - New feature requests must be strictly additive.
+   - Never rename, alter, or remove existing Autonomous Agent components, labels, or configurations unless explicitly ordered by the user.
+
+
