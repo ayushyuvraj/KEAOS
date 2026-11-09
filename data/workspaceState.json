@@ -3679,7 +3679,7 @@
             "width": 56,
             "height": 56
           },
-          "selected": true,
+          "selected": false,
           "dragging": false
         },
         {
@@ -3745,8 +3745,8 @@
           "id": "node-model-0252",
           "type": "pillar",
           "position": {
-            "x": 754.4440387929862,
-            "y": 330.46050672828596
+            "x": 750.0131148022292,
+            "y": 331.93748139187164
           },
           "data": {
             "pillarType": "model",
@@ -3768,6 +3768,35 @@
             "height": 60
           },
           "selected": false,
+          "dragging": false
+        },
+        {
+          "id": "node-memory-9658",
+          "type": "pillar",
+          "position": {
+            "x": 751.9374813918716,
+            "y": 624.1546199537855
+          },
+          "data": {
+            "pillarType": "memory",
+            "toolId": "mem-episodic-sync",
+            "name": "Episodic Recurring Sync Memory",
+            "description": "Remembers past meeting action items to verify resolution across weeks.",
+            "customDirective": null,
+            "referenceDoc": null,
+            "config": {
+              "ttlDays": 90,
+              "storage": "sqlite-vector",
+              "sessionScoped": false
+            },
+            "tools": null,
+            "itemId": "mem-episodic-sync"
+          },
+          "measured": {
+            "width": 140,
+            "height": 60
+          },
+          "selected": true,
           "dragging": false
         }
       ],
@@ -3857,10 +3886,28 @@
             "isToolBinding": false,
             "isBidirectional": false
           }
+        },
+        {
+          "id": "edge-node-memory-9658-out-to-agent-core-3416-memory-in-9659",
+          "source": "node-memory-9658",
+          "sourceHandle": "out",
+          "target": "agent-core-3416",
+          "targetHandle": "memory-in",
+          "type": "deletable",
+          "animated": true,
+          "style": {
+            "stroke": "#483698",
+            "strokeWidth": 2,
+            "strokeDasharray": "4 4"
+          },
+          "data": {
+            "isToolBinding": false,
+            "isBidirectional": false
+          }
         }
       ],
       "createdAt": 1793691016884,
-      "updatedAt": 1794211687128,
+      "updatedAt": 1794211734638,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -3868,7 +3915,7 @@
         "New"
       ],
       "stats": {
-        "nodeCount": 5,
+        "nodeCount": 6,
         "agentCount": 1,
         "mcpCount": 0,
         "modelCount": 1,
@@ -11354,7 +11401,7 @@
           "width": 56,
           "height": 56
         },
-        "selected": true,
+        "selected": false,
         "dragging": false
       },
       {
@@ -11420,8 +11467,8 @@
         "id": "node-model-0252",
         "type": "pillar",
         "position": {
-          "x": 754.4440387929862,
-          "y": 330.46050672828596
+          "x": 750.0131148022292,
+          "y": 331.93748139187164
         },
         "data": {
           "pillarType": "model",
@@ -11443,6 +11490,35 @@
           "height": 60
         },
         "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "node-memory-9658",
+        "type": "pillar",
+        "position": {
+          "x": 751.9374813918716,
+          "y": 624.1546199537855
+        },
+        "data": {
+          "pillarType": "memory",
+          "toolId": "mem-episodic-sync",
+          "name": "Episodic Recurring Sync Memory",
+          "description": "Remembers past meeting action items to verify resolution across weeks.",
+          "customDirective": null,
+          "referenceDoc": null,
+          "config": {
+            "ttlDays": 90,
+            "storage": "sqlite-vector",
+            "sessionScoped": false
+          },
+          "tools": null,
+          "itemId": "mem-episodic-sync"
+        },
+        "measured": {
+          "width": 140,
+          "height": 60
+        },
+        "selected": true,
         "dragging": false
       }
     ],
@@ -11525,6 +11601,24 @@
         "animated": false,
         "style": {
           "stroke": "#00338D",
+          "strokeWidth": 2,
+          "strokeDasharray": "4 4"
+        },
+        "data": {
+          "isToolBinding": false,
+          "isBidirectional": false
+        }
+      },
+      {
+        "id": "edge-node-memory-9658-out-to-agent-core-3416-memory-in-9659",
+        "source": "node-memory-9658",
+        "sourceHandle": "out",
+        "target": "agent-core-3416",
+        "targetHandle": "memory-in",
+        "type": "deletable",
+        "animated": false,
+        "style": {
+          "stroke": "#483698",
           "strokeWidth": 2,
           "strokeDasharray": "4 4"
         },
@@ -16811,5 +16905,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1794211687951
+  "syncedAt": 1794211735450
 }
