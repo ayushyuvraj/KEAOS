@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { FRAMEWORKS } from '../../constants/frameworks';
 import NodeActionToolbar from '../common/NodeActionToolbar';
+import AgentVisorEyes from '../common/AgentVisorEyes';
 
 export default function AgentCoreNode({ id, data, selected }) {
   const { 
@@ -556,57 +557,15 @@ export default function AgentCoreNode({ id, data, selected }) {
         </div>
 
         {/* ============================================================ */}
-        {/* ROBOT VISOR / DIGITAL FACE SCREEN                            */}
+        {/* ROBOT VISOR / LIVING DIGITAL FACE SCREEN                     */}
         {/* ============================================================ */}
-        <div className="relative w-full h-[38px] rounded-xl bg-[#0B0E14] border border-[#2B303C] flex items-center justify-center px-3 overflow-hidden shadow-inner">
-          {/* Scanning Beam Overlay during execution */}
-          {isExecuting && (
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0091DA]/30 to-transparent animate-pulse pointer-events-none" />
-          )}
-
-          {/* Two Expressive Robot Eyes */}
-          <div className="flex items-center gap-5 z-10">
-            {/* Left Eye */}
-            <div
-              className={`w-2 h-4 rounded-full transition-all duration-300 ${
-                isDeactivated
-                  ? 'bg-slate-700 shadow-none'
-                  : isExecuting
-                    ? 'bg-[#38BDF8] shadow-[0_0_16px_#38BDF8] scale-110 animate-pulse'
-                    : 'bg-[#0091DA] shadow-[0_0_10px_#0091DA]'
-              }`}
-            />
-            {/* Right Eye */}
-            <div
-              className={`w-2 h-4 rounded-full transition-all duration-300 ${
-                isDeactivated
-                  ? 'bg-slate-700 shadow-none'
-                  : isExecuting
-                    ? 'bg-[#38BDF8] shadow-[0_0_16px_#38BDF8] scale-110 animate-pulse'
-                    : 'bg-[#0091DA] shadow-[0_0_10px_#0091DA]'
-              }`}
-            />
-          </div>
-
-          {/* Digital Scanline lines */}
-          <div className="absolute inset-0 pointer-events-none opacity-20 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.08)_2px,rgba(255,255,255,0.08)_4px)]" />
-
-          {/* Status indicator */}
-          <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
-            <span 
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                isDeactivated 
-                  ? 'bg-slate-500' 
-                  : isExecuting 
-                    ? 'bg-[#0091DA] animate-ping' 
-                    : hasModel 
-                      ? 'bg-[#10B981] shadow-[0_0_6px_#10B981]' 
-                      : 'bg-amber-400'
-              }`} 
-              title={isDeactivated ? 'Deactivated' : hasModel ? 'Brain Active (Model Connected)' : 'Idle (Model Disconnected)'}
-            />
-          </div>
-        </div>
+        <AgentVisorEyes
+          size="md"
+          isExecuting={isExecuting}
+          isDeactivated={isDeactivated}
+          hasModel={hasModel}
+          showStatusLed={true}
+        />
 
         {/* ============================================================ */}
         {/* AGENT IDENTITY / AUDIO SPEAKER GRILLE                        */}

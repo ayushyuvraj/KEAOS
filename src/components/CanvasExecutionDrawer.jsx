@@ -36,6 +36,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import MarkdownViewer from './common/MarkdownViewer';
+import AgentVisorEyes from './common/AgentVisorEyes';
 import { runMeetingSimulation } from '../utils/meetingSimulatorEngine';
 import { executeUniversalAgentChat } from '../utils/universalAgentEngine';
 import { executeMultiAgentWorkflow, buildMultiAgentDAG } from '../utils/multiAgentOrchestratorEngine';
@@ -2083,12 +2084,14 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                 isDarkMode ? 'bg-[#18191E] border-[#2A2D36] text-slate-400' : 'bg-white border-gray-200 text-slate-600'
               }`}>
                 <div className="flex items-center gap-2">
-                  <div className={`w-5 h-5 rounded-md flex items-center justify-center ${
-                    hasBrain 
-                      ? isDarkMode ? 'bg-[#0091DA]/20 text-[#0091DA]' : 'bg-blue-50 text-[#00338D]'
-                      : 'bg-amber-500/20 text-amber-500'
-                  }`}>
-                    <Bot className="w-3.5 h-3.5" />
+                  <div className="w-10 h-6.5 rounded-lg overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
+                    <AgentVisorEyes
+                      size="sm"
+                      isExecuting={isChatRunning}
+                      isDeactivated={Boolean(activeAgentNode?.data?.isDeactivated)}
+                      hasModel={hasBrain}
+                      showStatusLed={false}
+                    />
                   </div>
                   <span className={`font-bold text-sm tracking-tight transition-colors ${
                     isDarkMode ? 'text-white' : 'text-[#0B0F19]'

@@ -369,7 +369,7 @@
         }
       ],
       "createdAt": 1794222040706,
-      "updatedAt": 1794226665246,
+      "updatedAt": 1794227973998,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -12638,5 +12638,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1794226675317
+  "syncedAt": 1794227974808
 }

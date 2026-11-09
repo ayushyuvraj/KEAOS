@@ -53,6 +53,7 @@ import TriggerInspectorPanel from './TriggerInspectorPanel';
 import RouterInspectorPanel from './RouterInspectorPanel';
 import ApprovalInspectorPanel from './ApprovalInspectorPanel';
 import RemoteAgentInspectorPanel from './RemoteAgentInspectorPanel';
+import AgentVisorEyes from './common/AgentVisorEyes';
 import { 
   armScheduleTrigger, 
   disarmScheduleTrigger, 
@@ -463,21 +464,31 @@ export default function Inspector({
       {/* Header */}
       <div className={`p-4 border-b ${t.header} shrink-0 flex items-center justify-between`}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
-            {isAgent ? (
-              <Bot className="w-4 h-4 text-blue-300" />
-            ) : isDeterministic ? (
-              <Code2 className="w-4 h-4 text-[#EAAA00]" />
-            ) : isOutput ? (
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-            ) : isIngest ? (
-              <UploadCloud className="w-4 h-4 text-[#0091DA]" />
-            ) : isModel ? (
-              <Cpu className="w-4 h-4 text-blue-300" />
-            ) : (
-              <Settings2 className="w-4 h-4 text-blue-300" />
-            )}
-          </div>
+          {isAgent ? (
+            <div className="w-11 h-8 rounded-xl overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
+              <AgentVisorEyes
+                size="sm"
+                isExecuting={Boolean(nodeData?.isExecuting)}
+                isDeactivated={Boolean(nodeData?.isDeactivated)}
+                hasModel={Boolean(nodeData?.attachedCounts?.model)}
+                showStatusLed={false}
+              />
+            </div>
+          ) : (
+            <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-inner shrink-0">
+              {isDeterministic ? (
+                <Code2 className="w-4 h-4 text-[#EAAA00]" />
+              ) : isOutput ? (
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+              ) : isIngest ? (
+                <UploadCloud className="w-4 h-4 text-[#0091DA]" />
+              ) : isModel ? (
+                <Cpu className="w-4 h-4 text-blue-300" />
+              ) : (
+                <Settings2 className="w-4 h-4 text-blue-300" />
+              )}
+            </div>
+          )}
           <div>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400 block font-mono">
               {isAgent ? 'Core Agent Inspector' : isDeterministic ? 'Deterministic Box' : isOutput ? 'Output Component' : isIngest ? 'Ingestion Port' : isModel ? 'Foundation Model' : `${nodeData.pillarType?.toUpperCase()} Specifications`}
