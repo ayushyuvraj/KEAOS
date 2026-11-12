@@ -569,7 +569,7 @@ export default function CanvasExecutionDrawer({
   const generateGreeting = useCallback((agent, modelPillar, pillars) => {
     const isBrainActive = Boolean(modelPillar);
     const agentName = agent?.data?.name || activeUseCase?.name || 'Autonomous Agent';
-    const frameworkName = agent?.data?.framework?.name || activeUseCase?.framework?.name;
+    const frameworkName = agent?.data?.framework?.name;
     const rawPrompt = agent?.data?.prompt || activeUseCase?.agent?.prompt || '';
     const promptMission = (rawPrompt && !rawPrompt.includes('Analyze meeting transcripts'))
       ? rawPrompt
@@ -894,7 +894,7 @@ export default function CanvasExecutionDrawer({
     try {
       const result = await runMeetingSimulation({
         transcript: activeTranscript,
-        frameworkId: activeUseCase?.framework?.id || 'google-adk',
+        frameworkId: allAgentNodes[0]?.data?.framework?.id || 'google-adk',
         agentConfig: activeUseCase?.agent || {},
         attachedPillars: globalAttachedPillars,
         activeUseCase,
@@ -1140,7 +1140,7 @@ export default function CanvasExecutionDrawer({
       const result = await executeUniversalAgentChat({
         userMessage: promptText,
         conversationHistory: currentThread.slice(-6).map(m => ({ role: m.role, content: m.content })),
-        frameworkId: activeAgentNode?.data?.framework?.id || activeUseCase?.framework?.id || 'google-adk',
+        frameworkId: activeAgentNode?.data?.framework?.id || 'google-adk',
         agentConfig: {
           prompt: (activeAgentNode?.data?.prompt && !activeAgentNode?.data?.prompt.includes('Analyze meeting transcripts'))
             ? activeAgentNode.data.prompt
@@ -2016,7 +2016,7 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
               </span>
               <span>•</span>
               <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>
-                {activeAgentNode?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK'}
+                {activeAgentNode?.data?.framework?.name || 'Google ADK'}
               </span>
               <span>•</span>
               <span className={
@@ -2103,7 +2103,7 @@ When the user confirms the plan (e.g. "yes", "finally yes", "proceed", "deploy",
                       ? 'bg-[#0091DA]/15 text-[#0091DA] border-[#0091DA]/30' 
                       : 'bg-blue-50 text-[#005EB8] border-blue-200'
                   }`}>
-                    {activeAgentNode?.data?.framework?.name || activeUseCase?.framework?.name || 'Google ADK'}
+                    {activeAgentNode?.data?.framework?.name || 'Google ADK'}
                   </span>
                   {hasBrain ? (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-bold">

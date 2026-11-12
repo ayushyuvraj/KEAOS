@@ -63,6 +63,12 @@ export default function MeetingSimulator({
   const [copiedDoc, setCopiedDoc] = useState(false);
   const [showMemorySection, setShowMemorySection] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
+
+  const agentNodes = (nodes || []).filter(n => n.type === 'agentCore');
+  const resolvedFrameworkId = agentNodes[0]?.data?.framework?.id || 'google-adk';
+  const resolvedFrameworkName = agentNodes.length > 1
+    ? `Multi-Agent Fleet (${agentNodes.length})`
+    : (agentNodes[0]?.data?.framework?.name || 'Google ADK');
   const [executionMode, setExecutionMode] = useState('local'); // 'local' | 'cluster'
 
   const attachedPillars = [
@@ -179,7 +185,7 @@ export default function MeetingSimulator({
             onDone: async () => {
               const localResult = await runMeetingSimulation({
                 transcript: transcriptText,
-                frameworkId: activeUseCase.framework.id,
+                frameworkId: resolvedFrameworkId,
                 agentConfig: activeUseCase.agent,
                 attachedPillars
               });
@@ -204,7 +210,7 @@ export default function MeetingSimulator({
 
     const result = await runMeetingSimulation({
       transcript: transcriptText,
-      frameworkId: activeUseCase?.framework?.id || 'google-adk',
+      frameworkId: resolvedFrameworkId,
       agentConfig: activeUseCase?.agent || {},
       attachedPillars,
       activeUseCase,
@@ -497,7 +503,7 @@ export default function MeetingSimulator({
             ) : (
               <>
                 <Play className="w-4 h-4 fill-white" />
-                <span>Run Visual Agent Pipeline ({activeUseCase.framework.name})</span>
+                <span>Run Visual Agent Pipeline ({resolvedFrameworkName})</span>
               </>
             )}
           </button>
@@ -515,7 +521,7 @@ export default function MeetingSimulator({
                 Live Pillar Execution Sequence
               </span>
               <span className="text-xs font-mono font-bold text-[#00338D]">
-                Framework: {activeUseCase.framework.name}
+                Framework: {resolvedFrameworkName}
               </span>
             </div>
 

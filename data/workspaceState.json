@@ -10,9 +10,9 @@
       "x": 0,
       "y": 0
     },
-    "isInspectorOpen": false,
+    "isInspectorOpen": true,
     "isEnforcerActive": true,
-    "viewMode": "canvas",
+    "viewMode": "home",
     "isWorkflowLocked": false
   },
   "workflows": [
@@ -84,7 +84,7 @@
             "width": 228,
             "height": 173
           },
-          "selected": false,
+          "selected": true,
           "dragging": false
         },
         {
@@ -295,7 +295,7 @@
             "width": 140,
             "height": 60
           },
-          "selected": true
+          "selected": false
         }
       ],
       "edges": [
@@ -369,7 +369,7 @@
         }
       ],
       "createdAt": 1794222040706,
-      "updatedAt": 1794227973998,
+      "updatedAt": 1794463643892,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -2556,13 +2556,14 @@
             },
             "prompt": "You are an autonomous enterprise AI agent configured to execute domain workflows.",
             "temperature": 0.2,
-            "topP": 0.95
+            "topP": 0.95,
+            "isDarkMode": false
           },
           "measured": {
             "width": 228,
             "height": 173
           },
-          "selected": false,
+          "selected": true,
           "dragging": false
         },
         {
@@ -2585,7 +2586,8 @@
               "contextLength": 1048576
             },
             "tools": null,
-            "itemId": "model-google-gemini-2-5-flash"
+            "itemId": "model-google-gemini-2-5-flash",
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
@@ -2614,7 +2616,8 @@
               "sessionScoped": false
             },
             "tools": null,
-            "itemId": "mem-episodic-sync"
+            "itemId": "mem-episodic-sync",
+            "isDarkMode": false
           },
           "measured": {
             "width": 140,
@@ -2641,7 +2644,8 @@
             "sourceNodeType": null,
             "sourceNodeId": null,
             "sourceNodeName": null,
-            "isExpanded": false
+            "isExpanded": false,
+            "isDarkMode": false
           },
           "measured": {
             "width": 56,
@@ -2777,7 +2781,7 @@
         }
       ],
       "createdAt": 1793691016884,
-      "updatedAt": 1794222004268,
+      "updatedAt": 1794463634815,
       "isStarred": false,
       "isLocked": false,
       "isWorkflowLocked": false,
@@ -7077,7 +7081,7 @@
           "width": 228,
           "height": 173
         },
-        "selected": false,
+        "selected": true,
         "dragging": false
       },
       {
@@ -7288,7 +7292,7 @@
           "width": 140,
           "height": 60
         },
-        "selected": true
+        "selected": false
       }
     ],
     "edges": [
@@ -12638,5 +12642,5 @@
       "id": "node-mcp-3002"
     }
   ],
-  "syncedAt": 1794227974808
+  "syncedAt": 1794463659091
 }

@@ -252,28 +252,18 @@ export default function Sidebar({
             <div className={`px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider ${themeLabel}`}>
               Active Runtime
             </div>
-            <div className={`p-3 mx-1 rounded-lg border space-y-2 transition-all ${
+            <div className={`p-3 mx-1 rounded-lg border transition-all ${
               isDark 
                 ? 'bg-[#111827]/60 border-[#1E293B]' 
                 : 'bg-slate-50 border-slate-200'
             }`}>
-              <div className="flex items-start gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <h4 className="text-xs font-semibold truncate leading-tight">
                     {activeUseCase?.name || 'Autonomous Agent'}
                   </h4>
-                  <p className={`text-[11px] ${themeTextMuted} truncate mt-0.5`}>
-                    {activeUseCase?.framework?.name || 'Multi-SDK Engine'}
-                  </p>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-800/80 text-[10px] font-mono">
-                <span className={themeTextMuted}>Model</span>
-                <span className="font-semibold text-blue-600 dark:text-sky-400 truncate max-w-[110px]">
-                  {activeUseCase?.framework?.defaultModel || 'gpt-4o-mini'}
-                </span>
               </div>
             </div>
           </div>

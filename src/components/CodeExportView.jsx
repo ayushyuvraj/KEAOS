@@ -8,7 +8,7 @@ export default function CodeExportView({ activeUseCase, nodes, edges = [] }) {
   const isMultiAgent = agentNodes.length > 1;
 
   const [selectedFwId, setSelectedFwId] = useState(
-    isMultiAgent ? 'multi-agent-fleet' : (activeUseCase?.framework?.id || 'google-adk')
+    isMultiAgent ? 'multi-agent-fleet' : (agentNodes[0]?.data?.framework?.id || 'google-adk')
   );
   const [copied, setCopied] = useState(false);
 

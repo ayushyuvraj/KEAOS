@@ -11,7 +11,6 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-import { FRAMEWORKS } from '../constants/frameworks';
 import { isWorkflowNameTaken, getActiveWorkflowId } from '../utils/workflowStorage';
 
 export default function Header({
@@ -19,7 +18,6 @@ export default function Header({
   setViewMode,
   activeUseCase,
   onUpdateUseCase,
-  onSelectFramework,
   isSidebarClosed = false,
   onToggleSidebarClosed,
   isDarkMode = true,
@@ -30,7 +28,6 @@ export default function Header({
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [editName, setEditName] = useState(activeUseCase?.name || '');
   const [editDesc, setEditDesc] = useState(activeUseCase?.description || '');
-  const [editFwId, setEditFwId] = useState(activeUseCase?.framework?.id || 'google-adk');
   const editPopoverRef = useRef(null);
 
   const activeWorkflowId = getActiveWorkflowId();
@@ -45,8 +42,7 @@ export default function Header({
   useEffect(() => {
     setEditName(activeUseCase?.name || '');
     setEditDesc(activeUseCase?.description || '');
-    setEditFwId(activeUseCase?.framework?.id || 'google-adk');
-  }, [activeUseCase?.name, activeUseCase?.description, activeUseCase?.framework?.id]);
+  }, [activeUseCase?.name, activeUseCase?.description]);
 
   useEffect(() => {
     if (!isEditingDetails) return;
@@ -65,12 +61,10 @@ export default function Header({
     if (isWorkflowNameTaken(cleanName, activeWorkflowId)) {
       return;
     }
-    const chosenFw = FRAMEWORKS.find(f => f.id === editFwId) || activeUseCase?.framework;
     if (onUpdateUseCase) {
       onUpdateUseCase({
         name: cleanName,
-        description: editDesc.trim(),
-        framework: chosenFw
+        description: editDesc.trim()
       });
     }
     setIsEditingDetails(false);
@@ -250,27 +244,6 @@ export default function Header({
                                 : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
                             }`}
                           />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-mono font-bold uppercase text-slate-400 mb-1">
-                            Primary Framework
-                          </label>
-                          <select
-                            value={editFwId}
-                            onChange={(e) => setEditFwId(e.target.value)}
-                            className={`w-full px-2.5 py-1.5 text-xs rounded-none border outline-none font-mono ${
-                              isDarkMode 
-                                ? 'bg-[#121317] border-[#2E313C] text-white focus:border-[#0091DA]' 
-                                : 'bg-white border-[#CBD5E1] text-black focus:border-[#00338D]'
-                            }`}
-                          >
-                            {FRAMEWORKS.map((fw) => (
-                              <option key={fw.id} value={fw.id}>
-                                {fw.name} ({fw.subtitle})
-                              </option>
-                            ))}
-                          </select>
                         </div>
 
                         <div className="flex items-center justify-end gap-2 pt-1">

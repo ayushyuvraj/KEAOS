@@ -150,9 +150,9 @@ export default function AuditExplorerView({ activeUseCase }) {
             </span>
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#6D2077]" />
-              <span className="text-sm font-bold text-[#0B0F19] truncate">{activeUseCase.name}</span>
+              <span className="text-sm font-bold text-[#0B0F19] truncate">{activeUseCase?.name || 'Active Workflow'}</span>
             </div>
-            <span className="text-[11px] text-slate-500 mt-1 block font-mono">{activeUseCase.framework.name}</span>
+            <span className="text-[11px] text-slate-500 mt-1 block font-mono">W3C Audited Workflow</span>
           </div>
         </div>
 

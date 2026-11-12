@@ -786,7 +786,6 @@ export default function App() {
       id: 'uc-meeting-intel',
       name: 'Meeting Intelligence Agent',
       description: 'Autonomous multi-speaker synthesis, action items with owners, and task sync.',
-      framework: FRAMEWORKS[0], // Google ADK
       agent: {
         prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
         temperature: 0.2,
@@ -796,8 +795,8 @@ export default function App() {
   });
 
   const { initialNodes, initialEdges } = useMemo(
-    () => getInitialNodesAndEdges(activeUseCase.framework),
-    [activeUseCase.framework]
+    () => getInitialNodesAndEdges(FRAMEWORKS[0]),
+    []
   );
 
   // Sanitize initial nodes to ensure MCP nodes upgrade, and preserve Meeting Intelligence prompts
@@ -1220,7 +1219,6 @@ export default function App() {
           ...currentWf,
           name: activeUseCase?.name || currentWf.name,
           description: activeUseCase?.description || currentWf.description,
-          framework: activeUseCase?.framework || currentWf.framework,
           nodes,
           edges,
           isLocked: isWorkflowLocked,
@@ -1587,6 +1585,10 @@ export default function App() {
           ? Math.round(dropPos.y - 30)
           : (200 + ((existingAgents.length % 2) * 60));
 
+        const defaultFw = (typeof item?.config?.framework === 'string'
+          ? FRAMEWORKS.find(f => f.id === item.config.framework)
+          : item?.config?.framework) || FRAMEWORKS[0] || { id: 'google-adk', name: 'Google ADK' };
+
         newNode = {
           id: newNodeId,
           type: 'agentCore',
@@ -1595,7 +1597,7 @@ export default function App() {
             name: item.name && item.name !== 'Autonomous Agent' && item.name !== 'Autonomous Agent Core'
               ? `${item.name} #${agentCount}`
               : `Autonomous Agent #${agentCount}`,
-            framework: activeUseCase?.framework || { id: 'google-adk', name: 'Google ADK' },
+            framework: defaultFw,
             prompt: item?.prompt || activeUseCase?.agent?.prompt || 'You are an autonomous enterprise agent...',
             temperature: 0.2,
             topP: 0.95
@@ -2291,28 +2293,6 @@ export default function App() {
     );
   };
 
-  // Handle Target Platform / Framework switch
-  const handleSelectFramework = useCallback((newFramework) => {
-    setActiveUseCase((prev) => ({
-      ...prev,
-      framework: newFramework
-    }));
-    setNodes((nds) =>
-      nds.map((n) => {
-        if (n.type === 'agentCore') {
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              framework: newFramework
-            }
-          };
-        }
-        return n;
-      })
-    );
-  }, [setNodes]);
-
   // Update Node Data
   const handleUpdateNodeData = (nodeId, updates) => {
     setNodes((nds) =>
@@ -2326,12 +2306,11 @@ export default function App() {
   };
 
   // Create New Use Case from Modal
-  const handleCreateUseCase = ({ name, description, framework, template }) => {
+  const handleCreateUseCase = ({ name, description, template }) => {
     const newUseCase = {
       id: `uc-${Date.now().toString().slice(-4)}`,
       name,
       description,
-      framework,
       agent: {
         prompt: 'You are an enterprise AI agent configured to execute domain workflows.',
         temperature: 0.2,
@@ -2343,7 +2322,7 @@ export default function App() {
     setEvaluationResult(null); // Reset evaluation for new use case
 
     if (template === 'meeting-pilot') {
-      const { initialNodes: newNodes, initialEdges: newEdges } = getInitialNodesAndEdges(framework);
+      const { initialNodes: newNodes, initialEdges: newEdges } = getInitialNodesAndEdges(FRAMEWORKS[0]);
       setNodes(newNodes);
       setEdges(newEdges);
     } else if (template === 'multi-agent-triad') {
@@ -2351,7 +2330,7 @@ export default function App() {
       setNodes(newNodes);
       setEdges(newEdges);
     } else if (template === 'outlook-stream-intelligence') {
-      const { initialNodes: newNodes, initialEdges: newEdges } = getOutlookStreamWorkflowNodesAndEdges(framework);
+      const { initialNodes: newNodes, initialEdges: newEdges } = getOutlookStreamWorkflowNodesAndEdges();
       setNodes(newNodes);
       setEdges(newEdges);
     } else {
@@ -2363,7 +2342,7 @@ export default function App() {
           position: { x: 500, y: 250 },
           data: {
             name,
-            framework,
+            framework: FRAMEWORKS[0],
             prompt: 'You are an enterprise AI agent configured to execute domain workflows.',
             temperature: 0.2,
             topP: 0.95,
@@ -2379,7 +2358,7 @@ export default function App() {
   // Reset to Pilot Template
   const handleResetTemplate = () => {
     clearCanvasState();
-    const { initialNodes: newNodes, initialEdges: newEdges } = getInitialNodesAndEdges(activeUseCase.framework);
+    const { initialNodes: newNodes, initialEdges: newEdges } = getInitialNodesAndEdges(FRAMEWORKS[0]);
     setNodes(newNodes);
     setEdges(newEdges);
     setSelectedNode(null);
@@ -2397,7 +2376,14 @@ export default function App() {
 
   const handleDeployClick = () => {
     if (evaluationResult?.allPassed) {
-      alert(`🚀 Agent Successfully Deployed to Production Registry!\n\nUse Case: ${activeUseCase.name}\nFramework: ${activeUseCase.framework.name}\nAlignment Score: Passed (${evaluationResult.aggregates.faithfulness}% Faithfulness, ${evaluationResult.aggregates.actionItemF1}% Action F1)`);
+      const agentFrameworks = Array.from(new Set(
+        (nodes || [])
+          .filter(n => n.type === 'agentCore')
+          .map(n => n.data?.framework?.name)
+          .filter(Boolean)
+      ));
+      const fwSummary = agentFrameworks.length > 0 ? agentFrameworks.join(', ') : 'Google ADK';
+      alert(`🚀 Agent Successfully Deployed to Production Registry!\n\nUse Case: ${activeUseCase.name}\nFramework: ${fwSummary}\nAlignment Score: Passed (${evaluationResult.aggregates.faithfulness}% Faithfulness, ${evaluationResult.aggregates.actionItemF1}% Action F1)`);
     } else {
       alert(`⚠️ Deployment Locked!\n\nAgent has not passed the Golden Dataset Alignment Gate. Go to the "Evaluation & Gate" tab and run the benchmark suite to verify the agent meets required thresholds.`);
     }
@@ -2414,7 +2400,6 @@ export default function App() {
       id: `uc-${workflow.id}`,
       name: workflow.name,
       description: cleanDesc,
-      framework: workflow.framework,
       agent: {
         prompt: 'Analyze meeting transcripts, extract decisions, action items with owners, and draft follow-up communications.',
         temperature: 0.2,
@@ -2500,7 +2485,6 @@ export default function App() {
               ...updates
             }));
           }}
-          onSelectFramework={handleSelectFramework}
           hasApiKey={hasApiKey}
           configuredCount={configuredCount}
           onOpenClusterModal={() => setIsClusterModalOpen(true)}
@@ -2605,7 +2589,6 @@ export default function App() {
                           nodes={nodes}
                           edges={edges}
                           activeUseCase={activeUseCase}
-                          onSelectFramework={handleSelectFramework}
                           agentConfig={activeUseCase.agent}
                           onUpdateAgentConfig={handleUpdateAgentConfig}
                           onUpdateNodeData={handleUpdateNodeData}

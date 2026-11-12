@@ -1907,7 +1907,6 @@ export function setWorkflowLock(id, isLocked) {
 export function createWorkflow({
   name = 'Untitled Workflow',
   description = '',
-  framework = FRAMEWORKS[0],
   isBlank = true,
   nodes = [],
   edges = [],
@@ -1923,7 +1922,6 @@ export function createWorkflow({
     id: `uc-${newId}`,
     name: uniqueName,
     description: cleanDescription,
-    framework,
     agent: {
       prompt: 'You are an autonomous enterprise AI agent configured to execute domain workflows.',
       temperature: 0.2,
@@ -1935,7 +1933,6 @@ export function createWorkflow({
     id: newId,
     name: uniqueName,
     description: cleanDescription,
-    framework,
     activeUseCase: useCaseObj,
     nodes: isBlank ? [] : nodes,
     edges: isBlank ? [] : edges,
@@ -2031,8 +2028,7 @@ export function updateWorkflowMetadata(id, updates = {}) {
   const updatedUseCase = {
     ...existing.activeUseCase,
     name: newName,
-    description: cleanDescription,
-    framework: updates.framework || existing.activeUseCase?.framework
+    description: cleanDescription
   };
 
   const updated = {

@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Check, ArrowRight, Layers, AlertTriangle } from 'lucide-react';
-import { FRAMEWORKS } from '../constants/frameworks';
+import { X, Check, ArrowRight, AlertTriangle } from 'lucide-react';
 import { isWorkflowNameTaken, getNextUniqueWorkflowName } from '../utils/workflowStorage';
 
 export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
   const [name, setName] = useState(() => getNextUniqueWorkflowName('Untitled Workflow'));
   const [description, setDescription] = useState('');
-  const [selectedFrameworkId, setSelectedFrameworkId] = useState('google-adk');
   const [template, setTemplate] = useState('meeting-pilot');
 
   if (!isOpen) return null;
@@ -17,17 +15,13 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isDuplicate || isNameEmpty) return;
-    const frameworkObj = FRAMEWORKS.find(f => f.id === selectedFrameworkId) || FRAMEWORKS[0];
     onCreateUseCase({
       name: name.trim(),
       description,
-      framework: frameworkObj,
       template
     });
     onClose();
   };
-
-  const selectedFramework = FRAMEWORKS.find(f => f.id === selectedFrameworkId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#001E50]/50 backdrop-blur-sm select-none">
@@ -84,40 +78,6 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
             )}
           </div>
 
-          {/* Framework Dropdown (Clean dropdown without pictures) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] font-mono">
-                Agent Orchestration Framework
-              </label>
-              <span className="text-[10px] text-[#00338D] font-mono font-bold">5 SDKs Supported</span>
-            </div>
-            <select
-              value={selectedFrameworkId}
-              onChange={(e) => setSelectedFrameworkId(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-[#FFFFFF] border border-[#CBD5E1] text-[#0B0F19] text-xs focus:outline-none focus:border-[#00338D] focus:ring-1 focus:ring-[#00338D] rounded-none font-semibold transition-colors"
-            >
-              {FRAMEWORKS.map((fw) => (
-                <option key={fw.id} value={fw.id} className="bg-[#FFFFFF] text-[#0B0F19] py-2">
-                  {fw.name} — {fw.subtitle}
-                </option>
-              ))}
-            </select>
-
-            {selectedFramework && (
-              <div className="mt-2 p-3 bg-[#E6EDF7] border border-[#00338D]/20 text-xs text-[#333333] flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-[#00338D] shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-[#00338D]">{selectedFramework.name}: </span>
-                  <span className="text-[11px] leading-relaxed text-slate-700">{selectedFramework.description}</span>
-                  <div className="mt-1 text-[10px] font-mono text-[#00338D] font-bold">
-                    Default Model: {selectedFramework.defaultModel} • File Export: {selectedFramework.exportExtension}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Description */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-[0.08em] text-[#0B0F19] mb-1.5 font-mono">
@@ -144,7 +104,6 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
                   setTemplate('meeting-pilot');
                   setName('Meeting Intelligence Agent');
                   setDescription('Multi-speaker transcript synthesis, action item extraction, and task dispatching.');
-                  setSelectedFrameworkId('google-adk');
                 }}
                 className={`btn-tactile p-3 text-left border rounded-none transition-all ${
                   template === 'meeting-pilot'
@@ -167,7 +126,6 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
                   setTemplate('outlook-stream-intelligence');
                   setName('Outlook Mail & Attachment Intelligence');
                   setDescription('Continuous MCP stream monitoring (Inbox/Sent/Calendar), zero-trust Gateway filtering, attachment decoding, and discrete tabular extraction.');
-                  setSelectedFrameworkId('microsoft-adk');
                 }}
                 className={`btn-tactile p-3 text-left border rounded-none transition-all ${
                   template === 'outlook-stream-intelligence'
@@ -254,7 +212,7 @@ export default function MakeUseCaseModal({ isOpen, onClose, onCreateUseCase }) {
                   : 'bg-[#00338D] hover:bg-[#005EB8]'
               }`}
             >
-              <span>Initialize in {selectedFramework?.name}</span>
+              <span>Initialize Workflow</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

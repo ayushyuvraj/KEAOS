@@ -186,12 +186,14 @@ export default function EvaluationView({
 
     const nextRunNumber = runs.length + 1;
 
+    const primaryAgentFwId = (nodes || []).find(n => n.type === 'agentCore')?.data?.framework?.id || 'google-adk';
+
     try {
       const runResult = await runEvaluationSuite({
         dataset,
         thresholds,
         evaluators,
-        frameworkId: activeUseCase?.framework?.id || 'google-adk',
+        frameworkId: primaryAgentFwId,
         agentPrompt: activeUseCase?.agent?.prompt || '',
         attachedPillars,
         laborRateHr: suite.laborRateHr ?? 75,

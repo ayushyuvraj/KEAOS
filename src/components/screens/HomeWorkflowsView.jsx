@@ -34,7 +34,6 @@ import {
   isWorkflowNameTaken,
   getNextUniqueWorkflowName
 } from '../../utils/workflowStorage';
-import { FRAMEWORKS } from '../../constants/frameworks';
 import { getWorkflowDecommissionedComponents, subscribeToRegistry } from '../../services/componentRegistryService';
 
 export default function HomeWorkflowsView({
@@ -50,7 +49,7 @@ export default function HomeWorkflowsView({
   useEffect(() => {
     return subscribeToRegistry(() => setRegistryTick(t => t + 1));
   }, []);
-  const [selectedFrameworkFilter, setSelectedFrameworkFilter] = useState('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('updated'); // 'updated' | 'alpha' | 'nodes' | 'created'
 
   // Persistent view style (Grid / List) — holds true until manually changed
@@ -184,14 +183,13 @@ export default function HomeWorkflowsView({
       result = result.filter((w) =>
         w.name.toLowerCase().includes(q) ||
         (w.description && w.description.toLowerCase().includes(q)) ||
-        (w.framework?.name && w.framework.name.toLowerCase().includes(q)) ||
         (w.tags && w.tags.some(t => t.toLowerCase().includes(q)))
       );
     }
 
-    // Framework filter
-    if (selectedFrameworkFilter !== 'all') {
-      result = result.filter((w) => w.framework?.id === selectedFrameworkFilter);
+    // Governance status filter
+    if (selectedStatusFilter === 'needs-attention') {
+      result = result.filter((w) => (workflowsDecomMap[w.id] || []).length > 0);
     }
 
     // Sort order
@@ -212,7 +210,7 @@ export default function HomeWorkflowsView({
     });
 
     return result;
-  }, [workflows, searchQuery, selectedFrameworkFilter, sortBy]);
+  }, [workflows, searchQuery, selectedStatusFilter, workflowsDecomMap, sortBy]);
 
   // Handle Create Blank Workflow
   const handleCreateNew = () => {
@@ -220,7 +218,6 @@ export default function HomeWorkflowsView({
     const newWf = createWorkflow({
       name: uniqueName,
       description: '',
-      framework: FRAMEWORKS[0],
       isBlank: true,
       nodes: [],
       edges: []
@@ -334,35 +331,6 @@ export default function HomeWorkflowsView({
     return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4.5';
   }, [cardSize]);
 
-  const activeFrameworkName = useMemo(() => {
-    if (selectedFrameworkFilter === 'all') return null;
-    return FRAMEWORKS.find(f => f.id === selectedFrameworkFilter)?.name || selectedFrameworkFilter;
-  }, [selectedFrameworkFilter]);
-
-  // Framework badge color helper mapped strictly to the 5-Color Pentagon Palette
-  const getFrameworkBadgeStyle = (fwName = '') => {
-    const fLower = fwName.toLowerCase();
-    if (fLower.includes('langgraph') || fLower.includes('langchain')) {
-      return isDarkMode
-        ? 'bg-[#1E49E2]/15 text-[#1E49E2] border-[#1E49E2]/35'
-        : 'bg-[#1E49E2]/10 text-[#1E49E2] border-[#1E49E2]/25';
-    }
-    if (fLower.includes('crewai')) {
-      return isDarkMode
-        ? 'bg-[#FD349C]/15 text-[#FD349C] border-[#FD349C]/35'
-        : 'bg-[#FD349C]/10 text-[#FD349C] border-[#FD349C]/25';
-    }
-    if (fLower.includes('openai') || fLower.includes('swarm')) {
-      return isDarkMode
-        ? 'bg-[#7213EA]/20 text-purple-300 border-[#7213EA]/35'
-        : 'bg-[#7213EA]/10 text-[#7213EA] border-[#7213EA]/25';
-    }
-    // Default Google ADK / Microsoft ADK
-    return isDarkMode
-      ? 'bg-[#00338D]/25 text-[#00B8F5] border-[#00B8F5]/30'
-      : 'bg-[#00338D]/10 text-[#00338D] border-[#00338D]/20';
-  };
-
   return (
     <div className={`flex-1 h-full w-full overflow-hidden flex flex-col select-none transition-colors duration-200 ${isDarkMode ? 'bg-[#070A12] text-slate-100' : 'bg-[#EDF2F7] text-[#001E50]'
       }`}>
@@ -375,7 +343,7 @@ export default function HomeWorkflowsView({
       )}
 
       {/* Soft Neo-Modernist Screen Header */}
-      <div className={`px-6 py-4 border-b shrink-0 flex items-center justify-between transition-colors backdrop-blur-xl ${isDarkMode ? 'bg-[#080E1C]/80 border-white/[0.08]' : 'bg-white/85 border-slate-200/80 shadow-xs'
+      <div className={`relative z-0 px-6 py-4 border-b shrink-0 flex items-center justify-between transition-colors backdrop-blur-xl ${isDarkMode ? 'bg-[#080E1C]/80 border-white/[0.08]' : 'bg-white/85 border-slate-200/80 shadow-xs'
         }`}>
         <div className="flex items-center gap-3">
           <h1 className={`text-base font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-[#001E50]'}`}>
@@ -422,7 +390,7 @@ export default function HomeWorkflowsView({
       </div>
 
       {/* Minimal Control Toolbar: Search, Filter, Sort, Size & View */}
-      <div className={`px-6 py-2.5 border-b shrink-0 flex items-center justify-between gap-3 backdrop-blur-lg ${isDarkMode ? 'bg-[#080E1C]/60 border-white/[0.06]' : 'bg-white/60 border-slate-200/60'
+      <div className={`relative z-10 px-6 py-2.5 border-b shrink-0 flex items-center justify-between gap-3 backdrop-blur-lg ${isDarkMode ? 'bg-[#080E1C]/60 border-white/[0.06]' : 'bg-white/60 border-slate-200/60'
         }`}>
         {/* Left: Search Bar + Filter Popover + Sort Popover */}
         <div className="flex items-center gap-2.5 flex-1 max-w-2xl">
@@ -458,16 +426,16 @@ export default function HomeWorkflowsView({
                 setIsSortOpen(false);
                 setIsSizeOpen(false);
               }}
-              className={`px-3.5 py-2 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all active:scale-95 shadow-xs ${selectedFrameworkFilter !== 'all'
+              className={`px-3.5 py-2 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all active:scale-95 shadow-xs ${selectedStatusFilter !== 'all'
                   ? 'bg-[#00338D] text-white border-[#00B8F5]'
                   : isDarkMode
                     ? 'bg-[#040813]/90 border-white/[0.08] text-slate-300 hover:text-white hover:border-white/20'
                     : 'bg-white border-slate-200 text-slate-700 hover:text-[#001E50] hover:border-slate-300'
                 }`}
-              title="Filter by SDK Framework"
+              title="Filter workflows"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 opacity-80 text-[#00B8F5]" />
-              <span>{activeFrameworkName ? `Filter: ${activeFrameworkName}` : 'Filter'}</span>
+              <span>{selectedStatusFilter === 'needs-attention' ? 'Filter: Needs Attention' : 'Filter'}</span>
               <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
             </button>
 
@@ -476,15 +444,15 @@ export default function HomeWorkflowsView({
               <div className={`absolute left-0 mt-2 w-56 rounded-2xl border shadow-2xl z-50 p-1.5 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150 ${isDarkMode ? 'bg-[#080E1C]/95 border-white/10 text-slate-200' : 'bg-white/95 border-slate-200 text-slate-800'
                 }`}>
                 <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-white/5 mb-1 font-bold flex items-center justify-between">
-                  <span>Governance & SDKs</span>
+                  <span>Governance Status</span>
                 </div>
                 {needsAttentionCount > 0 && (
                   <button
                     onClick={() => {
-                      setSelectedFrameworkFilter('needs-attention');
+                      setSelectedStatusFilter('needs-attention');
                       setIsFilterOpen(false);
                     }}
-                    className={`w-full px-3 py-1.5 text-xs text-left rounded-lg flex items-center justify-between transition-colors mb-1 ${selectedFrameworkFilter === 'needs-attention'
+                    className={`w-full px-3 py-1.5 text-xs text-left rounded-lg flex items-center justify-between transition-colors mb-1 ${selectedStatusFilter === 'needs-attention'
                         ? 'bg-rose-500/20 text-rose-400 font-semibold'
                         : 'text-rose-400 hover:bg-rose-500/10'
                       }`}
@@ -494,52 +462,27 @@ export default function HomeWorkflowsView({
                       <span>Needs Attention</span>
                       <span className="text-[10px] font-mono font-bold">({needsAttentionCount})</span>
                     </div>
-                    {selectedFrameworkFilter === 'needs-attention' && <Check className="w-3.5 h-3.5 text-rose-400 shrink-0" />}
+                    {selectedStatusFilter === 'needs-attention' && <Check className="w-3.5 h-3.5 text-rose-400 shrink-0" />}
                   </button>
                 )}
                 <button
                   onClick={() => {
-                    setSelectedFrameworkFilter('all');
+                    setSelectedStatusFilter('all');
                     setIsFilterOpen(false);
                   }}
-                  className={`w-full px-3 py-1.5 text-xs text-left rounded-lg flex items-center justify-between transition-colors ${selectedFrameworkFilter === 'all'
+                  className={`w-full px-3 py-1.5 text-xs text-left rounded-lg flex items-center justify-between transition-colors ${selectedStatusFilter === 'all'
                       ? isDarkMode ? 'bg-[#00338D]/30 text-[#00B8F5] font-semibold' : 'bg-blue-50 text-[#00338D] font-semibold'
                       : isDarkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'
                     }`}
                 >
-                  <span>All SDKs</span>
-                  {selectedFrameworkFilter === 'all' && <Check className="w-3.5 h-3.5 text-[#00B8F5]" />}
+                  <span>All Workflows</span>
+                  {selectedStatusFilter === 'all' && <Check className="w-3.5 h-3.5 text-[#00B8F5]" />}
                 </button>
-                {FRAMEWORKS.map((fw) => {
-                  const isSelected = selectedFrameworkFilter === fw.id;
-                  const count = workflows.filter(w => w.framework?.id === fw.id).length;
-                  return (
-                    <button
-                      key={fw.id}
-                      onClick={() => {
-                        setSelectedFrameworkFilter(fw.id);
-                        setIsFilterOpen(false);
-                      }}
-                      className={`w-full px-3 py-1.5 text-xs text-left rounded-lg flex items-center justify-between transition-colors ${isSelected
-                          ? isDarkMode ? 'bg-[#00338D]/30 text-[#00B8F5] font-semibold' : 'bg-blue-50 text-[#00338D] font-semibold'
-                          : isDarkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'
-                        }`}
-                    >
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span className="truncate">{fw.name}</span>
-                        {count > 0 && (
-                          <span className="text-[10px] text-slate-400 font-mono">({count})</span>
-                        )}
-                      </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-[#00B8F5] shrink-0" />}
-                    </button>
-                  );
-                })}
-                {selectedFrameworkFilter !== 'all' && (
+                {selectedStatusFilter !== 'all' && (
                   <div className="mt-1 pt-1 border-t border-white/10 px-2">
                     <button
                       onClick={() => {
-                        setSelectedFrameworkFilter('all');
+                        setSelectedStatusFilter('all');
                         setIsFilterOpen(false);
                       }}
                       className="w-full text-center py-1 text-[11px] text-[#FD349C] hover:underline font-semibold"
@@ -659,7 +602,7 @@ export default function HomeWorkflowsView({
       </div>
 
       {/* Main Workspaces Content Canvas */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="relative z-0 flex-1 overflow-y-auto p-6">
         {filteredWorkflows.length === 0 ? (
           /* Clean Empty State */
           <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -671,7 +614,7 @@ export default function HomeWorkflowsView({
             <button
               onClick={() => {
                 setSearchQuery('');
-                setSelectedFrameworkFilter('all');
+                setSelectedStatusFilter('all');
               }}
               className="mt-3 text-xs font-semibold text-[#00B8F5] hover:underline"
             >
@@ -711,7 +654,6 @@ export default function HomeWorkflowsView({
               const isActive = wf.id === activeWorkflowId;
               const isLocked = Boolean(wf.isLocked ?? wf.isWorkflowLocked);
               const nodeCount = wf.nodes?.length || 0;
-              const fwBadgeClass = getFrameworkBadgeStyle(wf.framework?.name);
               const decomItems = workflowsDecomMap[wf.id] || [];
               const hasDecom = decomItems.length > 0;
 
@@ -733,15 +675,10 @@ export default function HomeWorkflowsView({
                           : 'border-slate-200/90 bg-white/95 hover:border-[#00338D]/40 shadow-[0_14px_32px_rgba(0,51,141,0.06),0_2px_6px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.9)] hover:shadow-[0_20px_40px_rgba(0,51,141,0.12)] hover:scale-[1.01]'
                     }`}
                 >
-                  {/* Card Top: Framework, Status Badges & Star */}
+                  {/* Card Top: Status Badges & Star */}
                   <div>
                     <div className="flex items-center justify-between gap-1.5 mb-2.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {/* Framework Tag */}
-                        <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${fwBadgeClass}`}>
-                          {wf.framework?.name || 'Google ADK'}
-                        </span>
-
                         {/* Needs Attention Badge */}
                         {hasDecom && (
                           <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/40 text-rose-400 flex items-center gap-1 shadow-[0_0_8px_rgba(244,63,94,0.2)]">
@@ -881,7 +818,6 @@ export default function HomeWorkflowsView({
                   }`}>
                   <th className="py-2.5 px-3 w-8">★</th>
                   <th className="py-2.5 px-4 font-bold">Workflow</th>
-                  <th className="py-2.5 px-4 font-bold">SDK</th>
                   <th className="py-2.5 px-4 font-bold">Nodes</th>
                   <th className="py-2.5 px-4 font-bold">Modified</th>
                   <th className="py-2.5 px-4 text-right font-bold">Actions</th>
@@ -955,9 +891,6 @@ export default function HomeWorkflowsView({
                             <span className="truncate font-semibold">Decommissioned: {decomItems.map(d => d.name).join(', ')}</span>
                           </div>
                         )}
-                      </td>
-                      <td className={`${rowPaddingClass} font-mono text-[11px] text-slate-400`}>
-                        {wf.framework?.name || 'Google ADK'}
                       </td>
                       <td className={`${rowPaddingClass} font-mono text-[11px] text-slate-400`}>
                         {nodeCount}
@@ -1096,29 +1029,6 @@ export default function HomeWorkflowsView({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono font-medium text-slate-400 mb-1">
-                    Multi-Agent SDK
-                  </label>
-                  <select
-                    value={editingWorkflow.framework?.id || 'google-adk'}
-                    onChange={(e) => {
-                      const fw = FRAMEWORKS.find((f) => f.id === e.target.value) || FRAMEWORKS[0];
-                      setEditingWorkflow({ ...editingWorkflow, framework: fw });
-                    }}
-                    className={`w-full px-3.5 py-2 text-xs rounded-xl border outline-none transition-all ${isDarkMode
-                        ? 'bg-[#040813] border-white/10 text-white focus:border-[#00B8F5]'
-                        : 'bg-slate-50 border-slate-200 text-black focus:border-[#00338D]'
-                      }`}
-                  >
-                    {FRAMEWORKS.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name} — {f.subtitle}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
                   <button
                     type="button"
@@ -1134,8 +1044,7 @@ export default function HomeWorkflowsView({
                       if (isEditDuplicate || isEditNameEmpty) return;
                       updateWorkflowMetadata(editingWorkflow.id, {
                         name: editingWorkflow.name.trim(),
-                        description: editingWorkflow.description,
-                        framework: editingWorkflow.framework
+                        description: editingWorkflow.description
                       });
                       reloadWorkflows();
                       setEditingWorkflow(null);
